@@ -1,0 +1,1373 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Hệ thống Quản lý Tranh & Khung</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        .sidebar-transition {
+            transition: all 0.3s ease-in-out;
+        }
+        .content-transition {
+            transition: margin-left 0.3s ease-in-out;
+        }
+        .fade-in {
+            animation: fadeIn 0.5s ease-in;
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        .glass-effect {
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+    </style>
+</head>
+<body class="bg-gradient-to-br from-blue-50 to-cyan-100 min-h-screen">
+    <!-- Sidebar -->
+    <div id="sidebar" class="fixed left-0 top-0 h-full w-64 bg-gradient-to-b from-blue-600 to-cyan-700 text-white sidebar-transition z-50 shadow-2xl">
+        <div class="p-6">
+            <div class="flex items-center space-x-3 mb-8">
+                <div class="w-10 h-10 bg-white rounded-lg flex items-center justify-center">
+                    <i class="fas fa-palette text-blue-600 text-xl"></i>
+                </div>
+                <h1 class="text-xl font-bold">Quản lý Tranh</h1>
+            </div>
+            
+            <nav class="space-y-2">
+                <a href="#" onclick="showModule('dashboard')" class="nav-item flex items-center space-x-3 p-3 rounded-lg hover:bg-white hover:bg-opacity-20 transition-all duration-200 active">
+                    <i class="fas fa-tachometer-alt w-5"></i>
+                    <span>Báo cáo thống kê</span>
+                </a>
+                <a href="#" onclick="showModule('sales')" class="nav-item flex items-center space-x-3 p-3 rounded-lg hover:bg-white hover:bg-opacity-20 transition-all duration-200">
+                    <i class="fas fa-shopping-cart w-5"></i>
+                    <span>Bán hàng</span>
+                </a>
+                <a href="#" onclick="showModule('debt')" class="nav-item flex items-center space-x-3 p-3 rounded-lg hover:bg-white hover:bg-opacity-20 transition-all duration-200">
+                    <i class="fas fa-credit-card w-5"></i>
+                    <span>Lịch sử công nợ</span>
+                </a>
+                <a href="#" onclick="showModule('returns')" class="nav-item flex items-center space-x-3 p-3 rounded-lg hover:bg-white hover:bg-opacity-20 transition-all duration-200">
+                    <i class="fas fa-undo w-5"></i>
+                    <span>Đổi/Trả hàng</span>
+                </a>
+                
+                <a href="#" onclick="showModule('inventory')" class="nav-item flex items-center space-x-3 p-3 rounded-lg hover:bg-white hover:bg-opacity-20 transition-all duration-200">
+                    <i class="fas fa-warehouse w-5"></i>
+                    <span>Quản lý kho</span>
+                </a>
+                <a href="#" onclick="showModule('showrooms')" class="nav-item flex items-center space-x-3 p-3 rounded-lg hover:bg-white hover:bg-opacity-20 transition-all duration-200">
+                    <i class="fas fa-store w-5"></i>
+                    <span>Phòng trưng bày</span>
+                </a>
+                <a href="#" onclick="showModule('permissions')" class="nav-item flex items-center space-x-3 p-3 rounded-lg hover:bg-white hover:bg-opacity-20 transition-all duration-200">
+                    <i class="fas fa-user-shield w-5"></i>
+                    <span>Phân quyền</span>
+                </a>
+            </nav>
+        </div>
+    </div>
+
+    <!-- Main Content -->
+    <div id="main-content" class="content-transition ml-64 p-6">
+        <!-- Header -->
+        <div class="bg-white rounded-xl shadow-lg p-6 mb-6 glass-effect relative z-40">
+            <div class="flex justify-between items-center">
+                <div>
+                    <h2 id="page-title" class="text-2xl font-bold text-gray-800">Báo cáo thống kê</h2>
+                    <p class="text-gray-600">Tổng quan hệ thống quản lý tranh</p>
+                </div>
+                <div class="flex items-center space-x-4">
+                    <button class="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors">
+                        <i class="fas fa-bell mr-2"></i>Thông báo
+                    </button>
+                    
+                    <!-- User Profile Dropdown -->
+                    <div class="relative z-50">
+                        <button onclick="toggleUserDropdown()" class="flex items-center space-x-2 bg-white border border-gray-300 rounded-lg px-3 py-2 hover:bg-gray-50 transition-colors">
+                            <img src="https://bizweb.dktcdn.net/100/372/422/products/tranh-son-dau-dep-da-nang-4-3.jpg?v=1679906135817" alt="User" class="w-8 h-8 rounded-full">
+                            <span class="text-sm font-medium text-gray-700">Admin</span>
+                            <i class="fas fa-chevron-down text-gray-500 text-xs"></i>
+                        </button>
+                        
+                        <!-- Dropdown Menu -->
+                        <div id="user-dropdown" class="hidden absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-lg border border-gray-200 z-[9999]">
+                            <div class="py-1">
+                                <div class="px-4 py-2 border-b border-gray-100">
+                                    <p class="text-sm font-medium text-gray-900">Admin User</p>
+                                    <p class="text-xs text-gray-500">admin@example.com</p>
+                                </div>
+                                
+                                <a href="#" onclick="showUserProfile()" class="flex items-center px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 transition-colors">
+                                    <i class="fas fa-user mr-3 text-gray-400"></i>
+                                    Hồ sơ cá nhân
+                                </a>
+                                
+                                <a href="#" onclick="showSettings()" class="flex items-center px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 transition-colors">
+                                    <i class="fas fa-cog mr-3 text-gray-400"></i>
+                                    Cài đặt
+                                </a>
+                                
+                                <a href="#" onclick="showHelp()" class="flex items-center px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 transition-colors">
+                                    <i class="fas fa-question-circle mr-3 text-gray-400"></i>
+                                    Trợ giúp
+                                </a>
+                                
+                                <div class="border-t border-gray-100">
+                                    <a href="#" onclick="logout()" class="flex items-center px-4 py-2 text-sm text-red-600 hover:bg-red-50 transition-colors">
+                                        <i class="fas fa-sign-out-alt mr-3"></i>
+                                        Đăng xuất
+                                    </a>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Dashboard Module -->
+        <div id="dashboard-module" class="module fade-in">
+            <div class="flex items-center  mb-4 space-x-3">
+                <div class="flex items-center">
+                    <label for="dashboard-time-filter" class="mr-3 text-sm text-gray-600">Thời gian</label>
+                    <select id="dashboard-time-filter" class="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                        <option value="week">Tuần</option>
+                        <option value="month">Tháng</option>
+                        <option value="year">Năm</option>
+                    </select>
+                </div>
+                <div class="flex items-center space-x-2">
+                    <label class="text-sm text-gray-600">Từ</label>
+                    <input type="date" id="dashboard-from-date" class="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                    <label class="text-sm text-gray-600">Đến</label>
+                    <input type="date" id="dashboard-to-date" class="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                    <button id="dashboard-clear-range" class="px-3 py-2 bg-gray-500 text-white rounded-lg hover:bg-gray-600">Xóa</button>
+                </div>
+            </div>
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-6">
+                <div class="bg-white rounded-xl shadow-lg p-6 glass-effect">
+                    <div class="flex items-center justify-between">
+                        <div>
+                            <p class="text-gray-600 text-sm">Doanh số</p>
+                            <p id="dashboard-sales" class="text-2xl font-bold text-green-600">0đ</p>
+                        </div>
+                        <div class="w-12 h-12 bg-green-100 rounded-lg flex items-center justify-center">
+                            <i class="fas fa-chart-line text-green-600"></i>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="bg-white rounded-xl shadow-lg p-6 glass-effect">
+                    <div class="flex items-center justify-between">
+                        <div>
+                            <p class="text-gray-600 text-sm">Công nợ còn lại</p>
+                            <p id="dashboard-debt" class="text-2xl font-bold text-red-600">0đ</p>
+                        </div>
+                        <div class="w-12 h-12 bg-red-100 rounded-lg flex items-center justify-center">
+                            <i class="fas fa-exclamation-triangle text-red-600"></i>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="bg-white rounded-xl shadow-lg p-6 glass-effect">
+                    <div class="flex items-center justify-between">
+                        <div>
+                            <p class="text-gray-600 text-sm">Tồn Vật tư</p>
+                            <p id="dashboard-stock-supplies" class="text-2xl font-bold text-blue-600">0</p>
+                        </div>
+                        <div class="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center">
+                            <i class="fas fa-image text-blue-600"></i>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="bg-white rounded-xl shadow-lg p-6 glass-effect">
+                    <div class="flex items-center justify-between">
+                        <div>
+                            <p class="text-gray-600 text-sm">Tồn tranh</p>
+                            <p id="dashboard-stock-paintings" class="text-2xl font-bold text-purple-600">0</p>
+                        </div>
+                        <div class="w-12 h-12 bg-purple-100 rounded-lg flex items-center justify-center">
+                            <i class="fas fa-square text-purple-600"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+                <div class="bg-white rounded-xl shadow-lg p-6 glass-effect">
+                    <div class="flex items-center justify-between mb-4">
+                        <h3 class="text-lg font-semibold">Biểu đồ doanh thu</h3>
+                        <span id="dashboard-range-label" class="text-sm text-gray-500"></span>
+                    </div>
+                    <canvas id="revenueChart" width="400" height="200"></canvas>
+                </div>
+                
+                <div class="bg-white rounded-xl shadow-lg p-6 glass-effect">
+                    <h3 class="text-lg font-semibold mb-4">Phân bố sản phẩm bán ra</h3>
+                    <div class="flex justify-center">
+                        <div style="width: 550px; height: 500px;">
+                            <canvas id="productChart" width="550" height="550"></canvas>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
+                <div class="bg-white rounded-xl shadow-lg p-6 glass-effect">
+                    <h3 class="text-lg font-semibold mb-4">Thống kê khách hàng</h3>
+                    <div class="space-y-4">
+                        <div class="flex justify-between items-center p-3 bg-blue-50 rounded-lg">
+                            <div>
+                                <p class="text-sm text-blue-600">Khách hàng mới</p>
+                                <p class="text-xl font-bold text-blue-700">24</p>
+                            </div>
+                            <i class="fas fa-user-plus text-blue-500 text-2xl"></i>
+                        </div>
+                       
+                        <div class="flex justify-between items-center p-3 bg-purple-50 rounded-lg">
+                            <div>
+                                <p class="text-sm text-purple-600">Tổng giao dịch</p>
+                                <p class="text-xl font-bold text-purple-700">342</p>
+                            </div>
+                            <i class="fas fa-shopping-bag text-purple-500 text-2xl"></i>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="bg-white rounded-xl shadow-lg p-6 glass-effect">
+                    <h3 class="text-lg font-semibold mb-4">Thống kê kho hàng</h3>
+                    <div class="space-y-4">
+                        <div class="flex justify-between items-center p-3 bg-orange-50 rounded-lg">
+                            <div>
+                                <p class="text-sm text-orange-600">Nhập kho tháng này</p>
+                                <p class="text-xl font-bold text-orange-700">156 sản phẩm</p>
+                            </div>
+                            <i class="fas fa-arrow-down text-orange-500 text-2xl"></i>
+                        </div>
+                        <div class="flex justify-between items-center p-3 bg-red-50 rounded-lg">
+                            <div>
+                                <p class="text-sm text-red-600">Xuất kho tháng này</p>
+                                <p class="text-xl font-bold text-red-700">89 sản phẩm</p>
+                            </div>
+                            <i class="fas fa-arrow-up text-red-500 text-2xl"></i>
+                        </div>
+                       
+                       
+                    </div>
+                </div>
+
+                <div class="bg-white rounded-xl shadow-lg p-6 glass-effect">
+                    <h3 class="text-lg font-semibold mb-4">Loại tranh bán chạy</h3>
+                    <div class="space-y-3">
+                        <div class="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                            <div class="flex items-center space-x-3">
+                                <img src="https://vetranhtuong.biz/wp-content/uploads/2021/05/117216290_405082790477568_5157289602379512017_n.jpg" alt="Tranh" class="w-10 h-10 rounded-lg object-cover">
+                                <div>
+                                    <p class="font-medium">Tranh sơn dầu</p>
+                                    <p class="text-sm text-gray-600">Đã bán: 15 | Doanh thu: 37.5M</p>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                            <div class="flex items-center space-x-3">
+                                <img src="https://vetranhtuong.biz/wp-content/uploads/2021/05/117216290_405082790477568_5157289602379512017_n.jpg" alt="Tranh" class="w-10 h-10 rounded-lg object-cover">
+                                <div>
+                                    <p class="font-medium">Tranh canvas</p>
+                                    <p class="text-sm text-gray-600">Đã bán: 8 | Doanh thu: 14.4M</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Sales Module -->
+        <div id="sales-module" class="module hidden">
+            <div class="bg-white rounded-xl shadow-lg p-6 glass-effect">
+                <div class="flex justify-between items-center">
+                    <div class="">
+                        <h4 class="text-lg font-semibold mb-4">Danh sách bán hàng</h4>
+                        <p class="text-gray-600 mb-6">Quản lý tất cả các giao dịch bán hàng</p>
+                    </div>
+                    <div class="flex justify-between items-center mb-6">
+                        <h3 class="text-lg font-semibold hidden">Bán hàng</h3>
+                        <div class="flex space-x-3">
+                            <button onclick="showSalesTab('list')" class="sales-tab bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors hidden">
+                                <i class="fas fa-list mr-2"></i>Danh sách bán hàng
+                            </button>
+                            <button onclick="showSalesTab('create')" class="sales-tab bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 transition-colors">
+                                <i class="fas fa-plus mr-2"></i>Tạo hóa đơn
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Danh sách bán hàng -->
+                <div id="sales-list" class="sales-tab-content">
+                    <!-- Tìm kiếm và Bộ lọc -->
+                    <div class="bg-gray-50 p-4 rounded-lg mb-6">
+                        <div class="grid grid-cols-1 md:grid-cols-5 gap-4">
+                            <div class="md:col-span-2">
+                                <label class="block text-sm font-medium text-gray-700 mb-2">Tìm kiếm</label>
+                                <div class="relative">
+                                    <input type="text" id="sales-search" class="w-full pl-10 pr-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent" placeholder="Tìm theo mã HD, tên khách hàng, sản phẩm...">
+                                    <i class="fas fa-search absolute left-3 top-3 text-gray-400"></i>
+                                </div>
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-2">Từ ngày</label>
+                                <input type="date" id="sales-date-from" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent">
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-2">Đến ngày</label>
+                                <input type="date" id="sales-date-to" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent">
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-2">Trạng thái</label>
+                                <select id="sales-status" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent">
+                                    <option value="">Tất cả</option>
+                                    <option value="paid">Đã thanh toán</option>
+                                    <option value="partial">Thanh toán một phần</option>
+                                    <option value="unpaid">Chưa thanh toán</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="flex justify-between items-center mt-4">
+                            <button onclick="filterSalesList()" class="bg-blue-600 text-white py-2 px-6 rounded-lg hover:bg-blue-700 transition-colors">
+                                <i class="fas fa-filter mr-2"></i>Lọc
+                            </button>
+                            <button onclick="clearSalesFilter()" class="bg-gray-500 text-white py-2 px-6 rounded-lg hover:bg-gray-600 transition-colors">
+                                <i class="fas fa-times mr-2"></i>Xóa lọc
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <!-- Bảng danh sách bán hàng -->
+                    <div class="overflow-x-auto">
+                        <table class="w-full table-auto">
+                            <thead class="bg-gray-50">
+                                <tr>
+                                    <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Mã HD</th>
+                                    <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Ngày bán</th>
+                                    <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Khách hàng</th>
+                                    <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Sản phẩm</th>
+                                    <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Tổng tiền</th>
+                                    <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Đã trả</th>
+                                    <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Còn nợ</th>
+                                    <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Trạng thái</th>
+                                    <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Thao tác</th>
+                                </tr>
+                            </thead>
+                            <tbody class="bg-white divide-y divide-gray-200">
+                                <tr class="hover:bg-gray-50">
+                                    <td class="px-4 py-4 whitespace-nowrap text-sm font-medium text-indigo-600">HD001</td>
+                                    <td class="px-4 py-4 whitespace-nowrap text-sm text-gray-900">15/12/2024</td>
+                                    <td class="px-4 py-4 whitespace-nowrap">
+                                        <div>
+                                            <div class="text-sm font-medium text-gray-900">Nguyễn Văn A</div>
+                                            <div class="text-sm text-gray-500">0123 456 789</div>
+                                        </div>
+                                    </td>
+                                    <td class="px-4 py-4 whitespace-nowrap text-sm text-gray-900">Tranh sơn dầu + Khung 30x40</td>
+                                    <td class="px-4 py-4 whitespace-nowrap text-sm font-semibold text-green-600">2,500,000đ</td>
+                                    <td class="px-4 py-4 whitespace-nowrap text-sm text-blue-600">2,000,000đ</td>
+                                    <td class="px-4 py-4 whitespace-nowrap text-sm text-red-600">500,000đ</td>
+                                    <td class="px-4 py-4 whitespace-nowrap">
+                                        <span class="px-2 py-1 text-xs font-semibold rounded-full bg-yellow-100 text-yellow-800">Thanh toán một phần</span>
+                                    </td>
+                                    <td class="px-4 py-4 whitespace-nowrap text-sm">
+                                        <button onclick="viewSalesDetail('HD001')" class="text-indigo-600 hover:text-indigo-900 mr-3" title="Xem chi tiết">
+                                            <i class="fas fa-eye px-3 py-2 rounded-full bg-blue-100 text-blue-600"></i>
+                                        </button>
+                                        <button onclick="editSalesInvoice('HD001')" class="text-yellow-600 hover:text-yellow-900 mr-3" title="Chỉnh sửa">
+                                            <i class="fas fa-edit px-3 py-2 rounded-full bg-yellow-100 text-yellow-600"></i>
+                                        </button>
+                                        <button onclick="printSalesInvoice('HD001')" class="text-green-600 hover:text-green-900 mr-3" title="In hóa đơn">
+                                            <i class="fas fa-print px-3 py-2 rounded-full bg-green-100 text-green-600"></i>
+                                        </button>
+                                        <button onclick="deleteSalesInvoice('HD001')" class="text-red-600 hover:text-red-900" title="Xóa">
+                                            <i class="fas fa-trash px-3 py-2 rounded-full bg-red-100 text-red-600"></i>
+                                        </button>
+                                    </td>
+                                </tr>
+                                <tr class="hover:bg-gray-50">
+                                    <td class="px-4 py-4 whitespace-nowrap text-sm font-medium text-indigo-600">HD002</td>
+                                    <td class="px-4 py-4 whitespace-nowrap text-sm text-gray-900">14/12/2024</td>
+                                    <td class="px-4 py-4 whitespace-nowrap">
+                                        <div>
+                                            <div class="text-sm font-medium text-gray-900">Trần Thị B</div>
+                                            <div class="text-sm text-gray-500">0987 654 321</div>
+                                        </div>
+                                    </td>
+                                    <td class="px-4 py-4 whitespace-nowrap text-sm text-gray-900">Tranh canvas + Khung 40x60</td>
+                                    <td class="px-4 py-4 whitespace-nowrap text-sm font-semibold text-green-600">1,800,000đ</td>
+                                    <td class="px-4 py-4 whitespace-nowrap text-sm text-blue-600">1,800,000đ</td>
+                                    <td class="px-4 py-4 whitespace-nowrap text-sm text-green-600">0đ</td>
+                                    <td class="px-4 py-4 whitespace-nowrap">
+                                        <span class="px-2 py-1 text-xs font-semibold rounded-full bg-green-100 text-green-800">Đã thanh toán</span>
+                                    </td>
+                                    <td class="px-4 py-4 whitespace-nowrap text-sm">
+                                        <button onclick="viewSalesDetail('HD002')" class="text-indigo-600 hover:text-indigo-900 mr-3" title="Xem chi tiết">
+                                            <i class="fas fa-eye px-3 py-2 rounded-full bg-blue-100 text-blue-600"></i>
+                                        </button>
+                                        <button onclick="editSalesInvoice('HD002')" class="text-blue-600 hover:text-blue-900 mr-3" title="Chỉnh sửa">
+                                            <i class="fas fa-edit px-3 py-2 rounded-full bg-yellow-100 text-yellow-600"></i>
+                                        </button>
+                                        <button onclick="printSalesInvoice('HD002')" class="text-green-600 hover:text-green-900 mr-3" title="In hóa đơn">
+                                            <i class="fas fa-print px-3 py-2 rounded-full bg-green-100 text-green-600"></i>
+                                        </button>
+                                        <button onclick="deleteSalesInvoice('HD002')" class="text-red-600 hover:text-red-900" title="Xóa">
+                                            <i class="fas fa-trash px-3 py-2 rounded-full bg-red-100 text-red-600"></i>
+                                        </button>
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+                
+                <!-- Form tạo hóa đơn -->
+                <div id="sales-create" class="sales-tab-content hidden">
+                    <h4 class="text-lg font-semibold mb-4">Tạo hóa đơn bán hàng</h4>
+ <!-- Form khách hàng -->
+ <div>
+    <h4 class="font-medium mb-4">Thông tin khách hàng</h4>
+    <div class="space-y-4">
+        <div class="grid grid-cols-3 gap-3">
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-2">Tên khách hàng</label>
+                <input type="text" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent" placeholder="Nhập tên khách hàng...">
+            </div>
+            
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-2">Số điện thoại</label>
+                <input type="tel" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent" placeholder="Nhập số điện thoại...">
+            </div>
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-2">Giảm giá (%)</label>
+                <input type="number" id="discount-percent" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent" placeholder="Ví dụ: 10" min="0" max="100" value="0">
+            </div>
+        </div>
+      
+        <div class="grid grid-cols-2 gap-3">
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-2">Địa chỉ</label>
+                <textarea class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent h-[40px]" rows="3" placeholder="Nhập địa chỉ..."></textarea>
+            </div>
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-2">Phòng trưng bày</label>
+                <select id="sales-showroom" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                    <option value="">Chọn phòng...</option>
+                    <option value="SR01">Showroom Trung tâm</option>
+                    <option value="SR02">Showroom Quận 1</option>
+                    <option value="SR03">Showroom Quận 7</option>
+                </select>
+            </div>
+        </div>
+       
+       
+    </div>
+</div>
+                    <!-- Bảng sản phẩm trong hóa đơn (đưa lên đầu) -->
+                    <div class="mb-6 bg-white rounded-xl shadow-sm border">
+                        <div class="px-4 py-3 border-b">
+                            <h4 class="font-semibold">Danh sách sản phẩm</h4>
+                        </div>
+                        <div class="overflow-x-auto">
+                            <table class="w-full table-auto" id="sales-items-table">
+                                <thead class="bg-gray-50">
+                                    <tr>
+                                        <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Hình ảnh</th>
+                                        <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Mô tả (Mã tranh/Khung)</th>
+                                        <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Vật tư (khung)</th>
+                                        <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Số mét/1 cây</th>
+                                        <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Số lượng</th>
+                                        <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Loại tiền</th>
+                                        <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Giá bán USD</th>
+                                        <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Giá bán VND</th>
+                                        <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Giảm giá</th>
+                                        <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Thao tác</th>
+                                    </tr>
+                                </thead>
+                                <tbody class="bg-white divide-y divide-gray-200" id="sales-items-body">
+                                    <tr>
+                                        <td class="px-4 py-3 text-sm"><img src="https://bizweb.dktcdn.net/100/372/422/products/tranh-son-dau-dep-da-nang-4-3.jpg?v=1679906135817" width="100" height="50" alt=""></td>
+                                        <td class="px-4 py-3 text-sm"><textarea name="" id="item-desc" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent" placeholder="Nhập mô tả..."></textarea></td>
+                                        <td class="px-4 py-3 text-sm">
+                                            <select class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent sales-supply-select"></select>
+                                        </td>
+                                        <td class="px-4 py-3 text-sm"><input type="number" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus-border-transparent sales-length-m" placeholder="Số mét/1 SP" value="0" min="0" step="0.01"></td>
+                                        <td class="px-4 py-3 text-sm"><input type="number" id="quantity" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent" placeholder="Nhập số lượng..." onchange="calculateTotals()"></td>
+                                        <td class="px-4 py-3 text-sm">
+                                            <select id="currency-type" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent" onchange="toggleCurrencyInputs(this)">
+                                                <option value="USD">USD</option>
+                                                <option value="VND">VND</option>
+                                            </select>
+                                        </td>
+                                        <td class="px-4 py-3 text-sm">
+                                            <input type="number" id="price-usd" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent" placeholder="Nhập giá USD..." onchange="calculateTotals()">
+                                        </td>
+                                        <td class="px-4 py-3 text-sm">
+                                            <input type="number" id="price-vnd" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent" placeholder="Nhập giá VND..." onchange="calculateTotals()" style="display: none;">
+                                        </td>
+                                        <td class="px-4 py-3 text-sm"><input type="number" id="discount-percent" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent" placeholder="Nhập giảm giá..."></td>
+                                        <td class="px-4 py-3 text-sm">
+                                            <button class="text-red-600 hover:text-red-800" onclick="this.closest('tr').remove()"><i class="fas fa-trash"></i></button>
+                                        </td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                            
+                        </div>
+                        <button onclick="addSalesItem()" class="w-25 bg-blue-600 m-4 text-white py-2 px-4 rounded-lg hover:bg-blue-700 transition-colors">
+                            <i class="fas fa-plus mr-2"></i>Thêm sản phẩm
+                        </button>
+                    </div>
+
+                    <div class="">
+                        <!-- Form sản phẩm -->
+                        <div>
+                            <div class="space-y-4">
+                                <div class="grid grid-cols-3 gap-3">
+                                    <div>
+                                        <label class="block text-sm font-medium text-gray-700 mb-2">Tổng tiền USD</label>
+                                        <input type="number" id="total-usd" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent" readonly>
+                                    </div>
+                                    <div>
+                                        <label class="block text-sm font-medium text-gray-700 mb-2">Tỷ giá USD/VND</label>
+                                        <input type="number" id="exchange-rate" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent" placeholder="25000" value="25000" onchange="calculateTotals()">
+                                    </div>
+                                    <div>
+                                        <label class="block text-sm font-medium text-gray-700 mb-2">Tổng tiền VND</label>
+                                        <input type="number" id="total-vnd" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent" readonly>
+                                    </div>
+                                   
+                                </div>
+                               
+                                
+                               
+                                <div class="bg-yellow-50 p-4 rounded-lg border border-yellow-200">
+                                    <div class="flex justify-between">
+                                        <span>Công nợ hiện tại:</span>
+                                        <span class="font-semibold text-yellow-600">0đ</span>
+                                    </div>
+                                </div>
+                                
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 mb-2">Số tiền khách trả</label>
+                                    <input type="number" id="payment-amount" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent" placeholder="Nhập số tiền...">
+                                </div>
+                                
+                                <div class="bg-red-50 p-4 rounded-lg border border-red-200">
+                                    <div class="flex justify-between">
+                                        <span>Công nợ còn lại:</span>
+                                        <span id="remaining-debt" class="font-semibold text-red-600">0đ</span>
+                                    </div>
+                                </div>
+                                
+                                <div class="flex space-x-3">
+                                    <button onclick="createSalesInvoice()" class="flex-1 bg-green-600 text-white py-2 px-4 rounded-lg hover:bg-green-700 transition-colors">
+                                        <i class="fas fa-file-invoice mr-2"></i>Tạo hóa đơn
+                                    </button>
+                                    <button onclick="printSalesInvoice()" class="flex-1 bg-blue-600 text-white py-2 px-4 rounded-lg hover:bg-blue-700 transition-colors">
+                                        <i class="fas fa-print mr-2"></i>In hóa đơn
+                                    </button>
+                                </div>
+                               
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Showrooms Module -->
+        <div id="showrooms-module" class="module hidden">
+            <div class="bg-white rounded-xl shadow-lg p-6 glass-effect">
+                <div class="flex justify-between items-center mb-6">
+                    <h3 class="text-lg font-semibold">Phòng trưng bày</h3>
+                    <button class="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors" onclick="toggleCreateShowroom()">
+                        <i class="fas fa-plus mr-2"></i>Thêm phòng
+                    </button>
+                </div>
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                    <div class="border rounded-lg p-4 bg-white">
+                        <div class="flex items-center space-x-3 mb-3">
+                            <img src="data:image/jpeg;base64,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" class="w-12 h-12 rounded-lg" alt="logo">
+                            <div>
+                                <p class="font-semibold">Showroom Trung tâm</p>
+                                <p class="text-sm text-gray-500">SR01</p>
+                            </div>
+                        </div>
+                        <p class="text-sm text-gray-600">Địa chỉ: 123 Lê Lợi, Q.1</p>
+                        <p class="text-sm text-gray-600">Tài khoản nhận tiền: Vietcombank 0123456789</p>
+                        <div class="mt-3 flex space-x-2">
+                            <button class="px-3 py-1 bg-gray-600 text-white rounded hover:bg-gray-700" onclick="editShowroom('SR01')">Sửa</button>
+                            <button class="px-3 py-1 bg-red-600 text-white rounded hover:bg-red-700" onclick="deleteShowroom('SR01')">Xóa</button>
+                        </div>
+                    </div>
+                    <div class="border rounded-lg p-4 bg-white">
+                        <div class="flex items-center space-x-3 mb-3">
+                            <img src="data:image/jpeg;base64,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" class="w-12 h-12 rounded-lg" alt="logo">
+                            <div>
+                                <p class="font-semibold">Showroom Quận 1</p>
+                                <p class="text-sm text-gray-500">SR02</p>
+                            </div>
+                        </div>
+                        <p class="text-sm text-gray-600">Địa chỉ: 45 Pasteur, Q.1</p>
+                        <p class="text-sm text-gray-600">Tài khoản: ACB 99887766</p>
+                        <div class="mt-3 flex space-x-2">
+                            <button class="px-3 py-1 bg-gray-600 text-white rounded hover:bg-gray-700" onclick="editShowroom('SR02')">Sửa</button>
+                            <button class="px-3 py-1 bg-red-600 text-white rounded hover:bg-red-700" onclick="deleteShowroom('SR02')">Xóa</button>
+                        </div>
+                    </div>
+                    <div class="border rounded-lg p-4 bg-white">
+                        <div class="flex items-center space-x-3 mb-3">
+                            <img src="data:image/jpeg;base64,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" class="w-12 h-12 rounded-lg" alt="logo">
+                            <div>
+                                <p class="font-semibold">Showroom Quận 7</p>
+                                <p class="text-sm text-gray-500">SR03</p>
+                            </div>
+                        </div>
+                        <p class="text-sm text-gray-600">Địa chỉ: 68 Nguyễn Văn Linh, Q.7</p>
+                        <p class="text-sm text-gray-600">Tài khoản: Techcombank 22334455</p>
+                        <div class="mt-3 flex space-x-2">
+                            <button class="px-3 py-1 bg-gray-600 text-white rounded hover:bg-gray-700" onclick="editShowroom('SR03')">Sửa</button>
+                            <button class="px-3 py-1 bg-red-600 text-white rounded hover:bg-red-700" onclick="deleteShowroom('SR03')">Xóa</button>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Create Showroom Section (like sales-module) -->
+                <div class="mt-8 bg-white rounded-xl shadow-sm border hidden" id="showroom-create">
+                    <div class="px-4 py-3 border-b">
+                        <h4 class="font-semibold">Tạo phòng trưng bày</h4>
+                    </div>
+                    <div class="p-4">
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-2">Logo</label>
+                                <input type="file" id="sr-logo" accept="image/*" class="w-full px-3 py-2 border border-gray-300 rounded-lg">
+                                <img id="sr-logo-preview" class="mt-2 h-16 w-16 object-cover rounded border hidden" />
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-2">Mã phòng</label>
+                                <input type="text" id="sr-code" class="w-full px-3 py-2 border border-gray-300 rounded-lg" placeholder="VD: SR01">
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-2">Tên phòng</label>
+                                <input type="text" id="sr-name" class="w-full px-3 py-2 border border-gray-300 rounded-lg" placeholder="Tên phòng trưng bày">
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-2">Số điện thoại</label>
+                                <input type="text" id="sr-phone" class="w-full px-3 py-2 border border-gray-300 rounded-lg" placeholder="VD: 0123 456 789">
+                            </div>
+                            <div class="md:col-span-2">
+                                <label class="block text-sm font-medium text-gray-700 mb-2">Địa chỉ</label>
+                                <input type="text" id="sr-address" class="w-full px-3 py-2 border border-gray-300 rounded-lg" placeholder="Địa chỉ">
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-2">Ngân hàng</label>
+                                <input type="text" id="sr-bankName" class="w-full px-3 py-2 border border-gray-300 rounded-lg" placeholder="Vietcombank, ACB...">
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-2">Số tài khoản</label>
+                                <input type="text" id="sr-bankNo" class="w-full px-3 py-2 border border-gray-300 rounded-lg" placeholder="0123456789">
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-2">Chủ tài khoản</label>
+                                <input type="text" id="sr-bankHolder" class="w-full px-3 py-2 border border-gray-300 rounded-lg" placeholder="Nguyễn Văn A">
+                            </div>
+                            <div class="md:col-span-2">
+                                <label class="block text-sm font-medium text-gray-700 mb-2">Ghi chú</label>
+                                <textarea id="sr-notes" rows="3" class="w-full px-3 py-2 border border-gray-300 rounded-lg" placeholder="Ghi chú..."></textarea>
+                            </div>
+                        </div>
+                        <div class="mt-4 flex justify-end space-x-3">
+                            <button class="px-4 py-2 rounded bg-green-600 text-white" onclick="saveShowroom()"><i class="fas fa-save mr-2"></i>Lưu</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <!-- Other modules will be added here -->
+        <div id="debt-module" class="module hidden">
+            <div class="bg-white rounded-xl shadow-lg p-6 glass-effect">
+                <div class="flex justify-between items-center mb-6">
+                    <h3 class="text-lg font-semibold">Lịch sử công nợ</h3>
+                    <div class="flex space-x-3">
+                        <button onclick="exportDebtReport()" class="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors">
+                            <i class="fas fa-file-excel mr-2"></i>Xuất báo cáo
+                        </button>
+                    </div>
+                </div>
+                <!-- Tìm kiếm và Bộ lọc -->
+                <div class="bg-gray-50 p-4 rounded-lg mb-6">
+                    <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+                        <div class="md:col-span-2">
+                            <label class="block text-sm font-medium text-gray-700 mb-2">Tìm kiếm</label>
+                            <div class="relative">
+                                <input type="text" id="debt-search" class="w-full pl-10 pr-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent" placeholder="Tìm theo tên khách hàng, số điện thoại, mã HD...">
+                                <i class="fas fa-search absolute left-3 top-3 text-gray-400"></i>
+                            </div>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">Trạng thái</label>
+                            <select id="debt-status" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                                <option value="">Tất cả</option>
+                                <option value="overdue">Quá hạn</option>
+                                <option value="pending">Chưa đến hạn</option>
+                                <option value="paid">Đã thanh toán</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">Từ ngày</label>
+                            <input type="date" id="debt-date-from" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                        </div>
+                    </div>
+                    <div class="flex justify-between items-center mt-4">
+                        <button onclick="filterDebts()" class="bg-blue-600 text-white py-2 px-6 rounded-lg hover:bg-blue-700 transition-colors">
+                            <i class="fas fa-filter mr-2"></i>Lọc
+                        </button>
+                        <button onclick="clearDebtFilter()" class="bg-gray-500 text-white py-2 px-6 rounded-lg hover:bg-gray-600 transition-colors">
+                            <i class="fas fa-times mr-2"></i>Xóa lọc
+                        </button>
+                    </div>
+                </div>
+                
+                <!-- Bảng lịch sử công nợ -->
+                <div class="overflow-x-auto">
+                    <table class="w-full table-auto">
+                        <thead class="bg-gray-50">
+                            <tr>
+                                <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Khách hàng</th>
+                                <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Hóa đơn</th>
+                                <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Tổng tiền</th>
+                                <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Đã trả</th>
+                                <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Còn nợ</th>
+                                <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Ngày tạo</th>
+                                <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Trạng thái</th>
+                                <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Thao tác</th>
+                            </tr>
+                        </thead>
+                        <tbody class="bg-white divide-y divide-gray-200">
+                            <tr class="hover:bg-gray-50">
+                                <td class="px-4 py-4 whitespace-nowrap">
+                                    <div>
+                                        <div class="text-sm font-medium text-gray-900">Nguyễn Văn A</div>
+                                        <div class="text-sm text-gray-500">0123 456 789</div>
+                                    </div>
+                                </td>
+                                <td class="px-4 py-4 whitespace-nowrap text-sm font-medium text-blue-600">HD001</td>
+                                <td class="px-4 py-4 whitespace-nowrap text-sm font-semibold text-gray-900">2,500,000đ</td>
+                                <td class="px-4 py-4 whitespace-nowrap text-sm font-semibold text-green-600">2,000,000đ</td>
+                                <td class="px-4 py-4 whitespace-nowrap text-sm font-semibold text-red-600">500,000đ</td>
+                                <td class="px-4 py-4 whitespace-nowrap text-sm text-gray-900">15/12/2024</td>
+                                <td class="px-4 py-4 whitespace-nowrap">
+                                    <span class="px-2 py-1 text-xs font-semibold rounded-full bg-yellow-100 text-yellow-800">Chưa thanh toán hết</span>
+                                </td>
+                                <td class="px-4 py-4 whitespace-nowrap text-sm">
+                                    <button onclick="viewDebtDetail('HD001')" class="text-blue-600 hover:text-blue-900 mr-3" title="Xem chi tiết">
+                                        <i class="fas fa-eye"></i>
+                                    </button>
+                                </td>
+                            </tr>
+                            <tr class="hover:bg-gray-50">
+                                <td class="px-4 py-4 whitespace-nowrap">
+                                    <div>
+                                        <div class="text-sm font-medium text-gray-900">Trần Thị B</div>
+                                        <div class="text-sm text-gray-500">0987 654 321</div>
+                                    </div>
+                                </td>
+                                <td class="px-4 py-4 whitespace-nowrap text-sm font-medium text-blue-600">HD002</td>
+                                <td class="px-4 py-4 whitespace-nowrap text-sm font-semibold text-gray-900">1,800,000đ</td>
+                                <td class="px-4 py-4 whitespace-nowrap text-sm font-semibold text-green-600">600,000đ</td>
+                                <td class="px-4 py-4 whitespace-nowrap text-sm font-semibold text-red-600">1,200,000đ</td>
+                                <td class="px-4 py-4 whitespace-nowrap text-sm text-gray-900">10/12/2024</td>
+                                <td class="px-4 py-4 whitespace-nowrap">
+                                    <span class="px-2 py-1 text-xs font-semibold rounded-full bg-red-100 text-red-800">Quá hạn</span>
+                                </td>
+                                <td class="px-4 py-4 whitespace-nowrap text-sm">
+                                    <button onclick="viewDebtDetail('HD002')" class="text-blue-600 hover:text-blue-900 mr-3" title="Xem chi tiết">
+                                        <i class="fas fa-eye"></i>
+                                    </button>
+                                </td>
+                            </tr>
+                            <tr class="hover:bg-gray-50">
+                                <td class="px-4 py-4 whitespace-nowrap">
+                                    <div>
+                                        <div class="text-sm font-medium text-gray-900">Lê Văn C</div>
+                                        <div class="text-sm text-gray-500">0369 258 147</div>
+                                    </div>
+                                </td>
+                                <td class="px-4 py-4 whitespace-nowrap text-sm font-medium text-blue-600">HD003</td>
+                                <td class="px-4 py-4 whitespace-nowrap text-sm font-semibold text-gray-900">3,200,000đ</td>
+                                <td class="px-4 py-4 whitespace-nowrap text-sm font-semibold text-green-600">3,200,000đ</td>
+                                <td class="px-4 py-4 whitespace-nowrap text-sm font-semibold text-green-600">0đ</td>
+                                <td class="px-4 py-4 whitespace-nowrap text-sm text-gray-900">08/12/2024</td>
+                                <td class="px-4 py-4 whitespace-nowrap">
+                                    <span class="px-2 py-1 text-xs font-semibold rounded-full bg-green-100 text-green-800">Đã thanh toán hết</span>
+                                </td>
+                                <td class="px-4 py-4 whitespace-nowrap text-sm">
+                                    <button onclick="viewDebtDetail('HD003')" class="text-blue-600 hover:text-blue-900 mr-3" title="Xem chi tiết">
+                                        <i class="fas fa-eye"></i>
+                                    </button>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <div id="returns-module" class="module hidden">
+            <div class="bg-white rounded-xl shadow-lg p-6 glass-effect">
+                <div class="flex justify-between items-center mb-6">
+                    <h3 class="text-lg font-semibold">Đổi/Trả hàng</h3>
+                    <div class="flex space-x-3">
+                        <button onclick="showReturnsTab('search')" class="returns-tab bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors">
+                            <i class="fas fa-search mr-2"></i>Tìm hóa đơn
+                        </button>
+                        <button onclick="showReturnsTab('list')" class="returns-tab bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 transition-colors">
+                            <i class="fas fa-list mr-2"></i>Danh sách trả hàng
+                        </button>
+                    </div>
+                </div>
+                
+                <!-- Tab Tìm hóa đơn -->
+                <div id="returns-search" class="returns-tab-content">
+                    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                        <!-- Form tìm hóa đơn -->
+                        <div>
+                            <h4 class="font-medium mb-4">Tìm hóa đơn cũ</h4>
+                            <div class="space-y-4">
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 mb-2">Mã hóa đơn</label>
+                                    <input type="text" id="invoice-code" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent" placeholder="Nhập mã hóa đơn...">
+                                </div>
+                                
+                                <button onclick="searchInvoice()" class="w-full bg-blue-600 text-white py-2 px-4 rounded-lg hover:bg-blue-700 transition-colors">
+                                    <i class="fas fa-search mr-2"></i>Tìm hóa đơn
+                                </button>
+                                
+                                <div id="invoice-details" class="hidden bg-gray-50 p-4 rounded-lg">
+                                    <h5 class="font-medium mb-3">Chi tiết hóa đơn</h5>
+                                    <div class="space-y-2 text-sm">
+                                        <div class="flex justify-between">
+                                            <span>Mã HD:</span>
+                                            <span id="invoice-id" class="font-medium"></span>
+                                        </div>
+                                        <div class="flex justify-between">
+                                            <span>Ngày:</span>
+                                            <span id="invoice-date"></span>
+                                        </div>
+                                        <div class="flex justify-between">
+                                            <span>Khách hàng:</span>
+                                            <span id="customer-name"></span>
+                                        </div>
+                                        <div class="flex justify-between">
+                                            <span>Tổng tiền:</span>
+                                            <span id="invoice-total" class="font-semibold text-green-600"></span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Form trả hàng -->
+                        <div>
+                            <h4 class="font-medium mb-4">Chi tiết sản phẩm cần trả</h4>
+                            <div id="products-list" class="space-y-3">
+                                <div class="text-center text-gray-500 py-8">
+                                    <i class="fas fa-receipt text-4xl mb-2"></i>
+                                    <p>Vui lòng tìm hóa đơn trước</p>
+                                </div>
+                            </div>
+                            
+                            <div id="return-summary" class="hidden mt-6 bg-red-50 p-4 rounded-lg border border-red-200">
+                                <h5 class="font-medium mb-3">Tóm tắt trả hàng</h5>
+                                <div class="space-y-2 text-sm">
+                                    <div class="flex justify-between">
+                                        <span>Số lượng trả:</span>
+                                        <span id="return-quantity" class="font-medium"></span>
+                                    </div>
+                                    <div class="flex justify-between">
+                                        <span>Tiền hoàn:</span>
+                                        <span id="return-amount" class="font-semibold text-red-600"></span>
+                                    </div>
+                                    <div class="flex justify-between">
+                                        <span>Công nợ giảm:</span>
+                                        <span id="debt-reduction" class="font-semibold text-green-600"></span>
+                                    </div>
+                                </div>
+                                
+                                <div class="flex space-x-3 mt-4">
+                                    <button onclick="processReturn()" class="flex-1 bg-red-600 text-white py-2 px-4 rounded-lg hover:bg-red-700 transition-colors">
+                                        <i class="fas fa-undo mr-2"></i>Xác nhận trả hàng
+                                    </button>
+                                    <button onclick="cancelReturn()" class="flex-1 bg-gray-600 text-white py-2 px-4 rounded-lg hover:bg-gray-700 transition-colors">
+                                        <i class="fas fa-times mr-2"></i>Hủy
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Tab Danh sách trả hàng -->
+                <div id="returns-list" class="returns-tab-content hidden">
+                    <h4 class="text-lg font-semibold mb-4">Danh sách trả hàng</h4>
+                    <p class="text-gray-600 mb-6">Quản lý tất cả các giao dịch trả hàng</p>
+                    
+                    <!-- Tìm kiếm và Bộ lọc -->
+                    <div class="bg-gray-50 p-4 rounded-lg mb-6">
+                        <div class="grid grid-cols-1 md:grid-cols-5 gap-4">
+                            <div class="md:col-span-2">
+                                <label class="block text-sm font-medium text-gray-700 mb-2">Tìm kiếm</label>
+                                <div class="relative">
+                                    <input type="text" id="returns-search-input" class="w-full pl-10 pr-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent" placeholder="Tìm theo mã HD, tên khách hàng, sản phẩm...">
+                                    <i class="fas fa-search absolute left-3 top-3 text-gray-400"></i>
+                                </div>
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-2">Trạng thái</label>
+                                <select id="returns-status" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent">
+                                    <option value="">Tất cả</option>
+                                    <option value="pending">Chờ xử lý</option>
+                                    <option value="completed">Đã hoàn thành</option>
+                                    <option value="cancelled">Đã hủy</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-2">Từ ngày</label>
+                                <input type="date" id="returns-date-from" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent">
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-2">Đến ngày</label>
+                                <input type="date" id="returns-date-to" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent">
+                            </div>
+                        </div>
+                        <div class="flex justify-between items-center mt-4">
+                            <button onclick="filterReturnsList()" class="bg-blue-600 text-white py-2 px-6 rounded-lg hover:bg-blue-700 transition-colors">
+                                <i class="fas fa-filter mr-2"></i>Lọc
+                            </button>
+                            <button onclick="clearReturnsFilter()" class="bg-gray-500 text-white py-2 px-6 rounded-lg hover:bg-gray-600 transition-colors">
+                                <i class="fas fa-times mr-2"></i>Xóa lọc
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <!-- Bảng danh sách trả hàng -->
+                    <div class="overflow-x-auto">
+                        <table class="w-full table-auto">
+                            <thead class="bg-gray-50">
+                                <tr>
+                                    <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Mã HD</th>
+                                    <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Ngày trả</th>
+                                    <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Khách hàng</th>
+                                    <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Sản phẩm trả</th>
+                                    <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Số lượng</th>
+                                    <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Tiền hoàn</th>
+                                    <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Trạng thái</th>
+                                    <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Thao tác</th>
+                                </tr>
+                            </thead>
+                            <tbody class="bg-white divide-y divide-gray-200">
+                                <tr class="hover:bg-gray-50">
+                                    <td class="px-4 py-4 whitespace-nowrap text-sm font-medium text-indigo-600">HD001</td>
+                                    <td class="px-4 py-4 whitespace-nowrap text-sm text-gray-900">16/12/2024</td>
+                                    <td class="px-4 py-4 whitespace-nowrap">
+                                        <div>
+                                            <div class="text-sm font-medium text-gray-900">Nguyễn Văn A</div>
+                                            <div class="text-sm text-gray-500">0123 456 789</div>
+                                        </div>
+                                    </td>
+                                    <td class="px-4 py-4 whitespace-nowrap text-sm text-gray-900">Tranh sơn dầu phong cảnh</td>
+                                    <td class="px-4 py-4 whitespace-nowrap text-sm text-gray-900">1</td>
+                                    <td class="px-4 py-4 whitespace-nowrap text-sm font-semibold text-red-600">2,500,000đ</td>
+                                    <td class="px-4 py-4 whitespace-nowrap">
+                                        <span class="px-2 py-1 text-xs font-semibold rounded-full bg-green-100 text-green-800">Đã hoàn thành</span>
+                                    </td>
+                                    <td class="px-4 py-4 whitespace-nowrap text-sm">
+                                        <button onclick="viewReturnDetail('HD001')" class="text-indigo-600 hover:text-indigo-900 mr-3" title="Xem chi tiết">
+                                            <i class="fas fa-eye"></i>
+                                        </button>
+                                        <button onclick="editReturn('HD001')" class="text-blue-600 hover:text-blue-900 mr-3" title="Chỉnh sửa">
+                                            <i class="fas fa-edit"></i>
+                                        </button>
+                                        <button onclick="deleteReturn('HD001')" class="text-red-600 hover:text-red-900" title="Xóa">
+                                            <i class="fas fa-trash"></i>
+                                        </button>
+                                    </td>
+                                </tr>
+                                <tr class="hover:bg-gray-50">
+                                    <td class="px-4 py-4 whitespace-nowrap text-sm font-medium text-indigo-600">HD002</td>
+                                    <td class="px-4 py-4 whitespace-nowrap text-sm text-gray-900">15/12/2024</td>
+                                    <td class="px-4 py-4 whitespace-nowrap">
+                                        <div>
+                                            <div class="text-sm font-medium text-gray-900">Trần Thị B</div>
+                                            <div class="text-sm text-gray-500">0987 654 321</div>
+                                        </div>
+                                    </td>
+                                    <td class="px-4 py-4 whitespace-nowrap text-sm text-gray-900">Khung gỗ 30x40</td>
+                                    <td class="px-4 py-4 whitespace-nowrap text-sm text-gray-900">2</td>
+                                    <td class="px-4 py-4 whitespace-nowrap text-sm font-semibold text-red-600">400,000đ</td>
+                                    <td class="px-4 py-4 whitespace-nowrap">
+                                        <span class="px-2 py-1 text-xs font-semibold rounded-full bg-yellow-100 text-yellow-800">Chờ xử lý</span>
+                                    </td>
+                                    <td class="px-4 py-4 whitespace-nowrap text-sm">
+                                        <button onclick="viewReturnDetail('HD002')" class="text-indigo-600 hover:text-indigo-900 mr-3" title="Xem chi tiết">
+                                            <i class="fas fa-eye"></i>
+                                        </button>
+                                        <button onclick="editReturn('HD002')" class="text-blue-600 hover:text-blue-900 mr-3" title="Chỉnh sửa">
+                                            <i class="fas fa-edit"></i>
+                                        </button>
+                                        <button onclick="deleteReturn('HD002')" class="text-red-600 hover:text-red-900" title="Xóa">
+                                            <i class="fas fa-trash"></i>
+                                        </button>
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div id="inventory-module" class="module hidden">
+            <div class="bg-white rounded-xl shadow-lg p-6 glass-effect">
+                <div class="flex justify-between items-center mb-6">
+                    <h3 class="text-lg font-semibold">Quản lý kho</h3>
+                    <div class="flex space-x-3">
+                        <button onclick="showImportForm()" class="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 transition-colors">
+                            <i class="fas fa-plus mr-2"></i>Nhập kho
+                        </button>
+                    </div>
+                </div>
+                
+                <!-- Tabs -->
+                <div class="border-b border-gray-200 mb-6">
+                    <nav class="-mb-px flex space-x-8">
+                        <button onclick="showInventoryTab('overview')" class="inventory-tab active py-2 px-1 border-b-2 border-indigo-500 font-medium text-sm text-indigo-600">
+                            Tổng quan kho
+                        </button>
+                        <button onclick="showInventoryTab('import')" class="inventory-tab py-2 px-1 border-b-2 border-transparent font-medium text-sm text-gray-500 hover:text-gray-700 hover:border-gray-300">
+                            Nhập kho
+                        </button>
+                        
+                    </nav>
+                </div>
+                
+                <!-- Tab content -->
+                <div id="inventory-overview" class="inventory-tab-content">
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+                      
+                        <div class="bg-green-50 p-6 rounded-lg">
+                            <h4 class="font-semibold text-green-800 mb-2">Tranh</h4>
+                            <p class="text-2xl font-bold text-green-600">89 sản phẩm</p>
+                        </div>
+                        <div class="bg-purple-50 p-6 rounded-lg">
+                            <h4 class="font-semibold text-purple-800 mb-2">Vật tư</h4>
+                            <p class="text-2xl font-bold text-purple-600">156 sản phẩm</p>
+                        </div>
+                    </div>
+                    
+                    <!-- Tìm kiếm và Bộ lọc -->
+                    <div class="bg-gray-50 p-4 rounded-lg mb-6">
+                        <div class="grid grid-cols-1 md:grid-cols-5 gap-4">
+                            <div class="md:col-span-2">
+                                <label class="block text-sm font-medium text-gray-700 mb-2">Tìm kiếm</label>
+                                <div class="relative">
+                                    <input type="text" id="inventory-search" class="w-full pl-10 pr-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent" placeholder="Tìm theo mã SP, tên sản phẩm, ghi chú...">
+                                    <i class="fas fa-search absolute left-3 top-3 text-gray-400"></i>
+                                </div>
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-2">Loại sản phẩm</label>
+                                <select id="inventory-type" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent">
+                                    <option value="">Tất cả</option>
+                                    <option value="tranh">Tranh</option>
+                                    <option value="khung">Vật tư</option>
+                                  
+                                </select>
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-2">Từ ngày</label>
+                                <input type="date" id="inventory-date-from" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent">
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-2">Đến ngày</label>
+                                <input type="date" id="inventory-date-to" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent">
+                            </div>
+                        </div>
+                        <div class="flex justify-between items-center mt-4">
+                            <button onclick="filterInventory()" class="bg-blue-600 text-white py-2 px-6 rounded-lg hover:bg-blue-700 transition-colors">
+                                <i class="fas fa-filter mr-2"></i>Lọc
+                            </button>
+                            <button onclick="clearInventoryFilter()" class="bg-gray-500 text-white py-2 px-6 rounded-lg hover:bg-gray-600 transition-colors">
+                                <i class="fas fa-times mr-2"></i>Xóa lọc
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <!-- Bảng tồn kho (phù hợp nhập vật tư & nhập tranh) -->
+                    <div class="overflow-x-auto">
+                        <table class="w-full table-auto">
+                            <thead class="bg-gray-50">
+                                <tr>
+                                    <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Mã SP</th>
+                                    <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Tên</th>
+                                    <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Loại hàng</th>
+                                 
+                                    <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">ĐVT</th>
+                                    <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Chất liệu</th>
+                                    <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Kích thước</th>
+                                    <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Giá bán</th>
+                                    <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Ngày nhập</th>
+                                    <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Ngày xuất</th>
+                                    <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Số hoá đơn</th>
+                                    <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Số lượng tồn</th>
+                                    <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Ghi chú</th>
+                                    <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Thao tác</th>
+                                </tr>
+                            </thead>
+                            <tbody class="bg-white divide-y divide-gray-200">
+                                <tr class="hover:bg-gray-50">
+                                    <td class="px-4 py-4 whitespace-nowrap text-sm font-medium text-gray-900">T001</td>
+                                    <td class="px-4 py-4 whitespace-nowrap text-sm text-gray-900">Tranh sơn dầu phong cảnh</td>
+                                    <td class="px-4 py-4 whitespace-nowrap text-sm text-gray-900">Tranh</td>
+                                   
+                                    <td class="px-4 py-4 whitespace-nowrap text-sm text-gray-900">Bức</td>
+                                    <td class="px-4 py-4 whitespace-nowrap text-sm text-gray-900">Sơn dầu</td>
+                                    <td class="px-4 py-4 whitespace-nowrap text-sm text-gray-900">100×200 cm</td>
+                                    <td class="px-4 py-4 whitespace-nowrap text-sm text-green-600 font-semibold">2,500$</td>
+                                    <td class="px-4 py-4 whitespace-nowrap text-sm text-gray-900">10/12/2024</td>
+                                    <td class="px-4 py-4 whitespace-nowrap text-sm text-gray-900">15/12/2024</td>
+                                    <td class="px-4 py-4 whitespace-nowrap text-sm text-gray-900">HD003</td>
+                                    <td class="px-4 py-4 whitespace-nowrap text-sm text-gray-900">15</td>
+                                    <td class="px-4 py-4 whitespace-nowrap text-sm text-gray-900">Còn hàng</td>
+                                    <td class="px-4 py-4 whitespace-nowrap text-sm">
+                                        <button onclick="viewInventoryItem('T001')" class="text-indigo-600 hover:text-indigo-900 mr-3" title="Xem chi tiết">
+                                            <i class="fas fa-eye"></i>
+                                        </button>
+                                        <button onclick="editInventoryItem('T001')" class="text-blue-600 hover:text-blue-900 mr-3" title="Chỉnh sửa">
+                                            <i class="fas fa-edit"></i>
+                                        </button>
+                                        <button onclick="deleteInventoryItem('T001')" class="text-red-600 hover:text-red-900" title="Xóa">
+                                            <i class="fas fa-trash"></i>
+                                        </button>
+                                    </td>
+                                </tr>
+                                <tr class="hover:bg-gray-50">
+                                    <td class="px-4 py-4 whitespace-nowrap text-sm font-medium text-gray-900">K001</td>
+                                    <td class="px-4 py-4 whitespace-nowrap text-sm text-gray-900">Khung gỗ 30x40</td>
+                                    <td class="px-4 py-4 whitespace-nowrap text-sm text-gray-900">Vật tư</td>
+                                    <td class="px-4 py-4 whitespace-nowrap text-sm text-gray-900">Mét</td>
+                                    <td class="px-4 py-4 whitespace-nowrap text-sm text-gray-900">Gỗ</td>
+                                    <td class="px-4 py-4 whitespace-nowrap text-sm text-gray-900">30×40</td>
+                                    <td class="px-4 py-4 whitespace-nowrap text-sm text-gray-900">-</td>
+                                    <td class="px-4 py-4 whitespace-nowrap text-sm text-gray-900">12/12/2024</td>
+                                    <td class="px-4 py-4 whitespace-nowrap text-sm text-gray-900">-</td>
+                                    <td class="px-4 py-4 whitespace-nowrap text-sm text-gray-900">-</td>
+                                    <td class="px-4 py-4 whitespace-nowrap text-sm text-gray-900">25</td>
+                                    <td class="px-4 py-4 whitespace-nowrap text-sm text-gray-900">Mới nhập</td>
+                                    <td class="px-4 py-4 whitespace-nowrap text-sm">
+                                        <button onclick="viewInventoryItem('K001')" class="text-indigo-600 hover:text-indigo-900 mr-3" title="Xem chi tiết">
+                                            <i class="fas fa-eye"></i>
+                                        </button>
+                                        <button onclick="editInventoryItem('K001')" class="text-blue-600 hover:text-blue-900 mr-3" title="Chỉnh sửa">
+                                            <i class="fas fa-edit"></i>
+                                        </button>
+                                        <button onclick="deleteInventoryItem('K001')" class="text-red-600 hover:text-red-900" title="Xóa">
+                                            <i class="fas fa-trash"></i>
+                                        </button>
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+                
+                <!-- Form nhập kho với 2 lựa chọn -->
+                <div id="inventory-import" class="inventory-tab-content hidden">
+                    <div class="bg-gray-50 p-6 rounded-lg">
+                        <div class="flex items-center justify-between mb-4">
+                            <h4 class="font-semibold">Form nhập kho</h4>
+                            <div class="flex space-x-2">
+                                <button onclick="showImportType('supplies')" class="import-type-tab bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors">Nhập vật tư</button>
+                                <button onclick="showImportType('paintings')" class="import-type-tab bg-gray-500 text-white px-4 py-2 rounded-lg hover:bg-gray-600 transition-colors">Nhập tranh</button>
+                            </div>
+                        </div>
+
+                        <!-- Nhập vật tư -->
+                        <div id="import-supplies" class="space-y-4">
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 mb-2">Mã sản phẩm</label>
+                                    <input type="text" id="supply-code" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent" placeholder="Nhập mã SP...">
+                                </div>
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 mb-2">Tên sản phẩm</label>
+                                    <input type="text" id="supply-name" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent" placeholder="Nhập tên SP...">
+                                </div>
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 mb-2">Loại</label>
+                                    <select id="supply-type" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                                        <option value="raw">Nguyên cây</option>
+                                        <option value="piece">Cắt khúc</option>
+                                    </select>
+                                </div>
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 mb-2">Đơn vị tính</label>
+                                    <input type="text" id="supply-unit" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent" placeholder="Ví dụ: Mét, Cây, Bộ...">
+                                </div>
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 mb-2">Số lượng nhập</label>
+                                    <input type="number" id="supply-qty" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent" placeholder="Nhập số lượng...">
+                                </div>
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 mb-2">Ghi chú</label>
+                                    <input type="text" id="supply-notes" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent" placeholder="Ghi chú...">
+                                </div>
+                            </div>
+                            <button onclick="saveSupplyImport()" class="mt-4 bg-green-600 text-white px-6 py-2 rounded-lg hover:bg-green-700 transition-colors"><i class="fas fa-save mr-2"></i>Lưu nhập vật tư</button>
+                        </div>
+
+                        <!-- Nhập tranh -->
+                        <div id="import-paintings" class="hidden space-y-4">
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 mb-2">Mã tranh <span class="text-red-500">*</span></label>
+                                    <input type="text" id="painting-code" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent" placeholder="Nhập mã tranh..." required>
+                                </div>
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 mb-2">Tên tranh / Tựa tranh <span class="text-red-500">*</span></label>
+                                    <input type="text" id="painting-name" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent" placeholder="Nhập tên tranh hoặc tựa tranh..." required>
+                                </div>
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 mb-2">Họa sĩ (Artist) <span class="text-red-500">*</span></label>
+                                    <input type="text" id="artist-name" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent" placeholder="Nhập tên họa sĩ..." required>
+                                </div>
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 mb-2">Chất liệu tranh <span class="text-red-500">*</span></label>
+                                    <select id="material" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent" required>
+                                        <option value="">Chọn chất liệu...</option>
+                                        <option value="oil">Sơn dầu (Oil)</option>
+                                        <option value="acrylic">Acrylic</option>
+                                        <option value="watercolor">Màu nước (Watercolor)</option>
+                                        <option value="ink">Mực (Ink)</option>
+                                        <option value="canvas">Canvas</option>
+                                        <option value="paper">Giấy (Paper)</option>
+                                        <option value="wood">Gỗ (Wood)</option>
+                                        <option value="other">Khác</option>
+                                    </select>
+                                </div>
+                               
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 mb-2">Kích thước (cm)</label>
+                                    <div class="grid grid-cols-2 gap-3">
+                                        <input type="number" id="width" min="0" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent" placeholder="Rộng (W)">
+                                        <input type="number" id="height" min="0" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent" placeholder="Cao (H)">
+                                    </div>
+                                </div>
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 mb-2">Năm vẽ (Paint year)</label>
+                                    <input type="number" id="paint-year" min="1500" max="2100" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent" placeholder="Ví dụ: 2019">
+                                </div>
+                               
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 mb-2">Giá (USD) <span class="text-red-500">*</span></label>
+                                    <input type="number" id="price" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent" placeholder="Ví dụ: 4500" required>
+                                </div>
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 mb-2">Ngày nhập kho <span class="text-red-500">*</span></label>
+                                    <input type="date" id="import-date" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent" required>
+                                </div>
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 mb-2">Ngày xuất kho</label>
+                                    <input type="date" id="export-date" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                                </div>
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 mb-2">Ảnh tranh</label>
+                                    <input type="file" accept="image/*" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                                </div>
+                                <div class="md:col-span-2">
+                                    <label class="block text-sm font-medium text-gray-700 mb-2">Ghi chú</label>
+                                    <textarea id="notes" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent" placeholder="Ghi chú..." rows="3"></textarea>
+                                </div>
+                            </div>
+                            <button onclick="savePaintingImport()" class="mt-4 bg-green-600 text-white px-6 py-2 rounded-lg hover:bg-green-700 transition-colors"><i class="fas fa-save mr-2"></i>Lưu nhập tranh</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <!-- Permissions Module -->
+        <div id="permissions-module" class="module hidden">
+            <div class="bg-white rounded-xl shadow-lg p-6 glass-effect">
+                <h3 class="text-xl font-bold text-gray-800 mb-4">Phân quyền người dùng</h3>
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                    <div class="md:col-span-1">
+                        <div class="p-4 border rounded-lg bg-gray-50">
+                            <h4 class="font-semibold mb-3">Vai trò</h4>
+                            <label class="block text-sm text-gray-600 mb-1">Chọn vai trò hiện tại</label>
+                            <select id="perm-role-select" class="w-full px-3 py-2 border rounded-lg mb-3"></select>
+                            <div class="flex space-x-2">
+                                <input id="perm-role-name" type="text" class="flex-1 px-3 py-2 border rounded-lg" placeholder="Tên vai trò mới (ví dụ: Admin)">
+                                <button id="perm-save-role" class="px-3 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700">Thêm/Sửa</button>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="md:col-span-2">
+                        <div class="p-4 border rounded-lg bg-gray-50">
+                            <h4 class="font-semibold mb-3">Quyền truy cập module</h4>
+                            <div id="perm-modules-list" class="grid grid-cols-2 md:grid-cols-3 gap-3"></div>
+                            <div class="mt-4">
+                                <button id="perm-save-perms" class="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700">Lưu quyền</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <p class="text-xs text-gray-500 mt-4">Lưu ý: Quyền sẽ được áp dụng ngay, các menu không có quyền sẽ bị ẩn.</p>
+            </div>
+        </div>
+    </div>
+    <!-- Print Invoice Modal -->
+    <div id="print-invoice-modal" class="hidden fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
+        <div class="bg-white w-11/12 md:w-3/4 lg:w-1/2 rounded-lg shadow-lg overflow-hidden">
+            <div class="flex items-center justify-between px-4 py-3 border-b">
+                <h3 class="font-semibold">Xem trước hóa đơn</h3>
+                <div class="space-x-2">
+                    <button onclick="triggerPrintInvoice()" class="bg-blue-600 text-white px-3 py-1.5 rounded hover:bg-blue-700"><i class="fas fa-print mr-1"></i>In</button>
+                    <button onclick="closePrintInvoiceModal()" class="bg-gray-600 text-white px-3 py-1.5 rounded hover:bg-gray-700">Đóng</button>
+                </div>
+            </div>
+            <div id="print-invoice-content" class="max-h-[70vh] overflow-auto p-4 bg-gray-50">
+                <!-- Nội dung hóa đơn sẽ được render bằng JS -->
+            </div>
+        </div>
+    </div>
+
+    <!-- Print styles -->
+    <style>
+        @media print {
+            body * { visibility: hidden; }
+            #print-invoice-modal, #print-invoice-modal * { visibility: visible; }
+            #print-invoice-modal { position: static; inset: auto; background: transparent; }
+            #print-invoice-content { box-shadow: none !important; background: white !important; }
+            /* Hide modal header buttons when printing */
+            #print-invoice-modal button { display: none !important; }
+        }
+    </style>
+
+    <script src="script.js"></script>
+</body>
+</html>
