@@ -7,7 +7,7 @@ use App\Http\Controllers\SalesController;
 use App\Http\Controllers\DebtController;
 
 // Auth routes
-require __DIR__.'/auth.php';
+require __DIR__ . '/auth.php';
 
 // Protected routes - require authentication
 Route::middleware(['auth'])->group(function () {
@@ -29,7 +29,7 @@ Route::middleware(['auth'])->group(function () {
         Route::put('/{id}', [SalesController::class, 'update'])->name('update');
         Route::delete('/{id}', [SalesController::class, 'destroy'])->name('destroy');
         Route::get('/{id}/print', [SalesController::class, 'print'])->name('print');
-        
+
         // API routes for search
         Route::get('/api/paintings/{id}', [SalesController::class, 'getPainting'])->name('api.painting');
         Route::get('/api/supplies/{id}', [SalesController::class, 'getSupply'])->name('api.supply');
@@ -59,6 +59,17 @@ Route::middleware(['auth'])->group(function () {
         Route::get('/import', [App\Http\Controllers\InventoryController::class, 'import'])->name('import');
         Route::post('/import/painting', [App\Http\Controllers\InventoryController::class, 'importPainting'])->name('import.painting');
         Route::post('/import/supply', [App\Http\Controllers\InventoryController::class, 'importSupply'])->name('import.supply');
+
+        Route::get('/paintings/{id}/show', [App\Http\Controllers\InventoryController::class, 'showPainting'])->name('paintings.show');
+        Route::get('/paintings/{id}/edit', [App\Http\Controllers\InventoryController::class, 'editPainting'])->name('paintings.edit');
+        Route::put('/paintings/{id}', [App\Http\Controllers\InventoryController::class, 'updatePainting'])->name('paintings.update');
+        Route::delete('/paintings/{id}', [App\Http\Controllers\InventoryController::class, 'destroyPainting'])->name('paintings.destroy');
+
+        // Supplies CRUD (edit/update/destroy)
+        Route::get('/supplies/{id}/show', [App\Http\Controllers\InventoryController::class, 'showSupply'])->name('supplies.show');
+        Route::get('/supplies/{id}/edit', [App\Http\Controllers\InventoryController::class, 'editSupply'])->name('supplies.edit');
+        Route::put('/supplies/{id}', [App\Http\Controllers\InventoryController::class, 'updateSupply'])->name('supplies.update');
+        Route::delete('/supplies/{id}', [App\Http\Controllers\InventoryController::class, 'destroySupply'])->name('supplies.destroy');
     });
 
     // Showrooms routes
