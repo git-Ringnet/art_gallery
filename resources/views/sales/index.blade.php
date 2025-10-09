@@ -25,19 +25,19 @@
                 </div>
                 <div>
                     <label class="block text-sm font-medium text-gray-700 mb-2">Từ ngày</label>
-                    <input type="date" name="date_from" value="{{ request('date_from') }}" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent">
+                    <input type="date" name="from_date" value="{{ request('from_date') }}" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent">
                 </div>
                 <div>
                     <label class="block text-sm font-medium text-gray-700 mb-2">Đến ngày</label>
-                    <input type="date" name="date_to" value="{{ request('date_to') }}" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent">
+                    <input type="date" name="to_date" value="{{ request('to_date') }}" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent">
                 </div>
                 <div>
                     <label class="block text-sm font-medium text-gray-700 mb-2">Trạng thái</label>
-                    <select name="status" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent">
+                    <select name="payment_status" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent">
                         <option value="">Tất cả</option>
-                        <option value="paid" {{ request('status') == 'paid' ? 'selected' : '' }}>Đã thanh toán</option>
-                        <option value="partial" {{ request('status') == 'partial' ? 'selected' : '' }}>Thanh toán một phần</option>
-                        <option value="unpaid" {{ request('status') == 'unpaid' ? 'selected' : '' }}>Chưa thanh toán</option>
+                        <option value="paid" {{ request('payment_status') == 'paid' ? 'selected' : '' }}>Đã thanh toán</option>
+                        <option value="partial" {{ request('payment_status') == 'partial' ? 'selected' : '' }}>Thanh toán một phần</option>
+                        <option value="unpaid" {{ request('payment_status') == 'unpaid' ? 'selected' : '' }}>Chưa thanh toán</option>
                     </select>
                 </div>
             </div>
@@ -60,7 +60,7 @@
                     <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Mã HD</th>
                     <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Ngày bán</th>
                     <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Khách hàng</th>
-                    <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Sản phẩm</th>
+                    <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Showroom</th>
                     <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Tổng tiền</th>
                     <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Đã trả</th>
                     <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Còn nợ</th>
@@ -71,44 +71,59 @@
             <tbody class="bg-white divide-y divide-gray-200">
                 @forelse($sales as $sale)
                 <tr class="hover:bg-gray-50">
-                    <td class="px-4 py-4 whitespace-nowrap text-sm font-medium text-indigo-600">{{ $sale['id'] }}</td>
-                    <td class="px-4 py-4 whitespace-nowrap text-sm text-gray-900">{{ $sale['date'] }}</td>
+                    <td class="px-4 py-4 whitespace-nowrap text-sm font-medium text-indigo-600">{{ $sale->invoice_code }}</td>
+                    <td class="px-4 py-4 whitespace-nowrap text-sm text-gray-900">{{ $sale->sale_date->format('d/m/Y') }}</td>
                     <td class="px-4 py-4 whitespace-nowrap">
                         <div>
-                            <div class="text-sm font-medium text-gray-900">{{ $sale['customer_name'] }}</div>
-                            <div class="text-sm text-gray-500">{{ $sale['customer_phone'] }}</div>
+                            <div class="text-sm font-medium text-gray-900">{{ $sale->customer->name }}</div>
+                            <div class="text-sm text-gray-500">{{ $sale->customer->phone }}</div>
                         </div>
                     </td>
-                    <td class="px-4 py-4 whitespace-nowrap text-sm text-gray-900">{{ $sale['products'] }}</td>
-                    <td class="px-4 py-4 whitespace-nowrap text-sm font-semibold text-green-600">{{ number_format($sale['total']) }}đ</td>
-                    <td class="px-4 py-4 whitespace-nowrap text-sm text-blue-600">{{ number_format($sale['paid']) }}đ</td>
-                    <td class="px-4 py-4 whitespace-nowrap text-sm text-red-600">{{ number_format($sale['debt']) }}đ</td>
+                    <td class="px-4 py-4 whitespace-nowrap text-sm text-gray-900">{{ $sale->showroom->name }}</td>
+                    <td class="px-4 py-4 whitespace-nowrap text-sm font-semibold text-green-600">
+                        {{ number_format($sale->total_vnd) }}đ
+                        <div class="text-xs text-gray-500">${{ number_format($sale->total_usd, 2) }}</div>
+                    </td>
+                    <td class="px-4 py-4 whitespace-nowrap text-sm text-blue-600">{{ number_format($sale->paid_amount) }}đ</td>
+                    <td class="px-4 py-4 whitespace-nowrap text-sm text-red-600">{{ number_format($sale->debt_amount) }}đ</td>
                     <td class="px-4 py-4 whitespace-nowrap">
-                        @if($sale['status'] == 'paid')
+                        @if($sale->payment_status == 'paid')
                             <span class="px-2 py-1 text-xs font-semibold rounded-full bg-green-100 text-green-800">Đã thanh toán</span>
-                        @elseif($sale['status'] == 'partial')
+                        @elseif($sale->payment_status == 'partial')
                             <span class="px-2 py-1 text-xs font-semibold rounded-full bg-yellow-100 text-yellow-800">Thanh toán một phần</span>
                         @else
                             <span class="px-2 py-1 text-xs font-semibold rounded-full bg-red-100 text-red-800">Chưa thanh toán</span>
                         @endif
                     </td>
                     <td class="px-4 py-4 whitespace-nowrap text-sm">
-                        <a href="{{ route('sales.show', $sale['id']) }}" class="text-indigo-600 hover:text-indigo-900 mr-3" title="Xem chi tiết">
+                        <a href="{{ route('sales.show', $sale->id) }}" class="text-indigo-600 hover:text-indigo-900 mr-3" title="Xem chi tiết">
                             <i class="fas fa-eye px-3 py-2 rounded-full bg-blue-100 text-blue-600"></i>
                         </a>
-                        <a href="{{ route('sales.edit', $sale['id']) }}" class="text-yellow-600 hover:text-yellow-900 mr-3" title="Chỉnh sửa">
+                        @if($sale->payment_status != 'paid')
+                        <a href="{{ route('sales.edit', $sale->id) }}" class="text-yellow-600 hover:text-yellow-900 mr-3" title="Chỉnh sửa">
                             <i class="fas fa-edit px-3 py-2 rounded-full bg-yellow-100 text-yellow-600"></i>
                         </a>
-                        <button onclick="showPrintModal('{{ $sale['id'] }}')" class="text-green-600 hover:text-green-900 mr-3" title="In hóa đơn">
+                        @else
+                        <span class="text-gray-400 cursor-not-allowed mr-3" title="Không thể chỉnh sửa hóa đơn đã thanh toán đủ">
+                            <i class="fas fa-lock px-3 py-2 rounded-full bg-gray-100 text-gray-400"></i>
+                        </span>
+                        @endif
+                        <a href="{{ route('sales.print', $sale->id) }}" target="_blank" class="text-green-600 hover:text-green-900 mr-3" title="In hóa đơn">
                             <i class="fas fa-print px-3 py-2 rounded-full bg-green-100 text-green-600"></i>
+                        </a>
+                        @if($sale->paid_amount == 0)
+                        <button type="button" 
+                                class="text-red-600 hover:text-red-900 delete-btn" 
+                                title="Xóa"
+                                data-url="{{ route('sales.destroy', $sale->id) }}"
+                                data-message="Bạn có chắc chắn muốn xóa hóa đơn {{ $sale->invoice_code }}?">
+                            <i class="fas fa-trash px-3 py-2 rounded-full bg-red-100 text-red-600"></i>
                         </button>
-                        <form action="{{ route('sales.destroy', $sale['id']) }}" method="POST" class="inline" onsubmit="return confirm('Bạn có chắc chắn muốn xóa hóa đơn này?')">
-                            @csrf
-                            @method('DELETE')
-                            <button type="submit" class="text-red-600 hover:text-red-900" title="Xóa">
-                                <i class="fas fa-trash px-3 py-2 rounded-full bg-red-100 text-red-600"></i>
-                            </button>
-                        </form>
+                        @else
+                        <span class="text-gray-400 cursor-not-allowed" title="Không thể xóa hóa đơn đã có thanh toán ({{ number_format($sale->paid_amount) }}đ)">
+                            <i class="fas fa-lock px-3 py-2 rounded-full bg-gray-100 text-gray-400"></i>
+                        </span>
+                        @endif
                     </td>
                 </tr>
                 @empty
@@ -122,6 +137,13 @@
             </tbody>
         </table>
     </div>
+    
+    <!-- Pagination -->
+    @if($sales->hasPages())
+    <div class="mt-4">
+        {{ $sales->links() }}
+    </div>
+    @endif
 </div>
 
 <!-- Print Invoice Modal -->
@@ -143,10 +165,24 @@
         </div>
     </div>
 </div>
+
+<!-- Include Delete Modal -->
+<x-delete-modal />
 @endsection
 
 @push('scripts')
 <script>
+// Handle delete button clicks
+document.addEventListener('DOMContentLoaded', function() {
+    document.querySelectorAll('.delete-btn').forEach(button => {
+        button.addEventListener('click', function() {
+            const url = this.getAttribute('data-url');
+            const message = this.getAttribute('data-message');
+            showDeleteModal(url, message);
+        });
+    });
+});
+
 function showPrintModal(invoiceId) {
     // In real app, fetch invoice data via AJAX
     const modal = document.getElementById('print-invoice-modal');

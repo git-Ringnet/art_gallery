@@ -23,6 +23,22 @@ Route::prefix('sales')->name('sales.')->group(function () {
     Route::put('/{id}', [SalesController::class, 'update'])->name('update');
     Route::delete('/{id}', [SalesController::class, 'destroy'])->name('destroy');
     Route::get('/{id}/print', [SalesController::class, 'print'])->name('print');
+    
+    // API routes for search
+    Route::get('/api/paintings/{id}', [SalesController::class, 'getPainting'])->name('api.painting');
+    Route::get('/api/supplies/{id}', [SalesController::class, 'getSupply'])->name('api.supply');
+    Route::get('/api/customers/{id}', [SalesController::class, 'getCustomer'])->name('api.customer');
+Route::get('/api/search/paintings', [SalesController::class, 'searchPaintings'])->name('api.search.paintings');
+Route::get('/api/search/supplies', [SalesController::class, 'searchSupplies'])->name('api.search.supplies');
+
+// Debug route
+Route::get('/debug-delete/{id}', function($id) {
+    return response()->json([
+        'id' => $id,
+        'message' => 'Debug route working',
+        'timestamp' => now()
+    ]);
+});
 });
 
 // Debt routes

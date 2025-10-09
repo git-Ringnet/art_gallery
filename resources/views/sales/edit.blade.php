@@ -1,26 +1,27 @@
 @extends('layouts.app')
 
-@section('title', 'Tạo hóa đơn bán hàng')
-@section('page-title', 'Tạo hóa đơn bán hàng')
-@section('page-description', 'Tạo hóa đơn bán hàng mới')
+@section('title', 'Sửa hóa đơn bán hàng')
+@section('page-title', 'Sửa hóa đơn bán hàng')
+@section('page-description', 'Chỉnh sửa hóa đơn bán hàng')
 
 @section('content')
 <x-alert />
 
 <div class="bg-white rounded-xl shadow-lg p-6 glass-effect">
-    <form action="{{ route('sales.store') }}" method="POST" id="sales-form">
+    <form action="{{ route('sales.update', $sale->id) }}" method="POST" id="sales-form">
         @csrf
-        <!-- Hàng 4: Số hóa đơn -->
-        <div class="grid grid-cols-2 gap-4 mb-4">
+        @method('PUT')
+         <!-- Hàng 4: Số hóa đơn -->
+         <div class="grid grid-cols-2 gap-4 mb-4">
             <div>
                 <label class="block text-sm font-semibold text-gray-700 mb-2 text-base">Số hóa đơn</label>
                 <div class="flex gap-2">
                     <input type="text" 
                            name="invoice_code" 
                            id="invoice_code" 
-                           class="px-4 py-3 border-2 rounded-lg font-bold text-indigo-400 text-lg" 
-                           placeholder="Nhập số hóa đơn hoặc tự động tạo"
-                           value="">
+                           class="px-4 py-3 border-2 rounded-lg font-bold text-indigo-700 text-lg" 
+                           placeholder="Nhập số hóa đơn hoặc để trống để tự động tạo"
+                           value="{{ $sale->invoice_code }}">
                     <button type="button" 
                             onclick="generateInvoiceCode()" 
                             class="bg-blue-600 text-white px-4 py-3 rounded-lg hover:bg-blue-700 transition-colors"
@@ -42,37 +43,38 @@
                            required 
                            class="w-full px-3 py-2 border border-gray-300 rounded-lg"
                            placeholder="Nhập tên khách hàng..."
+                           value="{{ $sale->customer->name }}"
                            autocomplete="off"
                            onkeyup="filterCustomers(this.value)">
-                    <input type="hidden" name="customer_id" id="customer_id">
+                    <input type="hidden" name="customer_id" id="customer_id" value="{{ $sale->customer_id }}">
                     <div id="customer-suggestions" class="absolute z-10 w-full bg-white border border-gray-300 rounded-lg mt-1 max-h-60 overflow-y-auto hidden shadow-lg"></div>
                 </div>
                 <div>
                     <label class="block text-sm font-medium text-gray-700 mb-2">Số điện thoại <span class="text-red-500">*</span></label>
-                    <input type="tel" name="customer_phone" id="customer_phone" required class="w-full px-3 py-2 border border-gray-300 rounded-lg">
+                    <input type="tel" name="customer_phone" id="customer_phone" required class="w-full px-3 py-2 border border-gray-300 rounded-lg" value="{{ $sale->customer->phone }}">
                 </div>
                 <div>
                     <label class="block text-sm font-medium text-gray-700 mb-2">Email</label>
-                    <input type="email" name="customer_email" id="customer_email" class="w-full px-3 py-2 border border-gray-300 rounded-lg">
+                    <input type="email" name="customer_email" id="customer_email" class="w-full px-3 py-2 border border-gray-300 rounded-lg" value="{{ $sale->customer->email }}">
                 </div>
             </div>
             <div class="grid grid-cols-3 gap-3">
                 <div>
                     <label class="block text-sm font-medium text-gray-700 mb-2">Địa chỉ</label>
-                    <input type="text" name="customer_address" id="customer_address" class="w-full px-3 py-2 border border-gray-300 rounded-lg">
+                    <input type="text" name="customer_address" id="customer_address" class="w-full px-3 py-2 border border-gray-300 rounded-lg" value="{{ $sale->customer->address }}">
                 </div>
                 <div>
                     <label class="block text-sm font-medium text-gray-700 mb-2">Showroom <span class="text-red-500">*</span></label>
                     <select name="showroom_id" required class="w-full px-3 py-2 border border-gray-300 rounded-lg">
                         <option value="">Chọn...</option>
                         @foreach($showrooms as $showroom)
-                            <option value="{{ $showroom->id }}">{{ $showroom->name }}</option>
+                            <option value="{{ $showroom->id }}" {{ $sale->showroom_id == $showroom->id ? 'selected' : '' }}>{{ $showroom->name }}</option>
                         @endforeach
                     </select>
                 </div>
                 <div>
                     <label class="block text-sm font-medium text-gray-700 mb-2">Ngày bán <span class="text-red-500">*</span></label>
-                    <input type="date" name="sale_date" required class="w-full px-3 py-2 border rounded-lg" value="{{ date('Y-m-d') }}">
+                    <input type="date" name="sale_date" required class="w-full px-3 py-2 border rounded-lg" value="{{ $sale->sale_date->format('Y-m-d') }}">
                 </div>
             </div>
         </div>
@@ -109,11 +111,11 @@
         <div class="grid grid-cols-2 gap-4 mb-4">
             <div>
                 <label class="block text-sm font-semibold text-gray-700 mb-2 text-base">Tỷ giá <span class="text-red-500">*</span></label>
-                <input type="number" name="exchange_rate" id="rate" required class="w-full px-4 py-3 border-2 rounded-lg text-lg" value="{{ $currentRate->rate ?? 25000 }}" onchange="calc()">
+                <input type="number" name="exchange_rate" id="rate" required class="w-full px-4 py-3 border-2 rounded-lg text-lg" value="{{ $sale->exchange_rate }}" onchange="calc()">
             </div>
             <div>
                 <label class="block text-sm font-semibold text-gray-700 mb-2 text-base">Giảm giá (%)</label>
-                <input type="number" name="discount_percent" id="discount" class="w-full px-4 py-3 border-2 rounded-lg text-lg" value="0" min="0" max="100" onchange="calc()">
+                <input type="number" name="discount_percent" id="discount" class="w-full px-4 py-3 border-2 rounded-lg text-lg" value="{{ $sale->discount_percent }}" min="0" max="100" onchange="calc()">
             </div>
         </div>
 
@@ -121,11 +123,11 @@
         <div class="grid grid-cols-2 gap-4 mb-4">
             <div>
                 <label class="block text-sm font-semibold text-gray-700 mb-2 text-base">Tổng USD</label>
-                <input type="text" id="total_usd" readonly class="w-full px-4 py-3 border-2 rounded-lg bg-blue-50 font-bold text-blue-600 text-xl">
+                <input type="text" id="total_usd" readonly class="w-full px-4 py-3 border-2 rounded-lg bg-blue-50 font-bold text-blue-600 text-xl" value="${{ number_format($sale->total_usd, 2) }}">
             </div>
             <div>
                 <label class="block text-sm font-semibold text-gray-700 mb-2 text-base">Tổng VND</label>
-                <input type="text" id="total_vnd" readonly class="w-full px-4 py-3 border-2 rounded-lg bg-green-50 font-bold text-green-600 text-xl">
+                <input type="text" id="total_vnd" readonly class="w-full px-4 py-3 border-2 rounded-lg bg-green-50 font-bold text-green-600 text-xl" value="{{ number_format($sale->total_vnd) }}đ">
             </div>
         </div>
 
@@ -133,19 +135,19 @@
         <div class="grid grid-cols-3 gap-4 mb-4">
             <div>
                 <label class="block text-sm font-semibold text-gray-700 mb-2 text-base">Số tiền trả</label>
-                <input type="number" name="payment_amount" id="paid" class="w-full px-4 py-3 border-2 rounded-lg text-lg" value="0" onchange="calcDebt()">
+                <input type="number" name="payment_amount" id="paid" class="w-full px-4 py-3 border-2 rounded-lg text-lg" value="{{ $sale->paid_amount }}" onchange="calcDebt()">
             </div>
             <div>
                 <label class="block text-sm font-semibold text-gray-700 mb-2 text-base">Công nợ hiện tại</label>
-                <input type="text" id="current_debt" readonly class="w-full px-4 py-3 border-2 rounded-lg bg-yellow-50 font-bold text-orange-600 text-xl">
+                <input type="text" id="current_debt" readonly class="w-full px-4 py-3 border-2 rounded-lg bg-yellow-50 font-bold text-orange-600 text-xl" value="0đ">
             </div>
             <div>
                 <label class="block text-sm font-semibold text-gray-700 mb-2 text-base">Còn nợ</label>
-                <input type="text" id="debt" readonly class="w-full px-4 py-3 border-2 rounded-lg bg-red-50 font-bold text-red-600 text-xl">
+                <input type="text" id="debt" readonly class="w-full px-4 py-3 border-2 rounded-lg bg-red-50 font-bold text-red-600 text-xl" value="{{ number_format($sale->debt_amount) }}đ">
             </div>
         </div>
 
-        
+       
         
         <!-- Hidden field for payment method -->
         <input type="hidden" name="payment_method" value="cash">
@@ -153,17 +155,14 @@
         <!-- Ghi chú riêng -->
         <div class="mb-4">
             <label class="block text-sm font-semibold text-gray-700 mb-2 text-base">Ghi chú</label>
-            <textarea name="notes" rows="2" class="w-full px-4 py-3 border-2 rounded-lg text-lg" placeholder="Nhập ghi chú (nếu có)..."></textarea>
+            <textarea name="notes" rows="2" class="w-full px-4 py-3 border-2 rounded-lg text-lg" placeholder="Nhập ghi chú (nếu có)...">{{ $sale->notes }}</textarea>
         </div>
 
         <div class="flex gap-3">
-            <button type="submit" name="action" value="save" class="flex-1 bg-green-600 text-white py-2 rounded-lg hover:bg-green-700">
-                <i class="fas fa-save mr-2"></i>Tạo hoá đơn
+            <button type="submit" class="flex-1 bg-green-600 text-white py-2 rounded-lg hover:bg-green-700">
+                <i class="fas fa-save mr-2"></i>Cập nhật hóa đơn
             </button>
-            <button type="submit" name="action" value="save_and_print" class="flex-1 bg-blue-600 text-white py-2 rounded-lg hover:bg-blue-700">
-                <i class="fas fa-print mr-2"></i>Tạo hoá đơn & In
-            </button>
-            <a href="{{ route('sales.index') }}" class="flex-1 bg-gray-600 text-white py-2 rounded-lg hover:bg-gray-700 text-center">
+            <a href="{{ route('sales.show', $sale->id) }}" class="flex-1 bg-gray-600 text-white py-2 rounded-lg hover:bg-gray-700 text-center">
                 <i class="fas fa-times mr-2"></i>Hủy
             </a>
         </div>
@@ -176,6 +175,7 @@ let idx = 0;
 const paintings = @json($paintings);
 const supplies = @json($supplies);
 const customers = @json($customers);
+const saleItems = @json($sale->saleItems);
 
 // Xử lý autocomplete khách hàng
 function filterCustomers(query) {
@@ -488,18 +488,6 @@ function calc() {
     calcDebt();
 }
 
-// Generate invoice code
-function generateInvoiceCode() {
-    const now = new Date();
-    const year = now.getFullYear();
-    const month = String(now.getMonth() + 1).padStart(2, '0');
-    const day = String(now.getDate()).padStart(2, '0');
-    const time = String(now.getHours()).padStart(2, '0') + String(now.getMinutes()).padStart(2, '0');
-    
-    const invoiceCode = `HD${year}${month}${day}${time}`;
-    document.getElementById('invoice_code').value = invoiceCode;
-}
-
 function calcDebt() {
     const totTxt = document.getElementById('total_vnd').value.replace(/[^\d]/g, '');
     const tot = parseFloat(totTxt) || 0;
@@ -520,9 +508,61 @@ function loadCurrentDebt(customerId) {
     }
 }
 
-document.addEventListener('DOMContentLoaded', () => addItem());
-</script>
+// Generate invoice code
+function generateInvoiceCode() {
+    const now = new Date();
+    const year = now.getFullYear();
+    const month = String(now.getMonth() + 1).padStart(2, '0');
+    const day = String(now.getDate()).padStart(2, '0');
+    const time = String(now.getHours()).padStart(2, '0') + String(now.getMinutes()).padStart(2, '0');
+    
+    const invoiceCode = `HD${year}${month}${day}${time}`;
+    document.getElementById('invoice_code').value = invoiceCode;
+}
 
+// Load existing sale items
+function loadExistingItems() {
+    saleItems.forEach((item, index) => {
+        addItem();
+        
+        // Set painting
+        if (item.painting_id) {
+            document.getElementById(`painting-id-${index}`).value = item.painting_id;
+            document.getElementById(`painting-search-${index}`).value = `${item.painting?.code || ''} - ${item.description}`;
+            document.getElementById(`desc-${index}`).value = item.description;
+            document.querySelector(`.usd-${index}`).value = item.price_usd || 0;
+            document.querySelector(`.vnd-${index}`).value = item.price_vnd || 0;
+            
+            if (item.painting?.image) {
+                document.getElementById(`img-${index}`).src = `/storage/${item.painting.image}`;
+            }
+        } else {
+            document.getElementById(`desc-${index}`).value = item.description;
+        }
+        
+        // Set supply
+        if (item.supply_id) {
+            document.getElementById(`supply-id-${index}`).value = item.supply_id;
+            document.getElementById(`supply-search-${index}`).value = item.supply?.name || '';
+        }
+        
+        // Set other fields
+        document.querySelector(`[name="items[${index}][supply_length]"]`).value = item.supply_length || 0;
+        document.querySelector(`[name="items[${index}][quantity]"]`).value = item.quantity;
+        document.querySelector(`[name="items[${index}][currency]"]`).value = item.currency;
+        document.querySelector(`[name="items[${index}][price_usd]"]`).value = item.price_usd || 0;
+        document.querySelector(`[name="items[${index}][price_vnd]"]`).value = item.price_vnd || 0;
+        
+        // Set currency display
+        togCur(document.querySelector(`[name="items[${index}][currency]"]`), index);
+    });
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+    loadExistingItems();
+    calc();
+});
+</script>
 
 @endpush
 @endsection

@@ -36,15 +36,26 @@
                 <img src="https://via.placeholder.com/80x80/4F46E5/FFFFFF?text=Logo" alt="logo" class="w-20 h-20 rounded-lg" />
                 <div>
                     <h1 class="text-3xl font-bold text-gray-800">HÓA ĐƠN BÁN HÀNG</h1>
-                    <p class="text-lg text-gray-600">Mã HD: <span class="font-semibold text-blue-600">{{ $sale['id'] }}</span></p>
-                    <p class="text-sm text-gray-600">Ngày: {{ $sale['date'] }}</p>
+                    <p class="text-lg text-gray-600">Mã HD: <span class="font-semibold text-blue-600">{{ $sale->invoice_code }}</span></p>
+                    <p class="text-sm text-gray-600">Ngày: {{ $sale->sale_date->format('d/m/Y') }}</p>
                 </div>
             </div>
             <div class="text-right">
-                <p class="font-bold text-lg">Bến Thành Art Gallery</p>
-                <p class="text-sm text-gray-600">Địa chỉ: 123 Lê Lợi, Q.1, TP.HCM</p>
-                <p class="text-sm text-gray-600">Hotline: 0987 654 321</p>
-                <p class="text-sm text-gray-600">Email: info@benthanhart.com</p>
+                <p class="font-bold text-lg">{{ $sale->showroom->name }}</p>
+                <p class="text-sm text-gray-600">{{ $sale->showroom->address }}</p>
+                <p class="text-sm text-gray-600">{{ $sale->showroom->phone }}</p>
+                <div class="mt-2 text-xs text-gray-500">
+                    <p>Nhân viên: {{ $sale->user ? $sale->user->name : 'Chưa xác định' }}</p>
+                    <p>Trạng thái: 
+                        @if($sale->payment_status == 'paid')
+                            <span class="text-green-600 font-semibold">Đã thanh toán</span>
+                        @elseif($sale->payment_status == 'partial')
+                            <span class="text-yellow-600 font-semibold">Thanh toán một phần</span>
+                        @else
+                            <span class="text-red-600 font-semibold">Chưa thanh toán</span>
+                        @endif
+                    </p>
+                </div>
             </div>
         </div>
 
@@ -54,16 +65,24 @@
             <div class="grid grid-cols-2 gap-4">
                 <div>
                     <p class="text-sm text-gray-600">Tên khách hàng:</p>
-                    <p class="font-medium">{{ $sale['customer_name'] }}</p>
+                    <p class="font-medium">{{ $sale->customer->name }}</p>
                 </div>
                 <div>
                     <p class="text-sm text-gray-600">Số điện thoại:</p>
-                    <p class="font-medium">{{ $sale['customer_phone'] }}</p>
+                    <p class="font-medium">{{ $sale->customer->phone }}</p>
                 </div>
-                <div class="col-span-2">
+                @if($sale->customer->email)
+                <div>
+                    <p class="text-sm text-gray-600">Email:</p>
+                    <p class="font-medium">{{ $sale->customer->email }}</p>
+                </div>
+                @endif
+                @if($sale->customer->address)
+                <div>
                     <p class="text-sm text-gray-600">Địa chỉ:</p>
-                    <p class="font-medium">{{ $sale['customer_address'] }}</p>
+                    <p class="font-medium">{{ $sale->customer->address }}</p>
                 </div>
+                @endif
             </div>
         </div>
 
@@ -73,7 +92,6 @@
                 <thead>
                     <tr class="bg-gray-100 border-b-2 border-gray-300">
                         <th class="px-4 py-3 text-left text-sm font-semibold text-gray-700">#</th>
-                        <th class="px-4 py-3 text-left text-sm font-semibold text-gray-700">Hình ảnh</th>
                         <th class="px-4 py-3 text-left text-sm font-semibold text-gray-700">Sản phẩm</th>
                         <th class="px-4 py-3 text-center text-sm font-semibold text-gray-700">SL</th>
                         <th class="px-4 py-3 text-right text-sm font-semibold text-gray-700">Đơn giá</th>
@@ -81,17 +99,31 @@
                     </tr>
                 </thead>
                 <tbody>
-                    @foreach($sale['items'] as $index => $item)
+                    @foreach($sale->saleItems as $index => $item)
                     <tr class="border-b border-gray-200">
                         <td class="px-4 py-3 text-sm">{{ $index + 1 }}</td>
-                        <td class="px-4 py-3">
-                            <img src="{{ $item['image'] ?? 'https://bizweb.dktcdn.net/100/372/422/products/tranh-son-dau-dep-da-nang-4-3.jpg?v=1679906135817' }}" 
-                                 alt="img" class="w-20 h-16 object-cover rounded border" />
+                        <td class="px-4 py-3 text-sm">
+                            <div class="font-medium">{{ $item->description }}</div>
+                            @if($item->painting)
+                                <div class="text-xs text-gray-500">Tranh: {{ $item->painting->code }}</div>
+                            @endif
+                            @if($item->supply)
+                                <div class="text-xs text-gray-500">Vật tư: {{ $item->supply->name }} ({{ $item->supply_length }}m)</div>
+                            @endif
                         </td>
-                        <td class="px-4 py-3 text-sm">{{ $item['name'] }}</td>
-                        <td class="px-4 py-3 text-sm text-center">{{ $item['quantity'] }}</td>
-                        <td class="px-4 py-3 text-sm text-right">{{ number_format($item['price']) }}đ</td>
-                        <td class="px-4 py-3 text-sm text-right font-semibold">{{ number_format($item['total']) }}đ</td>
+                        <td class="px-4 py-3 text-sm text-center">{{ $item->quantity }}</td>
+                        <td class="px-4 py-3 text-sm text-right">
+                            @if($item->currency == 'USD')
+                                <div>${{ number_format($item->price_usd, 2) }}</div>
+                                <div class="text-xs text-gray-500">{{ number_format($item->price_vnd) }}đ</div>
+                            @else
+                                <div>{{ number_format($item->price_vnd) }}đ</div>
+                            @endif
+                        </td>
+                        <td class="px-4 py-3 text-sm text-right font-semibold">
+                            <div>${{ number_format($item->total_usd, 2) }}</div>
+                            <div class="text-xs text-gray-500">{{ number_format($item->total_vnd) }}đ</div>
+                        </td>
                     </tr>
                     @endforeach
                 </tbody>
@@ -104,28 +136,40 @@
                 <div class="space-y-2">
                     <div class="flex justify-between text-sm py-2 border-b">
                         <span class="text-gray-600">Tạm tính:</span>
-                        <span class="font-medium">{{ number_format($sale['subtotal']) }}đ</span>
+                        <div class="text-right">
+                            <div class="font-medium">${{ number_format($sale->subtotal_usd, 2) }}</div>
+                            <div class="text-xs text-gray-500">{{ number_format($sale->subtotal_vnd) }}đ</div>
+                        </div>
                     </div>
-                    @if($sale['discount'] > 0)
+                    @if($sale->discount_percent > 0)
                     <div class="flex justify-between text-sm py-2 border-b">
-                        <span class="text-gray-600">Giảm giá:</span>
-                        <span class="font-medium text-red-600">-{{ number_format($sale['discount']) }}đ</span>
+                        <span class="text-gray-600">Giảm giá ({{ $sale->discount_percent }}%):</span>
+                        <div class="text-right">
+                            <div class="font-medium text-red-600">-${{ number_format($sale->discount_usd, 2) }}</div>
+                            <div class="text-xs text-red-500">-{{ number_format($sale->discount_vnd) }}đ</div>
+                        </div>
                     </div>
                     @endif
                     <div class="flex justify-between text-lg font-bold py-3 border-t-2 border-gray-300">
                         <span>Tổng cộng:</span>
-                        <span class="text-green-600">{{ number_format($sale['total']) }}đ</span>
+                        <div class="text-right">
+                            <div class="text-green-600">${{ number_format($sale->total_usd, 2) }}</div>
+                            <div class="text-sm text-green-600">{{ number_format($sale->total_vnd) }}đ</div>
+                        </div>
                     </div>
                     <div class="flex justify-between text-sm py-2">
                         <span class="text-gray-600">Đã thanh toán:</span>
-                        <span class="font-medium text-blue-600">{{ number_format($sale['paid']) }}đ</span>
+                        <span class="font-medium text-blue-600">{{ number_format($sale->paid_amount) }}đ</span>
                     </div>
-                    @if($sale['debt'] > 0)
+                    @if($sale->debt_amount > 0)
                     <div class="flex justify-between text-sm py-2 bg-red-50 px-3 rounded">
                         <span class="text-red-700 font-medium">Còn nợ:</span>
-                        <span class="font-bold text-red-600">{{ number_format($sale['debt']) }}đ</span>
+                        <span class="font-bold text-red-600">{{ number_format($sale->debt_amount) }}đ</span>
                     </div>
                     @endif
+                    <div class="text-xs text-gray-500 text-right mt-2">
+                        Tỷ giá: 1 USD = {{ number_format($sale->exchange_rate) }} VND
+                    </div>
                 </div>
             </div>
         </div>
