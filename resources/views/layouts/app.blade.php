@@ -30,6 +30,20 @@
         @media print {
             .no-print { display: none !important; }
             .print-area { width: 100%; }
+            #main-content { margin-left: 0 !important; }
+        }
+        
+        /* Fix cho fullpage screenshot */
+        body {
+            position: relative;
+        }
+        #sidebar {
+            position: fixed;
+            height: 100vh;
+            min-height: 100%;
+        }
+        #main-content {
+            min-height: 100vh;
         }
     </style>
     @stack('styles')
