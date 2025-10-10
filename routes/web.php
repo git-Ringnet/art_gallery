@@ -36,6 +36,7 @@ Route::middleware(['auth'])->group(function () {
         Route::get('/api/customers/{id}', [SalesController::class, 'getCustomer'])->name('api.customer');
         Route::get('/api/search/paintings', [SalesController::class, 'searchPaintings'])->name('api.search.paintings');
         Route::get('/api/search/supplies', [SalesController::class, 'searchSupplies'])->name('api.search.supplies');
+        Route::get('/api/search/suggestions', [SalesController::class, 'searchSuggestions'])->name('api.search.suggestions');
     });
 
     // Debt routes

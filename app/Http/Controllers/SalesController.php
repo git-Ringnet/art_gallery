@@ -48,9 +48,21 @@ class SalesController extends Controller
         $query = Sale::with(['customer', 'showroom', 'user'])
             ->orderBy('sale_date', 'desc');
 
-        // Search
+        // Search - tìm theo mã HD, tên KH, SĐT, email, sản phẩm
         if ($request->filled('search')) {
-            $query->search($request->search);
+            $search = $request->search;
+            $query->where(function($q) use ($search) {
+                $q->where('invoice_code', 'like', "%{$search}%")
+                  ->orWhere('notes', 'like', "%{$search}%")
+                  ->orWhereHas('customer', function($customerQuery) use ($search) {
+                      $customerQuery->where('name', 'like', "%{$search}%")
+                                   ->orWhere('phone', 'like', "%{$search}%")
+                                   ->orWhere('email', 'like', "%{$search}%");
+                  })
+                  ->orWhereHas('saleItems', function($itemQuery) use ($search) {
+                      $itemQuery->where('description', 'like', "%{$search}%");
+                  });
+            });
         }
 
         // Filter by payment status
@@ -58,14 +70,58 @@ class SalesController extends Controller
             $query->where('payment_status', $request->payment_status);
         }
 
-        // Filter by date range
-        if ($request->filled('from_date') && $request->filled('to_date')) {
-            $query->dateRange($request->from_date, $request->to_date);
+        // Filter by showroom
+        if ($request->filled('showroom_id')) {
+            $query->where('showroom_id', $request->showroom_id);
         }
 
-        $sales = $query->paginate(20);
+        // Filter by user (nhân viên bán)
+        if ($request->filled('user_id')) {
+            $query->where('user_id', $request->user_id);
+        }
 
-        return view('sales.index', compact('sales'));
+        // Filter by date range
+        if ($request->filled('from_date')) {
+            $query->whereDate('sale_date', '>=', $request->from_date);
+        }
+        
+        if ($request->filled('to_date')) {
+            $query->whereDate('sale_date', '<=', $request->to_date);
+        }
+
+        // Filter by amount range
+        if ($request->filled('min_amount')) {
+            $query->where('total_vnd', '>=', $request->min_amount);
+        }
+        
+        if ($request->filled('max_amount')) {
+            $query->where('total_vnd', '<=', $request->max_amount);
+        }
+
+        // Filter by debt status
+        if ($request->filled('has_debt')) {
+            if ($request->has_debt == '1') {
+                $query->where('debt_amount', '>', 0);
+            } elseif ($request->has_debt == '0') {
+                $query->where('debt_amount', '=', 0);
+            }
+        }
+
+        // Sort
+        $sortBy = $request->get('sort_by', 'sale_date');
+        $sortOrder = $request->get('sort_order', 'desc');
+        
+        if (in_array($sortBy, ['sale_date', 'total_vnd', 'paid_amount', 'debt_amount', 'invoice_code'])) {
+            $query->orderBy($sortBy, $sortOrder);
+        }
+
+        $sales = $query->paginate(20)->withQueryString();
+
+        // Get filter options
+        $showrooms = Showroom::active()->get();
+        $users = User::all();
+
+        return view('sales.index', compact('sales', 'showrooms', 'users'));
     }
 
     public function create()
@@ -641,5 +697,56 @@ class SalesController extends Controller
             ->get(['id', 'name', 'unit']);
 
         return response()->json($supplies);
+    }
+
+    // API: Search suggestions cho trang index
+    public function searchSuggestions(Request $request)
+    {
+        $query = $request->get('q', '');
+        
+        if (empty($query) || strlen($query) < 2) {
+            return response()->json([]);
+        }
+
+        $suggestions = [];
+
+        // Tìm theo mã hóa đơn
+        $invoices = Sale::where('invoice_code', 'like', "%{$query}%")
+            ->with('customer')
+            ->limit(5)
+            ->get();
+        
+        foreach ($invoices as $invoice) {
+            $suggestions[] = [
+                'type' => 'invoice',
+                'icon' => 'fa-file-invoice',
+                'label' => $invoice->invoice_code,
+                'sublabel' => $invoice->customer->name . ' - ' . number_format($invoice->total_vnd) . 'đ',
+                'value' => $invoice->invoice_code,
+                'url' => route('sales.show', $invoice->id)
+            ];
+        }
+
+        // Tìm theo khách hàng
+        $customers = Customer::where(function($q) use ($query) {
+                $q->where('name', 'like', "%{$query}%")
+                  ->orWhere('phone', 'like', "%{$query}%");
+            })
+            ->withCount('sales')
+            ->limit(5)
+            ->get();
+        
+        foreach ($customers as $customer) {
+            $suggestions[] = [
+                'type' => 'customer',
+                'icon' => 'fa-user',
+                'label' => $customer->name,
+                'sublabel' => $customer->phone . ' - ' . $customer->sales_count . ' đơn hàng',
+                'value' => $customer->name,
+                'search' => $customer->name
+            ];
+        }
+
+        return response()->json($suggestions);
     }
 }
