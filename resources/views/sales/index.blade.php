@@ -235,18 +235,18 @@
     <!-- Sales Table -->
     <div class="overflow-x-auto">
         <table class="w-full table-auto">
-            <thead class="bg-gradient-to-r from-gray-100 to-gray-200">
+            <thead class="bg-gradient-to-r from-blue-500 to-cyan-600 text-white">
                 <tr>
-                    <th class="px-4 py-4 text-left text-sm font-bold text-gray-700 uppercase">Mã HD</th>
-                    <th class="px-4 py-4 text-left text-sm font-bold text-gray-700 uppercase">Ngày bán</th>
-                    <th class="px-4 py-4 text-left text-sm font-bold text-gray-700 uppercase">Khách hàng</th>
-                    <th class="px-4 py-4 text-left text-sm font-bold text-gray-700 uppercase">Showroom</th>
-                    <th class="px-4 py-4 text-left text-sm font-bold text-gray-700 uppercase">Nhân viên</th>
-                    <th class="px-4 py-4 text-left text-sm font-bold text-gray-700 uppercase">Tổng tiền</th>
-                    <th class="px-4 py-4 text-left text-sm font-bold text-gray-700 uppercase">Đã trả</th>
-                    <th class="px-4 py-4 text-left text-sm font-bold text-gray-700 uppercase">Còn nợ</th>
-                    <th class="px-4 py-4 text-left text-sm font-bold text-gray-700 uppercase">Trạng thái</th>
-                    <th class="px-4 py-4 text-left text-sm font-bold text-gray-700 uppercase">Thao tác</th>
+                    <th class="px-4 py-4 text-left text-sm font-bold  uppercase">Mã HD</th>
+                    <th class="px-4 py-4 text-left text-sm font-bold  uppercase">Ngày bán</th>
+                    <th class="px-4 py-4 text-left text-sm font-bold  uppercase">Khách hàng</th>
+                    <th class="px-4 py-4 text-left text-sm font-bold  uppercase">Showroom</th>
+                    <th class="px-4 py-4 text-left text-sm font-bold  uppercase">Nhân viên</th>
+                    <th class="px-4 py-4 text-left text-sm font-bold  uppercase">Tổng tiền</th>
+                    <th class="px-4 py-4 text-left text-sm font-bold  uppercase">Đã trả</th>
+                    <th class="px-4 py-4 text-left text-sm font-bold  uppercase">Còn nợ</th>
+                    <th class="px-4 py-4 text-left text-sm font-bold  uppercase">Trạng thái</th>
+                    <th class="px-4 py-4 text-left text-sm font-bold  uppercase">Thao tác</th>
                 </tr>
             </thead>
             <tbody class="bg-white divide-y divide-gray-200">

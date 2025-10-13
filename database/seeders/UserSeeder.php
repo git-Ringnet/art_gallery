@@ -18,12 +18,7 @@ class UserSeeder extends Seeder
             'email_verified_at' => now(),
         ]);
 
-        // Tạo thêm user test
-        User::create([
-            'name' => 'Nguyễn Văn A',
-            'email' => 'user@example.com',
-            'password' => Hash::make('password'),
-            'email_verified_at' => now(),
-        ]);
+        // Hoặc thêm nhiều user mẫu khác nếu muốn
+        User::factory(3)->create();
     }
 }

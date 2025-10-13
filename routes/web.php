@@ -83,6 +83,17 @@ Route::middleware(['auth'])->group(function () {
         Route::delete('/{id}', [App\Http\Controllers\ShowroomController::class, 'destroy'])->name('destroy');
     });
 
+    // Customers routes
+    Route::prefix('customers')->name('customers.')->group(function () {
+        Route::get('/', [App\Http\Controllers\CustomerController::class, 'index'])->name('index');
+        Route::get('/create', [App\Http\Controllers\CustomerController::class, 'create'])->name('create');
+        Route::post('/', [App\Http\Controllers\CustomerController::class, 'store'])->name('store');
+        Route::get('/{id}', [App\Http\Controllers\CustomerController::class, 'show'])->name('show');
+        Route::get('/{id}/edit', [App\Http\Controllers\CustomerController::class, 'edit'])->name('edit');
+        Route::put('/{id}', [App\Http\Controllers\CustomerController::class, 'update'])->name('update');
+        Route::delete('/{id}', [App\Http\Controllers\CustomerController::class, 'destroy'])->name('destroy');
+    });
+
     // Permissions routes
     Route::prefix('permissions')->name('permissions.')->group(function () {
         Route::get('/', [App\Http\Controllers\PermissionController::class, 'index'])->name('index');

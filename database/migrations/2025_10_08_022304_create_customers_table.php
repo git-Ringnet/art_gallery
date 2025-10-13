@@ -14,7 +14,7 @@ return new class extends Migration
         Schema::create('customers', function (Blueprint $table) {
             $table->id();
             $table->string('name')->comment('Tên khách hàng');
-            $table->string('phone', 20)->comment('Số điện thoại');
+            $table->string('phone', 20)->nullable()->comment('Số điện thoại');
             $table->string('email')->nullable()->comment('Email');
             $table->text('address')->nullable()->comment('Địa chỉ');
             $table->decimal('total_purchased', 15, 2)->default(0)->comment('Tổng giá trị đã mua (VND)');

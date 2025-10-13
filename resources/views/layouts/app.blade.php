@@ -84,6 +84,10 @@
                     <i class="fas fa-store w-5"></i>
                     <span>Phòng trưng bày</span>
                 </a>
+                <a href="{{ route('customers.index') }}" class="nav-item flex items-center space-x-3 p-3 rounded-lg hover:bg-white hover:bg-opacity-20 transition-all duration-200 {{ request()->routeIs('customers.*') ? 'bg-white bg-opacity-20' : '' }}">
+                    <i class="fas fa-users w-5"></i>
+                    <span>Khách hàng</span>
+                </a>
                 <a href="{{ route('permissions.index') }}" class="nav-item flex items-center space-x-3 p-3 rounded-lg hover:bg-white hover:bg-opacity-20 transition-all duration-200 {{ request()->routeIs('permissions.*') ? 'bg-white bg-opacity-20' : '' }}">
                     <i class="fas fa-user-shield w-5"></i>
                     <span>Phân quyền</span>
@@ -141,18 +145,7 @@
             </div>
         </div>
 
-        <!-- Flash Messages -->
-        @if(session('success'))
-            <div class="bg-green-100 border border-green-400 text-green-700 px-4 py-3 rounded relative mb-4 no-print" role="alert">
-                <span class="block sm:inline">{{ session('success') }}</span>
-            </div>
-        @endif
-
-        @if(session('error'))
-            <div class="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded relative mb-4 no-print" role="alert">
-                <span class="block sm:inline">{{ session('error') }}</span>
-            </div>
-        @endif
+       
 
         <!-- Page Content -->
         @yield('content')
