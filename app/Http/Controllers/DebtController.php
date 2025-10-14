@@ -40,7 +40,13 @@ class DebtController extends Controller
 
     public function show($id)
     {
-        $debt = Debt::with(['customer', 'sale.saleItems', 'sale.payments'])->findOrFail($id);
+        $debt = Debt::with([
+            'customer', 
+            'sale.saleItems', 
+            'sale.payments' => function($query) {
+                $query->orderBy('payment_date', 'desc')->orderBy('id', 'desc');
+            }
+        ])->findOrFail($id);
         return view('debts.show', compact('debt'));
     }
 
@@ -113,22 +119,12 @@ class DebtController extends Controller
             $query->whereDate('payment_date', '<=', $request->date_to);
         }
 
-        // Filter by amount
-        if ($request->filled('amount_filter')) {
-            switch ($request->amount_filter) {
-                case 'under_10m':
-                    $query->where('amount', '<', 10000000);
-                    break;
-                case '10m_50m':
-                    $query->whereBetween('amount', [10000000, 50000000]);
-                    break;
-                case '50m_100m':
-                    $query->whereBetween('amount', [50000000, 100000000]);
-                    break;
-                case 'over_100m':
-                    $query->where('amount', '>', 100000000);
-                    break;
-            }
+        // Filter by amount range
+        if ($request->filled('amount_from')) {
+            $query->where('amount', '>=', $request->amount_from);
+        }
+        if ($request->filled('amount_to')) {
+            $query->where('amount', '<=', $request->amount_to);
         }
 
         // Get all payments first

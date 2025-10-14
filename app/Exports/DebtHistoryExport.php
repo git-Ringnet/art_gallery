@@ -27,11 +27,13 @@ class DebtHistoryExport implements FromCollection, WithHeadings, WithMapping, Wi
     {
         return [
             'Ngày TT',
+            'Giờ TT',
             'Mã HĐ',
             'Khách hàng',
             'SĐT',
             'Tổng tiền',
             'Đã trả',
+            'PT Thanh toán',
             'Còn nợ',
             'Trạng thái TT'
         ];
@@ -57,13 +59,28 @@ class DebtHistoryExport implements FromCollection, WithHeadings, WithMapping, Wi
             $statusText = 'Chưa Thanh Toán';
         }
 
+        // Payment method text
+        $paymentMethodText = match($payment->payment_method) {
+            'cash' => 'Tiền mặt',
+            'bank_transfer' => 'Chuyển khoản',
+            'card' => 'Thẻ',
+            default => 'Khác'
+        };
+
+        $paymentDateTime = $payment->payment_date->timezone('Asia/Ho_Chi_Minh');
+        $timeStr = $paymentDateTime->format('H:i:s');
+        // Chỉ hiển thị giờ nếu không phải 00:00:00 hoặc 07:00:00 (data cũ từ UTC)
+        $hasTime = $timeStr !== '00:00:00' && $timeStr !== '07:00:00';
+        
         return [
-            $payment->payment_date->timezone('Asia/Ho_Chi_Minh')->format('d/m/Y'),
+            $paymentDateTime->format('d/m/Y'),
+            $hasTime ? $paymentDateTime->format('H:i') : '-',
             $payment->sale->invoice_code,
             $payment->sale->customer->name,
             $payment->sale->customer->phone ?? '-',
             number_format($payment->sale->total_vnd, 0, ',', '.') . 'đ',
             number_format($payment->amount, 0, ',', '.') . 'đ',
+            $paymentMethodText,
             number_format($remainingDebt, 0, ',', '.') . 'đ',
             $statusText
         ];
@@ -79,14 +96,16 @@ class DebtHistoryExport implements FromCollection, WithHeadings, WithMapping, Wi
     public function columnWidths(): array
     {
         return [
-            'A' => 15,
-            'B' => 15,
-            'C' => 25,
-            'D' => 15,
-            'E' => 18,
-            'F' => 18,
-            'G' => 18,
-            'H' => 25,
+            'A' => 12,  // Ngày TT
+            'B' => 8,   // Giờ TT
+            'C' => 15,  // Mã HĐ
+            'D' => 25,  // Khách hàng
+            'E' => 15,  // SĐT
+            'F' => 18,  // Tổng tiền
+            'G' => 18,  // Đã trả
+            'H' => 15,  // PT Thanh toán
+            'I' => 18,  // Còn nợ
+            'J' => 25,  // Trạng thái TT
         ];
     }
 }

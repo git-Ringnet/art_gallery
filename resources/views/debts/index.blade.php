@@ -90,7 +90,7 @@
             </div>
         </div>
 
-        <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+        <div class="grid grid-cols-1 md:grid-cols-5 gap-4">
             <div>
                 <label class="block text-sm font-medium text-gray-700 mb-2">
                     <i class="fas fa-filter mr-2"></i>Trạng thái TT
@@ -105,18 +105,23 @@
 
             <div>
                 <label class="block text-sm font-medium text-gray-700 mb-2">
-                    <i class="fas fa-dollar-sign mr-2"></i>Lọc theo tiền
+                    <i class="fas fa-dollar-sign mr-2"></i>Số tiền từ
                 </label>
-                <select name="amount_filter" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
-                    <option value="">-- Chọn loại lọc --</option>
-                    <option value="under_10m" {{ request('amount_filter') == 'under_10m' ? 'selected' : '' }}>Dưới 10 triệu</option>
-                    <option value="10m_50m" {{ request('amount_filter') == '10m_50m' ? 'selected' : '' }}>10-50 triệu</option>
-                    <option value="50m_100m" {{ request('amount_filter') == '50m_100m' ? 'selected' : '' }}>50-100 triệu</option>
-                    <option value="over_100m" {{ request('amount_filter') == 'over_100m' ? 'selected' : '' }}>Trên 100 triệu</option>
-                </select>
+                <input type="number" name="amount_from" value="{{ request('amount_from') }}" 
+                    placeholder="Từ..." 
+                    class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
             </div>
 
-            <div class="flex items-end space-x-2 col-span-2">
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-2">
+                    <i class="fas fa-dollar-sign mr-2"></i>Số tiền đến
+                </label>
+                <input type="number" name="amount_to" value="{{ request('amount_to') }}" 
+                    placeholder="Đến..." 
+                    class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+            </div>
+
+            <div class="flex items-end space-x-2 col-span-2 md:col-span-2">
                 <button type="submit" class="bg-blue-500 hover:bg-blue-600 text-white px-6 py-2 rounded-lg transition-colors">
                     <i class="fas fa-search mr-2"></i>Tìm kiếm
                 </button>
@@ -172,6 +177,7 @@
                     <th class="px-4 py-3 text-left">SĐT</th>
                     <th class="px-4 py-3 text-right">Tổng tiền</th>
                     <th class="px-4 py-3 text-right">Đã trả</th>
+                    <th class="px-4 py-3 text-center">PT Thanh toán</th>
                     <th class="px-4 py-3 text-right">Còn nợ</th>
                     <th class="px-4 py-3 text-center">TT Thanh toán</th>
                     <th class="px-4 py-3 text-center">Thao tác</th>
@@ -181,7 +187,16 @@
                 @forelse($payments as $payment)
                 <tr class="hover:bg-gray-50 transition-colors">
                     <td class="px-4 py-3">
-                        <span class="text-gray-900 text-sm">{{ $payment->payment_date->timezone('Asia/Ho_Chi_Minh')->format('d/m/Y') }}</span>
+                        @php
+                            $paymentDateTime = $payment->payment_date->timezone('Asia/Ho_Chi_Minh');
+                            $timeStr = $paymentDateTime->format('H:i:s');
+                            // Chỉ hiển thị giờ nếu không phải 00:00:00 hoặc 07:00:00 (data cũ từ UTC)
+                            $hasTime = $timeStr !== '00:00:00' && $timeStr !== '07:00:00';
+                        @endphp
+                        <div class="text-gray-900 text-sm">{{ $paymentDateTime->format('d/m/Y') }}</div>
+                        @if($hasTime)
+                            <div class="text-gray-500 text-xs">{{ $paymentDateTime->format('H:i') }}</div>
+                        @endif
                     </td>
                     <td class="px-4 py-3">
                         <span class="font-medium text-blue-600">{{ $payment->sale->invoice_code }}</span>
@@ -190,13 +205,28 @@
                         <div class="font-medium text-gray-900">{{ $payment->sale->customer->name }}</div>
                     </td>
                     <td class="px-4 py-3">
-                        <i class="fas fa-phone text-blue-500 mr-2"></i>{{ $payment->sale->customer->phone ?? '-' }}
+                        {{ $payment->sale->customer->phone ?? '-' }}
                     </td>
                     <td class="px-4 py-3 text-right font-medium text-gray-900">
                         {{ number_format($payment->sale->total_vnd, 0, ',', '.') }}đ
                     </td>
                     <td class="px-4 py-3 text-right text-green-600 font-bold">
                         {{ number_format($payment->amount, 0, ',', '.') }}đ
+                    </td>
+                    <td class="px-4 py-3 text-center">
+                        @if($payment->payment_method === 'cash')
+                            <span class="px-2 py-1 bg-green-100 text-green-700 text-xs rounded-full">
+                                <i class="fas fa-money-bill-wave mr-1"></i>Tiền mặt
+                            </span>
+                        @elseif($payment->payment_method === 'bank_transfer')
+                            <span class="px-2 py-1 bg-blue-100 text-blue-700 text-xs rounded-full">
+                                <i class="fas fa-university mr-1"></i>CK
+                            </span>
+                        @else
+                            <span class="px-2 py-1 bg-purple-100 text-purple-700 text-xs rounded-full">
+                                <i class="fas fa-credit-card mr-1"></i>Thẻ
+                            </span>
+                        @endif
                     </td>
                     <td class="px-4 py-3 text-right text-red-600 font-bold">
                         @php
@@ -235,13 +265,13 @@
                             @if($payment->sale->debt)
                                 <a href="{{ route('debt.show', $payment->sale->debt->id) }}" 
                                     class="w-8 h-8 flex items-center justify-center bg-green-100 text-green-600 rounded-lg hover:bg-green-200 transition-colors" 
-                                    title="Trả nợ">
+                                    title="Thanh toán">
                                     <i class="fas fa-money-bill-wave"></i>
                                 </a>
                             @endif
                             <a href="{{ route('sales.show', $payment->sale_id) }}" 
                                 class="w-8 h-8 flex items-center justify-center bg-blue-100 text-blue-600 rounded-lg hover:bg-blue-200 transition-colors" 
-                                title="Xem hóa đơn">
+                                title="Xem chi tiết phiếu bán hàng">
                                 <i class="fas fa-file-invoice"></i>
                             </a>
                         </div>
@@ -249,7 +279,7 @@
                 </tr>
                 @empty
                 <tr>
-                    <td colspan="9" class="px-4 py-8 text-center text-gray-500">
+                    <td colspan="10" class="px-4 py-8 text-center text-gray-500">
                         <i class="fas fa-inbox text-4xl mb-2"></i>
                         <p>Chưa có lịch sử thanh toán nào</p>
                     </td>

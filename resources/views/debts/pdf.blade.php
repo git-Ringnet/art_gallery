@@ -75,24 +75,42 @@
         <thead>
             <tr>
                 <th>Ngày TT</th>
+                <th>Giờ</th>
                 <th>Mã HĐ</th>
                 <th>Khách hàng</th>
                 <th>SĐT</th>
                 <th class="text-right">Tổng tiền</th>
                 <th class="text-right">Đã trả</th>
+                <th class="text-center">PT TT</th>
                 <th class="text-right">Còn nợ</th>
-                <th class="text-center">TT Thanh toán</th>
+                <th class="text-center">Trạng thái</th>
             </tr>
         </thead>
         <tbody>
             @foreach($payments as $payment)
+            @php
+                $paymentDateTime = $payment->payment_date->timezone('Asia/Ho_Chi_Minh');
+                $timeStr = $paymentDateTime->format('H:i:s');
+                // Chỉ hiển thị giờ nếu không phải 00:00:00 hoặc 07:00:00 (data cũ từ UTC)
+                $hasTime = $timeStr !== '00:00:00' && $timeStr !== '07:00:00';
+            @endphp
             <tr>
-                <td>{{ $payment->payment_date->timezone('Asia/Ho_Chi_Minh')->format('d/m/Y') }}</td>
+                <td>{{ $paymentDateTime->format('d/m/Y') }}</td>
+                <td>{{ $hasTime ? $paymentDateTime->format('H:i') : '-' }}</td>
                 <td>{{ $payment->sale->invoice_code }}</td>
                 <td>{{ $payment->sale->customer->name }}</td>
                 <td>{{ $payment->sale->customer->phone ?? '-' }}</td>
                 <td class="text-right">{{ number_format($payment->sale->total_vnd, 0, ',', '.') }}đ</td>
                 <td class="text-right">{{ number_format($payment->amount, 0, ',', '.') }}đ</td>
+                <td class="text-center">
+                    @if($payment->payment_method === 'cash')
+                        TM
+                    @elseif($payment->payment_method === 'bank_transfer')
+                        CK
+                    @else
+                        Thẻ
+                    @endif
+                </td>
                 <td class="text-right">
                     @php
                         $paidUpToNow = $payment->sale->payments()

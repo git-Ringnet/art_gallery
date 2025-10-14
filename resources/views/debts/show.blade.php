@@ -10,7 +10,7 @@
 </a>
 @if($debt->sale->payment_status !== 'paid')
 <button onclick="showCollectModal()" class="bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded-lg transition-colors">
-    <i class="fas fa-money-bill-wave mr-2"></i>Thu nợ
+    <i class="fas fa-money-bill-wave mr-2"></i>Thanh toán
 </button>
 @endif
 @endsection
@@ -129,13 +129,25 @@
                             <th class="px-4 py-2 text-left text-sm font-medium text-gray-700">Ngày thanh toán</th>
                             <th class="px-4 py-2 text-right text-sm font-medium text-gray-700">Số tiền</th>
                             <th class="px-4 py-2 text-center text-sm font-medium text-gray-700">Phương thức</th>
+                            <th class="px-4 py-2 text-center text-sm font-medium text-gray-700">Người thu</th>
                             <th class="px-4 py-2 text-left text-sm font-medium text-gray-700">Ghi chú</th>
                         </tr>
                     </thead>
                     <tbody class="divide-y divide-gray-200">
                         @foreach($debt->sale->payments as $payment)
                         <tr class="hover:bg-gray-50">
-                            <td class="px-4 py-3 text-sm">{{ $payment->payment_date->timezone('Asia/Ho_Chi_Minh')->format('d/m/Y') }}</td>
+                            <td class="px-4 py-3 text-sm">
+                                @php
+                                    $paymentDateTime = $payment->payment_date->timezone('Asia/Ho_Chi_Minh');
+                                    $timeStr = $paymentDateTime->format('H:i:s');
+                                    // Chỉ hiển thị giờ nếu không phải 00:00:00 hoặc 07:00:00 (data cũ từ UTC)
+                                    $hasTime = $timeStr !== '00:00:00' && $timeStr !== '07:00:00';
+                                @endphp
+                                <div>{{ $paymentDateTime->format('d/m/Y') }}</div>
+                                @if($hasTime)
+                                    <div class="text-xs text-gray-500">{{ $paymentDateTime->format('H:i') }}</div>
+                                @endif
+                            </td>
                             <td class="px-4 py-3 text-right font-medium text-green-600">
                                 {{ number_format($payment->amount, 0, ',', '.') }}đ
                             </td>
@@ -146,6 +158,16 @@
                                     <span class="px-2 py-1 bg-blue-100 text-blue-800 text-xs rounded-full">Chuyển khoản</span>
                                 @else
                                     <span class="px-2 py-1 bg-purple-100 text-purple-800 text-xs rounded-full">Thẻ</span>
+                                @endif
+                            </td>
+                            <td class="px-4 py-3 text-center text-sm">
+                                @if($payment->createdBy)
+                                    <div class="flex items-center justify-center">
+                                        <i class="fas fa-user-circle text-blue-500 mr-1"></i>
+                                        {{ $payment->createdBy->name }}
+                                    </div>
+                                @else
+                                    <span class="text-gray-400">-</span>
                                 @endif
                             </td>
                             <td class="px-4 py-3 text-sm text-gray-600">{{ $payment->notes ?? '-' }}</td>
@@ -165,43 +187,65 @@
 </div>
 
 <!-- Collect Payment Modal -->
-<div id="collectModal" class="hidden fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50">
-    <div class="relative top-20 mx-auto p-5 border w-96 shadow-lg rounded-md bg-white">
-        <div class="mt-3">
-            <div class="flex items-center justify-between mb-4">
-                <h3 class="text-lg font-medium text-gray-900">Thu nợ</h3>
-                <button onclick="closeCollectModal()" class="text-gray-400 hover:text-gray-600">
+<div id="collectModal" class="hidden fixed inset-0 bg-gray-900 bg-opacity-75 overflow-y-auto h-full w-full z-50 flex items-center justify-center p-4">
+    <div class="relative mx-auto p-8 border-2 border-gray-300 w-full max-w-2xl shadow-2xl rounded-2xl bg-white">
+        <div class="mt-2">
+            <div class="flex items-center justify-between mb-6 pb-4 border-b-2 border-gray-200">
+                <h3 class="text-3xl font-bold text-gray-900 flex items-center">
+                    <i class="fas fa-money-bill-wave text-green-600 mr-3 text-4xl"></i>
+                    Thanh toán
+                </h3>
+                <button onclick="closeCollectModal()" class="text-gray-400 hover:text-gray-600 text-3xl w-10 h-10">
                     <i class="fas fa-times"></i>
                 </button>
             </div>
             
             <form method="POST" action="{{ route('debt.collect', $debt->id) }}">
                 @csrf
-                <input type="hidden" name="payment_method" value="cash">
                 
-                <div class="space-y-4">
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-2">
-                            Số tiền thu <span class="text-red-500">*</span>
-                        </label>
-                        <input type="number" name="amount" required min="1" max="{{ $debt->sale->debt_amount }}"
-                            class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
-                            placeholder="Nhập số tiền...">
-                        <p class="text-xs text-gray-500 mt-1">Tối đa: {{ number_format($debt->sale->debt_amount, 0, ',', '.') }}đ</p>
+                <div class="space-y-6">
+                    <!-- Số tiền còn nợ hiển thị rõ -->
+                    <div class="bg-red-50 border-2 border-red-200 rounded-xl p-5">
+                        <p class="text-xl text-gray-700 mb-2 font-medium">Số tiền còn thanh toán:</p>
+                        <p class="text-4xl font-bold text-red-600">{{ number_format($debt->sale->debt_amount, 0, ',', '.') }}đ</p>
                     </div>
 
                     <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-2">Nội dung</label>
-                        <textarea name="notes" rows="3" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500" placeholder="Nhập nội dung thanh toán..."></textarea>
+                        <label class="block text-xl font-bold text-gray-900 mb-3">
+                            Số tiền thu <span class="text-red-500 text-2xl">*</span>
+                        </label>
+                        <input type="number" name="amount" required min="1" max="{{ $debt->sale->debt_amount }}"
+                            class="w-full px-6 py-5 text-2xl font-semibold border-2 border-gray-300 rounded-xl focus:ring-4 focus:ring-blue-500 focus:border-blue-500"
+                            placeholder="Nhập số tiền...">
+                        <p class="text-lg text-gray-600 mt-3 flex items-center">
+                            <i class="fas fa-info-circle mr-2 text-blue-500"></i>
+                            Tối đa: <span class="font-bold ml-2">{{ number_format($debt->sale->debt_amount, 0, ',', '.') }}đ</span>
+                        </p>
+                    </div>
+
+                    <div>
+                        <label class="block text-xl font-bold text-gray-900 mb-3">
+                            Phương thức thanh toán <span class="text-red-500 text-2xl">*</span>
+                        </label>
+                        <select name="payment_method" required class="w-full px-6 py-5 text-xl font-medium border-2 border-gray-300 rounded-xl focus:ring-4 focus:ring-blue-500 focus:border-blue-500">
+                            <option value="cash">💵 Tiền mặt</option>
+                            <option value="bank_transfer">🏦 Chuyển khoản</option>
+                            <option value="card">💳 Thẻ</option>
+                        </select>
+                    </div>
+
+                    <div>
+                        <label class="block text-xl font-bold text-gray-900 mb-3">Ghi chú</label>
+                        <textarea name="notes" rows="3" class="w-full px-6 py-4 text-lg border-2 border-gray-300 rounded-xl focus:ring-4 focus:ring-blue-500 focus:border-blue-500" placeholder="Nhập ghi chú thanh toán..."></textarea>
                     </div>
                 </div>
 
-                <div class="flex justify-end space-x-3 mt-6">
-                    <button type="button" onclick="closeCollectModal()" class="bg-gray-500 text-white px-4 py-2 rounded-lg hover:bg-gray-600">
-                        Hủy
+                <div class="flex justify-end space-x-4 mt-8 pt-6 border-t-2 border-gray-200">
+                    <button type="button" onclick="closeCollectModal()" class="bg-gray-500 text-white px-10 py-5 text-xl font-bold rounded-xl hover:bg-gray-600 transition-colors">
+                        <i class="fas fa-times mr-2"></i>Hủy
                     </button>
-                    <button type="submit" class="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700">
-                        <i class="fas fa-check mr-2"></i>Xác nhận
+                    <button type="submit" class="bg-green-600 text-white px-10 py-5 text-xl font-bold rounded-xl hover:bg-green-700 transition-colors shadow-lg">
+                        <i class="fas fa-check mr-2"></i>Xác nhận thu tiền
                     </button>
                 </div>
             </form>
