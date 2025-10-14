@@ -7,6 +7,7 @@ use App\Models\Painting;
 use App\Models\Supply;
 use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Facades\Storage;
+use Barryvdh\DomPDF\Facade\Pdf;
 
 class InventoryController extends Controller
 {
@@ -55,6 +56,8 @@ class InventoryController extends Controller
                     'type' => 'painting',
                     'quantity' => $painting->quantity,
                     'import_date' => $painting->import_date?->format('d/m/Y'),
+                    'import_date_raw' => $painting->import_date,
+                    'created_at' => $painting->created_at,
                     'status' => $painting->status,
                     'artist' => $painting->artist,
                     'material' => $painting->material,
@@ -72,10 +75,17 @@ class InventoryController extends Controller
                     'quantity' => $supply->quantity,
                     'unit' => $supply->unit,
                     'import_date' => $supply->import_date?->format('d/m/Y'),
+                    'import_date_raw' => $supply->import_date,
+                    'created_at' => $supply->created_at,
                     'status' => $supply->status,
                 ];
             }));
         }
+
+        // Sort by created_at (newest first) - this ensures consistent ordering
+        $inventory = $inventory->sortByDesc(function ($item) {
+            return $item['created_at'] ? $item['created_at']->timestamp : 0;
+        })->values();
 
         // Paginate merged collection
         $perPage = 10;
@@ -108,10 +118,20 @@ class InventoryController extends Controller
         return view('inventory.import');
     }
 
+    public function importPaintingForm()
+    {
+        return view('inventory.import-painting');
+    }
+
+    public function importSupplyForm()
+    {
+        return view('inventory.import-supply');
+    }
+
     public function importPainting(Request $request)
     {
         $validated = $request->validate([
-            'code' => 'required|string|max:50',
+            'code' => 'required|string|max:50|unique:paintings,code',
             'name' => 'required|string|max:255',
             'artist' => 'required|string|max:255',
             'material' => 'required|string|max:100',
@@ -123,6 +143,9 @@ class InventoryController extends Controller
             'export_date' => 'nullable|date|after:import_date',
             'notes' => 'nullable|string',
             'image' => 'nullable|image|max:2048',
+        ], [
+            'code.unique' => 'Mã tranh đã tồn tại trong hệ thống.',
+            'code.required' => 'Vui lòng nhập mã tranh.',
         ]);
 
         // Persist painting
@@ -156,12 +179,15 @@ class InventoryController extends Controller
     public function importSupply(Request $request)
     {
         $validated = $request->validate([
-            'code' => 'required|string|max:50',
+            'code' => 'required|string|max:50|unique:supplies,code',
             'name' => 'required|string|max:255',
             'type' => 'required|string',
             'unit' => 'required|string|max:20',
             'quantity' => 'required|numeric|min:0',
             'notes' => 'nullable|string'
+        ], [
+            'code.unique' => 'Mã vật tư đã tồn tại trong hệ thống.',
+            'code.required' => 'Vui lòng nhập mã vật tư.',
         ]);
 
         Supply::create([
@@ -194,6 +220,7 @@ class InventoryController extends Controller
         $painting = Painting::findOrFail($id);
 
         $validated = $request->validate([
+            'code' => 'required|string|max:50|unique:paintings,code,' . $id,
             'name' => 'required|string|max:255',
             'artist' => 'required|string|max:255',
             'material' => 'required|string|max:100',
@@ -206,6 +233,9 @@ class InventoryController extends Controller
             'notes' => 'nullable|string',
             'image' => 'nullable|image|max:2048',
             'remove_image' => 'nullable|in:0,1',
+        ], [
+            'code.unique' => 'Mã tranh đã tồn tại trong hệ thống.',
+            'code.required' => 'Vui lòng nhập mã tranh.',
         ]);
 
         // Remove old image if requested
@@ -260,12 +290,16 @@ class InventoryController extends Controller
         $supply = Supply::findOrFail($id);
 
         $validated = $request->validate([
+            'code' => 'required|string|max:50|unique:supplies,code,' . $id,
             'name' => 'required|string|max:255',
             'type' => 'required|in:frame,canvas,other',
             'unit' => 'required|string|max:20',
             'quantity' => 'required|numeric|min:0',
             'min_quantity' => 'nullable|numeric|min:0',
             'notes' => 'nullable|string',
+        ], [
+            'code.unique' => 'Mã vật tư đã tồn tại trong hệ thống.',
+            'code.required' => 'Vui lòng nhập mã vật tư.',
         ]);
 
         $supply->update($validated);
@@ -281,5 +315,206 @@ class InventoryController extends Controller
 
         return redirect()->route('inventory.index')
             ->with('success', 'Đã xóa vật tư');
+    }
+
+    public function exportExcel(Request $request)
+    {
+        $search = $request->get('search');
+        $type = $request->get('type');
+        $dateFrom = $request->get('date_from');
+        $dateTo = $request->get('date_to');
+        $scope = $request->get('scope', 'all'); // 'current' or 'all'
+        $currentPage = (int) $request->get('page', 1);
+        $perPage = 10;
+
+        // Get filtered data (same logic as index)
+        $paintingsQuery = Painting::query();
+        if ($search) {
+            $paintingsQuery->search($search);
+        }
+        if ($dateFrom) {
+            $paintingsQuery->where('import_date', '>=', $dateFrom);
+        }
+        if ($dateTo) {
+            $paintingsQuery->where('import_date', '<=', $dateTo);
+        }
+        $paintings = $paintingsQuery->orderBy('created_at', 'desc')->get();
+
+        $suppliesQuery = Supply::query();
+        if ($search) {
+            $suppliesQuery->where('code', 'like', "%{$search}%")
+                         ->orWhere('name', 'like', "%{$search}%");
+        }
+        if ($dateFrom) {
+            $suppliesQuery->where('import_date', '>=', $dateFrom);
+        }
+        if ($dateTo) {
+            $suppliesQuery->where('import_date', '<=', $dateTo);
+        }
+        $supplies = $suppliesQuery->orderBy('created_at', 'desc')->get();
+
+        $inventory = collect();
+        if (!$type || $type === 'painting') {
+            $inventory = $inventory->merge($paintings->map(function ($painting) {
+                return [
+                    'code' => $painting->code,
+                    'name' => $painting->name,
+                    'type' => 'Tranh',
+                    'quantity' => $painting->quantity,
+                    'unit' => '',
+                    'import_date' => $painting->import_date?->format('d/m/Y'),
+                    'status' => $painting->status == 'in_stock' ? 'Còn hàng' : 'Đã bán',
+                    'artist' => $painting->artist,
+                    'material' => $painting->material,
+                    'price_usd' => $painting->price_usd,
+                    'created_at' => $painting->created_at,
+                ];
+            }));
+        }
+        if (!$type || $type === 'supply') {
+            $inventory = $inventory->merge($supplies->map(function ($supply) {
+                return [
+                    'code' => $supply->code,
+                    'name' => $supply->name,
+                    'type' => 'Vật tư',
+                    'quantity' => $supply->quantity,
+                    'unit' => $supply->unit,
+                    'import_date' => $supply->import_date?->format('d/m/Y'),
+                    'status' => $supply->quantity > 0 ? 'Còn hàng' : 'Hết hàng',
+                    'artist' => '',
+                    'material' => '',
+                    'price_usd' => '',
+                    'created_at' => $supply->created_at,
+                ];
+            }));
+        }
+
+        // Sort by created_at
+        $inventory = $inventory->sortByDesc(function ($item) {
+            return $item['created_at'] ? $item['created_at']->timestamp : 0;
+        })->values();
+
+        // If scope is 'current', only export current page
+        if ($scope === 'current') {
+            $inventory = $inventory->forPage($currentPage, $perPage)->values();
+        }
+
+        // Create CSV content
+        $filename = 'quan-ly-kho-' . date('Y-m-d-His') . '.csv';
+        $headers = [
+            'Content-Type' => 'text/csv; charset=UTF-8',
+            'Content-Disposition' => 'attachment; filename="' . $filename . '"',
+        ];
+
+        $callback = function() use ($inventory) {
+            $file = fopen('php://output', 'w');
+            // Add BOM for UTF-8
+            fprintf($file, chr(0xEF).chr(0xBB).chr(0xBF));
+            
+            // Headers
+            fputcsv($file, ['Mã', 'Tên sản phẩm', 'Loại', 'Số lượng', 'Đơn vị', 'Ngày nhập', 'Trạng thái', 'Họa sĩ', 'Chất liệu', 'Giá (USD)']);
+            
+            // Data
+            foreach ($inventory as $item) {
+                fputcsv($file, [
+                    $item['code'],
+                    $item['name'],
+                    $item['type'],
+                    $item['quantity'],
+                    $item['unit'],
+                    $item['import_date'],
+                    $item['status'],
+                    $item['artist'] ?? '',
+                    $item['material'] ?? '',
+                    $item['price_usd'] ?? '',
+                ]);
+            }
+            
+            fclose($file);
+        };
+
+        return response()->stream($callback, 200, $headers);
+    }
+
+    public function exportPdf(Request $request)
+    {
+        $search = $request->get('search');
+        $type = $request->get('type');
+        $dateFrom = $request->get('date_from');
+        $dateTo = $request->get('date_to');
+        $scope = $request->get('scope', 'all');
+        $currentPage = (int) $request->get('page', 1);
+        $perPage = 10;
+
+        // Get filtered data (same logic as index)
+        $paintingsQuery = Painting::query();
+        if ($search) {
+            $paintingsQuery->search($search);
+        }
+        if ($dateFrom) {
+            $paintingsQuery->where('import_date', '>=', $dateFrom);
+        }
+        if ($dateTo) {
+            $paintingsQuery->where('import_date', '<=', $dateTo);
+        }
+        $paintings = $paintingsQuery->orderBy('created_at', 'desc')->get();
+
+        $suppliesQuery = Supply::query();
+        if ($search) {
+            $suppliesQuery->where('code', 'like', "%{$search}%")
+                         ->orWhere('name', 'like', "%{$search}%");
+        }
+        if ($dateFrom) {
+            $suppliesQuery->where('import_date', '>=', $dateFrom);
+        }
+        if ($dateTo) {
+            $suppliesQuery->where('import_date', '<=', $dateTo);
+        }
+        $supplies = $suppliesQuery->orderBy('created_at', 'desc')->get();
+
+        $inventory = collect();
+        if (!$type || $type === 'painting') {
+            $inventory = $inventory->merge($paintings->map(function ($painting) {
+                return [
+                    'code' => $painting->code,
+                    'name' => $painting->name,
+                    'type' => 'Tranh',
+                    'quantity' => $painting->quantity,
+                    'unit' => '',
+                    'import_date' => $painting->import_date?->format('d/m/Y'),
+                    'status' => $painting->status == 'in_stock' ? 'Còn hàng' : 'Đã bán',
+                    'created_at' => $painting->created_at,
+                ];
+            }));
+        }
+        if (!$type || $type === 'supply') {
+            $inventory = $inventory->merge($supplies->map(function ($supply) {
+                return [
+                    'code' => $supply->code,
+                    'name' => $supply->name,
+                    'type' => 'Vật tư',
+                    'quantity' => $supply->quantity,
+                    'unit' => $supply->unit,
+                    'import_date' => $supply->import_date?->format('d/m/Y'),
+                    'status' => $supply->quantity > 0 ? 'Còn hàng' : 'Hết hàng',
+                    'created_at' => $supply->created_at,
+                ];
+            }));
+        }
+
+        // Sort by created_at
+        $inventory = $inventory->sortByDesc(function ($item) {
+            return $item['created_at'] ? $item['created_at']->timestamp : 0;
+        })->values();
+
+        // If scope is 'current', only export current page
+        if ($scope === 'current') {
+            $inventory = $inventory->forPage($currentPage, $perPage)->values();
+        }
+
+        $pdf = Pdf::loadView('inventory.export-pdf', compact('inventory', 'search', 'type', 'dateFrom', 'dateTo', 'scope'));
+        
+        $filename = 'quan-ly-kho-' . date('Y-m-d-His') . '.pdf';
+        return $pdf->download($filename);
     }
 }

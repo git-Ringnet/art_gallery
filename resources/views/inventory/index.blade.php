@@ -5,10 +5,46 @@
 @section('page-description', 'Quản lý tồn kho tranh và vật tư')
 
 @section('header-actions')
-    <a href="{{ route('inventory.import') }}"
-        class="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 transition-colors">
-        <i class="fas fa-plus mr-2"></i>Nhập kho
-    </a>
+    <div class="flex gap-2">
+        <div class="relative">
+            <button onclick="toggleExportDropdown('excel')" class="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 transition-colors flex items-center">
+                <i class="fas fa-file-excel mr-2"></i>Excel
+                <i class="fas fa-chevron-down ml-2 text-xs"></i>
+            </button>
+            <div id="excel-dropdown" class="hidden absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-lg border border-gray-200 z-50">
+                <a href="{{ route('inventory.export.excel', array_merge(request()->query(), ['scope' => 'current'])) }}" 
+                   class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 rounded-t-lg">
+                    <i class="fas fa-file mr-2"></i>Trang hiện tại
+                </a>
+                <a href="{{ route('inventory.export.excel', array_merge(request()->query(), ['scope' => 'all'])) }}" 
+                   class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 rounded-b-lg">
+                    <i class="fas fa-database mr-2"></i>Tất cả dữ liệu
+                </a>
+            </div>
+        </div>
+        
+        <div class="relative">
+            <button onclick="toggleExportDropdown('pdf')" class="bg-red-600 text-white px-4 py-2 rounded-lg hover:bg-red-700 transition-colors flex items-center">
+                <i class="fas fa-file-pdf mr-2"></i>PDF
+                <i class="fas fa-chevron-down ml-2 text-xs"></i>
+            </button>
+            <div id="pdf-dropdown" class="hidden absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-lg border border-gray-200 z-50">
+                <a href="{{ route('inventory.export.pdf', array_merge(request()->query(), ['scope' => 'current'])) }}" 
+                   class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 rounded-t-lg">
+                    <i class="fas fa-file mr-2"></i>Trang hiện tại
+                </a>
+                <a href="{{ route('inventory.export.pdf', array_merge(request()->query(), ['scope' => 'all'])) }}" 
+                   class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 rounded-b-lg">
+                    <i class="fas fa-database mr-2"></i>Tất cả dữ liệu
+                </a>
+            </div>
+        </div>
+        
+        <a href="{{ route('inventory.import.painting.form') }}"
+            class="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors">
+            <i class="fas fa-plus mr-2"></i>Nhập kho
+        </a>
+    </div>
 @endsection
 
 @section('content')
@@ -56,20 +92,20 @@
 
         <!-- Inventory Table -->
         <div class="overflow-x-auto">
-            <table class="w-full table-auto">
-                <thead class="bg-gray-50">
+            <table class="w-full">
+                <thead class="bg-gradient-to-r from-blue-500 to-cyan-600 text-white">
                     <tr>
-                        <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Mã</th>
-                        <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Tên sản
+                        <th class="px-4 py-3 text-left font-medium uppercase tracking-wider">Mã</th>
+                        <th class="px-4 py-3 text-left font-medium uppercase tracking-wider">Tên sản
                             phẩm</th>
-                        <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Loại</th>
-                        <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Số lượng
+                        <th class="px-4 py-3 text-left font-medium uppercase tracking-wider">Loại</th>
+                        <th class="px-4 py-3 text-left font-medium uppercase tracking-wider">Số lượng
                         </th>
-                        <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Ngày nhập
+                        <th class="px-4 py-3 text-left font-medium uppercase tracking-wider">Ngày nhập
                         </th>
-                        <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Trạng
+                        <th class="px-4 py-3 text-left font-medium uppercase tracking-wider">Trạng
                             thái</th>
-                        <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Thao tác
+                        <th class="px-4 py-3 text-left font-medium uppercase tracking-wider">Thao tác
                         </th>
                     </tr>
                 </thead>
@@ -174,3 +210,33 @@
         </div>
     </div>
 @endsection
+
+@push('scripts')
+<script>
+function toggleExportDropdown(type) {
+    const dropdown = document.getElementById(type + '-dropdown');
+    const otherDropdown = document.getElementById(type === 'excel' ? 'pdf-dropdown' : 'excel-dropdown');
+    
+    // Close other dropdown
+    if (otherDropdown) {
+        otherDropdown.classList.add('hidden');
+    }
+    
+    // Toggle current dropdown
+    dropdown.classList.toggle('hidden');
+}
+
+// Close dropdowns when clicking outside
+document.addEventListener('click', function(event) {
+    const excelDropdown = document.getElementById('excel-dropdown');
+    const pdfDropdown = document.getElementById('pdf-dropdown');
+    
+    if (!event.target.closest('[onclick*="toggleExportDropdown"]') && 
+        !event.target.closest('#excel-dropdown') && 
+        !event.target.closest('#pdf-dropdown')) {
+        if (excelDropdown) excelDropdown.classList.add('hidden');
+        if (pdfDropdown) pdfDropdown.classList.add('hidden');
+    }
+});
+</script>
+@endpush

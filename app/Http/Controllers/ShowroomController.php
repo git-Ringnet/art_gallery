@@ -2,49 +2,27 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\Showroom;
 use Illuminate\Http\Request;
 
 class ShowroomController extends Controller
 {
-    public function index()
+    public function index(Request $request)
     {
-        // Mock data - replace with actual database queries
-        $showrooms = [
-            [
-                'id' => 'SR01',
-                'code' => 'SR01',
-                'name' => 'Showroom Trung tâm',
-                'phone' => '0123 456 789',
-                'address' => '123 Lê Lợi, Q.1',
-                'bank_name' => 'Vietcombank',
-                'bank_no' => '0123456789',
-                'bank_holder' => 'Công ty TNHH ABC',
-                'logo' => 'https://via.placeholder.com/48'
-            ],
-            [
-                'id' => 'SR02',
-                'code' => 'SR02',
-                'name' => 'Showroom Quận 1',
-                'phone' => '0987 654 321',
-                'address' => '45 Pasteur, Q.1',
-                'bank_name' => 'ACB',
-                'bank_no' => '99887766',
-                'bank_holder' => 'Công ty TNHH ABC',
-                'logo' => 'https://via.placeholder.com/48'
-            ],
-            [
-                'id' => 'SR03',
-                'code' => 'SR03',
-                'name' => 'Showroom Quận 7',
-                'phone' => '0369 258 147',
-                'address' => '68 Nguyễn Văn Linh, Q.7',
-                'bank_name' => 'Techcombank',
-                'bank_no' => '22334455',
-                'bank_holder' => 'Công ty TNHH ABC',
-                'logo' => 'https://via.placeholder.com/48'
-            ]
-        ];
-
+        $search = $request->get('search');
+        
+        $showrooms = Showroom::query()
+            ->when($search, function ($query, $search) {
+                $query->where(function ($q) use ($search) {
+                    $q->where('code', 'like', "%{$search}%")
+                      ->orWhere('name', 'like', "%{$search}%")
+                      ->orWhere('address', 'like', "%{$search}%")
+                      ->orWhere('phone', 'like', "%{$search}%");
+                });
+            })
+            ->latest()
+            ->get();
+            
         return view('showrooms.index', compact('showrooms'));
     }
 
@@ -61,20 +39,17 @@ class ShowroomController extends Controller
             'phone' => 'required|string|max:20',
             'address' => 'required|string',
             'bank_name' => 'nullable|string|max:100',
-            'bank_no' => 'nullable|string|max:50',
+            'bank_account' => 'nullable|string|max:50',
             'bank_holder' => 'nullable|string|max:255',
             'logo' => 'nullable|image|max:2048',
             'notes' => 'nullable|string'
         ]);
 
-        // Handle logo upload
         if ($request->hasFile('logo')) {
-            $logoPath = $request->file('logo')->store('showrooms', 'public');
-            $validated['logo'] = $logoPath;
+            $validated['logo'] = $request->file('logo')->store('showrooms', 'public');
         }
 
-        // Save showroom
-        // This is where you'd save to database
+        Showroom::create($validated);
         
         return redirect()->route('showrooms.index')
             ->with('success', 'Đã tạo phòng trưng bày thành công');
@@ -82,44 +57,43 @@ class ShowroomController extends Controller
 
     public function edit($id)
     {
-        // Mock data - replace with actual database query
-        $showroom = [
-            'id' => $id,
-            'code' => 'SR01',
-            'name' => 'Showroom Trung tâm',
-            'phone' => '0123 456 789',
-            'address' => '123 Lê Lợi, Q.1',
-            'bank_name' => 'Vietcombank',
-            'bank_no' => '0123456789',
-            'bank_holder' => 'Công ty TNHH ABC',
-            'logo' => 'https://via.placeholder.com/48'
-        ];
-
+        $showroom = Showroom::findOrFail($id);
         return view('showrooms.edit', compact('showroom'));
     }
 
     public function update(Request $request, $id)
     {
+        $showroom = Showroom::findOrFail($id);
+        
         $validated = $request->validate([
-            'code' => 'required|string|max:50',
+            'code' => 'required|string|max:50|unique:showrooms,code,' . $id,
             'name' => 'required|string|max:255',
             'phone' => 'required|string|max:20',
             'address' => 'required|string',
             'bank_name' => 'nullable|string|max:100',
-            'bank_no' => 'nullable|string|max:50',
+            'bank_account' => 'nullable|string|max:50',
             'bank_holder' => 'nullable|string|max:255',
             'logo' => 'nullable|image|max:2048',
             'notes' => 'nullable|string'
         ]);
 
-        // Handle logo upload
-        if ($request->hasFile('logo')) {
-            $logoPath = $request->file('logo')->store('showrooms', 'public');
-            $validated['logo'] = $logoPath;
+        // Xử lý xóa logo
+        if ($request->input('remove_logo') == '1') {
+            if ($showroom->logo && \Storage::disk('public')->exists($showroom->logo)) {
+                \Storage::disk('public')->delete($showroom->logo);
+            }
+            $validated['logo'] = null;
         }
 
-        // Update showroom
-        // This is where you'd update database
+        // Xử lý upload logo mới
+        if ($request->hasFile('logo')) {
+            if ($showroom->logo && \Storage::disk('public')->exists($showroom->logo)) {
+                \Storage::disk('public')->delete($showroom->logo);
+            }
+            $validated['logo'] = $request->file('logo')->store('showrooms', 'public');
+        }
+
+        $showroom->update($validated);
         
         return redirect()->route('showrooms.index')
             ->with('success', 'Đã cập nhật phòng trưng bày thành công');
@@ -127,8 +101,8 @@ class ShowroomController extends Controller
 
     public function destroy($id)
     {
-        // Delete showroom
-        // This is where you'd delete from database
+        $showroom = Showroom::findOrFail($id);
+        $showroom->delete();
         
         return redirect()->route('showrooms.index')
             ->with('success', 'Đã xóa phòng trưng bày thành công');

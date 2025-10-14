@@ -59,7 +59,11 @@ Route::middleware(['auth'])->group(function () {
     // Inventory routes
     Route::prefix('inventory')->name('inventory.')->group(function () {
         Route::get('/', [App\Http\Controllers\InventoryController::class, 'index'])->name('index');
+        Route::get('/export/excel', [App\Http\Controllers\InventoryController::class, 'exportExcel'])->name('export.excel');
+        Route::get('/export/pdf', [App\Http\Controllers\InventoryController::class, 'exportPdf'])->name('export.pdf');
         Route::get('/import', [App\Http\Controllers\InventoryController::class, 'import'])->name('import');
+        Route::get('/import/painting', [App\Http\Controllers\InventoryController::class, 'importPaintingForm'])->name('import.painting.form');
+        Route::get('/import/supply', [App\Http\Controllers\InventoryController::class, 'importSupplyForm'])->name('import.supply.form');
         Route::post('/import/painting', [App\Http\Controllers\InventoryController::class, 'importPainting'])->name('import.painting');
         Route::post('/import/supply', [App\Http\Controllers\InventoryController::class, 'importSupply'])->name('import.supply');
 
