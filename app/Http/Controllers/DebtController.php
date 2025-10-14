@@ -10,73 +10,7 @@ class DebtController extends Controller
 {
     public function index(Request $request)
     {
-        // Lấy TẤT CẢ Payment (lịch sử thanh toán)
-        $query = Payment::with(['sale.customer', 'sale.debt', 'sale.payments']);
-
-        // Search
-        if ($request->filled('search')) {
-            $search = $request->search;
-            $query->whereHas('sale', function($q) use ($search) {
-                $q->where('invoice_code', 'like', "%{$search}%")
-                  ->orWhereHas('customer', function($cq) use ($search) {
-                      $cq->where('name', 'like', "%{$search}%")
-                         ->orWhere('phone', 'like', "%{$search}%");
-                  });
-            });
-        }
-
-        // Filter by date
-        if ($request->filled('date_from')) {
-            $query->whereDate('payment_date', '>=', $request->date_from);
-        }
-        if ($request->filled('date_to')) {
-            $query->whereDate('payment_date', '<=', $request->date_to);
-        }
-
-        // Filter by amount
-        if ($request->filled('amount_filter')) {
-            switch ($request->amount_filter) {
-                case 'under_10m':
-                    $query->where('amount', '<', 10000000);
-                    break;
-                case '10m_50m':
-                    $query->whereBetween('amount', [10000000, 50000000]);
-                    break;
-                case '50m_100m':
-                    $query->whereBetween('amount', [50000000, 100000000]);
-                    break;
-                case 'over_100m':
-                    $query->where('amount', '>', 100000000);
-                    break;
-            }
-        }
-
-        // Get all payments first
-        $allPayments = $query->orderBy('id', 'desc')->get();
-
-        // Filter by payment status - tính trạng thái TẠI THỜI ĐIỂM thanh toán
-        if ($request->filled('payment_status')) {
-            $statusFilter = $request->payment_status;
-            
-            $allPayments = $allPayments->filter(function($payment) use ($statusFilter) {
-                // Tính tổng đã trả TẠI THỜI ĐIỂM payment này
-                $paidAtThisTime = $payment->sale->payments()
-                    ->where('id', '<=', $payment->id)
-                    ->sum('amount');
-                $totalAmount = $payment->sale->total_vnd;
-                
-                // Xác định trạng thái tại thời điểm đó
-                if ($paidAtThisTime >= $totalAmount) {
-                    $status = 'paid';
-                } elseif ($paidAtThisTime > 0) {
-                    $status = 'partial';
-                } else {
-                    $status = 'unpaid';
-                }
-                
-                return $status === $statusFilter;
-            });
-        }
+        $allPayments = $this->getFilteredPayments($request);
 
         // Manual pagination
         $perPage = 15;
@@ -152,6 +86,123 @@ class DebtController extends Controller
         }
 
         return response()->json($suggestions);
+    }
+
+    private function getFilteredPayments(Request $request, $all = false)
+    {
+        // Lấy TẤT CẢ Payment (lịch sử thanh toán)
+        $query = Payment::with(['sale.customer', 'sale.debt', 'sale.payments']);
+
+        // Search
+        if ($request->filled('search')) {
+            $search = $request->search;
+            $query->whereHas('sale', function($q) use ($search) {
+                $q->where('invoice_code', 'like', "%{$search}%")
+                  ->orWhereHas('customer', function($cq) use ($search) {
+                      $cq->where('name', 'like', "%{$search}%")
+                         ->orWhere('phone', 'like', "%{$search}%");
+                  });
+            });
+        }
+
+        // Filter by date
+        if ($request->filled('date_from')) {
+            $query->whereDate('payment_date', '>=', $request->date_from);
+        }
+        if ($request->filled('date_to')) {
+            $query->whereDate('payment_date', '<=', $request->date_to);
+        }
+
+        // Filter by amount
+        if ($request->filled('amount_filter')) {
+            switch ($request->amount_filter) {
+                case 'under_10m':
+                    $query->where('amount', '<', 10000000);
+                    break;
+                case '10m_50m':
+                    $query->whereBetween('amount', [10000000, 50000000]);
+                    break;
+                case '50m_100m':
+                    $query->whereBetween('amount', [50000000, 100000000]);
+                    break;
+                case 'over_100m':
+                    $query->where('amount', '>', 100000000);
+                    break;
+            }
+        }
+
+        // Get all payments first
+        $allPayments = $query->orderBy('id', 'desc')->get();
+
+        // Filter by payment status - tính trạng thái TẠI THỜI ĐIỂM thanh toán
+        if ($request->filled('payment_status')) {
+            $statusFilter = $request->payment_status;
+            
+            $allPayments = $allPayments->filter(function($payment) use ($statusFilter) {
+                // Tính tổng đã trả TẠI THỜI ĐIỂM payment này
+                $paidAtThisTime = $payment->sale->payments()
+                    ->where('id', '<=', $payment->id)
+                    ->sum('amount');
+                $totalAmount = $payment->sale->total_vnd;
+                
+                // Xác định trạng thái tại thời điểm đó
+                if ($paidAtThisTime >= $totalAmount) {
+                    $status = 'paid';
+                } elseif ($paidAtThisTime > 0) {
+                    $status = 'partial';
+                } else {
+                    $status = 'unpaid';
+                }
+                
+                return $status === $statusFilter;
+            });
+        }
+
+        return $allPayments;
+    }
+
+    public function exportExcel(Request $request)
+    {
+        $scope = $request->get('scope', 'current');
+        
+        if ($scope === 'all') {
+            $payments = $this->getFilteredPayments($request, true);
+        } else {
+            // Current page only
+            $allPayments = $this->getFilteredPayments($request);
+            $perPage = 15;
+            $currentPage = $request->get('page', 1);
+            $offset = ($currentPage - 1) * $perPage;
+            $payments = $allPayments->slice($offset, $perPage)->values();
+        }
+
+        $filename = 'lich-su-cong-no-' . date('Y-m-d-His') . '.xlsx';
+        
+        return \Maatwebsite\Excel\Facades\Excel::download(
+            new \App\Exports\DebtHistoryExport($payments),
+            $filename
+        );
+    }
+
+    public function exportPdf(Request $request)
+    {
+        $scope = $request->get('scope', 'current');
+        
+        if ($scope === 'all') {
+            $payments = $this->getFilteredPayments($request, true);
+        } else {
+            // Current page only
+            $allPayments = $this->getFilteredPayments($request);
+            $perPage = 15;
+            $currentPage = $request->get('page', 1);
+            $offset = ($currentPage - 1) * $perPage;
+            $payments = $allPayments->slice($offset, $perPage)->values();
+        }
+
+        $pdf = \Barryvdh\DomPDF\Facade\Pdf::loadView('debts.pdf', compact('payments'));
+        $pdf->setPaper('a4', 'landscape');
+        
+        return $pdf->download('lich-su-cong-no-' . date('Y-m-d-His') . '.pdf');
     }
 
     public function collect(Request $request, $id)

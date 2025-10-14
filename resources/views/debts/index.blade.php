@@ -123,6 +123,40 @@
                 <a href="{{ route('debt.index') }}" class="bg-gray-500 hover:bg-gray-600 text-white px-6 py-2 rounded-lg transition-colors">
                     <i class="fas fa-redo mr-2"></i>Làm mới
                 </a>
+                
+                <!-- Export Dropdown -->
+                <div class="relative">
+                    <button onclick="toggleExportDropdown()" type="button" class="bg-green-500 hover:bg-green-600 text-white px-6 py-2 rounded-lg transition-colors flex items-center">
+                        <i class="fas fa-download mr-2"></i>Xuất file
+                        <i class="fas fa-chevron-down ml-2 text-xs"></i>
+                    </button>
+                    <div id="exportDropdown" class="hidden absolute right-0 mt-2 w-56 bg-white rounded-lg shadow-xl z-50 border border-gray-200">
+                        <!-- Excel Export -->
+                        <div class="py-2 border-b border-gray-200">
+                            <div class="px-4 py-2 text-xs font-semibold text-gray-500 uppercase">Excel</div>
+                            <a href="{{ route('debt.export.excel', array_merge(request()->query(), ['scope' => 'current'])) }}" 
+                                class="block px-4 py-2 text-sm text-gray-700 hover:bg-blue-50 transition-colors">
+                                <i class="fas fa-file-excel text-green-600 mr-2"></i>Trang hiện tại
+                            </a>
+                            <a href="{{ route('debt.export.excel', array_merge(request()->query(), ['scope' => 'all'])) }}" 
+                                class="block px-4 py-2 text-sm text-gray-700 hover:bg-blue-50 transition-colors">
+                                <i class="fas fa-file-excel text-green-600 mr-2"></i>Tất cả kết quả
+                            </a>
+                        </div>
+                        <!-- PDF Export -->
+                        <div class="py-2">
+                            <div class="px-4 py-2 text-xs font-semibold text-gray-500 uppercase">PDF</div>
+                            <a href="{{ route('debt.export.pdf', array_merge(request()->query(), ['scope' => 'current'])) }}" 
+                                class="block px-4 py-2 text-sm text-gray-700 hover:bg-red-50 transition-colors">
+                                <i class="fas fa-file-pdf text-red-600 mr-2"></i>Trang hiện tại
+                            </a>
+                            <a href="{{ route('debt.export.pdf', array_merge(request()->query(), ['scope' => 'all'])) }}" 
+                                class="block px-4 py-2 text-sm text-gray-700 hover:bg-red-50 transition-colors">
+                                <i class="fas fa-file-pdf text-red-600 mr-2"></i>Tất cả kết quả
+                            </a>
+                        </div>
+                    </div>
+                </div>
             </div>
         </div>
     </form>
@@ -233,6 +267,21 @@
 
 @push('scripts')
 <script>
+function toggleExportDropdown() {
+    const dropdown = document.getElementById('exportDropdown');
+    dropdown.classList.toggle('hidden');
+}
+
+// Close dropdown when clicking outside
+document.addEventListener('click', function(event) {
+    const dropdown = document.getElementById('exportDropdown');
+    const button = event.target.closest('[onclick="toggleExportDropdown()"]');
+    
+    if (dropdown && !dropdown.contains(event.target) && !button) {
+        dropdown.classList.add('hidden');
+    }
+});
+
 document.addEventListener('DOMContentLoaded', function() {
     const searchInput = document.getElementById('searchInput');
     const suggestionsBox = document.getElementById('searchSuggestions');
