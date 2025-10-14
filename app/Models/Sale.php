@@ -140,6 +140,11 @@ class Sale extends Model
         }
         
         $this->save();
+        
+        // Đồng bộ với Debt nếu có
+        if ($this->debt) {
+            $this->debt->updateDebtAmount();
+        }
     }
 
     public function scopeWithDebt($query)

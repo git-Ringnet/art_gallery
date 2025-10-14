@@ -42,6 +42,7 @@ Route::middleware(['auth'])->group(function () {
     // Debt routes
     Route::prefix('debt')->name('debt.')->group(function () {
         Route::get('/', [DebtController::class, 'index'])->name('index');
+        Route::get('/api/search/suggestions', [DebtController::class, 'searchSuggestions'])->name('api.search.suggestions');
         Route::get('/{id}', [DebtController::class, 'show'])->name('show');
         Route::post('/{id}/collect', [DebtController::class, 'collect'])->name('collect');
         Route::get('/export', [DebtController::class, 'export'])->name('export');

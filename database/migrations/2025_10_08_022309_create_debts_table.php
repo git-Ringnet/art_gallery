@@ -16,7 +16,7 @@ return new class extends Migration
             $table->decimal('paid_amount', 15, 2)->default(0)->comment('Số tiền đã trả (VND)');
             $table->decimal('debt_amount', 15, 2)->comment('Số tiền còn nợ (VND)');
             $table->date('due_date')->nullable()->comment('Ngày đến hạn thanh toán');
-            $table->enum('status', ['pending', 'overdue', 'paid'])->default('pending')->comment('Trạng thái');
+            $table->enum('status', ['unpaid', 'partial', 'paid'])->default('unpaid')->comment('Trạng thái');
             $table->text('notes')->nullable()->comment('Ghi chú');
             $table->timestamps();
             
@@ -32,3 +32,4 @@ return new class extends Migration
         Schema::dropIfExists('debts');
     }
 };
+/*  */

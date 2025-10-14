@@ -2,115 +2,190 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\Debt;
+use App\Models\Payment;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\DB;
 
 class DebtController extends Controller
 {
     public function index(Request $request)
     {
-        $search = $request->get('search');
-        $status = $request->get('status');
-        $dateFrom = $request->get('date_from');
+        // Lấy TẤT CẢ Payment (lịch sử thanh toán)
+        $query = Payment::with(['sale.customer', 'sale.debt', 'sale.payments']);
 
-        // Mock data - replace with actual database queries
-        $debts = [
-            [
-                'customer_name' => 'Nguyễn Văn A',
-                'customer_phone' => '0123 456 789',
-                'invoice_id' => 'HD001',
-                'total' => 2500000,
-                'paid' => 2000000,
-                'debt' => 500000,
-                'created_at' => '15/12/2024',
-                'status' => 'pending'
-            ],
-            [
-                'customer_name' => 'Trần Thị B',
-                'customer_phone' => '0987 654 321',
-                'invoice_id' => 'HD002',
-                'total' => 1800000,
-                'paid' => 600000,
-                'debt' => 1200000,
-                'created_at' => '10/12/2024',
-                'status' => 'overdue'
-            ],
-            [
-                'customer_name' => 'Lê Văn C',
-                'customer_phone' => '0369 258 147',
-                'invoice_id' => 'HD003',
-                'total' => 3200000,
-                'paid' => 3200000,
-                'debt' => 0,
-                'created_at' => '08/12/2024',
-                'status' => 'paid'
-            ]
+        // Search
+        if ($request->filled('search')) {
+            $search = $request->search;
+            $query->whereHas('sale', function($q) use ($search) {
+                $q->where('invoice_code', 'like', "%{$search}%")
+                  ->orWhereHas('customer', function($cq) use ($search) {
+                      $cq->where('name', 'like', "%{$search}%")
+                         ->orWhere('phone', 'like', "%{$search}%");
+                  });
+            });
+        }
+
+        // Filter by date
+        if ($request->filled('date_from')) {
+            $query->whereDate('payment_date', '>=', $request->date_from);
+        }
+        if ($request->filled('date_to')) {
+            $query->whereDate('payment_date', '<=', $request->date_to);
+        }
+
+        // Filter by amount
+        if ($request->filled('amount_filter')) {
+            switch ($request->amount_filter) {
+                case 'under_10m':
+                    $query->where('amount', '<', 10000000);
+                    break;
+                case '10m_50m':
+                    $query->whereBetween('amount', [10000000, 50000000]);
+                    break;
+                case '50m_100m':
+                    $query->whereBetween('amount', [50000000, 100000000]);
+                    break;
+                case 'over_100m':
+                    $query->where('amount', '>', 100000000);
+                    break;
+            }
+        }
+
+        // Get all payments first
+        $allPayments = $query->orderBy('id', 'desc')->get();
+
+        // Filter by payment status - tính trạng thái TẠI THỜI ĐIỂM thanh toán
+        if ($request->filled('payment_status')) {
+            $statusFilter = $request->payment_status;
+            
+            $allPayments = $allPayments->filter(function($payment) use ($statusFilter) {
+                // Tính tổng đã trả TẠI THỜI ĐIỂM payment này
+                $paidAtThisTime = $payment->sale->payments()
+                    ->where('id', '<=', $payment->id)
+                    ->sum('amount');
+                $totalAmount = $payment->sale->total_vnd;
+                
+                // Xác định trạng thái tại thời điểm đó
+                if ($paidAtThisTime >= $totalAmount) {
+                    $status = 'paid';
+                } elseif ($paidAtThisTime > 0) {
+                    $status = 'partial';
+                } else {
+                    $status = 'unpaid';
+                }
+                
+                return $status === $statusFilter;
+            });
+        }
+
+        // Manual pagination
+        $perPage = 15;
+        $currentPage = request()->get('page', 1);
+        $offset = ($currentPage - 1) * $perPage;
+        
+        $paginatedPayments = $allPayments->slice($offset, $perPage)->values();
+        
+        $payments = new \Illuminate\Pagination\LengthAwarePaginator(
+            $paginatedPayments,
+            $allPayments->count(),
+            $perPage,
+            $currentPage,
+            ['path' => request()->url(), 'query' => request()->query()]
+        );
+
+        // Statistics
+        $stats = [
+            'total_payments' => Payment::sum('amount'),
+            'total_debt' => \App\Models\Sale::where('debt_amount', '>', 0)->sum('debt_amount'),
+            'debt_count' => \App\Models\Sale::where('debt_amount', '>', 0)->count(),
+            'total_count' => Payment::count(),
         ];
 
-        // Apply filters
-        if ($search) {
-            $debts = array_filter($debts, function($debt) use ($search) {
-                return stripos($debt['customer_name'], $search) !== false ||
-                       stripos($debt['customer_phone'], $search) !== false ||
-                       stripos($debt['invoice_id'], $search) !== false;
-            });
-        }
-
-        if ($status) {
-            $debts = array_filter($debts, function($debt) use ($status) {
-                return $debt['status'] === $status;
-            });
-        }
-
-        return view('debt.index', compact('debts'));
+        return view('debts.index', compact('payments', 'stats'));
     }
 
     public function show($id)
     {
-        // Mock data - replace with actual database query
-        $debt = [
-            'invoice_id' => $id,
-            'customer_name' => 'Nguyễn Văn A',
-            'customer_phone' => '0123 456 789',
-            'customer_address' => '123 Đường ABC, Quận 1',
-            'total' => 2500000,
-            'paid' => 2000000,
-            'debt' => 500000,
-            'created_at' => '15/12/2024',
-            'status' => 'pending',
-            'payment_history' => [
-                [
-                    'date' => '15/12/2024',
-                    'amount' => 2000000,
-                    'method' => 'Tiền mặt',
-                    'note' => 'Thanh toán lần 1'
-                ]
-            ]
-        ];
+        $debt = Debt::with(['customer', 'sale.saleItems', 'sale.payments'])->findOrFail($id);
+        return view('debts.show', compact('debt'));
+    }
 
-        return view('debt.show', compact('debt'));
+    public function searchSuggestions(Request $request)
+    {
+        $search = $request->get('q', '');
+        
+        if (strlen($search) < 2) {
+            return response()->json([]);
+        }
+
+        // Tìm kiếm khách hàng có thanh toán
+        $customers = \App\Models\Customer::whereHas('sales.payments')
+            ->where(function($q) use ($search) {
+                $q->where('name', 'like', "%{$search}%")
+                  ->orWhere('phone', 'like', "%{$search}%");
+            })
+            ->limit(10)
+            ->get(['id', 'name', 'phone']);
+
+        // Tìm kiếm mã hóa đơn có thanh toán
+        $invoices = \App\Models\Sale::whereHas('payments')
+            ->where('invoice_code', 'like', "%{$search}%")
+            ->limit(5)
+            ->get(['id', 'invoice_code']);
+
+        $suggestions = [];
+        
+        foreach ($customers as $customer) {
+            $suggestions[] = [
+                'type' => 'customer',
+                'label' => $customer->name . ($customer->phone ? ' - ' . $customer->phone : ''),
+                'value' => $customer->name
+            ];
+        }
+        
+        foreach ($invoices as $invoice) {
+            $suggestions[] = [
+                'type' => 'invoice',
+                'label' => 'Mã HĐ: ' . $invoice->invoice_code,
+                'value' => $invoice->invoice_code
+            ];
+        }
+
+        return response()->json($suggestions);
     }
 
     public function collect(Request $request, $id)
     {
+        $debt = Debt::with('sale')->findOrFail($id);
+        
+        // Lấy số nợ hiện tại từ Sale (chính xác nhất)
+        $currentDebt = $debt->sale->debt_amount;
+        
         $validated = $request->validate([
-            'amount' => 'required|numeric|min:0',
-            'payment_method' => 'required|string',
-            'note' => 'nullable|string'
+            'amount' => 'required|numeric|min:1|max:' . $currentDebt,
+            'payment_method' => 'nullable|string|in:cash,bank_transfer,card',
+            'notes' => 'nullable|string'
+        ], [
+            'amount.max' => 'Số tiền thu không được vượt quá số nợ hiện tại: ' . number_format($currentDebt, 0, ',', '.') . 'đ',
+            'amount.required' => 'Vui lòng nhập số tiền thu',
+            'amount.min' => 'Số tiền thu phải lớn hơn 0',
         ]);
 
-        // Process debt collection
-        // This is where you'd update the database
-        
-        return redirect()->route('debt.index')
-            ->with('success', 'Đã thu nợ thành công');
-    }
+        // Tạo payment mới
+        $payment = Payment::create([
+            'sale_id' => $debt->sale_id,
+            'amount' => $validated['amount'],
+            'payment_method' => $validated['payment_method'] ?? 'cash',
+            'payment_date' => now(),
+            'notes' => $validated['notes'] ?? null,
+            'created_by' => auth()->id(),
+        ]);
 
-    public function export(Request $request)
-    {
-        // Export debt report to Excel
-        // Implementation depends on your export library (e.g., Laravel Excel)
-        
-        return response()->download(storage_path('app/debt_report.xlsx'));
+        // Update sale payment status (sẽ tự động update debt)
+        $debt->sale->refresh(); // Refresh để lấy data mới nhất
+        $debt->sale->updatePaymentStatus();
+
+        return redirect()->route('debt.index')
+            ->with('success', 'Thu nợ thành công! Số tiền: ' . number_format($payment->amount, 0, ',', '.') . 'đ');
     }
 }

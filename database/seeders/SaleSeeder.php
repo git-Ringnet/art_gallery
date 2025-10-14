@@ -95,7 +95,7 @@ class SaleSeeder extends Seeder
                     'paid_amount' => $sale->paid_amount,
                     'debt_amount' => $sale->debt_amount,
                     'due_date' => $sale->sale_date->addDays(30),
-                    'status' => 'pending',
+                    'status' => $sale->payment_status, // Đồng bộ với sale
                 ]);
             }
         }
