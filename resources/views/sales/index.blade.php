@@ -70,7 +70,7 @@
             <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-4">
                 <!-- Search with suggestions -->
                 <div class="md:col-span-2">
-                    <label class="block text-base font-semibold text-gray-700 mb-2">
+                    <label class="block text-sm font-medium text-gray-700 mb-2">
                         <i class="fas fa-search mr-2"></i>Tìm kiếm
                     </label>
                     <div class="relative">
@@ -78,14 +78,13 @@
                                id="search-input" 
                                name="search" 
                                value="{{ request('search') }}" 
-                               class="w-full pl-12 pr-4 py-3 text-base border-2 border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500" 
+                               class="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent" 
                                placeholder="Nhập mã HD, tên khách hàng, SĐT..."
-                               autocomplete="off"
-                               style="font-size: 16px;">
-                        <i class="fas fa-search absolute left-4 top-4 text-gray-400 text-lg"></i>
+                               autocomplete="off">
+                        <i class="fas fa-search absolute left-3 top-3 text-gray-400"></i>
                         
                         <!-- Search suggestions dropdown -->
-                        <div id="search-suggestions" class="hidden absolute z-50 w-full mt-1 bg-white border-2 border-gray-300 rounded-lg shadow-xl max-h-96 overflow-y-auto">
+                        <div id="search-suggestions" class="hidden absolute z-50 w-full mt-1 bg-white border border-gray-300 rounded-lg shadow-lg max-h-60 overflow-y-auto">
                             <!-- Suggestions will be loaded here -->
                         </div>
                     </div>
@@ -93,26 +92,24 @@
 
                 <!-- Date From -->
                 <div>
-                    <label class="block text-base font-semibold text-gray-700 mb-2">
-                        <i class="fas fa-calendar-alt mr-2"></i>Từ ngày
+                    <label class="block text-sm font-medium text-gray-700 mb-2">
+                        <i class="fas fa-calendar mr-2"></i>Từ ngày
                     </label>
                     <input type="date" 
                            name="from_date" 
                            value="{{ request('from_date') }}" 
-                           class="w-full px-4 py-3 text-base border-2 border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
-                           style="font-size: 16px;">
+                           class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
                 </div>
 
                 <!-- Date To -->
                 <div>
-                    <label class="block text-base font-semibold text-gray-700 mb-2">
+                    <label class="block text-sm font-medium text-gray-700 mb-2">
                         <i class="fas fa-calendar-alt mr-2"></i>Đến ngày
                     </label>
                     <input type="date" 
                            name="to_date" 
                            value="{{ request('to_date') }}" 
-                           class="w-full px-4 py-3 text-base border-2 border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
-                           style="font-size: 16px;">
+                           class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
                 </div>
             </div>
 
@@ -120,27 +117,25 @@
             <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
                 <!-- Payment Status -->
                 <div>
-                    <label class="block text-base font-semibold text-gray-700 mb-2">
-                        <i class="fas fa-credit-card mr-2"></i>Trạng thái thanh toán
+                    <label class="block text-sm font-medium text-gray-700 mb-2">
+                        <i class="fas fa-filter mr-2"></i>Trạng thái TT
                     </label>
                     <select name="payment_status" 
-                            class="w-full px-4 py-3 text-base border-2 border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
-                            style="font-size: 16px;">
+                            class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
                         <option value="">-- Tất cả --</option>
-                        <option value="paid" {{ request('payment_status') == 'paid' ? 'selected' : '' }}>Đã thanh toán</option>
-                        <option value="partial" {{ request('payment_status') == 'partial' ? 'selected' : '' }}>Thanh toán một phần</option>
-                        <option value="unpaid" {{ request('payment_status') == 'unpaid' ? 'selected' : '' }}>Chưa thanh toán</option>
+                        <option value="paid" {{ request('payment_status') == 'paid' ? 'selected' : '' }}>Đã Thanh Toán</option>
+                        <option value="partial" {{ request('payment_status') == 'partial' ? 'selected' : '' }}>Thanh Toán một phần</option>
+                        <option value="unpaid" {{ request('payment_status') == 'unpaid' ? 'selected' : '' }}>Chưa Thanh Toán</option>
                     </select>
                 </div>
 
                 <!-- Dynamic Filter Type Selector -->
                 <div>
-                    <label class="block text-base font-semibold text-gray-700 mb-2">
+                    <label class="block text-sm font-medium text-gray-700 mb-2">
                         <i class="fas fa-filter mr-2"></i>Lọc thêm theo
                     </label>
                     <select id="filter-type" 
-                            class="w-full px-4 py-3 text-base border-2 border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
-                            style="font-size: 16px;"
+                            class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                             onchange="showFilterOptions(this.value)">
                         <option value="">-- Chọn loại lọc --</option>
                         <option value="amount" {{ request('min_amount') || request('max_amount') ? 'selected' : '' }}>Theo số tiền</option>
@@ -154,29 +149,26 @@
                 <div id="filter-value-container">
                     <!-- Amount Filter -->
                     <div id="filter-amount" class="hidden">
-                        <label class="block text-base font-semibold text-gray-700 mb-2">Khoảng tiền (VNĐ)</label>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Khoảng tiền (VNĐ)</label>
                         <div class="flex gap-2">
                             <input type="number" 
                                    name="min_amount" 
                                    value="{{ request('min_amount') }}" 
-                                   class="w-1/2 px-3 py-3 text-base border-2 border-gray-300 rounded-lg"
-                                   placeholder="Từ"
-                                   style="font-size: 16px;">
+                                   class="w-1/2 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                                   placeholder="Từ">
                             <input type="number" 
                                    name="max_amount" 
                                    value="{{ request('max_amount') }}" 
-                                   class="w-1/2 px-3 py-3 text-base border-2 border-gray-300 rounded-lg"
-                                   placeholder="Đến"
-                                   style="font-size: 16px;">
+                                   class="w-1/2 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                                   placeholder="Đến">
                         </div>
                     </div>
 
                     <!-- Debt Filter -->
                     <div id="filter-debt" class="hidden">
-                        <label class="block text-base font-semibold text-gray-700 mb-2">Tình trạng công nợ</label>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Tình trạng công nợ</label>
                         <select name="has_debt" 
-                                class="w-full px-4 py-3 text-base border-2 border-gray-300 rounded-lg"
-                                style="font-size: 16px;">
+                                class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
                             <option value="">-- Tất cả --</option>
                             <option value="1" {{ request('has_debt') == '1' ? 'selected' : '' }}>⚠️ Có công nợ</option>
                             <option value="0" {{ request('has_debt') == '0' ? 'selected' : '' }}>✓ Không công nợ</option>
@@ -185,10 +177,9 @@
 
                     <!-- Showroom Filter -->
                     <div id="filter-showroom" class="hidden">
-                        <label class="block text-base font-semibold text-gray-700 mb-2">Chọn showroom</label>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Chọn showroom</label>
                         <select name="showroom_id" 
-                                class="w-full px-4 py-3 text-base border-2 border-gray-300 rounded-lg"
-                                style="font-size: 16px;">
+                                class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
                             <option value="">-- Tất cả --</option>
                             @foreach($showrooms as $showroom)
                                 <option value="{{ $showroom->id }}" {{ request('showroom_id') == $showroom->id ? 'selected' : '' }}>
@@ -200,10 +191,9 @@
 
                     <!-- User Filter -->
                     <div id="filter-user" class="hidden">
-                        <label class="block text-base font-semibold text-gray-700 mb-2">Chọn nhân viên</label>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Chọn nhân viên</label>
                         <select name="user_id" 
-                                class="w-full px-4 py-3 text-base border-2 border-gray-300 rounded-lg"
-                                style="font-size: 16px;">
+                                class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
                             <option value="">-- Tất cả --</option>
                             @foreach($users as $user)
                                 <option value="{{ $user->id }}" {{ request('user_id') == $user->id ? 'selected' : '' }}>
@@ -216,17 +206,17 @@
             </div>
 
             <!-- Action Buttons -->
-            <div class="flex justify-between items-center pt-3 border-t-2">
-                <div class="flex gap-3">
-                    <button type="submit" class="bg-blue-600 text-white py-3 px-8 rounded-lg hover:bg-blue-700 transition-colors text-base font-semibold shadow-md">
+            <div class="flex justify-between items-center pt-3 border-t">
+                <div class="flex gap-2">
+                    <button type="submit" class="bg-blue-500 hover:bg-blue-600 text-white px-6 py-2 rounded-lg transition-colors">
                         <i class="fas fa-search mr-2"></i>Tìm kiếm
                     </button>
-                    <a href="{{ route('sales.index') }}" class="bg-gray-500 text-white py-3 px-8 rounded-lg hover:bg-gray-600 transition-colors text-base font-semibold shadow-md">
+                    <a href="{{ route('sales.index') }}" class="bg-gray-500 hover:bg-gray-600 text-white px-6 py-2 rounded-lg transition-colors">
                         <i class="fas fa-redo mr-2"></i>Làm mới
                     </a>
                 </div>
-                <div class="text-base text-gray-700 font-semibold">
-                    Tìm thấy: <span class="text-blue-600 text-lg">{{ $sales->total() }}</span> đơn hàng
+                <div class="text-sm text-gray-700">
+                    Tìm thấy: <span class="text-blue-600 font-medium">{{ $sales->total() }}</span> đơn hàng
                 </div>
             </div>
         </form>
@@ -234,53 +224,53 @@
     
     <!-- Sales Table -->
     <div class="overflow-x-auto">
-        <table class="w-full table-auto">
+        <table class="w-full">
             <thead class="bg-gradient-to-r from-blue-500 to-cyan-600 text-white">
                 <tr>
-                    <th class="px-4 py-4 text-left text-sm font-bold  uppercase">Mã HD</th>
-                    <th class="px-4 py-4 text-left text-sm font-bold  uppercase">Ngày bán</th>
-                    <th class="px-4 py-4 text-left text-sm font-bold  uppercase">Khách hàng</th>
-                    <th class="px-4 py-4 text-left text-sm font-bold  uppercase">Showroom</th>
-                    <th class="px-4 py-4 text-left text-sm font-bold  uppercase">Nhân viên</th>
-                    <th class="px-4 py-4 text-left text-sm font-bold  uppercase">Tổng tiền</th>
-                    <th class="px-4 py-4 text-left text-sm font-bold  uppercase">Đã trả</th>
-                    <th class="px-4 py-4 text-left text-sm font-bold  uppercase">Còn nợ</th>
-                    <th class="px-4 py-4 text-left text-sm font-bold  uppercase">Trạng thái</th>
-                    <th class="px-4 py-4 text-left text-sm font-bold  uppercase">Thao tác</th>
+                    <th class="px-4 py-3 text-left">Mã HD</th>
+                    <th class="px-4 py-3 text-left">Ngày bán</th>
+                    <th class="px-4 py-3 text-left">Khách hàng</th>
+                    <th class="px-4 py-3 text-left">Showroom</th>
+                    <th class="px-4 py-3 text-left">Nhân viên</th>
+                    <th class="px-4 py-3 text-right">Tổng tiền</th>
+                    <th class="px-4 py-3 text-right">Đã trả</th>
+                    <th class="px-4 py-3 text-right">Còn nợ</th>
+                    <th class="px-4 py-3 text-center">Trạng thái</th>
+                    <th class="px-4 py-3 text-center">Thao tác</th>
                 </tr>
             </thead>
-            <tbody class="bg-white divide-y divide-gray-200">
+            <tbody class="divide-y divide-gray-200">
                 @forelse($sales as $sale)
-                <tr class="hover:bg-blue-50 transition-colors">
-                    <td class="px-4 py-4 whitespace-nowrap">
-                        <span class="text-base font-bold text-indigo-600">{{ $sale->invoice_code }}</span>
+                <tr class="hover:bg-gray-50 transition-colors">
+                    <td class="px-4 py-3">
+                        <span class="font-medium text-blue-600">{{ $sale->invoice_code }}</span>
                     </td>
-                    <td class="px-4 py-4 whitespace-nowrap">
-                        <span class="text-base text-gray-900">{{ $sale->sale_date->format('d/m/Y') }}</span>
+                    <td class="px-4 py-3">
+                        <span class="text-gray-900">{{ $sale->sale_date->format('d/m/Y') }}</span>
                     </td>
-                    <td class="px-4 py-4">
-                        <div class="text-base font-semibold text-gray-900">{{ $sale->customer->name }}</div>
-                        <div class="text-sm text-gray-600"> {{ $sale->customer->phone }}</div>
+                    <td class="px-4 py-3">
+                        <div class="font-medium text-gray-900">{{ $sale->customer->name }}</div>
+                        <div class="text-sm text-gray-600">{{ $sale->customer->phone }}</div>
                     </td>
-                    <td class="px-4 py-4 whitespace-nowrap">
-                        <span class="text-base text-gray-900">{{ $sale->showroom->name }}</span>
+                    <td class="px-4 py-3">
+                        <span class="text-gray-900">{{ $sale->showroom->name }}</span>
                     </td>
-                    <td class="px-4 py-4 whitespace-nowrap">
-                        <span class="text-base text-gray-700">
-                            <i class="fas fa-user-circle text-gray-400 mr-1"></i>{{ $sale->user->name }}
+                    <td class="px-4 py-3">
+                        <span class="text-gray-700">
+                            {{ $sale->user->name }}
                         </span>
                     </td>
-                    <td class="px-4 py-4 whitespace-nowrap">
-                        <div class="text-base font-bold text-green-600">{{ number_format($sale->total_vnd) }}đ</div>
+                    <td class="px-4 py-3 text-right">
+                        <div class="font-medium text-gray-900">{{ number_format($sale->total_vnd) }}đ</div>
                         <div class="text-xs text-gray-500">${{ number_format($sale->total_usd, 2) }}</div>
                     </td>
-                    <td class="px-4 py-4 whitespace-nowrap">
-                        <span class="text-base font-semibold text-blue-600">{{ number_format($sale->paid_amount) }}đ</span>
+                    <td class="px-4 py-3 text-right text-green-600 font-bold">
+                        {{ number_format($sale->paid_amount) }}đ
                     </td>
-                    <td class="px-4 py-4 whitespace-nowrap">
-                        <span class="text-base font-semibold text-red-600">{{ number_format($sale->debt_amount) }}đ</span>
+                    <td class="px-4 py-3 text-right text-red-600 font-bold">
+                        {{ number_format($sale->debt_amount) }}đ
                     </td>
-                    <td class="px-4 py-4 whitespace-nowrap">
+                    <td class="px-4 py-3 text-center">
                         @if($sale->payment_status == 'paid')
                             <span class="px-3 py-2 text-sm font-bold rounded-lg bg-green-100 text-green-800">Đã Thanh Toán</span>
                         @elseif($sale->payment_status == 'partial')
@@ -289,34 +279,34 @@
                             <span class="px-3 py-2 text-sm font-bold rounded-lg bg-red-100 text-red-800">Chưa Thanh Toán</span>
                         @endif
                     </td>
-                    <td class="px-4 py-4 whitespace-nowrap">
-                        <div class="flex gap-2">
+                    <td class="px-4 py-3">
+                        <div class="flex items-center justify-center space-x-2">
                             <a href="{{ route('sales.show', $sale->id) }}" 
-                               class="inline-flex items-center justify-center w-10 h-10 rounded-lg bg-blue-100 text-blue-600 hover:bg-blue-200 transition-colors" 
+                               class="w-8 h-8 flex items-center justify-center bg-blue-100 text-blue-600 rounded-lg hover:bg-blue-200 transition-colors" 
                                title="Xem chi tiết">
-                                <i class="fas fa-eye text-lg"></i>
+                                <i class="fas fa-eye"></i>
                             </a>
                             @if($sale->payment_status != 'paid')
                             <a href="{{ route('sales.edit', $sale->id) }}" 
-                               class="inline-flex items-center justify-center w-10 h-10 rounded-lg bg-yellow-100 text-yellow-600 hover:bg-yellow-200 transition-colors" 
+                               class="w-8 h-8 flex items-center justify-center bg-yellow-100 text-yellow-600 rounded-lg hover:bg-yellow-200 transition-colors" 
                                title="Chỉnh sửa">
-                                <i class="fas fa-edit text-lg"></i>
+                                <i class="fas fa-edit"></i>
                             </a>
                             @else
-                            <span class="inline-flex items-center justify-center w-10 h-10 rounded-lg bg-gray-100 text-gray-400 cursor-not-allowed" 
+                            <span class="w-8 h-8 flex items-center justify-center bg-gray-100 text-gray-400 rounded-lg cursor-not-allowed" 
                                   title="Đã thanh toán đủ">
-                                <i class="fas fa-lock text-lg"></i>
+                                <i class="fas fa-lock"></i>
                             </span>
                             @endif
                             <a href="{{ route('sales.print', $sale->id) }}" 
                                target="_blank" 
-                               class="inline-flex items-center justify-center w-10 h-10 rounded-lg bg-green-100 text-green-600 hover:bg-green-200 transition-colors" 
+                               class="w-8 h-8 flex items-center justify-center bg-green-100 text-green-600 rounded-lg hover:bg-green-200 transition-colors" 
                                title="In hóa đơn">
-                                <i class="fas fa-print text-lg"></i>
+                                <i class="fas fa-print"></i>
                             </a>
                             @if($sale->paid_amount == 0)
                             <button type="button" 
-                                    class="inline-flex items-center justify-center w-10 h-10 rounded-lg bg-red-100 text-red-600 hover:bg-red-200 transition-colors delete-btn" 
+                                    class="w-8 h-8 flex items-center justify-center bg-red-100 text-red-600 rounded-lg hover:bg-red-200 transition-colors delete-btn" 
                                     title="Xóa"
                                     data-url="{{ route('sales.destroy', $sale->id) }}"
                                     data-message="Bạn có chắc chắn muốn xóa hóa đơn {{ $sale->invoice_code }}?">
