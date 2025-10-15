@@ -7,42 +7,64 @@
 @section('content')
 <x-alert />
 
-<div class="bg-white rounded-xl shadow-lg p-6 glass-effect">
+<div class="bg-white rounded-xl shadow-lg p-8 glass-effect">
     <form action="{{ route('sales.update', $sale->id) }}" method="POST" id="sales-form">
         @csrf
         @method('PUT')
-         <!-- Hàng 4: Số hóa đơn -->
-         <div class="grid grid-cols-2 gap-4 mb-4">
-            <div>
-                <label class="block text-sm font-semibold text-gray-700 mb-2 text-base">Số hóa đơn</label>
-                <div class="flex gap-2">
-                    <input type="text" 
-                           name="invoice_code" 
-                           id="invoice_code" 
-                           class="px-4 py-3 border-2 rounded-lg font-bold text-indigo-700 text-lg" 
-                           placeholder="Nhập số hóa đơn hoặc để trống để tự động tạo"
-                           value="{{ $sale->invoice_code }}">
-                    <button type="button" 
-                            onclick="generateInvoiceCode()" 
-                            class="bg-blue-600 text-white px-4 py-3 rounded-lg hover:bg-blue-700 transition-colors"
-                            title="Tự động tạo số hóa đơn">
-                        <i class="fas fa-magic"></i>
-                    </button>
+        
+        <!-- BƯỚC 1: THÔNG TIN CƠ BẢN -->
+        <div class="bg-blue-50 border-l-4 border-blue-500 p-6 rounded-lg mb-6">
+            <h3 class="text-xl font-bold text-blue-900 mb-4 flex items-center">
+                <span class="bg-blue-500 text-white w-8 h-8 rounded-full flex items-center justify-center mr-3">1</span>
+                Thông tin hóa đơn
+            </h3>
+            <div class="grid grid-cols-3 gap-4">
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Số hóa đơn</label>
+                    <div class="flex gap-2">
+                        <input type="text" 
+                               name="invoice_code" 
+                               id="invoice_code" 
+                               class="flex-1 px-4 py-2 border border-gray-300 rounded-lg font-medium text-blue-600" 
+                               value="{{ $sale->invoice_code }}">
+                        <button type="button" 
+                                onclick="generateInvoiceCode()" 
+                                class="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-lg transition-colors"
+                                title="Tự động tạo">
+                            <i class="fas fa-magic"></i>
+                        </button>
+                    </div>
                 </div>
-                <p class="text-xs text-gray-500 mt-1">Để trống để tự động tạo, hoặc nhập số hóa đơn tùy chỉnh</p>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Showroom <span class="text-red-500">*</span></label>
+                    <select name="showroom_id" required class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500">
+                        <option value="">-- Chọn showroom --</option>
+                        @foreach($showrooms as $showroom)
+                            <option value="{{ $showroom->id }}" {{ $sale->showroom_id == $showroom->id ? 'selected' : '' }}>{{ $showroom->name }}</option>
+                        @endforeach
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Ngày bán <span class="text-red-500">*</span></label>
+                    <input type="date" name="sale_date" required class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500" value="{{ $sale->sale_date->format('Y-m-d') }}">
+                </div>
             </div>
         </div>
-        <div class="mb-6">
-            <h4 class="font-medium mb-4">Thông tin khách hàng</h4>
-            <div class="grid grid-cols-3 gap-3 mb-3">
+
+        <!-- BƯỚC 2: THÔNG TIN KHÁCH HÀNG -->
+        <div class="bg-green-50 border-l-4 border-green-500 p-6 rounded-lg mb-6">
+            <h3 class="text-xl font-bold text-green-900 mb-4 flex items-center">
+                <span class="bg-green-500 text-white w-8 h-8 rounded-full flex items-center justify-center mr-3">2</span>
+                Thông tin khách hàng
+            </h3>
+            <div class="grid grid-cols-2 gap-4 mb-4">
                 <div class="relative">
                     <label class="block text-sm font-medium text-gray-700 mb-2">Tên khách hàng <span class="text-red-500">*</span></label>
                     <input type="text" 
                            name="customer_name" 
                            id="customer_name" 
                            required 
-                           class="w-full px-3 py-2 border border-gray-300 rounded-lg"
-                           placeholder="Nhập tên khách hàng..."
+                           class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500"
                            value="{{ $sale->customer->name }}"
                            autocomplete="off"
                            onkeyup="filterCustomers(this.value)">
@@ -51,55 +73,46 @@
                 </div>
                 <div>
                     <label class="block text-sm font-medium text-gray-700 mb-2">Số điện thoại <span class="text-red-500">*</span></label>
-                    <input type="tel" name="customer_phone" id="customer_phone" required class="w-full px-3 py-2 border border-gray-300 rounded-lg" value="{{ $sale->customer->phone }}">
-                </div>
-                <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-2">Email</label>
-                    <input type="email" name="customer_email" id="customer_email" class="w-full px-3 py-2 border border-gray-300 rounded-lg" value="{{ $sale->customer->email }}">
+                    <input type="tel" name="customer_phone" id="customer_phone" required class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500" value="{{ $sale->customer->phone }}">
                 </div>
             </div>
-            <div class="grid grid-cols-3 gap-3">
+            <div class="grid grid-cols-2 gap-4">
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Email</label>
+                    <input type="email" name="customer_email" id="customer_email" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500" value="{{ $sale->customer->email }}">
+                </div>
                 <div>
                     <label class="block text-sm font-medium text-gray-700 mb-2">Địa chỉ</label>
-                    <input type="text" name="customer_address" id="customer_address" class="w-full px-3 py-2 border border-gray-300 rounded-lg" value="{{ $sale->customer->address }}">
-                </div>
-                <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-2">Showroom <span class="text-red-500">*</span></label>
-                    <select name="showroom_id" required class="w-full px-3 py-2 border border-gray-300 rounded-lg">
-                        <option value="">Chọn...</option>
-                        @foreach($showrooms as $showroom)
-                            <option value="{{ $showroom->id }}" {{ $sale->showroom_id == $showroom->id ? 'selected' : '' }}>{{ $showroom->name }}</option>
-                        @endforeach
-                    </select>
-                </div>
-                <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-2">Ngày bán <span class="text-red-500">*</span></label>
-                    <input type="date" name="sale_date" required class="w-full px-3 py-2 border rounded-lg" value="{{ $sale->sale_date->format('Y-m-d') }}">
+                    <input type="text" name="customer_address" id="customer_address" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500" value="{{ $sale->customer->address }}">
                 </div>
             </div>
         </div>
 
-        <div class="mb-6 border rounded-lg">
-            <div class="px-4 py-3 bg-gray-50 flex justify-between items-center">
-                <h4 class="font-semibold">Danh sách sản phẩm</h4>
-                <button type="button" onclick="addItem()" class="bg-blue-600 text-white py-1 px-3 rounded hover:bg-blue-700">
-                    <i class="fas fa-plus mr-1"></i>Thêm
+        <!-- BƯỚC 3: DANH SÁCH SẢN PHẨM -->
+        <div class="bg-purple-50 border-l-4 border-purple-500 p-6 rounded-lg mb-6">
+            <div class="flex justify-between items-center mb-4">
+                <h3 class="text-xl font-bold text-purple-900 flex items-center">
+                    <span class="bg-purple-500 text-white w-8 h-8 rounded-full flex items-center justify-center mr-3">3</span>
+                    Danh sách sản phẩm
+                </h3>
+                <button type="button" onclick="addItem()" class="bg-purple-500 hover:bg-purple-600 text-white px-6 py-2 rounded-lg transition-colors font-medium">
+                    <i class="fas fa-plus mr-2"></i>Thêm sản phẩm
                 </button>
             </div>
-            <div class="#">
-                <table class="w-full">
-                    <thead class="bg-gray-50 text-xs">
-                        <tr>
-                            <th class="px-2 py-2 text-left">Hình ảnh</th>
-                            <th class="px-2 py-2 text-left">Mô tả (Mã tranh/Khung)</th>
-                            <th class="px-2 py-2 text-left">Vật tư (khung)</th>
-                            <th class="px-2 py-2 text-left">Số mét/1 cây</th>
-                            <th class="px-2 py-2 text-left">Số lượng</th>
-                            <th class="px-2 py-2 text-left">Loại tiền</th>
-                            <th class="px-2 py-2 text-left">Giá bán USD</th>
-                            <th class="px-2 py-2 text-left">Giá bán VND</th>
-                            <th class="px-2 py-2 text-left">Giảm giá</th>
-                            <th class="px-2 py-2 text-left">Thao tác</th>
+            <div class="overflow-x-auto">
+                <table class="w-full border-collapse">
+                    <thead>
+                        <tr class="bg-purple-100">
+                            <th class="px-3 py-3 text-left text-sm font-medium text-gray-700 border">Hình</th>
+                            <th class="px-3 py-3 text-left text-sm font-medium text-gray-700 border">Tranh</th>
+                            <th class="px-3 py-3 text-left text-sm font-medium text-gray-700 border">Vật tư</th>
+                            <th class="px-3 py-3 text-left text-sm font-medium text-gray-700 border">Số mét</th>
+                            <th class="px-3 py-3 text-center text-sm font-medium text-gray-700 border">SL</th>
+                            <th class="px-3 py-3 text-center text-sm font-medium text-gray-700 border">Loại tiền</th>
+                            <th class="px-3 py-3 text-right text-sm font-medium text-gray-700 border">Giá USD</th>
+                            <th class="px-3 py-3 text-right text-sm font-medium text-gray-700 border">Giá VND</th>
+                            <th class="px-3 py-3 text-center text-sm font-medium text-gray-700 border">Giảm giá</th>
+                            <th class="px-3 py-3 text-center text-sm font-medium text-gray-700 border">Xóa</th>
                         </tr>
                     </thead>
                     <tbody id="items-body"></tbody>
@@ -107,63 +120,70 @@
             </div>
         </div>
 
-        <!-- Hàng 1: Tỷ giá và Giảm giá -->
-        <div class="grid grid-cols-2 gap-4 mb-4">
-            <div>
-                <label class="block text-sm font-semibold text-gray-700 mb-2 text-base">Tỷ giá <span class="text-red-500">*</span></label>
-                <input type="number" name="exchange_rate" id="rate" required class="w-full px-4 py-3 border-2 rounded-lg text-lg" value="{{ $sale->exchange_rate }}" onchange="calc()">
+        <!-- BƯỚC 4: TÍNH TOÁN & THANH TOÁN -->
+        <div class="bg-orange-50 border-l-4 border-orange-500 p-6 rounded-lg mb-6">
+            <h3 class="text-xl font-bold text-orange-900 mb-4 flex items-center">
+                <span class="bg-orange-500 text-white w-8 h-8 rounded-full flex items-center justify-center mr-3">4</span>
+                Tính toán & Thanh toán
+            </h3>
+            
+            <!-- Tỷ giá và Giảm giá -->
+            <div class="grid grid-cols-2 gap-4 mb-4">
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Tỷ giá (VND/USD) <span class="text-red-500">*</span></label>
+                    <input type="number" name="exchange_rate" id="rate" required class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500" value="{{ $sale->exchange_rate }}" onchange="calc()">
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Giảm giá (%)</label>
+                    <input type="number" name="discount_percent" id="discount" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500" value="{{ $sale->discount_percent }}" min="0" max="100" onchange="calc()">
+                </div>
             </div>
-            <div>
-                <label class="block text-sm font-semibold text-gray-700 mb-2 text-base">Giảm giá (%)</label>
-                <input type="number" name="discount_percent" id="discount" class="w-full px-4 py-3 border-2 rounded-lg text-lg" value="{{ $sale->discount_percent }}" min="0" max="100" onchange="calc()">
+
+            <!-- Tổng tiền -->
+            <div class="grid grid-cols-2 gap-4 mb-4">
+                <div class="bg-blue-100 p-4 rounded-lg">
+                    <label class="block text-sm font-medium text-blue-900 mb-2">💵 Tổng tiền USD</label>
+                    <input type="text" id="total_usd" readonly class="w-full px-4 py-3 border-2 border-blue-300 rounded-lg bg-white font-bold text-blue-600 text-xl" value="${{ number_format($sale->total_usd, 2) }}">
+                </div>
+                <div class="bg-green-100 p-4 rounded-lg">
+                    <label class="block text-sm font-medium text-green-900 mb-2">💰 Tổng tiền VND</label>
+                    <input type="text" id="total_vnd" readonly class="w-full px-4 py-3 border-2 border-green-300 rounded-lg bg-white font-bold text-green-600 text-xl" value="{{ number_format($sale->total_vnd) }}đ">
+                </div>
+            </div>
+
+            <!-- Thanh toán -->
+            <div class="grid grid-cols-3 gap-4">
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Khách trả (VND)</label>
+                    <input type="number" name="payment_amount" id="paid" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500" value="{{ $sale->paid_amount }}" onchange="calcDebt()">
+                </div>
+                <div class="bg-yellow-100 p-3 rounded-lg">
+                    <label class="block text-sm font-medium text-yellow-900 mb-2">Nợ cũ</label>
+                    <input type="text" id="current_debt" readonly class="w-full px-3 py-2 border border-yellow-300 rounded-lg bg-white font-bold text-orange-600 text-lg" value="0đ">
+                </div>
+                <div class="bg-red-100 p-3 rounded-lg">
+                    <label class="block text-sm font-medium text-red-900 mb-2">⚠️ Còn nợ</label>
+                    <input type="text" id="debt" readonly class="w-full px-3 py-2 border border-red-300 rounded-lg bg-white font-bold text-red-600 text-lg" value="{{ number_format($sale->debt_amount) }}đ">
+                </div>
             </div>
         </div>
 
-        <!-- Hàng 2: Tổng tiền -->
-        <div class="grid grid-cols-2 gap-4 mb-4">
-            <div>
-                <label class="block text-sm font-semibold text-gray-700 mb-2 text-base">Tổng USD</label>
-                <input type="text" id="total_usd" readonly class="w-full px-4 py-3 border-2 rounded-lg bg-blue-50 font-bold text-blue-600 text-xl" value="${{ number_format($sale->total_usd, 2) }}">
-            </div>
-            <div>
-                <label class="block text-sm font-semibold text-gray-700 mb-2 text-base">Tổng VND</label>
-                <input type="text" id="total_vnd" readonly class="w-full px-4 py-3 border-2 rounded-lg bg-green-50 font-bold text-green-600 text-xl" value="{{ number_format($sale->total_vnd) }}đ">
-            </div>
-        </div>
-
-        <!-- Hàng 3: Thanh toán -->
-        <div class="grid grid-cols-3 gap-4 mb-4">
-            <div>
-                <label class="block text-sm font-semibold text-gray-700 mb-2 text-base">Số tiền trả</label>
-                <input type="number" name="payment_amount" id="paid" class="w-full px-4 py-3 border-2 rounded-lg text-lg" value="{{ $sale->paid_amount }}" onchange="calcDebt()">
-            </div>
-            <div>
-                <label class="block text-sm font-semibold text-gray-700 mb-2 text-base">Công nợ hiện tại</label>
-                <input type="text" id="current_debt" readonly class="w-full px-4 py-3 border-2 rounded-lg bg-yellow-50 font-bold text-orange-600 text-xl" value="0đ">
-            </div>
-            <div>
-                <label class="block text-sm font-semibold text-gray-700 mb-2 text-base">Còn nợ</label>
-                <input type="text" id="debt" readonly class="w-full px-4 py-3 border-2 rounded-lg bg-red-50 font-bold text-red-600 text-xl" value="{{ number_format($sale->debt_amount) }}đ">
-            </div>
-        </div>
-
-       
-        
         <!-- Hidden field for payment method -->
         <input type="hidden" name="payment_method" value="cash">
 
-        <!-- Ghi chú riêng -->
-        <div class="mb-4">
-            <label class="block text-sm font-semibold text-gray-700 mb-2 text-base">Ghi chú</label>
-            <textarea name="notes" rows="2" class="w-full px-4 py-3 border-2 rounded-lg text-lg" placeholder="Nhập ghi chú (nếu có)...">{{ $sale->notes }}</textarea>
+        <!-- Ghi chú -->
+        <div class="mb-6">
+            <label class="block text-sm font-medium text-gray-700 mb-2">📝 Ghi chú</label>
+            <textarea name="notes" rows="3" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500" placeholder="Nhập ghi chú (không bắt buộc)...">{{ $sale->notes }}</textarea>
         </div>
 
-        <div class="flex gap-3">
-            <button type="submit" class="flex-1 bg-green-600 text-white py-2 rounded-lg hover:bg-green-700">
+        <!-- Buttons -->
+        <div class="flex gap-4 pt-6 border-t-2 border-gray-200">
+            <button type="submit" class="flex-1 bg-green-600 hover:bg-green-700 text-white py-4 rounded-lg transition-colors font-bold text-lg shadow-lg">
                 <i class="fas fa-save mr-2"></i>Cập nhật hóa đơn
             </button>
-            <a href="{{ route('sales.show', $sale->id) }}" class="flex-1 bg-gray-600 text-white py-2 rounded-lg hover:bg-gray-700 text-center">
-                <i class="fas fa-times mr-2"></i>Hủy
+            <a href="{{ route('sales.show', $sale->id) }}" class="flex-1 bg-gray-500 hover:bg-gray-600 text-white py-4 rounded-lg transition-colors font-bold text-lg text-center shadow-lg">
+                <i class="fas fa-times mr-2"></i>Hủy bỏ
             </a>
         </div>
     </form>
