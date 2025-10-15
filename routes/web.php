@@ -107,6 +107,20 @@ Route::middleware(['auth'])->group(function () {
         Route::put('/roles/{name}', [App\Http\Controllers\PermissionController::class, 'updateRole'])->name('roles.update');
     });
 
+    // Employees routes
+    Route::prefix('employees')->name('employees.')->group(function () {
+        Route::get('/', [App\Http\Controllers\EmployeeController::class, 'index'])->name('index');
+        Route::get('/create', [App\Http\Controllers\EmployeeController::class, 'create'])->name('create');
+        Route::post('/', [App\Http\Controllers\EmployeeController::class, 'store'])->name('store');
+        Route::get('/export/excel', [App\Http\Controllers\EmployeeController::class, 'exportExcel'])->name('export.excel');
+        Route::get('/export/pdf', [App\Http\Controllers\EmployeeController::class, 'exportPdf'])->name('export.pdf');
+        Route::post('/{id}/toggle-status', [App\Http\Controllers\EmployeeController::class, 'toggleStatus'])->name('toggle-status');
+        Route::get('/{id}', [App\Http\Controllers\EmployeeController::class, 'show'])->name('show');
+        Route::get('/{id}/edit', [App\Http\Controllers\EmployeeController::class, 'edit'])->name('edit');
+        Route::put('/{id}', [App\Http\Controllers\EmployeeController::class, 'update'])->name('update');
+        Route::delete('/{id}', [App\Http\Controllers\EmployeeController::class, 'destroy'])->name('destroy');
+    });
+
     // Profile routes
     Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
     Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');

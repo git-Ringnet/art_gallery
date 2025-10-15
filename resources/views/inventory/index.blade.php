@@ -7,39 +7,38 @@
 @section('header-actions')
     <div class="flex gap-2">
         <div class="relative">
-            <button onclick="toggleExportDropdown('excel')" class="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 transition-colors flex items-center">
-                <i class="fas fa-file-excel mr-2"></i>Excel
+            <button onclick="toggleExportDropdown()" type="button" class="bg-green-500 hover:bg-green-600 text-white px-6 py-2 rounded-lg transition-colors flex items-center">
+                <i class="fas fa-download mr-2"></i>Xuất file
                 <i class="fas fa-chevron-down ml-2 text-xs"></i>
             </button>
-            <div id="excel-dropdown" class="hidden absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-lg border border-gray-200 z-50">
-                <a href="{{ route('inventory.export.excel', array_merge(request()->query(), ['scope' => 'current'])) }}" 
-                   class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 rounded-t-lg">
-                    <i class="fas fa-file mr-2"></i>Trang hiện tại
-                </a>
-                <a href="{{ route('inventory.export.excel', array_merge(request()->query(), ['scope' => 'all'])) }}" 
-                   class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 rounded-b-lg">
-                    <i class="fas fa-database mr-2"></i>Tất cả dữ liệu
-                </a>
+            <div id="exportDropdown" class="hidden absolute right-0 mt-2 w-56 bg-white rounded-lg shadow-xl z-50 border border-gray-200">
+                <!-- Excel Export -->
+                <div class="py-2 border-b border-gray-200">
+                    <div class="px-4 py-2 text-xs font-semibold text-gray-500 uppercase">Excel</div>
+                    <a href="{{ route('inventory.export.excel', array_merge(request()->query(), ['scope' => 'current'])) }}" 
+                        class="block px-4 py-2 text-sm text-gray-700 hover:bg-blue-50 transition-colors">
+                        <i class="fas fa-file-excel text-green-600 mr-2"></i>Trang hiện tại
+                    </a>
+                    <a href="{{ route('inventory.export.excel', array_merge(request()->query(), ['scope' => 'all'])) }}" 
+                        class="block px-4 py-2 text-sm text-gray-700 hover:bg-blue-50 transition-colors">
+                        <i class="fas fa-file-excel text-green-600 mr-2"></i>Tất cả kết quả
+                    </a>
+                </div>
+                <!-- PDF Export -->
+                <div class="py-2">
+                    <div class="px-4 py-2 text-xs font-semibold text-gray-500 uppercase">PDF</div>
+                    <a href="{{ route('inventory.export.pdf', array_merge(request()->query(), ['scope' => 'current'])) }}" 
+                        class="block px-4 py-2 text-sm text-gray-700 hover:bg-red-50 transition-colors">
+                        <i class="fas fa-file-pdf text-red-600 mr-2"></i>Trang hiện tại
+                    </a>
+                    <a href="{{ route('inventory.export.pdf', array_merge(request()->query(), ['scope' => 'all'])) }}" 
+                        class="block px-4 py-2 text-sm text-gray-700 hover:bg-red-50 transition-colors">
+                        <i class="fas fa-file-pdf text-red-600 mr-2"></i>Tất cả kết quả
+                    </a>
+                </div>
             </div>
         </div>
-        
-        <div class="relative">
-            <button onclick="toggleExportDropdown('pdf')" class="bg-red-600 text-white px-4 py-2 rounded-lg hover:bg-red-700 transition-colors flex items-center">
-                <i class="fas fa-file-pdf mr-2"></i>PDF
-                <i class="fas fa-chevron-down ml-2 text-xs"></i>
-            </button>
-            <div id="pdf-dropdown" class="hidden absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-lg border border-gray-200 z-50">
-                <a href="{{ route('inventory.export.pdf', array_merge(request()->query(), ['scope' => 'current'])) }}" 
-                   class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 rounded-t-lg">
-                    <i class="fas fa-file mr-2"></i>Trang hiện tại
-                </a>
-                <a href="{{ route('inventory.export.pdf', array_merge(request()->query(), ['scope' => 'all'])) }}" 
-                   class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 rounded-b-lg">
-                    <i class="fas fa-database mr-2"></i>Tất cả dữ liệu
-                </a>
-            </div>
-        </div>
-        
+
         <a href="{{ route('inventory.import.painting.form') }}"
             class="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors">
             <i class="fas fa-plus mr-2"></i>Nhập kho
@@ -118,9 +117,9 @@
                             <td class="px-4 py-4 whitespace-nowrap text-sm text-gray-900">
                                 @if ($item['type'] == 'painting')
                                     <span
-                                        class="px-2 py-1 text-xs font-semibold rounded-full bg-purple-100 text-purple-800">Tranh</span>
+                                        class="px-2 py-1 text-xs font-semibold rounded-lg bg-purple-100 text-purple-800">Tranh</span>
                                 @else
-                                    <span class="px-2 py-1 text-xs font-semibold rounded-full bg-blue-100 text-blue-800">Vật
+                                    <span class="px-2 py-1 text-xs font-semibold rounded-lg bg-blue-100 text-blue-800">Vật
                                         tư</span>
                                 @endif
                             </td>
@@ -131,64 +130,66 @@
                             <td class="px-4 py-4 whitespace-nowrap">
                                 @if ($item['type'] == 'painting')
                                     @if ($item['status'] == 'in_stock')
-                                        <span
-                                            class="px-2 py-1 text-xs font-semibold rounded-full bg-green-100 text-green-800">
+                                        <span class="px-2 py-1 text-xs font-semibold rounded-lg bg-green-100 text-green-800">
                                             Còn hàng
                                         </span>
                                     @else
-                                        <span
-                                            class="px-2 py-1 text-xs font-semibold rounded-full bg-gray-200 text-gray-800">
+                                        <span class="px-2 py-1 text-xs font-semibold rounded-lg bg-gray-200 text-gray-800">
                                             Đã bán
                                         </span>
                                     @endif
                                 @elseif ($item['type'] == 'supply')
                                     @if ($item['quantity'] > 0)
-                                        <span
-                                            class="px-2 py-1 text-xs font-semibold rounded-full bg-green-100 text-green-800">
+                                        <span class="px-2 py-1 text-xs font-semibold rounded-lg bg-green-100 text-green-800">
                                             Còn hàng
                                         </span>
                                     @else
-                                        <span
-                                            class="px-2 py-1 text-xs font-semibold rounded-full bg-gray-200 text-gray-800">
+                                        <span class="px-2 py-1 text-xs font-semibold rounded-lg bg-gray-200 text-gray-800">
                                             Hết hàng
                                         </span>
                                     @endif
                                 @else
-                                    <span class="px-2 py-1 text-xs font-semibold rounded-full bg-gray-200 text-gray-800">
+                                    <span class="px-2 py-1 text-xs font-semibold rounded-lg bg-gray-200 text-gray-800">
                                         Không xác định
                                     </span>
                                 @endif
                             </td>
                             <td class="px-4 py-4 whitespace-nowrap text-sm">
                                 @if ($item['type'] == 'painting')
-                                    <a href="{{ route('inventory.paintings.show', $item['id']) }}" class="text-indigo-600 hover:text-indigo-900 mr-3" title="Xem chi tiết">
-                                        <i class="fas fa-eye px-3 py-2 rounded-full bg-blue-100 text-blue-600"></i>
+                                    <a href="{{ route('inventory.paintings.show', $item['id']) }}"
+                                        class="text-indigo-600 hover:text-indigo-900 mr-3" title="Xem chi tiết">
+                                        <i class="fas fa-eye px-3 py-2 rounded-lg bg-blue-100 text-blue-600"></i>
                                     </a>
-                                    <a href="{{ route('inventory.paintings.edit', $item['id']) }}" class="text-yellow-600 hover:text-yellow-900 mr-3" title="Chỉnh sửa">
-                                        <i class="fas fa-edit px-3 py-2 rounded-full bg-yellow-100 text-yellow-600"></i>
+                                    <a href="{{ route('inventory.paintings.edit', $item['id']) }}"
+                                        class="text-yellow-600 hover:text-yellow-900 mr-3" title="Chỉnh sửa">
+                                        <i class="fas fa-edit px-3 py-2 rounded-lg bg-yellow-100 text-yellow-600"></i>
                                     </a>
-                                    <form action="{{ route('inventory.paintings.destroy', $item['id']) }}" method="POST" class="inline" onsubmit="return confirm('Xóa tranh này?');">
+                                    <form action="{{ route('inventory.paintings.destroy', $item['id']) }}" method="POST"
+                                        class="inline" onsubmit="return confirm('Xóa tranh này?');">
                                         @csrf
                                         @method('DELETE')
                                         <button type="submit" class="text-red-600 hover:text-red-900" title="Xóa">
-                                            <i class="fas fa-trash px-3 py-2 rounded-full bg-red-100 text-red-400"></i>
+                                            <i class="fas fa-trash px-3 py-2 rounded-lg bg-red-100 text-red-400"></i>
                                         </button>
                                     </form>
                                 @endif
                                 @if ($item['type'] == 'supply')
-                                    <a href="{{ route('inventory.supplies.show', $item['id']) }}" class="text-indigo-600 hover:text-indigo-900 mr-3" title="Xem chi tiết">
-                                        <i class="fas fa-eye px-3 py-2 rounded-full bg-blue-100 text-blue-600"></i>
+                                    <a href="{{ route('inventory.supplies.show', $item['id']) }}"
+                                        class="text-indigo-600 hover:text-indigo-900 mr-3" title="Xem chi tiết">
+                                        <i class="fas fa-eye px-3 py-2 rounded-lg bg-blue-100 text-blue-600"></i>
                                     </a>
-                                    <a href="{{ route('inventory.supplies.edit', $item['id']) }}" class="text-yellow-600 hover:text-yellow-900 mr-3" title="Chỉnh sửa">
-                                        <i class="fas fa-edit px-3 py-2 rounded-full bg-yellow-100 text-yellow-600"></i>
+                                    <a href="{{ route('inventory.supplies.edit', $item['id']) }}"
+                                        class="text-yellow-600 hover:text-yellow-900 mr-3" title="Chỉnh sửa">
+                                        <i class="fas fa-edit px-3 py-2 rounded-lg bg-yellow-100 text-yellow-600"></i>
                                     </a>
                                 @endif
                                 @if ($item['type'] == 'supply')
-                                    <form action="{{ route('inventory.supplies.destroy', $item['id']) }}" method="POST" class="inline" onsubmit="return confirm('Xóa vật tư này?');">
+                                    <form action="{{ route('inventory.supplies.destroy', $item['id']) }}" method="POST"
+                                        class="inline" onsubmit="return confirm('Xóa vật tư này?');">
                                         @csrf
                                         @method('DELETE')
                                         <button type="submit" class="text-red-600 hover:text-red-900" title="Xóa">
-                                            <i class="fas fa-trash px-3 py-2 rounded-full bg-red-100 text-red-400"></i>
+                                            <i class="fas fa-trash px-3 py-2 rounded-lg bg-red-100 text-red-400"></i>
                                         </button>
                                     </form>
                                 @endif
@@ -212,31 +213,20 @@
 @endsection
 
 @push('scripts')
-<script>
-function toggleExportDropdown(type) {
-    const dropdown = document.getElementById(type + '-dropdown');
-    const otherDropdown = document.getElementById(type === 'excel' ? 'pdf-dropdown' : 'excel-dropdown');
-    
-    // Close other dropdown
-    if (otherDropdown) {
-        otherDropdown.classList.add('hidden');
-    }
-    
-    // Toggle current dropdown
+    <script>
+function toggleExportDropdown() {
+    const dropdown = document.getElementById('exportDropdown');
     dropdown.classList.toggle('hidden');
 }
 
-// Close dropdowns when clicking outside
+// Close dropdown when clicking outside
 document.addEventListener('click', function(event) {
-    const excelDropdown = document.getElementById('excel-dropdown');
-    const pdfDropdown = document.getElementById('pdf-dropdown');
+    const dropdown = document.getElementById('exportDropdown');
+    const button = event.target.closest('[onclick="toggleExportDropdown()"]');
     
-    if (!event.target.closest('[onclick*="toggleExportDropdown"]') && 
-        !event.target.closest('#excel-dropdown') && 
-        !event.target.closest('#pdf-dropdown')) {
-        if (excelDropdown) excelDropdown.classList.add('hidden');
-        if (pdfDropdown) pdfDropdown.classList.add('hidden');
+    if (dropdown && !dropdown.contains(event.target) && !button) {
+        dropdown.classList.add('hidden');
     }
 });
-</script>
+    </script>
 @endpush

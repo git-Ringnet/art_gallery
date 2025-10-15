@@ -49,6 +49,21 @@ class LoginRequest extends FormRequest
             ]);
         }
 
+        // Kiểm tra trạng thái tài khoản
+        $user = Auth::user();
+        if ($user && !$user->is_active) {
+            Auth::logout();
+            
+            throw ValidationException::withMessages([
+                'email' => 'Tài khoản của bạn đã bị vô hiệu hóa. Vui lòng liên hệ quản trị viên.',
+            ]);
+        }
+
+        // Cập nhật thời gian đăng nhập cuối
+        if ($user) {
+            $user->update(['last_login_at' => now()]);
+        }
+
         RateLimiter::clear($this->throttleKey());
     }
 

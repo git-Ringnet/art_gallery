@@ -88,6 +88,10 @@
                     <i class="fas fa-users w-5"></i>
                     <span>Khách hàng</span>
                 </a>
+                <a href="{{ route('employees.index') }}" class="nav-item flex items-center space-x-3 p-3 rounded-lg hover:bg-white hover:bg-opacity-20 transition-all duration-200 {{ request()->routeIs('employees.*') ? 'bg-white bg-opacity-20' : '' }}">
+                    <i class="fas fa-user-tie w-5"></i>
+                    <span>Nhân viên</span>
+                </a>
                 <a href="{{ route('permissions.index') }}" class="nav-item flex items-center space-x-3 p-3 rounded-lg hover:bg-white hover:bg-opacity-20 transition-all duration-200 {{ request()->routeIs('permissions.*') ? 'bg-white bg-opacity-20' : '' }}">
                     <i class="fas fa-user-shield w-5"></i>
                     <span>Phân quyền</span>

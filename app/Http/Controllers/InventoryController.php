@@ -8,6 +8,8 @@ use App\Models\Supply;
 use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Facades\Storage;
 use Barryvdh\DomPDF\Facade\Pdf;
+use Maatwebsite\Excel\Facades\Excel;
+use App\Exports\InventoryExport;
 
 class InventoryController extends Controller
 {
@@ -399,41 +401,9 @@ class InventoryController extends Controller
             $inventory = $inventory->forPage($currentPage, $perPage)->values();
         }
 
-        // Create CSV content
-        $filename = 'quan-ly-kho-' . date('Y-m-d-His') . '.csv';
-        $headers = [
-            'Content-Type' => 'text/csv; charset=UTF-8',
-            'Content-Disposition' => 'attachment; filename="' . $filename . '"',
-        ];
-
-        $callback = function() use ($inventory) {
-            $file = fopen('php://output', 'w');
-            // Add BOM for UTF-8
-            fprintf($file, chr(0xEF).chr(0xBB).chr(0xBF));
-            
-            // Headers
-            fputcsv($file, ['Mã', 'Tên sản phẩm', 'Loại', 'Số lượng', 'Đơn vị', 'Ngày nhập', 'Trạng thái', 'Họa sĩ', 'Chất liệu', 'Giá (USD)']);
-            
-            // Data
-            foreach ($inventory as $item) {
-                fputcsv($file, [
-                    $item['code'],
-                    $item['name'],
-                    $item['type'],
-                    $item['quantity'],
-                    $item['unit'],
-                    $item['import_date'],
-                    $item['status'],
-                    $item['artist'] ?? '',
-                    $item['material'] ?? '',
-                    $item['price_usd'] ?? '',
-                ]);
-            }
-            
-            fclose($file);
-        };
-
-        return response()->stream($callback, 200, $headers);
+        $filename = 'quan-ly-kho-' . date('Y-m-d-His') . '.xlsx';
+        
+        return Excel::download(new InventoryExport($inventory), $filename);
     }
 
     public function exportPdf(Request $request)
