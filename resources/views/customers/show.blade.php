@@ -8,6 +8,10 @@
 <a href="{{ route('customers.edit', $customer->id) }}" class="bg-yellow-500 hover:bg-yellow-600 text-white px-4 py-2 rounded-lg transition-colors">
     <i class="fas fa-edit mr-2"></i>Sửa
 </a>
+ <a href="{{ route('customers.index') }}"
+            class="bg-gray-500 text-white px-4 py-2 rounded-lg hover:bg-gray-600 transition-colors">
+            <i class="fas fa-arrow-left mr-2"></i>Quay lại
+        </a>
 @endsection
 
 @section('content')
@@ -60,15 +64,21 @@
             </div>
 
             <!-- Stats -->
+            @php
+                // Tính tổng từ sales không bị hủy (lọc cancelled)
+                $activeSales = $customer->sales->where('payment_status', '!=', 'cancelled');
+                $totalPurchased = $activeSales->sum('total_vnd');
+                $totalDebt = $activeSales->sum('debt_amount');
+            @endphp
             <div class="mt-6 pt-6 border-t grid grid-cols-2 gap-4">
                 <div class="text-center">
                     <p class="text-sm text-gray-500">Tổng mua</p>
-                    <p class="text-xl font-bold text-green-600">{{ number_format($customer->total_purchased, 0, ',', '.') }}đ</p>
+                    <p class="text-xl font-bold text-green-600">{{ number_format($totalPurchased, 0, ',', '.') }}đ</p>
                 </div>
                 <div class="text-center">
                     <p class="text-sm text-gray-500">Công nợ</p>
-                    <p class="text-xl font-bold {{ $customer->total_debt > 0 ? 'text-red-600' : 'text-gray-400' }}">
-                        {{ number_format($customer->total_debt, 0, ',', '.') }}đ
+                    <p class="text-xl font-bold {{ $totalDebt > 0 ? 'text-red-600' : 'text-gray-400' }}">
+                        {{ number_format($totalDebt, 0, ',', '.') }}đ
                     </p>
                 </div>
             </div>
@@ -102,7 +112,9 @@
                             <td class="px-4 py-3 text-sm">{{ $sale->sale_date->format('d/m/Y') }}</td>
                             <td class="px-4 py-3 text-right font-medium">{{ number_format($sale->total_vnd, 0, ',', '.') }}đ</td>
                             <td class="px-4 py-3 text-center">
-                                @if($sale->payment_status === 'paid')
+                                @if($sale->payment_status === 'cancelled')
+                                    <span class="px-2 py-1 bg-gray-100 text-gray-800 text-xs rounded-full">Đã hủy</span>
+                                @elseif($sale->payment_status === 'paid')
                                     <span class="px-2 py-1 bg-green-100 text-green-800 text-xs rounded-full">Đã thanh toán</span>
                                 @elseif($sale->payment_status === 'partial')
                                     <span class="px-2 py-1 bg-yellow-100 text-yellow-800 text-xs rounded-full">Thanh toán 1 phần</span>

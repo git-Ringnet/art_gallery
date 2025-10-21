@@ -72,11 +72,19 @@
                         {{ Str::limit($customer->address, 30) ?: '-' }}
                     </td>
                     <td class="px-4 py-3 text-right font-medium text-green-600">
-                        {{ number_format($customer->total_purchased, 0, ',', '.') }}đ
+                        @php
+                            // Tính tổng mua từ sales không bị hủy
+                            $totalPurchased = $customer->sales()->where('payment_status', '!=', 'cancelled')->sum('total_vnd');
+                        @endphp
+                        {{ number_format($totalPurchased, 0, ',', '.') }}đ
                     </td>
                     <td class="px-4 py-3 text-right">
-                        @if($customer->total_debt > 0)
-                            <span class="text-red-600 font-medium">{{ number_format($customer->total_debt, 0, ',', '.') }}đ</span>
+                        @php
+                            // Tính công nợ từ sales không bị hủy
+                            $totalDebt = $customer->sales()->where('payment_status', '!=', 'cancelled')->sum('debt_amount');
+                        @endphp
+                        @if($totalDebt > 0)
+                            <span class="text-red-600 font-medium">{{ number_format($totalDebt, 0, ',', '.') }}đ</span>
                         @else
                             <span class="text-gray-400">0đ</span>
                         @endif

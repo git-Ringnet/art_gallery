@@ -49,7 +49,14 @@ class CustomerController extends Controller
 
     public function show(string $id)
     {
-        $customer = Customer::with(['sales', 'debts'])->findOrFail($id);
+        // Load tất cả sales (kể cả đã hủy) để hiển thị lịch sử
+        $customer = Customer::with([
+            'sales' => function($query) {
+                $query->orderBy('created_at', 'desc');
+            },
+            'debts'
+        ])->findOrFail($id);
+        
         return view('customers.show', compact('customer'));
     }
 
