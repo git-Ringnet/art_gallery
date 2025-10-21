@@ -99,23 +99,23 @@
                     <i class="fas fa-plus mr-2"></i>Thêm sản phẩm
                 </button>
             </div>
-            <div class="overflow-x-auto">
+            <div class="#">
                 <table class="w-full border-collapse">
                     <thead>
                         <tr class="bg-purple-100">
-                            <th class="px-3 py-3 text-left text-sm font-medium text-gray-700 border">Hình</th>
-                            <th class="px-3 py-3 text-left text-sm font-medium text-gray-700 border">Tranh</th>
-                            <th class="px-3 py-3 text-left text-sm font-medium text-gray-700 border">Vật tư</th>
-                            <th class="px-3 py-3 text-left text-sm font-medium text-gray-700 border">Số mét</th>
-                            <th class="px-3 py-3 text-center text-sm font-medium text-gray-700 border">SL</th>
+                            <th class="px-3 py-3 text-left text-sm font-medium text-gray-700 border">Hình ảnh</th>
+                            <th class="px-3 py-3 text-left text-sm font-medium text-gray-700 border">Mô tả(Mã tranh/Khung)</th>
+                            <th class="px-3 py-3 text-left text-sm font-medium text-gray-700 border">Vật tư(Khung)</th>
+                            <th class="px-3 py-3 text-left text-sm font-medium text-gray-700 border">Số mét/Cây</th>
+                            <th class="px-3 py-3 text-center text-sm font-medium text-gray-700 border">Số lượng</th>
                             <th class="px-3 py-3 text-center text-sm font-medium text-gray-700 border">Loại tiền</th>
                             <th class="px-3 py-3 text-right text-sm font-medium text-gray-700 border">Giá USD</th>
                             <th class="px-3 py-3 text-right text-sm font-medium text-gray-700 border">Giá VND</th>
-                            <th class="px-3 py-3 text-center text-sm font-medium text-gray-700 border">Giảm giá</th>
+                            <th class="px-3 py-3 text-center text-sm font-medium text-gray-700 border">Giảm giá (%)</th>
                             <th class="px-3 py-3 text-center text-sm font-medium text-gray-700 border">Xóa</th>
                         </tr>
                     </thead>
-                    <tbody id="items-body"></tbody>
+                    <tbody id="items-body" class="bg-white"></tbody>
                 </table>
             </div>
         </div>
@@ -131,11 +131,11 @@
             <div class="grid grid-cols-2 gap-4 mb-4">
                 <div>
                     <label class="block text-sm font-medium text-gray-700 mb-2">Tỷ giá (VND/USD) <span class="text-red-500">*</span></label>
-                    <input type="number" name="exchange_rate" id="rate" required class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500" value="{{ $sale->exchange_rate }}" onchange="calc()">
+                    <input type="number" name="exchange_rate" id="rate" required class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500" value="{{ round($sale->exchange_rate) }}" step="1" onchange="calc()">
                 </div>
                 <div>
                     <label class="block text-sm font-medium text-gray-700 mb-2">Giảm giá (%)</label>
-                    <input type="number" name="discount_percent" id="discount" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500" value="{{ $sale->discount_percent }}" min="0" max="100" onchange="calc()">
+                    <input type="number" name="discount_percent" id="discount" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500" value="{{ round($sale->discount_percent) }}" min="0" max="100" step="1" onchange="calc()">
                 </div>
             </div>
 
@@ -154,8 +154,31 @@
             <!-- Thanh toán -->
             <div class="grid grid-cols-3 gap-4">
                 <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-2">Khách trả (VND)</label>
-                    <input type="number" name="payment_amount" id="paid" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500" value="{{ $sale->paid_amount }}" onchange="calcDebt()">
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Khách trả thêm (VND)</label>
+                    <input type="number" name="payment_amount" id="paid" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500" value="0" step="1000" onchange="calcDebt()" placeholder="Nhập số tiền trả thêm...">
+                    
+                    <!-- Lịch sử thanh toán -->
+                    @if($sale->payments->count() > 0)
+                    <div class="mt-3 p-3 bg-gray-50 rounded-lg border border-gray-200">
+                        <div class="text-xs font-semibold text-gray-600 mb-2 flex items-center">
+                            <i class="fas fa-history mr-1"></i> Lịch sử thanh toán
+                        </div>
+                        <div class="space-y-1 max-h-32 overflow-y-auto">
+                            @foreach($sale->payments as $payment)
+                            <div class="flex justify-between items-center text-xs py-1">
+                                <span class="text-gray-600">{{ $payment->payment_date->format('d/m/Y') }}</span>
+                                <span class="font-semibold {{ $payment->amount < 0 ? 'text-red-600' : 'text-green-600' }}">
+                                    {{ $payment->amount < 0 ? '' : '+' }}{{ number_format($payment->amount) }}đ
+                                </span>
+                            </div>
+                            @endforeach
+                        </div>
+                        <div class="mt-2 pt-2 border-t border-gray-300 flex justify-between items-center">
+                            <span class="text-xs font-semibold text-gray-700">Tổng đã trả:</span>
+                            <span class="text-sm font-bold text-blue-600">{{ number_format($sale->paid_amount) }}đ</span>
+                        </div>
+                    </div>
+                    @endif
                 </div>
                 <div class="bg-yellow-100 p-3 rounded-lg">
                     <label class="block text-sm font-medium text-yellow-900 mb-2">Nợ cũ</label>
@@ -266,17 +289,17 @@ document.addEventListener('click', function(e) {
 function addItem() {
     const tbody = document.getElementById('items-body');
     const tr = document.createElement('tr');
-    tr.className = 'border-b text-sm';
+    tr.className = 'border hover:bg-purple-50';
     tr.innerHTML = `
-        <td class="px-2 py-2">
-            <img id="img-${idx}" src="https://via.placeholder.com/80x60?text=No+Image" class="w-20 h-16 object-cover rounded border">
+        <td class="px-3 py-3 border">
+            <img id="img-${idx}" src="https://via.placeholder.com/80x60?text=No+Image" class="w-20 h-16 object-cover rounded border shadow-sm">
         </td>
-        <td class="px-2 py-2">
+        <td class="px-3 py-3 border">
             <div class="relative">
                 <input type="text" 
                        id="painting-search-${idx}"
-                       class="w-full px-2 py-1 border rounded text-xs" 
-                       placeholder="Tìm kiếm tranh..."
+                       class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500" 
+                       placeholder="Tìm tranh..."
                        autocomplete="off"
                        onkeyup="filterPaintings(this.value, ${idx})"
                        onfocus="showPaintingSuggestions(${idx})">
@@ -285,12 +308,12 @@ function addItem() {
                 <div id="painting-suggestions-${idx}" class="absolute z-20 w-full bg-white border border-gray-300 rounded-lg mt-1 max-h-40 overflow-y-auto hidden shadow-lg"></div>
             </div>
         </td>
-        <td class="px-2 py-2">
+        <td class="px-3 py-3 border">
             <div class="relative">
                 <input type="text" 
                        id="supply-search-${idx}"
-                       class="w-full px-2 py-1 border rounded text-xs" 
-                       placeholder="Tìm kiếm vật tư..."
+                       class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500" 
+                       placeholder="Tìm vật tư..."
                        autocomplete="off"
                        onkeyup="filterSupplies(this.value, ${idx})"
                        onfocus="showSupplySuggestions(${idx})">
@@ -298,30 +321,30 @@ function addItem() {
                 <div id="supply-suggestions-${idx}" class="absolute z-20 w-full bg-white border border-gray-300 rounded-lg mt-1 max-h-40 overflow-y-auto hidden shadow-lg"></div>
             </div>
         </td>
-        <td class="px-2 py-2">
-            <input type="number" name="items[${idx}][supply_length]" class="w-full px-2 py-1 border rounded text-xs" value="0" step="0.01">
+        <td class="px-3 py-3 border">
+            <input type="number" name="items[${idx}][supply_length]" class="w-full px-3 py-2 border border-gray-300 rounded-lg text-center" value="0" step="1">
         </td>
-        <td class="px-2 py-2">
-            <input type="number" name="items[${idx}][quantity]" required class="w-full px-2 py-1 border rounded text-xs" value="1" min="1" onchange="calc()">
+        <td class="px-3 py-3 border">
+            <input type="number" name="items[${idx}][quantity]" required class="w-full px-3 py-2 border border-gray-300 rounded-lg text-center font-medium" value="1" min="1" onchange="calc()">
         </td>
-        <td class="px-2 py-2">
-            <select name="items[${idx}][currency]" class="w-full px-2 py-1 border rounded text-xs" onchange="togCur(this, ${idx})">
+        <td class="px-3 py-3 border">
+            <select name="items[${idx}][currency]" class="w-full px-3 py-2 border border-gray-300 rounded-lg" onchange="togCur(this, ${idx})">
                 <option value="USD">USD</option>
                 <option value="VND">VND</option>
-                <option value="BOTH">Tất cả</option>
+                <option value="BOTH">Cả 2</option>
             </select>
         </td>
-        <td class="px-2 py-2">
-            <input type="number" name="items[${idx}][price_usd]" id="usd-input-${idx}" class="usd-${idx} w-full px-2 py-1 border rounded text-xs" value="0" step="0.01" onchange="calc()">
+        <td class="px-3 py-3 border">
+            <input type="number" name="items[${idx}][price_usd]" id="usd-input-${idx}" class="usd-${idx} w-full px-3 py-2 border border-gray-300 rounded-lg text-right" value="0" step="0.01" onchange="calc()">
         </td>
-        <td class="px-2 py-2">
-            <input type="number" name="items[${idx}][price_vnd]" id="vnd-input-${idx}" class="vnd-${idx} w-full px-2 py-1 border rounded text-xs hidden" value="0" step="1000" onchange="calc()">
+        <td class="px-3 py-3 border">
+            <input type="number" name="items[${idx}][price_vnd]" id="vnd-input-${idx}" class="vnd-${idx} w-full px-3 py-2 border border-gray-300 rounded-lg text-right hidden" value="0" step="1000" onchange="calc()">
         </td>
-        <td class="px-2 py-2">
-            <input type="number" name="items[${idx}][discount]" class="w-full px-2 py-1 border rounded text-xs" value="0" min="0">
+        <td class="px-3 py-3 border text-center">
+            <input type="number" name="items[${idx}][discount_percent]" class="w-full px-3 py-2 border border-gray-300 rounded-lg text-center" value="0" min="0" max="100" step="1" onchange="calc()">
         </td>
-        <td class="px-2 py-2">
-            <button type="button" class="text-red-600" onclick="this.closest('tr').remove();calc()">
+        <td class="px-3 py-3 border text-center">
+            <button type="button" class="w-8 h-8 flex items-center justify-center bg-red-100 text-red-600 rounded-lg hover:bg-red-200 transition-colors" onclick="this.closest('tr').remove();calc()">
                 <i class="fas fa-trash"></i>
             </button>
         </td>
@@ -480,20 +503,33 @@ function calc() {
     rows.forEach((row, i) => {
         const qty = parseFloat(row.querySelector('[name*="[quantity]"]')?.value || 0);
         const cur = row.querySelector('[name*="[currency]"]')?.value || 'USD';
+        const itemDiscountPercent = parseFloat(row.querySelector('[name*="[discount_percent]"]')?.value || 0);
         
         if (cur === 'USD') {
             const usd = parseFloat(row.querySelector('[name*="[price_usd]"]')?.value || 0);
-            totUsd += usd * qty;
-            totVnd += usd * qty * rate;
+            const subtotal = usd * qty;
+            const itemDiscountAmt = subtotal * (itemDiscountPercent / 100);
+            const itemTotalUsd = subtotal - itemDiscountAmt;
+            const itemTotalVnd = itemTotalUsd * rate;
+            totUsd += itemTotalUsd;
+            totVnd += itemTotalVnd;
         } else if (cur === 'VND') {
             const vnd = parseFloat(row.querySelector('[name*="[price_vnd]"]')?.value || 0);
-            totVnd += vnd * qty;
-            totUsd += (vnd * qty) / rate;
+            const subtotal = vnd * qty;
+            const itemDiscountAmt = subtotal * (itemDiscountPercent / 100);
+            const itemTotalVnd = subtotal - itemDiscountAmt;
+            const itemTotalUsd = itemTotalVnd / rate;
+            totVnd += itemTotalVnd;
+            totUsd += itemTotalUsd;
         } else { // BOTH
             const usd = parseFloat(row.querySelector('[name*="[price_usd]"]')?.value || 0);
             const vnd = parseFloat(row.querySelector('[name*="[price_vnd]"]')?.value || 0);
-            totUsd += usd * qty;
-            totVnd += vnd * qty;
+            const subtotalUsd = usd * qty;
+            const subtotalVnd = vnd * qty;
+            const itemDiscountAmtUsd = subtotalUsd * (itemDiscountPercent / 100);
+            const itemDiscountAmtVnd = subtotalVnd * (itemDiscountPercent / 100);
+            totUsd += subtotalUsd - itemDiscountAmtUsd;
+            totVnd += subtotalVnd - itemDiscountAmtVnd;
         }
     });
     
@@ -511,8 +547,13 @@ function calc() {
 function calcDebt() {
     const totTxt = document.getElementById('total_vnd').value.replace(/[^\d]/g, '');
     const tot = parseFloat(totTxt) || 0;
-    const paid = parseFloat(document.getElementById('paid').value) || 0;
-    const debt = Math.max(0, tot - paid);
+    
+    // Tổng đã trả (từ database) + số tiền trả thêm (từ input)
+    const currentPaid = {{ $sale->paid_amount }};
+    const additionalPaid = parseFloat(document.getElementById('paid').value) || 0;
+    const totalPaid = currentPaid + additionalPaid;
+    
+    const debt = Math.max(0, tot - totalPaid);
     
     document.getElementById('debt').value = debt.toLocaleString('vi-VN') + 'đ';
 }
@@ -567,11 +608,12 @@ function loadExistingItems() {
         }
         
         // Set other fields
-        document.querySelector(`[name="items[${index}][supply_length]"]`).value = item.supply_length || 0;
+        document.querySelector(`[name="items[${index}][supply_length]"]`).value = Math.round(item.supply_length || 0);
         document.querySelector(`[name="items[${index}][quantity]"]`).value = item.quantity;
         document.querySelector(`[name="items[${index}][currency]"]`).value = item.currency;
         document.querySelector(`[name="items[${index}][price_usd]"]`).value = item.price_usd || 0;
-        document.querySelector(`[name="items[${index}][price_vnd]"]`).value = item.price_vnd || 0;
+        document.querySelector(`[name="items[${index}][price_vnd]"]`).value = Math.round(item.price_vnd || 0);
+        document.querySelector(`[name="items[${index}][discount_percent]"]`).value = Math.round(item.discount_percent || 0);
         
         // Set currency display
         togCur(document.querySelector(`[name="items[${index}][currency]"]`), index);
@@ -581,6 +623,7 @@ function loadExistingItems() {
 document.addEventListener('DOMContentLoaded', () => {
     loadExistingItems();
     calc();
+    calcDebt(); // Tính còn nợ ngay khi load trang
 });
 </script>
 

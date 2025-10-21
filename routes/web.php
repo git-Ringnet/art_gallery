@@ -51,9 +51,17 @@ Route::middleware(['auth'])->group(function () {
 
     // Returns routes
     Route::prefix('returns')->name('returns.')->group(function () {
-        Route::get('/', [App\Http\Controllers\ReturnsController::class, 'index'])->name('index');
-        Route::get('/search', [App\Http\Controllers\ReturnsController::class, 'searchInvoice'])->name('search');
-        Route::post('/process', [App\Http\Controllers\ReturnsController::class, 'process'])->name('process');
+        Route::get('/', [App\Http\Controllers\ReturnController::class, 'index'])->name('index');
+        Route::get('/create', [App\Http\Controllers\ReturnController::class, 'create'])->name('create');
+        Route::get('/search-invoice', [App\Http\Controllers\ReturnController::class, 'searchInvoice'])->name('searchInvoice');
+        Route::post('/', [App\Http\Controllers\ReturnController::class, 'store'])->name('store');
+        Route::get('/{id}', [App\Http\Controllers\ReturnController::class, 'show'])->name('show');
+        Route::get('/{id}/edit', [App\Http\Controllers\ReturnController::class, 'edit'])->name('edit');
+        Route::put('/{id}', [App\Http\Controllers\ReturnController::class, 'update'])->name('update');
+        Route::put('/{id}/approve', [App\Http\Controllers\ReturnController::class, 'approve'])->name('approve');
+        Route::put('/{id}/complete', [App\Http\Controllers\ReturnController::class, 'complete'])->name('complete');
+        Route::put('/{id}/cancel', [App\Http\Controllers\ReturnController::class, 'cancel'])->name('cancel');
+        Route::delete('/{id}', [App\Http\Controllers\ReturnController::class, 'destroy'])->name('destroy');
     });
 
     // Inventory routes

@@ -110,7 +110,7 @@
                             <th class="px-3 py-3 text-center text-sm font-medium text-gray-700 border">Loại tiền</th>
                             <th class="px-3 py-3 text-right text-sm font-medium text-gray-700 border">Giá USD</th>
                             <th class="px-3 py-3 text-right text-sm font-medium text-gray-700 border">Giá VND</th>
-                            <th class="px-3 py-3 text-center text-sm font-medium text-gray-700 border">Giảm giá</th>
+                            <th class="px-3 py-3 text-center text-sm font-medium text-gray-700 border">Giảm giá (%)</th>
                             <th class="px-3 py-3 text-center text-sm font-medium text-gray-700 border">Xóa</th>
                         </tr>
                     </thead>
@@ -130,11 +130,11 @@
             <div class="grid grid-cols-2 gap-4 mb-4">
                 <div>
                     <label class="block text-sm font-medium text-gray-700 mb-2">Tỷ giá (VND/USD) <span class="text-red-500">*</span></label>
-                    <input type="number" name="exchange_rate" id="rate" required class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500" value="{{ $currentRate->rate ?? 25000 }}" onchange="calc()">
+                    <input type="number" name="exchange_rate" id="rate" required class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500" value="{{ round($currentRate->rate ?? 25000) }}" step="1" onchange="calc()">
                 </div>
                 <div>
                     <label class="block text-sm font-medium text-gray-700 mb-2">Giảm giá (%)</label>
-                    <input type="number" name="discount_percent" id="discount" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500" value="0" min="0" max="100" onchange="calc()">
+                    <input type="number" name="discount_percent" id="discount" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500" value="0" min="0" max="100" step="1" onchange="calc()">
                 </div>
             </div>
 
@@ -154,7 +154,7 @@
             <div class="grid grid-cols-3 gap-4">
                 <div>
                     <label class="block text-sm font-medium text-gray-700 mb-2">Khách trả (VND)</label>
-                    <input type="number" name="payment_amount" id="paid" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500" value="0" onchange="calcDebt()" placeholder="Nhập số tiền...">
+                    <input type="number" name="payment_amount" id="paid" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500" value="0" step="1000" onchange="calcDebt()" placeholder="Nhập số tiền...">
                 </div>
                 <div class="bg-yellow-100 p-3 rounded-lg">
                     <label class="block text-sm font-medium text-yellow-900 mb-2">Công nợ hiện tại</label>
@@ -300,7 +300,7 @@ function addItem() {
             </div>
         </td>
         <td class="px-3 py-3 border">
-            <input type="number" name="items[${idx}][supply_length]" class="w-full px-3 py-2 border border-gray-300 rounded-lg text-center" value="0" step="0.01">
+            <input type="number" name="items[${idx}][supply_length]" class="w-full px-3 py-2 border border-gray-300 rounded-lg text-center" value="0" step="1">
         </td>
         <td class="px-3 py-3 border">
             <input type="number" name="items[${idx}][quantity]" required class="w-full px-3 py-2 border border-gray-300 rounded-lg text-center font-medium" value="1" min="1" onchange="calc()">
@@ -319,7 +319,7 @@ function addItem() {
             <input type="number" name="items[${idx}][price_vnd]" id="vnd-input-${idx}" class="vnd-${idx} w-full px-3 py-2 border border-gray-300 rounded-lg text-right hidden" value="0" step="1000" onchange="calc()">
         </td>
         <td class="px-3 py-3 border text-center">
-            <input type="number" name="items[${idx}][discount]" class="w-full px-3 py-2 border border-gray-300 rounded-lg text-center" value="0" min="0">
+            <input type="number" name="items[${idx}][discount_percent]" class="w-full px-3 py-2 border border-gray-300 rounded-lg text-center" value="0" min="0" max="100" step="1" onchange="calc()">
         </td>
         <td class="px-3 py-3 border text-center">
             <button type="button" class="w-8 h-8 flex items-center justify-center bg-red-100 text-red-600 rounded-lg hover:bg-red-200 transition-colors" onclick="this.closest('tr').remove();calc()">
@@ -481,20 +481,33 @@ function calc() {
     rows.forEach((row, i) => {
         const qty = parseFloat(row.querySelector('[name*="[quantity]"]')?.value || 0);
         const cur = row.querySelector('[name*="[currency]"]')?.value || 'USD';
+        const itemDiscountPercent = parseFloat(row.querySelector('[name*="[discount_percent]"]')?.value || 0);
         
         if (cur === 'USD') {
             const usd = parseFloat(row.querySelector('[name*="[price_usd]"]')?.value || 0);
-            totUsd += usd * qty;
-            totVnd += usd * qty * rate;
+            const subtotal = usd * qty;
+            const itemDiscountAmt = subtotal * (itemDiscountPercent / 100);
+            const itemTotalUsd = subtotal - itemDiscountAmt;
+            const itemTotalVnd = itemTotalUsd * rate;
+            totUsd += itemTotalUsd;
+            totVnd += itemTotalVnd;
         } else if (cur === 'VND') {
             const vnd = parseFloat(row.querySelector('[name*="[price_vnd]"]')?.value || 0);
-            totVnd += vnd * qty;
-            totUsd += (vnd * qty) / rate;
+            const subtotal = vnd * qty;
+            const itemDiscountAmt = subtotal * (itemDiscountPercent / 100);
+            const itemTotalVnd = subtotal - itemDiscountAmt;
+            const itemTotalUsd = itemTotalVnd / rate;
+            totVnd += itemTotalVnd;
+            totUsd += itemTotalUsd;
         } else { // BOTH
             const usd = parseFloat(row.querySelector('[name*="[price_usd]"]')?.value || 0);
             const vnd = parseFloat(row.querySelector('[name*="[price_vnd]"]')?.value || 0);
-            totUsd += usd * qty;
-            totVnd += vnd * qty;
+            const subtotalUsd = usd * qty;
+            const subtotalVnd = vnd * qty;
+            const itemDiscountAmtUsd = subtotalUsd * (itemDiscountPercent / 100);
+            const itemDiscountAmtVnd = subtotalVnd * (itemDiscountPercent / 100);
+            totUsd += subtotalUsd - itemDiscountAmtUsd;
+            totVnd += subtotalVnd - itemDiscountAmtVnd;
         }
     });
     

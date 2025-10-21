@@ -247,7 +247,10 @@
                             $totalAmount = $payment->sale->total_vnd;
                             
                             // Xác định trạng thái tại thời điểm đó
-                            if ($paidAtThisTime >= $totalAmount) {
+                            if ($payment->sale->payment_status == 'cancelled') {
+                                $statusClass = 'bg-gray-100 text-gray-800';
+                                $statusText = 'Đã hủy';
+                            } elseif ($paidAtThisTime >= $totalAmount) {
                                 $statusClass = 'bg-green-100 text-green-800';
                                 $statusText = 'Đã Thanh Toán';
                             } elseif ($paidAtThisTime > 0) {

@@ -68,6 +68,7 @@
                             <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Sản phẩm</th>
                             <th class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase">SL</th>
                             <th class="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">Đơn giá</th>
+                            <th class="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">Giảm giá</th>
                             <th class="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">Thành tiền</th>
                         </tr>
                     </thead>
@@ -91,6 +92,13 @@
                                     <div class="text-xs text-gray-500">{{ number_format($item->price_vnd) }}đ</div>
                                 @else
                                     <div>{{ number_format($item->price_vnd) }}đ</div>
+                                @endif
+                            </td>
+                            <td class="px-4 py-3 text-right text-sm">
+                                @if($item->discount_percent > 0)
+                                    <span class="text-red-600">{{ number_format($item->discount_percent, 0) }}%</span>
+                                @else
+                                    <span class="text-gray-400">-</span>
                                 @endif
                             </td>
                             <td class="px-4 py-3 text-right text-sm font-semibold">
@@ -208,7 +216,11 @@
         <div class="bg-white rounded-xl shadow-lg p-6">
             <h3 class="font-semibold text-lg mb-4">Trạng thái</h3>
             <div class="text-center">
-                @if($sale->payment_status == 'paid')
+                @if($sale->payment_status == 'cancelled')
+                    <span class="inline-block px-4 py-2 text-sm font-semibold rounded-full bg-gray-100 text-gray-800">
+                        <i class="fas fa-ban mr-1"></i>Đã hủy (Trả hàng)
+                    </span>
+                @elseif($sale->payment_status == 'paid')
                     <span class="inline-block px-4 py-2 text-sm font-semibold rounded-full bg-green-100 text-green-800">
                         <i class="fas fa-check-circle mr-1"></i>Đã thanh toán
                     </span>

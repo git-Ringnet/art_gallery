@@ -271,7 +271,9 @@
                         {{ number_format($sale->debt_amount) }}đ
                     </td>
                     <td class="px-4 py-3 text-center">
-                        @if($sale->payment_status == 'paid')
+                        @if($sale->payment_status == 'cancelled')
+                            <span class="px-3 py-2 text-sm font-bold rounded-lg bg-gray-100 text-gray-800">Đã hủy</span>
+                        @elseif($sale->payment_status == 'paid')
                             <span class="px-3 py-2 text-sm font-bold rounded-lg bg-green-100 text-green-800">Đã Thanh Toán</span>
                         @elseif($sale->payment_status == 'partial')
                             <span class="px-3 py-2 text-sm font-bold rounded-lg bg-yellow-100 text-yellow-800">Thanh Toán một phần</span>
@@ -281,12 +283,17 @@
                     </td>
                     <td class="px-4 py-3">
                         <div class="flex items-center justify-center space-x-2">
+                            <!-- Show button - luôn hiển thị -->
                             <a href="{{ route('sales.show', $sale->id) }}" 
                                class="w-8 h-8 flex items-center justify-center bg-blue-100 text-blue-600 rounded-lg hover:bg-blue-200 transition-colors" 
                                title="Xem chi tiết">
                                 <i class="fas fa-eye"></i>
                             </a>
-                            @if($sale->payment_status != 'paid')
+                            
+                            <!-- Edit button - ẩn khi đã hủy hoặc đã thanh toán đủ -->
+                            @if($sale->payment_status == 'cancelled')
+                                <!-- Không hiển thị Edit khi đã hủy -->
+                            @elseif($sale->payment_status != 'paid')
                             <a href="{{ route('sales.edit', $sale->id) }}" 
                                class="w-8 h-8 flex items-center justify-center bg-yellow-100 text-yellow-600 rounded-lg hover:bg-yellow-200 transition-colors" 
                                title="Chỉnh sửa">
@@ -298,12 +305,18 @@
                                 <i class="fas fa-lock"></i>
                             </span>
                             @endif
+                            
+                            <!-- Print button - ẩn khi đã hủy -->
+                            @if($sale->payment_status != 'cancelled')
                             <a href="{{ route('sales.print', $sale->id) }}" 
                                target="_blank" 
                                class="w-8 h-8 flex items-center justify-center bg-green-100 text-green-600 rounded-lg hover:bg-green-200 transition-colors" 
                                title="In hóa đơn">
                                 <i class="fas fa-print"></i>
                             </a>
+                            @endif
+                            
+                            <!-- Delete button - hiển thị khi chưa thanh toán -->
                             @if($sale->paid_amount == 0)
                             <button type="button" 
                                     class="w-8 h-8 flex items-center justify-center bg-red-100 text-red-600 rounded-lg hover:bg-red-200 transition-colors delete-btn" 

@@ -66,6 +66,11 @@ class Sale extends Model
         return $this->hasMany(SaleItem::class);
     }
 
+    public function items()
+    {
+        return $this->hasMany(SaleItem::class);
+    }
+
     public function payments()
     {
         return $this->hasMany(Payment::class);
@@ -78,7 +83,12 @@ class Sale extends Model
 
     public function returns()
     {
-        return $this->hasMany(ReturnItem::class);
+        return $this->hasMany(ReturnModel::class);
+    }
+
+    public function returnItems()
+    {
+        return $this->hasManyThrough(ReturnItem::class, ReturnModel::class);
     }
 
     public static function generateInvoiceCode()

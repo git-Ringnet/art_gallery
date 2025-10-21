@@ -46,7 +46,7 @@ class SalesController extends Controller
     public function index(Request $request)
     {
         $query = Sale::with(['customer', 'showroom', 'user'])
-            ->orderBy('sale_date', 'desc');
+            ->orderBy('created_at', 'desc'); // Phiếu mới tạo lên trên
 
         // Search - tìm theo mã HD, tên KH, SĐT, email, sản phẩm
         if ($request->filled('search')) {
@@ -171,6 +171,7 @@ class SalesController extends Controller
             'items.*.currency' => 'required|in:USD,VND',
             'items.*.price_usd' => 'nullable|numeric|min:0',
             'items.*.price_vnd' => 'nullable|numeric|min:0',
+            'items.*.discount_percent' => 'nullable|numeric|min:0|max:100',
             'exchange_rate' => 'required|numeric|min:0',
             'discount_percent' => 'nullable|numeric|min:0|max:100',
             'payment_amount' => 'nullable|numeric|min:0',
@@ -269,16 +270,30 @@ class SalesController extends Controller
                     'supply_id' => $item['supply_id'] ?? null,
                     'supply_length' => $item['supply_length'] ?? null,
                     'currency' => $item['currency'],
-                    'price_usd' => $item['currency'] === 'USD' ? $item['price_usd'] : 0,
-                    'price_vnd' => $item['currency'] === 'VND' ? $item['price_vnd'] : 0,
+                    'price_usd' => $item['currency'] === 'USD' ? ($item['price_usd'] ?? 0) : 0,
+                    'price_vnd' => $item['currency'] === 'VND' ? ($item['price_vnd'] ?? 0) : 0,
+                    'discount_percent' => $item['discount_percent'] ?? 0,
                 ]);
 
                 // Calculate totals
                 $saleItem->calculateTotals();
 
-                // Process painting stock
+                // Process painting stock - TRỪ KHO
                 if ($saleItem->painting_id) {
-                    $saleItem->processPaintingStock();
+                    $painting = Painting::find($saleItem->painting_id);
+                    if ($painting && $painting->reduceQuantity($saleItem->quantity)) {
+                        InventoryTransaction::create([
+                            'transaction_type' => 'export',
+                            'item_type' => 'painting',
+                            'item_id' => $saleItem->painting_id,
+                            'quantity' => $saleItem->quantity,
+                            'reference_type' => 'sale',
+                            'reference_id' => $sale->id,
+                            'transaction_date' => $sale->sale_date,
+                            'notes' => "Bán trong hóa đơn {$sale->invoice_code}",
+                            'created_by' => $user->id,
+                        ]);
+                    }
                 }
 
                 // Process supply usage
@@ -286,7 +301,7 @@ class SalesController extends Controller
                     $supply = Supply::find($saleItem->supply_id);
                     $totalRequired = $saleItem->supply_length * $saleItem->quantity;
                     
-                    if ($supply->reduceQuantity($totalRequired)) {
+                    if ($supply && $supply->reduceQuantity($totalRequired)) {
                         InventoryTransaction::create([
                             'transaction_type' => 'export',
                             'item_type' => 'supply',
@@ -325,7 +340,7 @@ class SalesController extends Controller
                     'paid_amount' => $sale->paid_amount,
                     'debt_amount' => $sale->debt_amount,
                     'due_date' => now()->addDays(30),
-                    'status' => 'pending',
+                    'status' => 'unpaid',
                 ]);
             }
 
@@ -405,6 +420,7 @@ class SalesController extends Controller
             'items.*.currency' => 'required|in:USD,VND',
             'items.*.price_usd' => 'nullable|numeric|min:0',
             'items.*.price_vnd' => 'nullable|numeric|min:0',
+            'items.*.discount_percent' => 'nullable|numeric|min:0|max:100',
             'exchange_rate' => 'required|numeric|min:0',
             'discount_percent' => 'nullable|numeric|min:0|max:100',
             'payment_amount' => 'nullable|numeric|min:0',
@@ -483,6 +499,24 @@ class SalesController extends Controller
                 'invoice_code' => $request->invoice_code ?: $sale->invoice_code,
             ]);
 
+            // Hoàn trả kho từ items cũ trước khi xóa
+            foreach ($sale->saleItems as $oldItem) {
+                if ($oldItem->painting_id) {
+                    $painting = Painting::find($oldItem->painting_id);
+                    if ($painting) {
+                        $painting->increaseQuantity($oldItem->quantity);
+                    }
+                }
+                
+                if ($oldItem->supply_id && $oldItem->supply_length) {
+                    $supply = Supply::find($oldItem->supply_id);
+                    if ($supply) {
+                        $totalUsed = $oldItem->supply_length * $oldItem->quantity;
+                        $supply->increaseQuantity($totalUsed);
+                    }
+                }
+            }
+            
             // Delete existing sale items
             $sale->saleItems()->delete();
 
@@ -496,16 +530,30 @@ class SalesController extends Controller
                     'supply_id' => $item['supply_id'] ?? null,
                     'supply_length' => $item['supply_length'] ?? null,
                     'currency' => $item['currency'],
-                    'price_usd' => $item['currency'] === 'USD' ? $item['price_usd'] : 0,
-                    'price_vnd' => $item['currency'] === 'VND' ? $item['price_vnd'] : 0,
+                    'price_usd' => $item['currency'] === 'USD' ? ($item['price_usd'] ?? 0) : 0,
+                    'price_vnd' => $item['currency'] === 'VND' ? ($item['price_vnd'] ?? 0) : 0,
+                    'discount_percent' => $item['discount_percent'] ?? 0,
                 ]);
 
                 // Calculate totals
                 $saleItem->calculateTotals();
 
-                // Process painting stock
+                // Process painting stock - TRỪ KHO
                 if ($saleItem->painting_id) {
-                    $saleItem->processPaintingStock();
+                    $painting = Painting::find($saleItem->painting_id);
+                    if ($painting && $painting->reduceQuantity($saleItem->quantity)) {
+                        InventoryTransaction::create([
+                            'transaction_type' => 'export',
+                            'item_type' => 'painting',
+                            'item_id' => $saleItem->painting_id,
+                            'quantity' => $saleItem->quantity,
+                            'reference_type' => 'sale',
+                            'reference_id' => $sale->id,
+                            'transaction_date' => $sale->sale_date,
+                            'notes' => "Bán trong hóa đơn {$sale->invoice_code}",
+                            'created_by' => $user->id,
+                        ]);
+                    }
                 }
 
                 // Process supply usage
@@ -513,7 +561,7 @@ class SalesController extends Controller
                     $supply = Supply::find($saleItem->supply_id);
                     $totalRequired = $saleItem->supply_length * $saleItem->quantity;
                     
-                    if ($supply->reduceQuantity($totalRequired)) {
+                    if ($supply && $supply->reduceQuantity($totalRequired)) {
                         InventoryTransaction::create([
                             'transaction_type' => 'export',
                             'item_type' => 'supply',
@@ -532,24 +580,16 @@ class SalesController extends Controller
             // Calculate sale totals
             $sale->calculateTotals();
 
-            // Update payment if provided
+            // Add new payment if provided (thêm payment mới, không update cũ)
             if ($request->filled('payment_amount') && $request->payment_amount > 0) {
-                $existingPayment = $sale->payments()->first();
-                if ($existingPayment) {
-                    $existingPayment->update([
-                        'amount' => $request->payment_amount,
-                        'payment_method' => $request->payment_method ?? 'cash',
-                        'payment_date' => $request->sale_date,
-                    ]);
-                } else {
-                    Payment::create([
-                        'sale_id' => $sale->id,
-                        'amount' => $request->payment_amount,
-                        'payment_method' => $request->payment_method ?? 'cash',
-                        'payment_date' => $request->sale_date,
-                        'created_by' => $user->id,
-                    ]);
-                }
+                Payment::create([
+                    'sale_id' => $sale->id,
+                    'amount' => $request->payment_amount,
+                    'payment_method' => $request->payment_method ?? 'cash',
+                    'payment_date' => now(),
+                    'notes' => 'Trả nợ thêm',
+                    'created_by' => $user->id,
+                ]);
             }
 
             // Update debt if there's remaining amount
@@ -570,7 +610,7 @@ class SalesController extends Controller
                         'paid_amount' => $sale->paid_amount,
                         'debt_amount' => $sale->debt_amount,
                         'due_date' => now()->addDays(30),
-                        'status' => 'pending',
+                        'status' => 'unpaid',
                     ]);
                 }
             } else if ($existingDebt) {
@@ -750,3 +790,4 @@ class SalesController extends Controller
         return response()->json($suggestions);
     }
 }
+

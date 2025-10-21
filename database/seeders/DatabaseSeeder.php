@@ -20,7 +20,8 @@ class DatabaseSeeder extends Seeder
             PaintingSeeder::class,
             CustomerSeeder::class,
             UserSeeder::class,
-            SaleSeeder::class,
+            // SaleSeeder::class,
+            // ReturnSeeder::class,
         ]);
     }
 }

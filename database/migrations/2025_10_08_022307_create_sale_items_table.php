@@ -19,6 +19,7 @@ return new class extends Migration
             $table->enum('currency', ['USD', 'VND'])->default('USD')->comment('Loại tiền');
             $table->decimal('price_usd', 10, 2)->nullable()->comment('Giá bán (USD)');
             $table->decimal('price_vnd', 15, 2)->nullable()->comment('Giá bán (VND)');
+            $table->decimal('discount_percent', 5, 2)->default(0)->comment('Giảm giá (%)');
             $table->decimal('total_usd', 10, 2)->nullable()->comment('Thành tiền (USD)');
             $table->decimal('total_vnd', 15, 2)->nullable()->comment('Thành tiền (VND)');
             $table->timestamps();

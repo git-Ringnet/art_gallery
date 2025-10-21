@@ -95,6 +95,7 @@
                         <th class="px-4 py-3 text-left text-sm font-semibold text-gray-700">Sản phẩm</th>
                         <th class="px-4 py-3 text-center text-sm font-semibold text-gray-700">SL</th>
                         <th class="px-4 py-3 text-right text-sm font-semibold text-gray-700">Đơn giá</th>
+                        <th class="px-4 py-3 text-right text-sm font-semibold text-gray-700">Giảm giá</th>
                         <th class="px-4 py-3 text-right text-sm font-semibold text-gray-700">Thành tiền</th>
                     </tr>
                 </thead>
@@ -118,6 +119,13 @@
                                 <div class="text-xs text-gray-500">{{ number_format($item->price_vnd) }}đ</div>
                             @else
                                 <div>{{ number_format($item->price_vnd) }}đ</div>
+                            @endif
+                        </td>
+                        <td class="px-4 py-3 text-sm text-right">
+                            @if($item->discount_percent > 0)
+                                <span class="text-red-600">{{ number_format($item->discount_percent, 0) }}%</span>
+                            @else
+                                -
                             @endif
                         </td>
                         <td class="px-4 py-3 text-sm text-right font-semibold">

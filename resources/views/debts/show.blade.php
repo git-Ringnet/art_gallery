@@ -79,7 +79,11 @@
 
             <!-- Status Badge -->
             <div class="mt-6">
-                @if($debt->status === 'paid')
+                @if($debt->status === 'cancelled')
+                    <div class="bg-gray-100 text-gray-800 px-4 py-2 rounded-lg text-center font-medium">
+                        <i class="fas fa-ban mr-2"></i>Đã hủy (Trả hàng)
+                    </div>
+                @elseif($debt->status === 'paid')
                     <div class="bg-green-100 text-green-800 px-4 py-2 rounded-lg text-center font-medium">
                         <i class="fas fa-check-circle mr-2"></i>Đã thanh toán đầy đủ
                     </div>
@@ -148,16 +152,32 @@
                                     <div class="text-xs text-gray-500">{{ $paymentDateTime->format('H:i') }}</div>
                                 @endif
                             </td>
-                            <td class="px-4 py-3 text-right font-medium text-green-600">
-                                {{ number_format($payment->amount, 0, ',', '.') }}đ
+                            <td class="px-4 py-3 text-right font-medium {{ $payment->amount < 0 ? 'text-red-600' : 'text-green-600' }}">
+                                @if($payment->amount < 0)
+                                    <i class="fas fa-undo mr-1"></i>
+                                @endif
+                                {{ number_format(abs($payment->amount), 0, ',', '.') }}đ
+                                @if($payment->amount < 0)
+                                    <span class="text-xs">(Hoàn trả)</span>
+                                @endif
                             </td>
                             <td class="px-4 py-3 text-center">
-                                @if($payment->payment_method === 'cash')
-                                    <span class="px-2 py-1 bg-green-100 text-green-800 text-xs rounded-full">Tiền mặt</span>
+                                @if(str_contains($payment->notes ?? '', 'Hoàn tiền') || str_contains($payment->notes ?? '', 'phiếu trả'))
+                                    <span class="px-2 py-1 bg-orange-100 text-orange-800 text-xs rounded-full">
+                                        <i class="fas fa-undo mr-1"></i>Trả hàng
+                                    </span>
+                                @elseif($payment->payment_method === 'cash')
+                                    <span class="px-2 py-1 bg-green-100 text-green-800 text-xs rounded-full">
+                                        <i class="fas fa-money-bill-wave mr-1"></i>Tiền mặt
+                                    </span>
                                 @elseif($payment->payment_method === 'bank_transfer')
-                                    <span class="px-2 py-1 bg-blue-100 text-blue-800 text-xs rounded-full">Chuyển khoản</span>
+                                    <span class="px-2 py-1 bg-blue-100 text-blue-800 text-xs rounded-full">
+                                        <i class="fas fa-university mr-1"></i>Chuyển khoản
+                                    </span>
                                 @else
-                                    <span class="px-2 py-1 bg-purple-100 text-purple-800 text-xs rounded-full">Thẻ</span>
+                                    <span class="px-2 py-1 bg-purple-100 text-purple-800 text-xs rounded-full">
+                                        <i class="fas fa-credit-card mr-1"></i>Thẻ
+                                    </span>
                                 @endif
                             </td>
                             <td class="px-4 py-3 text-center text-sm">
