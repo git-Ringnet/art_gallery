@@ -5,9 +5,14 @@
 @section('page-description', 'Quản lý các giao dịch đổi/trả hàng')
 
 @section('header-actions')
-<a href="{{ route('returns.create') }}" class="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors">
-            <i class="fas fa-plus mr-2"></i>Tạo phiếu đổi/trả
-        </a>
+<div class="flex gap-3">
+    <a href="{{ route('returns.create') }}" class="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors">
+        <i class="fas fa-plus mr-2"></i>Tạo phiếu đổi/trả
+    </a>
+    <button onclick="recalculateSaleTotals()" class="bg-orange-600 text-white px-4 py-2 rounded-lg hover:bg-orange-700 transition-colors">
+        <i class="fas fa-calculator mr-2"></i>Sửa lại tổng hóa đơn
+    </button>
+</div>
 @endsection
 
 @section('content')
@@ -261,3 +266,32 @@
     @endif
 </div>
 @endsection
+
+@push('scripts')
+<script>
+function recalculateSaleTotals() {
+    if (confirm('Bạn có chắc chắn muốn sửa lại tổng hóa đơn cho tất cả hóa đơn có phiếu trả? Hành động này không thể hoàn tác.')) {
+        fetch('{{ route("returns.recalculateSaleTotals") }}', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                alert(data.message);
+                location.reload();
+            } else {
+                alert('Lỗi: ' + data.message);
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            alert('Có lỗi xảy ra khi xử lý yêu cầu');
+        });
+    }
+}
+</script>
+@endpush

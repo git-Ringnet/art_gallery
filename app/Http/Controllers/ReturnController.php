@@ -80,12 +80,12 @@ class ReturnController extends Controller
             ], 404);
         }
 
-        // Get returned quantities for each item
+        // Get returned quantities for each item (only approved/completed returns)
         $returnedQuantities = [];
         foreach ($sale->items as $item) {
             $returned = ReturnItem::where('sale_item_id', $item->id)
                 ->whereHas('return', function($q) {
-                    $q->where('status', '!=', 'cancelled');
+                    $q->whereIn('status', ['approved', 'completed']);
                 })
                 ->sum('quantity');
             $returnedQuantities[$item->id] = $returned;
@@ -97,8 +97,20 @@ class ReturnController extends Controller
                 $item->item_name = $item->supply->name ?? 'N/A';
             }
             
-            // Use price_vnd as unit_price
-            $item->unit_price = $item->price_vnd;
+            // Calculate unit price after applying discounts
+            $unitPrice = $item->price_vnd;
+            
+            // Apply item-level discount if exists
+            if ($item->discount_percent > 0) {
+                $unitPrice = $unitPrice * (1 - $item->discount_percent / 100);
+            }
+            
+            // Apply sale-level discount if exists
+            if ($sale->discount_percent > 0) {
+                $unitPrice = $unitPrice * (1 - $sale->discount_percent / 100);
+            }
+            
+            $item->unit_price = $unitPrice;
         }
 
         return response()->json([
@@ -118,7 +130,7 @@ class ReturnController extends Controller
             'notes' => 'nullable|string',
             'items' => 'required|array|min:1',
             'items.*.sale_item_id' => 'required|exists:sale_items,id',
-            'items.*.quantity' => 'required|integer|min:1',
+            'items.*.quantity' => 'required|integer|min:0',
             'items.*.reason' => 'nullable|string',
             'exchange_items' => 'nullable|array',
             'exchange_items.*.item_type' => 'nullable|in:painting,supply',
@@ -132,6 +144,19 @@ class ReturnController extends Controller
 
             $sale = Sale::findOrFail($request->sale_id);
             
+            // Validate that at least one item has quantity > 0
+            $hasValidItems = false;
+            foreach ($request->items as $itemData) {
+                if (isset($itemData['quantity']) && $itemData['quantity'] > 0) {
+                    $hasValidItems = true;
+                    break;
+                }
+            }
+            
+            if (!$hasValidItems) {
+                throw new \Exception('Phải có ít nhất một sản phẩm với số lượng trả > 0');
+            }
+            
             // Calculate total value of returned items
             $totalReturnValue = 0;
             $returnItems = [];
@@ -143,10 +168,10 @@ class ReturnController extends Controller
                 
                 $saleItem = SaleItem::findOrFail($itemData['sale_item_id']);
                 
-                // Check if quantity is valid
+                // Check if quantity is valid (only approved/completed returns)
                 $alreadyReturned = ReturnItem::where('sale_item_id', $saleItem->id)
                     ->whereHas('return', function($q) {
-                        $q->where('status', '!=', 'cancelled');
+                        $q->whereIn('status', ['approved', 'completed']);
                     })
                     ->sum('quantity');
                 
@@ -160,7 +185,19 @@ class ReturnController extends Controller
                 // Determine item type and id
                 $itemType = $saleItem->painting_id ? 'painting' : 'supply';
                 $itemId = $saleItem->painting_id ?: $saleItem->supply_id;
+                
+                // Calculate unit price after applying discounts
                 $unitPrice = $saleItem->price_vnd;
+                
+                // Apply item-level discount if exists
+                if ($saleItem->discount_percent > 0) {
+                    $unitPrice = $unitPrice * (1 - $saleItem->discount_percent / 100);
+                }
+                
+                // Apply sale-level discount if exists
+                if ($sale->discount_percent > 0) {
+                    $unitPrice = $unitPrice * (1 - $sale->discount_percent / 100);
+                }
                 
                 $subtotal = $itemData['quantity'] * $unitPrice;
                 $totalReturnValue += $subtotal;
@@ -294,7 +331,7 @@ class ReturnController extends Controller
             'notes' => 'nullable|string',
             'items' => 'required|array|min:1',
             'items.*.sale_item_id' => 'required|exists:sale_items,id',
-            'items.*.quantity' => 'required|integer|min:1',
+            'items.*.quantity' => 'required|integer|min:0',
         ]);
 
         try {
@@ -304,6 +341,22 @@ class ReturnController extends Controller
 
             if ($return->status !== 'pending') {
                 throw new \Exception('Chỉ có thể chỉnh sửa phiếu đang chờ xử lý');
+            }
+
+            // Get sale data for discount calculation
+            $sale = $return->sale;
+
+            // Validate that at least one item has quantity > 0
+            $hasValidItems = false;
+            foreach ($request->items as $itemData) {
+                if (isset($itemData['quantity']) && $itemData['quantity'] > 0) {
+                    $hasValidItems = true;
+                    break;
+                }
+            }
+            
+            if (!$hasValidItems) {
+                throw new \Exception('Phải có ít nhất một sản phẩm với số lượng trả > 0');
             }
 
             // Delete old items
@@ -319,7 +372,20 @@ class ReturnController extends Controller
                 $saleItem = SaleItem::findOrFail($itemData['sale_item_id']);
                 $itemType = $saleItem->painting_id ? 'painting' : 'supply';
                 $itemId = $saleItem->painting_id ?: $saleItem->supply_id;
+                
+                // Calculate unit price after applying discounts
                 $unitPrice = $saleItem->price_vnd;
+                
+                // Apply item-level discount if exists
+                if ($saleItem->discount_percent > 0) {
+                    $unitPrice = $unitPrice * (1 - $saleItem->discount_percent / 100);
+                }
+                
+                // Apply sale-level discount if exists
+                if ($sale->discount_percent > 0) {
+                    $unitPrice = $unitPrice * (1 - $sale->discount_percent / 100);
+                }
+                
                 $subtotal = $itemData['quantity'] * $unitPrice;
                 $totalRefund += $subtotal;
 
@@ -364,6 +430,32 @@ class ReturnController extends Controller
                 return back()->with('error', 'Chỉ có thể duyệt phiếu đang chờ duyệt');
             }
 
+            // Check for potential conflicts before approving
+            $conflicts = [];
+            foreach ($return->items as $item) {
+                $alreadyReturned = ReturnItem::where('sale_item_id', $item->sale_item_id)
+                    ->whereHas('return', function($q) use ($return) {
+                        $q->where('id', '!=', $return->id)
+                          ->whereIn('status', ['approved', 'completed']);
+                    })
+                    ->sum('quantity');
+                
+                $availableQty = $item->saleItem->quantity - $alreadyReturned;
+                
+                if ($item->quantity > $availableQty) {
+                    $itemName = $item->saleItem->painting_id ? 
+                        ($item->saleItem->painting->name ?? 'N/A') : 
+                        ($item->saleItem->supply->name ?? 'N/A');
+                    
+                    $conflicts[] = "Sản phẩm '{$itemName}': Yêu cầu trả {$item->quantity} nhưng chỉ còn {$availableQty} có thể trả";
+                }
+            }
+            
+            if (!empty($conflicts)) {
+                $conflictMessage = "Không thể duyệt phiếu trả vì có xung đột:\n" . implode("\n", $conflicts);
+                return back()->with('error', $conflictMessage);
+            }
+
             $return->update([
                 'status' => 'approved',
                 'processed_by' => Auth::id()
@@ -385,6 +477,26 @@ class ReturnController extends Controller
 
             if ($return->status !== 'approved') {
                 return back()->with('error', 'Chỉ có thể hoàn thành phiếu đã được duyệt');
+            }
+
+            // Check for duplicate returns (prevent double processing)
+            foreach ($return->items as $item) {
+                $alreadyReturned = ReturnItem::where('sale_item_id', $item->sale_item_id)
+                    ->whereHas('return', function($q) use ($return) {
+                        $q->where('id', '!=', $return->id)
+                          ->whereIn('status', ['approved', 'completed']);
+                    })
+                    ->sum('quantity');
+                
+                $availableQty = $item->saleItem->quantity - $alreadyReturned;
+                
+                if ($item->quantity > $availableQty) {
+                    $itemName = $item->saleItem->painting_id ? 
+                        ($item->saleItem->painting->name ?? 'N/A') : 
+                        ($item->saleItem->supply->name ?? 'N/A');
+                    
+                    throw new \Exception("Không thể hoàn thành phiếu trả. Sản phẩm '{$itemName}' đã được trả trong phiếu khác hoặc số lượng trả vượt quá số lượng có thể trả.");
+                }
             }
 
             // Update inventory - Add returned items back to stock
@@ -430,6 +542,20 @@ class ReturnController extends Controller
                 }
             }
 
+            // Update sale totals to reflect returned items
+            $sale = $return->sale;
+            $returnedValue = $return->total_refund;
+            
+            // Reduce the total_vnd of the sale by the returned value
+            $newTotalVnd = $sale->total_vnd - $returnedValue;
+            $newTotalUsd = $sale->total_usd - ($returnedValue / $sale->exchange_rate);
+            
+            // Update sale totals
+            $sale->update([
+                'total_vnd' => $newTotalVnd,
+                'total_usd' => $newTotalUsd,
+            ]);
+            
             // Create payment based on type
             if ($return->type === 'return') {
                 // Full refund for return
@@ -456,7 +582,7 @@ class ReturnController extends Controller
             $return->update(['status' => 'completed']);
 
             // Check if all items are returned, if yes, cancel the sale
-            $sale = $return->sale;
+            $sale = $return->sale->fresh(); // Refresh to get updated totals
             $totalSaleItems = $sale->items->sum('quantity');
             $totalReturnedItems = ReturnItem::whereHas('return', function($q) use ($sale) {
                 $q->where('sale_id', $sale->id)
@@ -530,6 +656,61 @@ class ReturnController extends Controller
 
         } catch (\Exception $e) {
             return back()->with('error', 'Lỗi: ' . $e->getMessage());
+        }
+    }
+
+    /**
+     * Recalculate sale totals for all completed returns
+     * This method fixes the issue where completed returns didn't reduce sale totals
+     */
+    public function recalculateSaleTotals()
+    {
+        try {
+            DB::beginTransaction();
+
+            // Get all sales that have completed returns
+            $salesWithReturns = Sale::whereHas('returns', function($q) {
+                $q->where('status', 'completed');
+            })->get();
+
+            foreach ($salesWithReturns as $sale) {
+                // Calculate total returned value for this sale
+                $totalReturnedValue = ReturnItem::whereHas('return', function($q) use ($sale) {
+                    $q->where('sale_id', $sale->id)
+                      ->where('status', 'completed');
+                })->sum('subtotal');
+
+                // Get original sale total (before any returns)
+                $originalTotalVnd = $sale->subtotal_vnd - $sale->discount_vnd;
+                
+                // Calculate new total after returns
+                $newTotalVnd = $originalTotalVnd - $totalReturnedValue;
+                $newTotalUsd = $newTotalVnd / $sale->exchange_rate;
+
+                // Update sale totals
+                $sale->update([
+                    'total_vnd' => $newTotalVnd,
+                    'total_usd' => $newTotalUsd,
+                ]);
+
+                // Update payment status
+                $sale->updatePaymentStatus();
+            }
+
+            DB::commit();
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Đã cập nhật lại tổng hóa đơn cho ' . $salesWithReturns->count() . ' hóa đơn có phiếu trả'
+            ]);
+
+        } catch (\Exception $e) {
+            DB::rollBack();
+            
+            return response()->json([
+                'success' => false,
+                'message' => 'Lỗi: ' . $e->getMessage()
+            ], 500);
         }
     }
 }

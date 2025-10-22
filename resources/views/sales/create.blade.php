@@ -51,7 +51,7 @@
         </div>
 
         <!-- BƯỚC 2: THÔNG TIN KHÁCH HÀNG -->
-        <div class="bg-green-50 border-l-4 border-green-500 p-6 rounded-lg mb-6">
+        <div class="bg-blue-50 border-l-4 border-blue-500 p-6 rounded-lg mb-6">
             <h3 class="text-xl font-bold text-green-900 mb-4 flex items-center">
                 <span class="bg-green-500 text-white w-8 h-8 rounded-full flex items-center justify-center mr-3">2</span>
                 Thông tin khách hàng
@@ -88,7 +88,7 @@
         </div>
 
         <!-- BƯỚC 3: DANH SÁCH SẢN PHẨM -->
-        <div class="bg-purple-50 border-l-4 border-purple-500 p-6 rounded-lg mb-6">
+        <div class="bg-blue-50 border-l-4 border-blue-500 p-6 rounded-lg mb-6">
             <div class="flex justify-between items-center mb-4">
                 <h3 class="text-xl font-bold text-purple-900 flex items-center">
                     <span class="bg-purple-500 text-white w-8 h-8 rounded-full flex items-center justify-center mr-3">3</span>
@@ -120,7 +120,7 @@
         </div>
 
         <!-- BƯỚC 4: TÍNH TOÁN & THANH TOÁN -->
-        <div class="bg-orange-50 border-l-4 border-orange-500 p-6 rounded-lg mb-6">
+        <div class="bg-blue-50 border-l-4 border-blue-500 p-6 rounded-lg mb-6">
             <h3 class="text-xl font-bold text-orange-900 mb-4 flex items-center">
                 <span class="bg-orange-500 text-white w-8 h-8 rounded-full flex items-center justify-center mr-3">4</span>
                 Tính toán & Thanh toán
@@ -140,11 +140,11 @@
 
             <!-- Tổng tiền -->
             <div class="grid grid-cols-2 gap-4 mb-4">
-                <div class="bg-blue-100 p-4 rounded-lg">
+                <div class=" p-4 rounded-lg">
                     <label class="block text-sm font-medium text-blue-900 mb-2">Tổng tiền USD</label>
                     <input type="text" id="total_usd" readonly class="w-full px-4 py-3 border-2 border-blue-300 rounded-lg bg-white font-bold text-blue-600 text-xl">
                 </div>
-                <div class="bg-green-100 p-4 rounded-lg">
+                <div class=" p-4 rounded-lg">
                     <label class="block text-sm font-medium text-green-900 mb-2">Tổng tiền VND</label>
                     <input type="text" id="total_vnd" readonly class="w-full px-4 py-3 border-2 border-green-300 rounded-lg bg-white font-bold text-green-600 text-xl">
                 </div>
@@ -156,11 +156,11 @@
                     <label class="block text-sm font-medium text-gray-700 mb-2">Khách trả (VND)</label>
                     <input type="number" name="payment_amount" id="paid" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500" value="0" step="1000" onchange="calcDebt()" placeholder="Nhập số tiền...">
                 </div>
-                <div class="bg-yellow-100 p-3 rounded-lg">
+                <div class=" p-3 rounded-lg">
                     <label class="block text-sm font-medium text-yellow-900 mb-2">Công nợ hiện tại</label>
                     <input type="text" id="current_debt" readonly class="w-full px-3 py-2 border border-yellow-300 rounded-lg bg-white font-bold text-orange-600 text-lg">
                 </div>
-                <div class="bg-red-100 p-3 rounded-lg">
+                <div class=" p-3 rounded-lg">
                     <label class="block text-sm font-medium text-red-900 mb-2">Còn nợ</label>
                     <input type="text" id="debt" readonly class="w-full px-3 py-2 border border-red-300 rounded-lg bg-white font-bold text-red-600 text-lg">
                 </div>

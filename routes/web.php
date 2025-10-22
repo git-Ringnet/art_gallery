@@ -62,6 +62,7 @@ Route::middleware(['auth'])->group(function () {
         Route::put('/{id}/complete', [App\Http\Controllers\ReturnController::class, 'complete'])->name('complete');
         Route::put('/{id}/cancel', [App\Http\Controllers\ReturnController::class, 'cancel'])->name('cancel');
         Route::delete('/{id}', [App\Http\Controllers\ReturnController::class, 'destroy'])->name('destroy');
+        Route::post('/recalculate-sale-totals', [App\Http\Controllers\ReturnController::class, 'recalculateSaleTotals'])->name('recalculateSaleTotals');
     });
 
     // Inventory routes

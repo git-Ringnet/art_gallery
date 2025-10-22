@@ -39,13 +39,26 @@
                         @php
                             $returnedQty = \App\Models\ReturnItem::where('sale_item_id', $item->id)
                                 ->whereHas('return', function($q) use ($return) {
-                                    $q->where('status', '!=', 'cancelled')
+                                    $q->whereIn('status', ['approved', 'completed'])
                                       ->where('id', '!=', $return->id);
                                 })
                                 ->sum('quantity');
                             $available = $item->quantity - $returnedQty;
                             $currentQty = $return->items->where('sale_item_id', $item->id)->first()->quantity ?? 0;
                             $itemName = $item->painting_id ? ($item->painting->name ?? 'N/A') : ($item->supply->name ?? 'N/A');
+                            
+                            // Calculate unit price after applying discounts
+                            $unitPrice = $item->price_vnd;
+                            
+                            // Apply item-level discount if exists
+                            if ($item->discount_percent > 0) {
+                                $unitPrice = $unitPrice * (1 - $item->discount_percent / 100);
+                            }
+                            
+                            // Apply sale-level discount if exists
+                            if ($return->sale->discount_percent > 0) {
+                                $unitPrice = $unitPrice * (1 - $return->sale->discount_percent / 100);
+                            }
                         @endphp
                         
                         @if($available > 0 || $currentQty > 0)
@@ -54,7 +67,7 @@
                                 <div class="flex-1">
                                     <h4 class="font-medium">{{ $itemName }}</h4>
                                     <p class="text-sm text-gray-600">Đã mua: {{ $item->quantity }} | Đã trả: {{ $returnedQty }} | Còn lại: {{ $available }}</p>
-                                    <p class="text-sm text-green-600">Đơn giá: {{ number_format($item->price_vnd, 0, ',', '.') }}đ</p>
+                                    <p class="text-sm text-green-600">Đơn giá: {{ number_format($unitPrice, 0, ',', '.') }}đ</p>
                                 </div>
                                 <div class="text-right">
                                     <label class="text-sm text-gray-600">Số lượng trả:</label>
@@ -64,7 +77,7 @@
                                            min="0" 
                                            max="{{ $available + $currentQty }}" 
                                            value="{{ $currentQty }}"
-                                           data-price="{{ $item->price_vnd }}"
+                                           data-price="{{ $unitPrice }}"
                                            onchange="updateSummary()">
                                     <input type="hidden" name="items[{{ $item->id }}][sale_item_id]" value="{{ $item->id }}">
                                 </div>
