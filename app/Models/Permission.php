@@ -39,7 +39,15 @@ class Permission extends Model
             'returns' => 'Đổi/Trả hàng',
             'inventory' => 'Quản lý kho',
             'showrooms' => 'Phòng trưng bày',
+            'customers' => 'Khách hàng',
+            'employees' => 'Nhân viên',
             'permissions' => 'Phân quyền',
         ];
+    }
+
+    public static function getModuleFields($module)
+    {
+        // Get fields from CustomField model which includes both database and custom fields
+        return \App\Models\CustomField::getAllFieldsForModule($module);
     }
 }

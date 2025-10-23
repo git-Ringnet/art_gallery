@@ -113,7 +113,16 @@ Route::middleware(['auth'])->group(function () {
     Route::prefix('permissions')->name('permissions.')->group(function () {
         Route::get('/', [App\Http\Controllers\PermissionController::class, 'index'])->name('index');
         Route::post('/roles', [App\Http\Controllers\PermissionController::class, 'storeRole'])->name('roles.store');
-        Route::put('/roles/{name}', [App\Http\Controllers\PermissionController::class, 'updateRole'])->name('roles.update');
+        Route::put('/roles/{id}', [App\Http\Controllers\PermissionController::class, 'updateRole'])->name('roles.update');
+        Route::delete('/roles/{id}', [App\Http\Controllers\PermissionController::class, 'deleteRole'])->name('roles.delete');
+        Route::get('/roles/{id}', [App\Http\Controllers\PermissionController::class, 'getRole'])->name('roles.get');
+        Route::put('/roles/{id}/permissions', [App\Http\Controllers\PermissionController::class, 'updatePermissions'])->name('roles.permissions.update');
+        Route::put('/roles/{id}/field-permissions', [App\Http\Controllers\PermissionController::class, 'updateFieldPermissions'])->name('roles.field-permissions.update');
+        Route::put('/users/{userId}/assign-role', [App\Http\Controllers\PermissionController::class, 'assignRole'])->name('users.assign-role');
+        Route::get('/modules/{module}/fields', [App\Http\Controllers\PermissionController::class, 'getModuleFields'])->name('modules.fields');
+        Route::get('/modules/{module}/sections', [App\Http\Controllers\PermissionController::class, 'getDisplaySections'])->name('modules.sections');
+        Route::post('/custom-fields', [App\Http\Controllers\PermissionController::class, 'storeCustomField'])->name('custom-fields.store');
+        Route::delete('/custom-fields/{id}', [App\Http\Controllers\PermissionController::class, 'deleteCustomField'])->name('custom-fields.delete');
     });
 
     // Employees routes

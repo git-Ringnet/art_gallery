@@ -45,10 +45,39 @@
         #main-content {
             min-height: 100vh;
         }
+
+        /* Responsive styles */
+        @media (max-width: 768px) {
+            #sidebar {
+                transform: translateX(-100%);
+            }
+            #sidebar.open {
+                transform: translateX(0);
+            }
+            #main-content {
+                margin-left: 0 !important;
+            }
+            #overlay {
+                display: none;
+                position: fixed;
+                top: 0;
+                left: 0;
+                right: 0;
+                bottom: 0;
+                background: rgba(0, 0, 0, 0.5);
+                z-index: 40;
+            }
+            #overlay.show {
+                display: block;
+            }
+        }
     </style>
     @stack('styles')
 </head>
 <body class="bg-gradient-to-br from-blue-50 to-cyan-100 min-h-screen">
+    <!-- Overlay for mobile -->
+    <div id="overlay" onclick="toggleSidebar()"></div>
+
     <!-- Sidebar -->
     <div id="sidebar" class="fixed left-0 top-0 h-full w-64 bg-gradient-to-b from-blue-600 to-cyan-700 text-white sidebar-transition z-50 shadow-2xl no-print">
         <div class="p-6">
@@ -105,6 +134,11 @@
         <!-- Header -->
         <div class="bg-white rounded-xl shadow-lg p-6 mb-6 glass-effect relative z-40 no-print">
             <div class="flex justify-between items-center">
+                <!-- Menu Toggle Button (Mobile) -->
+                <button id="menu-toggle" onclick="toggleSidebar()" class="md:hidden mr-4 p-2 rounded-lg hover:bg-gray-100 transition-colors">
+                    <i class="fas fa-bars text-gray-700 text-xl"></i>
+                </button>
+                
                 <div>
                     <h2 class="text-2xl font-bold text-gray-800">@yield('page-title', 'Báo cáo thống kê')</h2>
                     <p class="text-gray-600">@yield('page-description', 'Tổng quan hệ thống quản lý tranh')</p>
@@ -156,6 +190,14 @@
     </div>
 
     <script>
+        function toggleSidebar() {
+            const sidebar = document.getElementById('sidebar');
+            const overlay = document.getElementById('overlay');
+            
+            sidebar.classList.toggle('open');
+            overlay.classList.toggle('show');
+        }
+
         function toggleUserDropdown() {
             const dropdown = document.getElementById('user-dropdown');
             if (dropdown) {
@@ -188,6 +230,18 @@
                 notification.remove();
             }, 3000);
         }
+
+        // Close sidebar when clicking on nav items on mobile
+        document.addEventListener('DOMContentLoaded', function() {
+            const navItems = document.querySelectorAll('#sidebar .nav-item');
+            navItems.forEach(item => {
+                item.addEventListener('click', function() {
+                    if (window.innerWidth < 768) {
+                        toggleSidebar();
+                    }
+                });
+            });
+        });
     </script>
     @stack('scripts')
 </body>

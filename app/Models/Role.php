@@ -29,23 +29,40 @@ class Role extends Model
         return $this->hasMany(RolePermission::class);
     }
 
-    public function hasPermission($module)
+    public function fieldPermissions()
+    {
+        return $this->hasMany(FieldPermission::class);
+    }
+
+    public function hasPermission($module, $action = 'can_view')
+    {
+        return $this->rolePermissions()
+            ->whereHas('permission', function($query) use ($module) {
+                $query->where('module', $module);
+            })
+            ->where($action, true)
+            ->exists();
+    }
+
+    public function canAccess($module)
     {
         return $this->permissions()->where('module', $module)->exists();
     }
 
-    public function assignPermission($permissionId)
+    public function getModulePermissions($module)
     {
-        return $this->permissions()->attach($permissionId);
+        return $this->rolePermissions()
+            ->whereHas('permission', function($query) use ($module) {
+                $query->where('module', $module);
+            })
+            ->first();
     }
 
-    public function removePermission($permissionId)
+    public function getFieldPermissions($module)
     {
-        return $this->permissions()->detach($permissionId);
-    }
-
-    public function syncPermissions($permissionIds)
-    {
-        return $this->permissions()->sync($permissionIds);
+        return $this->fieldPermissions()
+            ->where('module', $module)
+            ->get()
+            ->keyBy('field_name');
     }
 }

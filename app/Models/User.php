@@ -28,6 +28,27 @@ class User extends Authenticatable
         'last_login_at',
     ];
 
+    public function role()
+    {
+        return $this->belongsTo(Role::class);
+    }
+
+    public function hasPermission($module, $action = 'can_view')
+    {
+        if (!$this->role) {
+            return false;
+        }
+        return $this->role->hasPermission($module, $action);
+    }
+
+    public function canAccess($module)
+    {
+        if (!$this->role) {
+            return false;
+        }
+        return $this->role->canAccess($module);
+    }
+
     /**
      * The attributes that should be hidden for serialization.
      *
