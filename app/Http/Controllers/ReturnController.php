@@ -387,9 +387,10 @@ class ReturnController extends Controller
 
             // Delete old items
             $return->items()->delete();
+            $return->exchangeItems()->delete();
 
-            // Calculate new total
-            $totalRefund = 0;
+            // Calculate new total for return items
+            $totalReturnValue = 0;
             foreach ($request->items as $itemData) {
                 if (!isset($itemData['quantity']) || $itemData['quantity'] <= 0) {
                     continue;
@@ -413,7 +414,7 @@ class ReturnController extends Controller
                 }
                 
                 $subtotal = $itemData['quantity'] * $unitPrice;
-                $totalRefund += $subtotal;
+                $totalReturnValue += $subtotal;
 
                 $return->items()->create([
                     'sale_item_id' => $saleItem->id,
@@ -426,11 +427,55 @@ class ReturnController extends Controller
                 ]);
             }
 
+            // Calculate actual refund (limited by paid amount)
+            $paidAmount = $sale->paid_amount;
+            $totalRefund = min($totalReturnValue, $paidAmount);
+
+            // Handle exchange items if type is exchange
+            $type = $request->input('type', 'return');
+            $exchangeAmount = null;
+            
+            if ($type === 'exchange' && $request->has('exchange_items')) {
+                $totalExchange = 0;
+                foreach ($request->exchange_items as $item) {
+                    if (!isset($item['quantity']) || $item['quantity'] <= 0) continue;
+                    
+                    // Validate inventory
+                    if ($item['item_type'] === 'painting') {
+                        $painting = Painting::find($item['item_id']);
+                        if (!$painting || $painting->quantity < $item['quantity']) {
+                            throw new \Exception("Không đủ tồn kho cho sản phẩm");
+                        }
+                    } else {
+                        $supply = Supply::find($item['item_id']);
+                        if (!$supply || $supply->quantity < $item['quantity']) {
+                            throw new \Exception("Không đủ tồn kho cho vật tư");
+                        }
+                    }
+                    
+                    $subtotal = $item['quantity'] * $item['unit_price'];
+                    $totalExchange += $subtotal;
+                    
+                    $return->exchangeItems()->create([
+                        'item_type' => $item['item_type'],
+                        'item_id' => $item['item_id'],
+                        'supply_id' => $item['supply_id'] ?? null,
+                        'supply_length' => $item['supply_length'] ?? null,
+                        'quantity' => $item['quantity'],
+                        'unit_price' => $item['unit_price'],
+                        'discount_percent' => $item['discount_percent'] ?? 0,
+                        'subtotal' => $subtotal,
+                    ]);
+                }
+                $exchangeAmount = $totalExchange - $totalRefund;
+            }
+
             // Update return
             $return->update([
                 'return_date' => $request->return_date,
-                'type' => $request->type,
+                'type' => $type,
                 'total_refund' => $totalRefund,
+                'exchange_amount' => $exchangeAmount,
                 'reason' => $request->reason,
                 'notes' => $request->notes,
             ]);
@@ -737,17 +782,17 @@ class ReturnController extends Controller
                     $saleSupplyLength = null;
                     
                     if ($exchangeItem->item_type === 'painting' && $exchangeItem->supply_id) {
+                        // Painting with frame supply
                         $saleSupplyId = $exchangeItem->supply_id;
-                        $saleSupplyLength = $exchangeItem->supply_length ?? 0;
+                        $saleSupplyLength = $exchangeItem->supply_length > 0 ? $exchangeItem->supply_length : null;
                     } elseif ($exchangeItem->item_type === 'supply') {
+                        // Supply item
                         $saleSupplyId = $exchangeItem->item_id;
-                        $saleSupplyLength = $exchangeItem->supply_length ?? 0;
+                        $saleSupplyLength = $exchangeItem->supply_length > 0 ? $exchangeItem->supply_length : null;
                     }
                     
-                    $sale->items()->create([
+                    $saleItemData = [
                         'painting_id' => $exchangeItem->item_type === 'painting' ? $exchangeItem->item_id : null,
-                        'supply_id' => $saleSupplyId,
-                        'supply_length' => $saleSupplyLength,
                         'description' => $description,
                         'quantity' => $exchangeItem->quantity,
                         'currency' => 'VND',
@@ -756,7 +801,15 @@ class ReturnController extends Controller
                         'discount_percent' => $discountPercent,
                         'total_usd' => $exchangeItem->subtotal / $sale->exchange_rate,
                         'total_vnd' => $exchangeItem->subtotal,
-                    ]);
+                    ];
+                    
+                    // Only add supply_id and supply_length if they exist
+                    if ($saleSupplyId) {
+                        $saleItemData['supply_id'] = $saleSupplyId;
+                        $saleItemData['supply_length'] = $saleSupplyLength;
+                    }
+                    
+                    $sale->items()->create($saleItemData);
                 }
                 
                 // Recalculate sale totals
