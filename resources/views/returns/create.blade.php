@@ -474,6 +474,7 @@ function renderExchangeProducts() {
         <input type="hidden" name="exchange_items[${index}][item_id]" value="${product.id}">
         <input type="hidden" name="exchange_items[${index}][quantity]" value="${product.quantity}">
         <input type="hidden" name="exchange_items[${index}][unit_price]" value="${finalPrice}">
+        <input type="hidden" name="exchange_items[${index}][discount_percent]" value="${product.discount || 0}">
         ${product.supplyId ? `<input type="hidden" name="exchange_items[${index}][supply_id]" value="${product.supplyId}">` : ''}
         ${product.supplyLength ? `<input type="hidden" name="exchange_items[${index}][supply_length]" value="${product.supplyLength}">` : ''}
         `;
