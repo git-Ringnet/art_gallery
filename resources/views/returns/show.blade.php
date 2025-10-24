@@ -151,34 +151,71 @@
                 <h4 class="font-medium mb-3 text-red-800">
                     <i class="fas fa-arrow-left mr-2"></i>Sản phẩm trả lại
                 </h4>
-                <div class="space-y-2">
-                    @foreach($return->items as $item)
-                    <div class="bg-white p-3 rounded border">
-                        <div class="flex justify-between items-start">
-                            <div class="flex-1">
-                                <p class="font-medium text-sm">
-                                    @if($item->item_type === 'painting')
-                                        {{ $item->painting->name ?? 'N/A' }}
+                <div class="overflow-x-auto">
+                    <table class="w-full text-sm">
+                        <thead class="bg-white border-b">
+                            <tr>
+                                <th class="px-2 py-2 text-left text-xs">Sản phẩm</th>
+                                <th class="px-2 py-2 text-left text-xs">Vật tư(Khung)</th>
+                                <th class="px-2 py-2 text-center text-xs">Số mét/Cây</th>
+                                <th class="px-2 py-2 text-center text-xs">SL</th>
+                                <th class="px-2 py-2 text-right text-xs">Đơn giá</th>
+                                <th class="px-2 py-2 text-center text-xs">Giảm giá</th>
+                                <th class="px-2 py-2 text-right text-xs">Thành tiền</th>
+                            </tr>
+                        </thead>
+                        <tbody class="bg-white">
+                            @foreach($return->items as $item)
+                            <tr class="border-b">
+                                <td class="px-2 py-2">
+                                    <p class="font-medium text-sm">
+                                        @if($item->item_type === 'painting')
+                                            {{ $item->painting->name ?? 'N/A' }}
+                                        @else
+                                            {{ $item->supply->name ?? 'N/A' }}
+                                        @endif
+                                    </p>
+                                    <p class="text-xs text-gray-600">
+                                        @if($item->item_type === 'painting')
+                                            <span class="px-2 py-0.5 rounded-full bg-purple-100 text-purple-800">Tranh</span>
+                                        @else
+                                            <span class="px-2 py-0.5 rounded-full bg-blue-100 text-blue-800">Vật tư</span>
+                                        @endif
+                                    </p>
+                                </td>
+                                <td class="px-2 py-2 text-sm">
+                                    @if($item->supply_id)
+                                        {{ $item->frameSupply->name ?? 'N/A' }}
                                     @else
-                                        {{ $item->supply->name ?? 'N/A' }}
+                                        <span class="text-gray-400">-</span>
                                     @endif
-                                </p>
-                                <p class="text-xs text-gray-600">
-                                    @if($item->item_type === 'painting')
-                                        <span class="px-2 py-0.5 rounded-full bg-purple-100 text-purple-800">Tranh</span>
+                                </td>
+                                <td class="px-2 py-2 text-center text-sm">
+                                    @if($item->supply_length)
+                                        {{ $item->supply_length }}
                                     @else
-                                        <span class="px-2 py-0.5 rounded-full bg-blue-100 text-blue-800">Vật tư</span>
+                                        <span class="text-gray-400">-</span>
                                     @endif
-                                </p>
-                            </div>
-                            <div class="text-right">
-                                <p class="text-sm font-medium">SL: {{ $item->quantity }}</p>
-                                <p class="text-xs text-gray-600">{{ number_format($item->unit_price, 0, ',', '.') }}đ</p>
-                                <p class="text-sm font-semibold text-red-600">{{ number_format($item->subtotal, 0, ',', '.') }}đ</p>
-                            </div>
-                        </div>
-                    </div>
-                    @endforeach
+                                </td>
+                                <td class="px-2 py-2 text-center font-medium">{{ $item->quantity }}</td>
+                                <td class="px-2 py-2 text-right text-sm">{{ number_format($item->unit_price, 0, ',', '.') }}đ</td>
+                                <td class="px-2 py-2 text-center text-sm">
+                                    @php
+                                        // Get discount from original sale item
+                                        $saleItem = $item->saleItem;
+                                        $discount = $saleItem ? $saleItem->discount_percent : 0;
+                                    @endphp
+                                    @if($discount > 0)
+                                        <span class="text-red-600">{{ $discount }}%</span>
+                                    @else
+                                        <span class="text-gray-400">-</span>
+                                    @endif
+                                </td>
+                                <td class="px-2 py-2 text-right font-semibold text-red-600">{{ number_format($item->subtotal, 0, ',', '.') }}đ</td>
+                            </tr>
+                            @endforeach
+                        </tbody>
+                    </table>
                 </div>
                 <div class="mt-3 pt-3 border-t">
                     <div class="flex justify-between font-semibold">
@@ -201,34 +238,66 @@
                     <i class="fas fa-arrow-right mr-2"></i>Sản phẩm đổi mới
                 </h4>
                 @if($return->exchangeItems->count() > 0)
-                <div class="space-y-2">
-                    @foreach($return->exchangeItems as $item)
-                    <div class="bg-white p-3 rounded border">
-                        <div class="flex justify-between items-start">
-                            <div class="flex-1">
-                                <p class="font-medium text-sm">
-                                    @if($item->item_type === 'painting')
-                                        {{ $item->painting->name ?? 'N/A' }}
+                <div class="overflow-x-auto">
+                    <table class="w-full text-sm">
+                        <thead class="bg-white border-b">
+                            <tr>
+                                <th class="px-2 py-2 text-left text-xs">Sản phẩm</th>
+                                <th class="px-2 py-2 text-left text-xs">Vật tư(Khung)</th>
+                                <th class="px-2 py-2 text-center text-xs">Số mét/Cây</th>
+                                <th class="px-2 py-2 text-center text-xs">SL</th>
+                                <th class="px-2 py-2 text-right text-xs">Đơn giá</th>
+                                <th class="px-2 py-2 text-center text-xs">Giảm giá</th>
+                                <th class="px-2 py-2 text-right text-xs">Thành tiền</th>
+                            </tr>
+                        </thead>
+                        <tbody class="bg-white">
+                            @foreach($return->exchangeItems as $item)
+                            <tr class="border-b">
+                                <td class="px-2 py-2">
+                                    <p class="font-medium text-sm">
+                                        @if($item->item_type === 'painting')
+                                            {{ $item->painting->name ?? 'N/A' }}
+                                        @else
+                                            {{ $item->supply->name ?? 'N/A' }}
+                                        @endif
+                                    </p>
+                                    <p class="text-xs text-gray-600">
+                                        @if($item->item_type === 'painting')
+                                            <span class="px-2 py-0.5 rounded-full bg-purple-100 text-purple-800">Tranh</span>
+                                        @else
+                                            <span class="px-2 py-0.5 rounded-full bg-blue-100 text-blue-800">Vật tư</span>
+                                        @endif
+                                    </p>
+                                </td>
+                                <td class="px-2 py-2 text-sm">
+                                    @if($item->supply_id)
+                                        {{ $item->frameSupply->name ?? 'N/A' }}
                                     @else
-                                        {{ $item->supply->name ?? 'N/A' }}
+                                        <span class="text-gray-400">-</span>
                                     @endif
-                                </p>
-                                <p class="text-xs text-gray-600">
-                                    @if($item->item_type === 'painting')
-                                        <span class="px-2 py-0.5 rounded-full bg-purple-100 text-purple-800">Tranh</span>
+                                </td>
+                                <td class="px-2 py-2 text-center text-sm">
+                                    @if($item->supply_length)
+                                        {{ $item->supply_length }}
                                     @else
-                                        <span class="px-2 py-0.5 rounded-full bg-blue-100 text-blue-800">Vật tư</span>
+                                        <span class="text-gray-400">-</span>
                                     @endif
-                                </p>
-                            </div>
-                            <div class="text-right">
-                                <p class="text-sm font-medium">SL: {{ $item->quantity }}</p>
-                                <p class="text-xs text-gray-600">{{ number_format($item->unit_price, 0, ',', '.') }}đ</p>
-                                <p class="text-sm font-semibold text-green-600">{{ number_format($item->subtotal, 0, ',', '.') }}đ</p>
-                            </div>
-                        </div>
-                    </div>
-                    @endforeach
+                                </td>
+                                <td class="px-2 py-2 text-center font-medium">{{ $item->quantity }}</td>
+                                <td class="px-2 py-2 text-right text-sm">{{ number_format($item->unit_price, 0, ',', '.') }}đ</td>
+                                <td class="px-2 py-2 text-center text-sm">
+                                    @if($item->discount_percent > 0)
+                                        <span class="text-red-600">{{ $item->discount_percent }}%</span>
+                                    @else
+                                        <span class="text-gray-400">-</span>
+                                    @endif
+                                </td>
+                                <td class="px-2 py-2 text-right font-semibold text-green-600">{{ number_format($item->subtotal, 0, ',', '.') }}đ</td>
+                            </tr>
+                            @endforeach
+                        </tbody>
+                    </table>
                 </div>
                 <div class="mt-3 pt-3 border-t">
                     <div class="flex justify-between font-semibold">

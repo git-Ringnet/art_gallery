@@ -50,6 +50,11 @@ class ReturnItem extends Model
 
     public function supply(): BelongsTo
     {
+        return $this->belongsTo(Supply::class, 'item_id');
+    }
+
+    public function frameSupply(): BelongsTo
+    {
         return $this->belongsTo(Supply::class, 'supply_id');
     }
 }

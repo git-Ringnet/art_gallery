@@ -265,8 +265,11 @@ class ReturnController extends Controller
                     $exchangeItemsData[] = [
                         'item_type' => $item['item_type'],
                         'item_id' => $item['item_id'],
+                        'supply_id' => $item['supply_id'] ?? null,
+                        'supply_length' => $item['supply_length'] ?? null,
                         'quantity' => $item['quantity'],
                         'unit_price' => $item['unit_price'],
+                        'discount_percent' => $item['discount_percent'] ?? 0,
                         'subtotal' => $subtotal,
                     ];
                 }
@@ -318,8 +321,11 @@ class ReturnController extends Controller
             'processedBy',
             'items.painting',
             'items.supply',
+            'items.frameSupply',
+            'items.saleItem',
             'exchangeItems.painting',
-            'exchangeItems.supply'
+            'exchangeItems.supply',
+            'exchangeItems.frameSupply'
         ])->findOrFail($id);
 
         return view('returns.show', compact('return'));
@@ -594,6 +600,7 @@ class ReturnController extends Controller
             // Update inventory - Subtract exchange items from stock
             if ($return->type === 'exchange') {
                 foreach ($return->exchangeItems as $item) {
+                    // Subtract main item (painting or supply)
                     if ($item->item_type === 'painting') {
                         $painting = Painting::find($item->item_id);
                         if ($painting) {
@@ -611,28 +618,54 @@ class ReturnController extends Controller
                                 'reference_type' => 'return',
                                 'reference_id' => $return->id,
                                 'transaction_date' => $return->return_date,
-                                'notes' => "Đổi hàng (sản phẩm mới) - Phiếu {$return->return_code}",
+                                'notes' => "Đổi hàng (tranh) - Phiếu {$return->return_code}",
                                 'created_by' => Auth::id(),
                             ]);
                         }
                     } else {
                         $supply = Supply::find($item->item_id);
                         if ($supply) {
-                            if ($supply->quantity < $item->quantity) {
-                                throw new \Exception("Không đủ tồn kho cho sản phẩm: " . ($supply->name ?? 'N/A'));
+                            $totalSupplyQty = $item->supply_length ? ($item->supply_length * $item->quantity) : $item->quantity;
+                            if ($supply->quantity < $totalSupplyQty) {
+                                throw new \Exception("Không đủ tồn kho cho vật tư: " . ($supply->name ?? 'N/A') . ". Cần: {$totalSupplyQty}, Tồn: {$supply->quantity}");
                             }
-                            $supply->decrement('quantity', $item->quantity);
+                            $supply->decrement('quantity', $totalSupplyQty);
                             
                             // Create inventory transaction
                             InventoryTransaction::create([
                                 'transaction_type' => 'export',
                                 'item_type' => 'supply',
                                 'item_id' => $item->item_id,
-                                'quantity' => $item->quantity,
+                                'quantity' => $totalSupplyQty,
                                 'reference_type' => 'return',
                                 'reference_id' => $return->id,
                                 'transaction_date' => $return->return_date,
-                                'notes' => "Đổi hàng (sản phẩm mới) - Phiếu {$return->return_code}",
+                                'notes' => "Đổi hàng (vật tư) - Phiếu {$return->return_code}",
+                                'created_by' => Auth::id(),
+                            ]);
+                        }
+                    }
+                    
+                    // Subtract frame supply if exists (for paintings with frames)
+                    if ($item->supply_id && $item->supply_length) {
+                        $frameSupply = Supply::find($item->supply_id);
+                        if ($frameSupply) {
+                            $totalFrameLength = $item->supply_length * $item->quantity;
+                            if ($frameSupply->quantity < $totalFrameLength) {
+                                throw new \Exception("Không đủ tồn kho cho vật tư khung: " . ($frameSupply->name ?? 'N/A') . ". Cần: {$totalFrameLength}m, Tồn: {$frameSupply->quantity}m");
+                            }
+                            $frameSupply->decrement('quantity', $totalFrameLength);
+                            
+                            // Create inventory transaction for frame supply
+                            InventoryTransaction::create([
+                                'transaction_type' => 'export',
+                                'item_type' => 'supply',
+                                'item_id' => $item->supply_id,
+                                'quantity' => $totalFrameLength,
+                                'reference_type' => 'return',
+                                'reference_id' => $return->id,
+                                'transaction_date' => $return->return_date,
+                                'notes' => "Đổi hàng (vật tư khung) - Phiếu {$return->return_code}",
                                 'created_by' => Auth::id(),
                             ]);
                         }
@@ -678,8 +711,14 @@ class ReturnController extends Controller
                 
                 // Add new exchange items to sale
                 foreach ($return->exchangeItems as $exchangeItem) {
-                    $priceUsd = $exchangeItem->unit_price / $sale->exchange_rate;
-                    $priceVnd = $exchangeItem->unit_price;
+                    // Calculate price before discount
+                    $discountPercent = $exchangeItem->discount_percent ?? 0;
+                    $priceBeforeDiscount = $discountPercent > 0 ? 
+                        $exchangeItem->unit_price / (1 - $discountPercent / 100) : 
+                        $exchangeItem->unit_price;
+                    
+                    $priceUsd = $priceBeforeDiscount / $sale->exchange_rate;
+                    $priceVnd = $priceBeforeDiscount;
                     
                     // Get item description
                     $description = '';
@@ -691,15 +730,30 @@ class ReturnController extends Controller
                         $description = $supply ? $supply->name : 'N/A';
                     }
                     
+                    // Determine supply_id and supply_length
+                    // If item is painting with frame supply, use exchangeItem's supply info
+                    // If item is supply itself, use item_id as supply_id
+                    $saleSupplyId = null;
+                    $saleSupplyLength = null;
+                    
+                    if ($exchangeItem->item_type === 'painting' && $exchangeItem->supply_id) {
+                        $saleSupplyId = $exchangeItem->supply_id;
+                        $saleSupplyLength = $exchangeItem->supply_length ?? 0;
+                    } elseif ($exchangeItem->item_type === 'supply') {
+                        $saleSupplyId = $exchangeItem->item_id;
+                        $saleSupplyLength = $exchangeItem->supply_length ?? 0;
+                    }
+                    
                     $sale->items()->create([
                         'painting_id' => $exchangeItem->item_type === 'painting' ? $exchangeItem->item_id : null,
-                        'supply_id' => $exchangeItem->item_type === 'supply' ? $exchangeItem->item_id : null,
+                        'supply_id' => $saleSupplyId,
+                        'supply_length' => $saleSupplyLength,
                         'description' => $description,
                         'quantity' => $exchangeItem->quantity,
                         'currency' => 'VND',
                         'price_usd' => $priceUsd,
                         'price_vnd' => $priceVnd,
-                        'discount_percent' => 0,
+                        'discount_percent' => $discountPercent,
                         'total_usd' => $exchangeItem->subtotal / $sale->exchange_rate,
                         'total_vnd' => $exchangeItem->subtotal,
                     ]);

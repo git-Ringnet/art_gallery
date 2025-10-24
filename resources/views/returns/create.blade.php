@@ -84,10 +84,29 @@
                     </div>
                 </div>
                 
-                <div id="exchange-products-container">
-                    <div class="text-center text-gray-500 py-4">
-                        <p class="text-sm">Tìm kiếm sản phẩm để đổi</p>
-                    </div>
+                <div class="#">
+                    <table class="w-full text-sm border-collapse">
+                        <thead>
+                            <tr class="bg-gradient-to-r from-blue-50 to-indigo-50 border-b-2 border-blue-200">
+                                <th class="px-3 py-3 text-left font-semibold text-gray-700">Hình ảnh</th>
+                                <th class="px-3 py-3 text-left font-semibold text-gray-700">Mã (Tranh/Khung)</th>
+                                <th class="px-3 py-3 text-left font-semibold text-gray-700">Vật tư(Khung)</th>
+                                <th class="px-3 py-3 text-center font-semibold text-gray-700">Số mét/Cây</th>
+                                <th class="px-3 py-3 text-center font-semibold text-gray-700">Số lượng</th>
+                                <th class="px-3 py-3 text-right font-semibold text-gray-700">Giá bán (đ)</th>
+                                <th class="px-3 py-3 text-center font-semibold text-gray-700">Giảm giá (%)</th>
+                                <th class="px-3 py-3 text-center font-semibold text-gray-700">Xóa</th>
+                            </tr>
+                        </thead>
+                        <tbody id="exchange-products-container">
+                            <tr>
+                                <td colspan="8" class="text-center text-gray-500 py-8">
+                                    <i class="fas fa-box-open text-3xl mb-2 text-gray-400"></i>
+                                    <p class="text-sm">Tìm kiếm sản phẩm để đổi</p>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
                 </div>
             </div>
         </div>
@@ -289,26 +308,34 @@ function displaySuggestions(products) {
         return;
     }
     
-    container.innerHTML = products.map(product => `
-        <div class="px-4 py-3 hover:bg-gray-50 cursor-pointer border-b last:border-b-0" onclick="selectProduct(${product.id}, '${product.type}', '${product.name.replace(/'/g, "\\'")}', ${product.price_vnd}, ${product.quantity})">
+    container.innerHTML = products.map(product => {
+        const code = product.code || '';
+        const image = product.image || '';
+        const escapedName = product.name.replace(/'/g, "\\'").replace(/"/g, '&quot;');
+        const escapedCode = code.replace(/'/g, "\\'").replace(/"/g, '&quot;');
+        const escapedImage = image.replace(/'/g, "\\'").replace(/"/g, '&quot;');
+        
+        return `
+        <div class="px-4 py-3 hover:bg-gray-50 cursor-pointer border-b last:border-b-0" onclick='selectProduct(${product.id}, "${product.type}", "${escapedName}", ${product.price_vnd}, ${product.quantity}, "${escapedCode}", "${escapedImage}")'>
             <div class="flex justify-between items-center">
                 <div class="flex-1">
                     <p class="font-medium text-sm">${product.name}</p>
                     <p class="text-xs text-gray-600">
                         <span class="px-2 py-0.5 rounded-full ${product.type === 'painting' ? 'bg-purple-100 text-purple-800' : 'bg-blue-100 text-blue-800'}">${product.type === 'painting' ? 'Tranh' : 'Vật tư'}</span>
-                        | Tồn: ${product.quantity} | Giá: ${parseFloat(product.price_vnd).toLocaleString('vi-VN')}đ
+                        ${code ? `| Mã: ${code}` : ''} | Tồn: ${product.quantity} | Giá: ${parseFloat(product.price_vnd).toLocaleString('vi-VN')}đ
                     </p>
                 </div>
                 <i class="fas fa-plus text-blue-600"></i>
             </div>
         </div>
-    `).join('');
+        `;
+    }).join('');
     
     container.classList.remove('hidden');
 }
 
-function selectProduct(id, type, name, price, maxQty) {
-    addExchangeProduct(id, type, name, price, maxQty);
+function selectProduct(id, type, name, price, maxQty, code = '', image = '') {
+    addExchangeProduct(id, type, name, price, maxQty, code, image);
     document.getElementById('product-search').value = '';
     document.getElementById('product-suggestions').classList.add('hidden');
 }
@@ -320,7 +347,7 @@ document.addEventListener('click', function(e) {
     }
 });
 
-function addExchangeProduct(id, type, name, price, maxQty) {
+function addExchangeProduct(id, type, name, price, maxQty, code = '', image = '') {
     const existing = exchangeProducts.find(p => p.id === id && p.type === type);
     if (existing) {
         showNotification('Sản phẩm đã được thêm', 'warning');
@@ -338,11 +365,17 @@ function addExchangeProduct(id, type, name, price, maxQty) {
     exchangeProducts.push({
         id, 
         type, 
-        name, 
+        name,
+        code,
+        image,
         price, 
-        defaultPrice: price, // Lưu giá mặc định
+        defaultPrice: price,
         maxQty: availableQty, 
-        quantity: 1
+        quantity: 1,
+        discount: 0,
+        supplyId: null,
+        supplyName: '',
+        supplyLength: 0
     });
     renderExchangeProducts();
     updateSummary();
@@ -357,62 +390,94 @@ function removeExchangeProduct(index) {
 function renderExchangeProducts() {
     const container = document.getElementById('exchange-products-container');
     if (exchangeProducts.length === 0) {
-        container.innerHTML = '<div class="text-center text-gray-500 py-4"><p class="text-sm">Chưa có sản phẩm đổi</p></div>';
+        container.innerHTML = '<tr><td colspan="8" class="text-center text-gray-500 py-8"><i class="fas fa-box-open text-3xl mb-2 text-gray-400 block"></i><p class="text-sm">Chưa có sản phẩm đổi</p></td></tr>';
         return;
     }
     
-    container.innerHTML = exchangeProducts.map((product, index) => `
-        <div class="border rounded-lg p-3 mb-2 ${product.quantity > product.maxQty ? 'bg-red-50 border-red-300' : 'bg-blue-50'}">
-            <div class="flex justify-between items-start mb-2">
-                <div class="flex-1">
-                    <h5 class="font-medium text-sm">${product.name}</h5>
-                    <p class="text-xs text-gray-500">
-                        Giá mặc định: ${parseFloat(product.defaultPrice || product.price).toLocaleString('vi-VN')}đ
-                        <span class="ml-2 px-2 py-0.5 rounded-full ${product.maxQty > 0 ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}">
-                            <i class="fas fa-box mr-1"></i>Tồn: ${product.maxQty}
-                        </span>
-                    </p>
+    container.innerHTML = exchangeProducts.map((product, index) => {
+        const finalPrice = product.price * (1 - (product.discount || 0) / 100);
+        const stockWarning = product.quantity > product.maxQty;
+        const rowClass = stockWarning ? 'bg-red-50 border-l-4 border-red-500' : 'hover:bg-blue-50 border-l-4 border-transparent';
+        
+        return `
+        <tr class="${rowClass} border-b transition-colors">
+            <td class="px-3 py-3">
+                ${product.image ? 
+                    `<img src="/storage/${product.image}" class="w-14 h-14 object-cover rounded-lg shadow-sm border-2 border-gray-200" alt="${product.name}">` : 
+                    '<div class="w-14 h-14 bg-gradient-to-br from-gray-200 to-gray-300 rounded-lg flex items-center justify-center shadow-sm"><i class="fas fa-image text-gray-400 text-xl"></i></div>'}
+            </td>
+            <td class="px-3 py-3">
+                <div class="text-sm font-semibold text-gray-800">${product.name}</div>
+                ${product.code ? `<div class="text-xs text-gray-500 mt-1"><i class="fas fa-barcode mr-1"></i>${product.code}</div>` : ''}
+                <div class="mt-1">
+                    <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${product.maxQty > 0 ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}">
+                        <i class="fas fa-box mr-1"></i>Tồn: ${product.maxQty}
+                    </span>
                 </div>
-                <button type="button" onclick="removeExchangeProduct(${index})" class="text-red-600 hover:text-red-800">
-                    <i class="fas fa-times"></i>
+            </td>
+            <td class="px-3 py-3">
+                <div class="relative">
+                    <input type="text" 
+                           id="supply-search-${index}"
+                           class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500" 
+                           placeholder="Tìm vật tư..."
+                           value="${product.supplyName || ''}"
+                           oninput="searchSupplyForExchange(${index}, this.value)"
+                           autocomplete="off">
+                    <div id="supply-suggestions-${index}" class="absolute z-20 w-full bg-white border border-gray-300 rounded-lg shadow-lg mt-1 max-h-48 overflow-y-auto hidden"></div>
+                </div>
+            </td>
+            <td class="px-3 py-3 text-center">
+                <input type="number" 
+                       class="w-20 px-3 py-2 border border-gray-300 rounded-lg text-center text-sm font-medium focus:ring-2 focus:ring-blue-500"
+                       min="0" 
+                       step="0.1"
+                       value="${product.supplyLength || 0}"
+                       onchange="updateExchangeSupplyLength(${index}, this.value)"
+                       placeholder="0">
+            </td>
+            <td class="px-3 py-3 text-center">
+                <input type="number" 
+                       class="w-20 px-3 py-2 border ${stockWarning ? 'border-red-500 bg-red-50' : 'border-gray-300'} rounded-lg text-center text-sm font-medium focus:ring-2 focus:ring-blue-500"
+                       min="1" 
+                       max="${product.maxQty}" 
+                       value="${product.quantity}"
+                       onchange="updateExchangeQty(${index}, this.value)">
+                ${stockWarning ? '<div class="text-xs text-red-600 font-medium mt-1"><i class="fas fa-exclamation-triangle mr-1"></i>Vượt tồn!</div>' : ''}
+            </td>
+            <td class="px-3 py-3 text-right">
+                <input type="number" 
+                       class="w-32 px-3 py-2 border border-gray-300 rounded-lg text-right text-sm font-medium focus:ring-2 focus:ring-blue-500"
+                       min="0" 
+                       step="1000"
+                       value="${product.price}"
+                       onchange="updateExchangePrice(${index}, this.value)">
+                <div class="text-xs text-gray-500 mt-1">${finalPrice.toLocaleString('vi-VN')}đ</div>
+            </td>
+            <td class="px-3 py-3 text-center">
+                <input type="number" 
+                       class="w-20 px-3 py-2 border border-gray-300 rounded-lg text-center text-sm font-medium focus:ring-2 focus:ring-blue-500"
+                       min="0" 
+                       max="100"
+                       value="${product.discount || 0}"
+                       onchange="updateExchangeDiscount(${index}, this.value)">
+            </td>
+            <td class="px-3 py-3 text-center">
+                <button type="button" 
+                        onclick="removeExchangeProduct(${index})" 
+                        class="text-red-600 hover:text-red-800 hover:bg-red-100 p-2 rounded-lg transition-colors">
+                    <i class="fas fa-trash-alt"></i>
                 </button>
-            </div>
-            <div class="grid grid-cols-2 gap-2">
-                <div>
-                    <label class="text-xs text-gray-600 block mb-1">
-                        Số lượng 
-                        ${product.quantity > product.maxQty ? '<span class="text-red-600">(Vượt tồn kho!)</span>' : ''}
-                    </label>
-                    <input type="number" 
-                           class="w-full px-2 py-1 border rounded text-center text-sm exchange-qty ${product.quantity > product.maxQty ? 'border-red-500' : ''}"
-                           min="1" 
-                           max="${product.maxQty}" 
-                           value="${product.quantity}"
-                           data-index="${index}"
-                           onchange="updateExchangeQty(${index}, this.value)">
-                    ${product.quantity > product.maxQty ? '<p class="text-xs text-red-600 mt-1">Không đủ hàng trong kho</p>' : ''}
-                </div>
-                <div>
-                    <label class="text-xs text-gray-600 block mb-1">Giá bán (đ)</label>
-                    <input type="number" 
-                           class="w-full px-2 py-1 border rounded text-sm exchange-price"
-                           min="0" 
-                           step="1000"
-                           value="${product.price}"
-                           data-index="${index}"
-                           onchange="updateExchangePrice(${index}, this.value)"
-                           placeholder="Nhập giá bán">
-                </div>
-            </div>
-            <div class="mt-2 text-xs text-gray-600 text-right">
-                Thành tiền: <span class="font-medium text-blue-700">${(product.quantity * product.price).toLocaleString('vi-VN')}đ</span>
-            </div>
-            <input type="hidden" name="exchange_items[${index}][item_type]" value="${product.type}">
-            <input type="hidden" name="exchange_items[${index}][item_id]" value="${product.id}">
-            <input type="hidden" name="exchange_items[${index}][quantity]" value="${product.quantity}">
-            <input type="hidden" name="exchange_items[${index}][unit_price]" value="${product.price}">
-        </div>
-    `).join('');
+            </td>
+        </tr>
+        <input type="hidden" name="exchange_items[${index}][item_type]" value="${product.type}">
+        <input type="hidden" name="exchange_items[${index}][item_id]" value="${product.id}">
+        <input type="hidden" name="exchange_items[${index}][quantity]" value="${product.quantity}">
+        <input type="hidden" name="exchange_items[${index}][unit_price]" value="${finalPrice}">
+        ${product.supplyId ? `<input type="hidden" name="exchange_items[${index}][supply_id]" value="${product.supplyId}">` : ''}
+        ${product.supplyLength ? `<input type="hidden" name="exchange_items[${index}][supply_length]" value="${product.supplyLength}">` : ''}
+        `;
+    }).join('');
 }
 
 function updateExchangeQty(index, qty) {
@@ -426,6 +491,76 @@ function updateExchangePrice(index, price) {
     renderExchangeProducts();
     updateSummary();
 }
+
+function updateExchangeDiscount(index, discount) {
+    exchangeProducts[index].discount = parseFloat(discount) || 0;
+    renderExchangeProducts();
+    updateSummary();
+}
+
+function updateExchangeFrameQty(index, frameQty) {
+    exchangeProducts[index].frameQty = parseInt(frameQty) || 0;
+    renderExchangeProducts();
+}
+
+function updateExchangeSupplyLength(index, length) {
+    exchangeProducts[index].supplyLength = parseFloat(length) || 0;
+    renderExchangeProducts();
+}
+
+let supplySearchTimeout;
+function searchSupplyForExchange(index, query) {
+    clearTimeout(supplySearchTimeout);
+    const container = document.getElementById(`supply-suggestions-${index}`);
+    
+    if (query.length < 2) {
+        container.classList.add('hidden');
+        return;
+    }
+    
+    supplySearchTimeout = setTimeout(() => {
+        fetch(`{{ route('sales.api.search.supplies') }}?q=${encodeURIComponent(query)}`)
+            .then(r => r.json())
+            .then(supplies => {
+                if (supplies.length === 0) {
+                    container.classList.add('hidden');
+                    return;
+                }
+                
+                container.innerHTML = supplies.map(supply => `
+                    <div class="px-3 py-2 hover:bg-blue-50 cursor-pointer border-b last:border-b-0 transition-colors" 
+                         onclick="selectSupplyForExchange(${index}, ${supply.id}, '${supply.name.replace(/'/g, "\\'")}')">
+                        <div class="text-sm font-medium text-gray-800">${supply.name}</div>
+                        <div class="text-xs text-gray-500">
+                            <span class="inline-flex items-center px-2 py-0.5 rounded-full bg-blue-100 text-blue-800">
+                                <i class="fas fa-box mr-1"></i>Tồn: ${supply.quantity} ${supply.unit || 'm'}
+                            </span>
+                        </div>
+                    </div>
+                `).join('');
+                
+                container.classList.remove('hidden');
+            })
+            .catch(err => console.error(err));
+    }, 300);
+}
+
+function selectSupplyForExchange(index, supplyId, supplyName) {
+    exchangeProducts[index].supplyId = supplyId;
+    exchangeProducts[index].supplyName = supplyName;
+    exchangeProducts[index].supplyLength = 1; // Default length
+    renderExchangeProducts();
+    document.getElementById(`supply-suggestions-${index}`).classList.add('hidden');
+}
+
+// Hide supply suggestions when clicking outside
+document.addEventListener('click', function(e) {
+    if (!e.target.closest('[id^="supply-search-"]') && !e.target.closest('[id^="supply-suggestions-"]')) {
+        document.querySelectorAll('[id^="supply-suggestions-"]').forEach(el => {
+            el.classList.add('hidden');
+        });
+    }
+});
 
 function updateSummary() {
     // Calculate return amount
@@ -465,7 +600,8 @@ function updateSummary() {
         
         exchangeProducts.forEach(product => {
             exchangeQty += product.quantity;
-            exchangeAmount += product.quantity * product.price;
+            const finalPrice = product.price * (1 - (product.discount || 0) / 100);
+            exchangeAmount += product.quantity * finalPrice;
         });
         
         document.getElementById('exchange-summary').classList.remove('hidden');

@@ -11,8 +11,11 @@ class ExchangeItem extends Model
         'return_id',
         'item_type',
         'item_id',
+        'supply_id',
+        'supply_length',
         'quantity',
         'unit_price',
+        'discount_percent',
         'subtotal',
     ];
 
@@ -20,6 +23,8 @@ class ExchangeItem extends Model
         'quantity' => 'integer',
         'unit_price' => 'decimal:2',
         'subtotal' => 'decimal:2',
+        'supply_length' => 'decimal:2',
+        'discount_percent' => 'decimal:2',
     ];
 
     public function return(): BelongsTo
@@ -35,5 +40,10 @@ class ExchangeItem extends Model
     public function supply(): BelongsTo
     {
         return $this->belongsTo(Supply::class, 'item_id');
+    }
+
+    public function frameSupply(): BelongsTo
+    {
+        return $this->belongsTo(Supply::class, 'supply_id');
     }
 }

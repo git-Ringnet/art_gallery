@@ -16,8 +16,11 @@ return new class extends Migration
             $table->foreignId('return_id')->constrained('returns')->onDelete('cascade')->comment('ID phiếu đổi/trả');
             $table->string('item_type', 20)->comment('Loại: painting/supply');
             $table->foreignId('item_id')->comment('ID sản phẩm mới');
+            $table->foreignId('supply_id')->nullable()->comment('ID vật tư khung (nếu có)');
+            $table->decimal('supply_length', 10, 2)->nullable()->comment('Số mét/cây vật tư');
             $table->integer('quantity')->comment('Số lượng đổi');
             $table->decimal('unit_price', 15, 2)->comment('Đơn giá (VND)');
+            $table->decimal('discount_percent', 5, 2)->default(0)->comment('Phần trăm giảm giá');
             $table->decimal('subtotal', 15, 2)->comment('Thành tiền (VND)');
             $table->timestamps();
             
