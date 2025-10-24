@@ -719,7 +719,7 @@ class SalesController extends Controller
                   ->orWhere('name', 'like', "%{$query}%");
             })
             ->limit(10)
-            ->get(['id', 'code', 'name', 'price_usd', 'price_vnd', 'image']);
+            ->get(['id', 'code', 'name', 'price_usd', 'price_vnd', 'quantity', 'image']);
 
         return response()->json($paintings);
     }
@@ -734,7 +734,7 @@ class SalesController extends Controller
 
         $supplies = Supply::where('name', 'like', "%{$query}%")
             ->limit(10)
-            ->get(['id', 'name', 'unit']);
+            ->get(['id', 'name', 'unit', 'quantity']);
 
         return response()->json($supplies);
     }

@@ -10,6 +10,7 @@ use App\Models\SaleItem;
 use App\Models\Painting;
 use App\Models\Supply;
 use App\Models\Payment;
+use App\Models\InventoryTransaction;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Auth;
@@ -239,6 +240,25 @@ class ReturnController extends Controller
                 foreach ($request->exchange_items as $item) {
                     if (!isset($item['quantity']) || $item['quantity'] <= 0) continue;
                     
+                    // Validate inventory availability
+                    if ($item['item_type'] === 'painting') {
+                        $painting = Painting::find($item['item_id']);
+                        if (!$painting) {
+                            throw new \Exception("Không tìm thấy sản phẩm");
+                        }
+                        if ($painting->quantity < $item['quantity']) {
+                            throw new \Exception("Không đủ tồn kho cho sản phẩm '{$painting->name}'. Tồn kho: {$painting->quantity}, Yêu cầu: {$item['quantity']}");
+                        }
+                    } else {
+                        $supply = Supply::find($item['item_id']);
+                        if (!$supply) {
+                            throw new \Exception("Không tìm thấy vật tư");
+                        }
+                        if ($supply->quantity < $item['quantity']) {
+                            throw new \Exception("Không đủ tồn kho cho vật tư '{$supply->name}'. Tồn kho: {$supply->quantity}, Yêu cầu: {$item['quantity']}");
+                        }
+                    }
+                    
                     $subtotal = $item['quantity'] * $item['unit_price'];
                     $totalExchange += $subtotal;
                     
@@ -456,6 +476,32 @@ class ReturnController extends Controller
                 return back()->with('error', $conflictMessage);
             }
 
+            // Check inventory availability for exchange items
+            if ($return->type === 'exchange') {
+                foreach ($return->exchangeItems as $item) {
+                    if ($item->item_type === 'painting') {
+                        $painting = Painting::find($item->item_id);
+                        if (!$painting || $painting->quantity < $item->quantity) {
+                            $itemName = $painting ? $painting->name : 'N/A';
+                            $available = $painting ? $painting->quantity : 0;
+                            $conflicts[] = "Sản phẩm đổi mới '{$itemName}': Tồn kho {$available}, Yêu cầu {$item->quantity}";
+                        }
+                    } else {
+                        $supply = Supply::find($item->item_id);
+                        if (!$supply || $supply->quantity < $item->quantity) {
+                            $itemName = $supply ? $supply->name : 'N/A';
+                            $available = $supply ? $supply->quantity : 0;
+                            $conflicts[] = "Vật tư đổi mới '{$itemName}': Tồn kho {$available}, Yêu cầu {$item->quantity}";
+                        }
+                    }
+                }
+                
+                if (!empty($conflicts)) {
+                    $conflictMessage = "Không thể duyệt phiếu đổi hàng:\n" . implode("\n", $conflicts);
+                    return back()->with('error', $conflictMessage);
+                }
+            }
+
             $return->update([
                 'status' => 'approved',
                 'processed_by' => Auth::id()
@@ -506,6 +552,19 @@ class ReturnController extends Controller
                     $painting = Painting::find($item->item_id);
                     if ($painting) {
                         $painting->increment('quantity', $item->quantity);
+                        
+                        // Create inventory transaction
+                        InventoryTransaction::create([
+                            'transaction_type' => 'import',
+                            'item_type' => 'painting',
+                            'item_id' => $item->item_id,
+                            'quantity' => $item->quantity,
+                            'reference_type' => 'return',
+                            'reference_id' => $return->id,
+                            'transaction_date' => $return->return_date,
+                            'notes' => ($return->type === 'exchange' ? 'Đổi hàng' : 'Trả hàng') . " - Phiếu {$return->return_code}",
+                            'created_by' => Auth::id(),
+                        ]);
                     }
                 }
                 
@@ -515,6 +574,19 @@ class ReturnController extends Controller
                     if ($supply) {
                         $totalLength = $item->supply_length * $item->quantity;
                         $supply->increment('quantity', $totalLength);
+                        
+                        // Create inventory transaction
+                        InventoryTransaction::create([
+                            'transaction_type' => 'import',
+                            'item_type' => 'supply',
+                            'item_id' => $item->supply_id,
+                            'quantity' => $totalLength,
+                            'reference_type' => 'return',
+                            'reference_id' => $return->id,
+                            'transaction_date' => $return->return_date,
+                            'notes' => ($return->type === 'exchange' ? 'Đổi hàng' : 'Trả hàng') . " - Phiếu {$return->return_code}",
+                            'created_by' => Auth::id(),
+                        ]);
                     }
                 }
             }
@@ -529,6 +601,19 @@ class ReturnController extends Controller
                                 throw new \Exception("Không đủ tồn kho cho sản phẩm: " . ($painting->name ?? 'N/A'));
                             }
                             $painting->decrement('quantity', $item->quantity);
+                            
+                            // Create inventory transaction
+                            InventoryTransaction::create([
+                                'transaction_type' => 'export',
+                                'item_type' => 'painting',
+                                'item_id' => $item->item_id,
+                                'quantity' => $item->quantity,
+                                'reference_type' => 'return',
+                                'reference_id' => $return->id,
+                                'transaction_date' => $return->return_date,
+                                'notes' => "Đổi hàng (sản phẩm mới) - Phiếu {$return->return_code}",
+                                'created_by' => Auth::id(),
+                            ]);
                         }
                     } else {
                         $supply = Supply::find($item->item_id);
@@ -537,24 +622,92 @@ class ReturnController extends Controller
                                 throw new \Exception("Không đủ tồn kho cho sản phẩm: " . ($supply->name ?? 'N/A'));
                             }
                             $supply->decrement('quantity', $item->quantity);
+                            
+                            // Create inventory transaction
+                            InventoryTransaction::create([
+                                'transaction_type' => 'export',
+                                'item_type' => 'supply',
+                                'item_id' => $item->item_id,
+                                'quantity' => $item->quantity,
+                                'reference_type' => 'return',
+                                'reference_id' => $return->id,
+                                'transaction_date' => $return->return_date,
+                                'notes' => "Đổi hàng (sản phẩm mới) - Phiếu {$return->return_code}",
+                                'created_by' => Auth::id(),
+                            ]);
                         }
                     }
                 }
             }
 
-            // Update sale totals to reflect returned items
+            // Update sale totals based on return type
             $sale = $return->sale;
-            $returnedValue = $return->total_refund;
             
-            // Reduce the total_vnd of the sale by the returned value
-            $newTotalVnd = $sale->total_vnd - $returnedValue;
-            $newTotalUsd = $sale->total_usd - ($returnedValue / $sale->exchange_rate);
-            
-            // Update sale totals
-            $sale->update([
-                'total_vnd' => $newTotalVnd,
-                'total_usd' => $newTotalUsd,
-            ]);
+            if ($return->type === 'return') {
+                // For returns: reduce sale total by returned value
+                $returnedValue = $return->total_refund;
+                $newTotalVnd = $sale->total_vnd - $returnedValue;
+                $newTotalUsd = $sale->total_usd - ($returnedValue / $sale->exchange_rate);
+                
+                // Update sale totals
+                $sale->update([
+                    'total_vnd' => $newTotalVnd,
+                    'total_usd' => $newTotalUsd,
+                ]);
+            } elseif ($return->type === 'exchange') {
+                // For exchanges: update sale items to reflect the new products
+                // Remove or reduce old items (set quantity to 0 instead of deleting to avoid foreign key issues)
+                foreach ($return->items as $returnItem) {
+                    $saleItem = $returnItem->saleItem;
+                    // Reduce quantity or set to 0 if fully exchanged
+                    if ($saleItem->quantity <= $returnItem->quantity) {
+                        $saleItem->update([
+                            'quantity' => 0,
+                            'total_usd' => 0,
+                            'total_vnd' => 0,
+                        ]);
+                    } else {
+                        $newQty = $saleItem->quantity - $returnItem->quantity;
+                        $saleItem->update([
+                            'quantity' => $newQty,
+                            'total_usd' => $newQty * $saleItem->price_usd * (1 - $saleItem->discount_percent / 100),
+                            'total_vnd' => $newQty * $saleItem->price_vnd * (1 - $saleItem->discount_percent / 100),
+                        ]);
+                    }
+                }
+                
+                // Add new exchange items to sale
+                foreach ($return->exchangeItems as $exchangeItem) {
+                    $priceUsd = $exchangeItem->unit_price / $sale->exchange_rate;
+                    $priceVnd = $exchangeItem->unit_price;
+                    
+                    // Get item description
+                    $description = '';
+                    if ($exchangeItem->item_type === 'painting') {
+                        $painting = Painting::find($exchangeItem->item_id);
+                        $description = $painting ? $painting->name : 'N/A';
+                    } else {
+                        $supply = Supply::find($exchangeItem->item_id);
+                        $description = $supply ? $supply->name : 'N/A';
+                    }
+                    
+                    $sale->items()->create([
+                        'painting_id' => $exchangeItem->item_type === 'painting' ? $exchangeItem->item_id : null,
+                        'supply_id' => $exchangeItem->item_type === 'supply' ? $exchangeItem->item_id : null,
+                        'description' => $description,
+                        'quantity' => $exchangeItem->quantity,
+                        'currency' => 'VND',
+                        'price_usd' => $priceUsd,
+                        'price_vnd' => $priceVnd,
+                        'discount_percent' => 0,
+                        'total_usd' => $exchangeItem->subtotal / $sale->exchange_rate,
+                        'total_vnd' => $exchangeItem->subtotal,
+                    ]);
+                }
+                
+                // Recalculate sale totals
+                $sale->calculateTotals();
+            }
             
             // Create payment based on type
             if ($return->type === 'return') {
@@ -581,25 +734,32 @@ class ReturnController extends Controller
 
             $return->update(['status' => 'completed']);
 
-            // Check if all items are returned, if yes, cancel the sale
-            $sale = $return->sale->fresh(); // Refresh to get updated totals
-            $totalSaleItems = $sale->items->sum('quantity');
-            $totalReturnedItems = ReturnItem::whereHas('return', function($q) use ($sale) {
-                $q->where('sale_id', $sale->id)
-                  ->where('status', 'completed');
-            })->sum('quantity');
+            // Update sale payment status based on return type
+            if ($return->type === 'return') {
+                $sale = $return->sale->fresh(); // Refresh to get updated totals
+                $totalSaleItems = $sale->items->sum('quantity');
+                $totalReturnedItems = ReturnItem::whereHas('return', function($q) use ($sale) {
+                    $q->where('sale_id', $sale->id)
+                      ->where('status', 'completed')
+                      ->where('type', 'return'); // Only count returns, not exchanges
+                })->sum('quantity');
 
-            if ($totalReturnedItems >= $totalSaleItems) {
-                // All items returned, cancel the sale
-                $sale->update(['payment_status' => 'cancelled']);
-                
-                // Update debt if exists
-                if ($sale->debt) {
-                    $sale->debt->update(['status' => 'cancelled']);
+                if ($totalReturnedItems >= $totalSaleItems) {
+                    // All items returned, cancel the sale
+                    $sale->update(['payment_status' => 'cancelled']);
+                    
+                    // Update debt if exists
+                    if ($sale->debt) {
+                        $sale->debt->update(['status' => 'cancelled']);
+                    }
+                } else {
+                    // Partial return, update payment status
+                    $sale->updatePaymentStatus();
                 }
-            } else {
-                // Partial return, update payment status
-                $sale->updatePaymentStatus();
+            } elseif ($return->type === 'exchange') {
+                // For exchanges: just update payment status, don't change sale status
+                // Sale remains active with updated items
+                $sale->fresh()->updatePaymentStatus();
             }
 
             DB::commit();
@@ -674,27 +834,30 @@ class ReturnController extends Controller
             })->get();
 
             foreach ($salesWithReturns as $sale) {
-                // Calculate total returned value for this sale
+                // Calculate total returned value for this sale (only returns, not exchanges)
                 $totalReturnedValue = ReturnItem::whereHas('return', function($q) use ($sale) {
                     $q->where('sale_id', $sale->id)
-                      ->where('status', 'completed');
+                      ->where('status', 'completed')
+                      ->where('type', 'return'); // Only count returns, not exchanges
                 })->sum('subtotal');
 
-                // Get original sale total (before any returns)
-                $originalTotalVnd = $sale->subtotal_vnd - $sale->discount_vnd;
-                
-                // Calculate new total after returns
-                $newTotalVnd = $originalTotalVnd - $totalReturnedValue;
-                $newTotalUsd = $newTotalVnd / $sale->exchange_rate;
+                if ($totalReturnedValue > 0) {
+                    // Get original sale total (before any returns)
+                    $originalTotalVnd = $sale->subtotal_vnd - $sale->discount_vnd;
+                    
+                    // Calculate new total after returns
+                    $newTotalVnd = $originalTotalVnd - $totalReturnedValue;
+                    $newTotalUsd = $newTotalVnd / $sale->exchange_rate;
 
-                // Update sale totals
-                $sale->update([
-                    'total_vnd' => $newTotalVnd,
-                    'total_usd' => $newTotalUsd,
-                ]);
+                    // Update sale totals
+                    $sale->update([
+                        'total_vnd' => $newTotalVnd,
+                        'total_usd' => $newTotalUsd,
+                    ]);
 
-                // Update payment status
-                $sale->updatePaymentStatus();
+                    // Update payment status
+                    $sale->updatePaymentStatus();
+                }
             }
 
             DB::commit();

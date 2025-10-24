@@ -7,7 +7,7 @@
 @section('content')
 <x-alert />
 
-<form action="{{ route('returns.store') }}" method="POST" id="return-form">
+<form action="{{ route('returns.store') }}" method="POST" id="return-form" onsubmit="return validateForm(event)">
     @csrf
     
     <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -327,7 +327,23 @@ function addExchangeProduct(id, type, name, price, maxQty) {
         return;
     }
     
-    exchangeProducts.push({id, type, name, price, maxQty, quantity: 1});
+    // Ensure maxQty is a valid number
+    const availableQty = parseInt(maxQty) || 0;
+    
+    if (availableQty <= 0) {
+        showNotification('Sản phẩm này đã hết hàng', 'error');
+        return;
+    }
+    
+    exchangeProducts.push({
+        id, 
+        type, 
+        name, 
+        price, 
+        defaultPrice: price, // Lưu giá mặc định
+        maxQty: availableQty, 
+        quantity: 1
+    });
     renderExchangeProducts();
     updateSummary();
 }
@@ -346,25 +362,50 @@ function renderExchangeProducts() {
     }
     
     container.innerHTML = exchangeProducts.map((product, index) => `
-        <div class="border rounded-lg p-3 mb-2 bg-blue-50">
-            <div class="flex justify-between items-start">
+        <div class="border rounded-lg p-3 mb-2 ${product.quantity > product.maxQty ? 'bg-red-50 border-red-300' : 'bg-blue-50'}">
+            <div class="flex justify-between items-start mb-2">
                 <div class="flex-1">
                     <h5 class="font-medium text-sm">${product.name}</h5>
-                    <p class="text-xs text-gray-600">Giá: ${parseFloat(product.price).toLocaleString('vi-VN')}đ</p>
+                    <p class="text-xs text-gray-500">
+                        Giá mặc định: ${parseFloat(product.defaultPrice || product.price).toLocaleString('vi-VN')}đ
+                        <span class="ml-2 px-2 py-0.5 rounded-full ${product.maxQty > 0 ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}">
+                            <i class="fas fa-box mr-1"></i>Tồn: ${product.maxQty}
+                        </span>
+                    </p>
                 </div>
-                <div class="flex items-center gap-2">
+                <button type="button" onclick="removeExchangeProduct(${index})" class="text-red-600 hover:text-red-800">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <div class="grid grid-cols-2 gap-2">
+                <div>
+                    <label class="text-xs text-gray-600 block mb-1">
+                        Số lượng 
+                        ${product.quantity > product.maxQty ? '<span class="text-red-600">(Vượt tồn kho!)</span>' : ''}
+                    </label>
                     <input type="number" 
-                           class="w-16 px-2 py-1 border rounded text-center text-sm exchange-qty"
+                           class="w-full px-2 py-1 border rounded text-center text-sm exchange-qty ${product.quantity > product.maxQty ? 'border-red-500' : ''}"
                            min="1" 
                            max="${product.maxQty}" 
                            value="${product.quantity}"
                            data-index="${index}"
-                           data-price="${product.price}"
                            onchange="updateExchangeQty(${index}, this.value)">
-                    <button type="button" onclick="removeExchangeProduct(${index})" class="text-red-600 hover:text-red-800">
-                        <i class="fas fa-times"></i>
-                    </button>
+                    ${product.quantity > product.maxQty ? '<p class="text-xs text-red-600 mt-1">Không đủ hàng trong kho</p>' : ''}
                 </div>
+                <div>
+                    <label class="text-xs text-gray-600 block mb-1">Giá bán (đ)</label>
+                    <input type="number" 
+                           class="w-full px-2 py-1 border rounded text-sm exchange-price"
+                           min="0" 
+                           step="1000"
+                           value="${product.price}"
+                           data-index="${index}"
+                           onchange="updateExchangePrice(${index}, this.value)"
+                           placeholder="Nhập giá bán">
+                </div>
+            </div>
+            <div class="mt-2 text-xs text-gray-600 text-right">
+                Thành tiền: <span class="font-medium text-blue-700">${(product.quantity * product.price).toLocaleString('vi-VN')}đ</span>
             </div>
             <input type="hidden" name="exchange_items[${index}][item_type]" value="${product.type}">
             <input type="hidden" name="exchange_items[${index}][item_id]" value="${product.id}">
@@ -376,6 +417,12 @@ function renderExchangeProducts() {
 
 function updateExchangeQty(index, qty) {
     exchangeProducts[index].quantity = parseInt(qty) || 1;
+    renderExchangeProducts();
+    updateSummary();
+}
+
+function updateExchangePrice(index, price) {
+    exchangeProducts[index].price = parseFloat(price) || 0;
     renderExchangeProducts();
     updateSummary();
 }
@@ -425,7 +472,8 @@ function updateSummary() {
         document.getElementById('summary-exchange-qty').textContent = exchangeQty;
         document.getElementById('summary-exchange-amount').textContent = exchangeAmount.toLocaleString('vi-VN') + 'đ';
         
-        const difference = exchangeAmount - returnValue;
+        // Calculate difference based on actual credit (what customer paid)
+        const difference = exchangeAmount - actualRefund;
         const diffEl = document.getElementById('summary-difference');
         diffEl.textContent = Math.abs(difference).toLocaleString('vi-VN') + 'đ';
         
@@ -457,6 +505,80 @@ function updateReturnType() {
     }
     
     updateSummary();
+}
+
+function validateForm(event) {
+    const type = document.getElementById('return-type').value;
+    
+    // Validate: Must have return items
+    const returnInputs = document.querySelectorAll('.return-qty');
+    let hasReturnItems = false;
+    returnInputs.forEach(input => {
+        if (parseInt(input.value) > 0) {
+            hasReturnItems = true;
+        }
+    });
+    
+    if (!hasReturnItems) {
+        event.preventDefault();
+        showNotification('Vui lòng chọn ít nhất một sản phẩm để trả', 'error');
+        return false;
+    }
+    
+    // Validate: If exchange type, must have exchange products
+    if (type === 'exchange') {
+        if (exchangeProducts.length === 0) {
+            event.preventDefault();
+            showNotification('Vui lòng chọn sản phẩm để đổi', 'error');
+            return false;
+        }
+        
+        // Validate: Check inventory for each exchange product
+        let hasInventoryError = false;
+        exchangeProducts.forEach(product => {
+            if (product.quantity > product.maxQty) {
+                hasInventoryError = true;
+                showNotification(`Sản phẩm "${product.name}" không đủ tồn kho. Tồn: ${product.maxQty}, Yêu cầu: ${product.quantity}`, 'error');
+            }
+        });
+        
+        if (hasInventoryError) {
+            event.preventDefault();
+            return false;
+        }
+    }
+    
+    return true;
+}
+
+function showNotification(message, type = 'info') {
+    // Create notification element
+    const notification = document.createElement('div');
+    notification.className = `fixed top-4 right-4 z-50 px-6 py-4 rounded-lg shadow-lg transform transition-all duration-300 ${
+        type === 'error' ? 'bg-red-500 text-white' :
+        type === 'warning' ? 'bg-yellow-500 text-white' :
+        type === 'success' ? 'bg-green-500 text-white' :
+        'bg-blue-500 text-white'
+    }`;
+    notification.innerHTML = `
+        <div class="flex items-center gap-3">
+            <i class="fas ${
+                type === 'error' ? 'fa-exclamation-circle' :
+                type === 'warning' ? 'fa-exclamation-triangle' :
+                type === 'success' ? 'fa-check-circle' :
+                'fa-info-circle'
+            }"></i>
+            <span>${message}</span>
+        </div>
+    `;
+    
+    document.body.appendChild(notification);
+    
+    // Auto remove after 5 seconds
+    setTimeout(() => {
+        notification.style.opacity = '0';
+        setTimeout(() => notification.remove(), 300);
+    }, 5000);
 }
 </script>
 @endpush

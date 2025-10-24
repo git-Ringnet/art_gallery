@@ -228,15 +228,28 @@
                             </span>
                         @endif
                     </td>
-                    <td class="px-4 py-3 text-right text-red-600 font-bold">
+                    <td class="px-4 py-3 text-right font-bold">
                         @php
                             // Tính số nợ còn lại SAU khi thanh toán này (dùng ID để đảm bảo thứ tự)
                             $paidUpToNow = $payment->sale->payments()
                                 ->where('id', '<=', $payment->id)
                                 ->sum('amount');
                             $remainingDebt = $payment->sale->total_vnd - $paidUpToNow;
+                            
+                            // Check if sale has exchange that changed total
+                            $hasExchange = $payment->sale->returns()
+                                ->where('type', 'exchange')
+                                ->where('status', 'completed')
+                                ->exists();
                         @endphp
-                        {{ number_format($remainingDebt, 0, ',', '.') }}đ
+                        <span class="{{ $remainingDebt > 0 ? 'text-red-600' : ($remainingDebt < 0 ? 'text-green-600' : 'text-gray-600') }}">
+                            {{ number_format($remainingDebt, 0, ',', '.') }}đ
+                        </span>
+                        @if($hasExchange && $remainingDebt < 0)
+                            <span class="text-xs text-gray-500 block" title="Số âm do đổi hàng làm thay đổi tổng hóa đơn">
+                                (Đã đổi hàng)
+                            </span>
+                        @endif
                     </td>
                     <td class="px-4 py-3 text-center">
                         @php
