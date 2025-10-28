@@ -91,11 +91,13 @@ class ReturnController extends Controller
                 ->sum('quantity');
             $returnedQuantities[$item->id] = $returned;
             
-            // Add item name for display
+            // Add item name and image for display
             if ($item->painting_id) {
                 $item->item_name = $item->painting->name ?? 'N/A';
+                $item->painting_image = $item->painting->image ?? null;
             } else {
                 $item->item_name = $item->supply->name ?? 'N/A';
+                $item->painting_image = null;
             }
             
             // Calculate unit price after applying discounts

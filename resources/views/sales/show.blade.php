@@ -139,9 +139,10 @@
         @if($sale->returns->where('status', 'completed')->count() > 0)
         <div class="bg-white rounded-xl shadow-lg p-6">
             <h3 class="font-semibold text-lg mb-4 flex items-center">
-                <i class="fas fa-exchange-alt text-orange-600 mr-2"></i>
-                Lịch sử đổi/trả hàng
+                <i class="fas fa-history text-orange-600 mr-2"></i>
+                Các lần đổi hàng / trả hàng
             </h3>
+            <p class="text-sm text-gray-500 mb-3 italic">Danh sách các lần khách hàng đã đổi hoặc trả sản phẩm</p>
             <div class="space-y-3">
                 @foreach($sale->returns->where('status', 'completed') as $return)
                 <div class="p-3 bg-gray-50 rounded border-l-4 @if($return->type == 'exchange') border-blue-500 @else border-red-500 @endif">
@@ -162,6 +163,8 @@
                                     @foreach($return->items as $returnItem)
                                         @php
                                             $oldItemName = $returnItem->saleItem->description ?? 'N/A';
+                                            // Giá của sản phẩm cũ (từ return_items)
+                                            $oldItemPrice = $returnItem->subtotal ?? 0;
                                         @endphp
                                         @foreach($return->exchangeItems as $exchangeItem)
                                             @php
@@ -170,11 +173,17 @@
                                                 } else {
                                                     $newItemName = $exchangeItem->supply->name ?? 'N/A';
                                                 }
+                                                // Giá của sản phẩm mới (từ exchange_items)
+                                                $newItemPrice = $exchangeItem->subtotal ?? 0;
                                             @endphp
-                                            <div class="flex items-center gap-2 text-gray-700">
-                                                <span class="line-through text-gray-500">{{ $oldItemName }}</span>
-                                                <i class="fas fa-arrow-right text-blue-500"></i>
-                                                <span class="font-medium text-blue-700">{{ $newItemName }}</span>
+                                            <div class="text-gray-700 space-y-1">
+                                                <div class="flex items-center gap-2">
+                                                    <span class="line-through text-gray-500">{{ $oldItemName }}</span>
+                                                    <span class="text-gray-500 text-xs">({{ number_format($oldItemPrice) }}đ)</span>
+                                                    <i class="fas fa-arrow-right text-blue-500"></i>
+                                                    <span class="font-medium text-blue-700">{{ $newItemName }}</span>
+                                                    <span class="text-blue-600 text-xs font-medium">({{ number_format($newItemPrice) }}đ)</span>
+                                                </div>
                                             </div>
                                         @endforeach
                                     @endforeach
@@ -219,9 +228,10 @@
         @if($sale->payments->count() > 0)
         <div class="bg-white rounded-xl shadow-lg p-6">
             <h3 class="font-semibold text-lg mb-4 flex items-center">
-                <i class="fas fa-money-bill text-green-600 mr-2"></i>
-                Lịch sử thanh toán
+                <i class="fas fa-receipt text-green-600 mr-2"></i>
+                Các lần khách đã trả tiền
             </h3>
+            <p class="text-sm text-gray-500 mb-3 italic">Danh sách các lần khách hàng đã thanh toán cho hóa đơn này</p>
             <div class="space-y-3">
                 @foreach($sale->payments as $payment)
                 <div class="flex justify-between items-center p-3 bg-gray-50 rounded">
@@ -302,14 +312,20 @@
                         <div class="text-sm text-gray-500">{{ number_format($sale->total_vnd) }}đ</div>
                     </div>
                 </div>
-                <div class="flex justify-between text-blue-600">
-                    <span>Đã thanh toán:</span>
-                    <span class="font-bold">{{ number_format($sale->paid_amount) }}đ</span>
+                <div class="flex justify-between bg-blue-50 p-3 rounded">
+                    <span class="text-blue-700 font-medium">Tổng tiền khách đã trả:</span>
+                    <span class="font-bold text-blue-700 text-lg">{{ number_format($sale->paid_amount) }}đ</span>
                 </div>
                 @if($sale->debt_amount > 0)
-                <div class="flex justify-between text-red-600 bg-red-50 p-3 rounded">
-                    <span class="font-bold">Còn nợ:</span>
-                    <span class="font-bold text-lg">{{ number_format($sale->debt_amount) }}đ</span>
+                <div class="flex justify-between text-red-600 bg-red-50 p-3 rounded border-2 border-red-200">
+                    <span class="font-bold text-base">Số tiền còn thiếu:</span>
+                    <span class="font-bold text-xl">{{ number_format($sale->debt_amount) }}đ</span>
+                </div>
+                @else
+                <div class="flex justify-between text-green-600 bg-green-50 p-3 rounded border-2 border-green-200">
+                    <span class="font-bold text-base">
+                        <i class="fas fa-check-circle mr-1"></i>Đã thanh toán đủ
+                    </span>
                 </div>
                 @endif
             </div>

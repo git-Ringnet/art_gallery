@@ -155,6 +155,7 @@
                     <table class="w-full text-sm">
                         <thead class="bg-white border-b">
                             <tr>
+                                <th class="px-2 py-2 text-left text-xs">Hình ảnh</th>
                                 <th class="px-2 py-2 text-left text-xs">Sản phẩm</th>
                                 <th class="px-2 py-2 text-left text-xs">Vật tư(Khung)</th>
                                 <th class="px-2 py-2 text-center text-xs">Số mét/Cây</th>
@@ -167,6 +168,17 @@
                         <tbody class="bg-white">
                             @foreach($return->items as $item)
                             <tr class="border-b">
+                                <td class="px-2 py-2">
+                                    @if($item->item_type === 'painting' && $item->painting && $item->painting->image)
+                                        <img src="{{ asset('storage/' . $item->painting->image) }}" alt="{{ $item->painting->name }}" 
+                                            class="w-12 h-12 object-cover rounded-lg cursor-pointer hover:opacity-80 transition-opacity"
+                                            onclick="showImageModal('{{ asset('storage/' . $item->painting->image) }}', '{{ $item->painting->name }}')">
+                                    @else
+                                        <div class="w-12 h-12 bg-gray-200 rounded-lg flex items-center justify-center">
+                                            <i class="fas fa-image text-gray-400 text-sm"></i>
+                                        </div>
+                                    @endif
+                                </td>
                                 <td class="px-2 py-2">
                                     <p class="font-medium text-sm">
                                         @if($item->item_type === 'painting')
@@ -242,6 +254,7 @@
                     <table class="w-full text-sm">
                         <thead class="bg-white border-b">
                             <tr>
+                                <th class="px-2 py-2 text-left text-xs">Hình ảnh</th>
                                 <th class="px-2 py-2 text-left text-xs">Sản phẩm</th>
                                 <th class="px-2 py-2 text-left text-xs">Vật tư(Khung)</th>
                                 <th class="px-2 py-2 text-center text-xs">Số mét/Cây</th>
@@ -254,6 +267,17 @@
                         <tbody class="bg-white">
                             @foreach($return->exchangeItems as $item)
                             <tr class="border-b">
+                                <td class="px-2 py-2">
+                                    @if($item->item_type === 'painting' && $item->painting && $item->painting->image)
+                                        <img src="{{ asset('storage/' . $item->painting->image) }}" alt="{{ $item->painting->name }}" 
+                                            class="w-12 h-12 object-cover rounded-lg cursor-pointer hover:opacity-80 transition-opacity"
+                                            onclick="showImageModal('{{ asset('storage/' . $item->painting->image) }}', '{{ $item->painting->name }}')">
+                                    @else
+                                        <div class="w-12 h-12 bg-gray-200 rounded-lg flex items-center justify-center">
+                                            <i class="fas fa-image text-gray-400 text-sm"></i>
+                                        </div>
+                                    @endif
+                                </td>
                                 <td class="px-2 py-2">
                                     <p class="font-medium text-sm">
                                         @if($item->item_type === 'painting')
@@ -336,6 +360,7 @@
                 <thead class="bg-gray-50">
                     <tr>
                         <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">STT</th>
+                        <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Hình ảnh</th>
                         <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Sản phẩm</th>
                         <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Loại</th>
                         <th class="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">Số lượng</th>
@@ -348,6 +373,17 @@
                     @foreach($return->items as $index => $item)
                     <tr>
                         <td class="px-4 py-3 text-sm">{{ $index + 1 }}</td>
+                        <td class="px-4 py-3">
+                            @if($item->item_type === 'painting' && $item->painting && $item->painting->image)
+                                <img src="{{ asset('storage/' . $item->painting->image) }}" alt="{{ $item->painting->name }}" 
+                                    class="w-16 h-16 object-cover rounded-lg cursor-pointer hover:opacity-80 transition-opacity"
+                                    onclick="showImageModal('{{ asset('storage/' . $item->painting->image) }}', '{{ $item->painting->name }}')">
+                            @else
+                                <div class="w-16 h-16 bg-gray-200 rounded-lg flex items-center justify-center">
+                                    <i class="fas fa-image text-gray-400"></i>
+                                </div>
+                            @endif
+                        </td>
                         <td class="px-4 py-3 text-sm font-medium">
                             @if($item->item_type === 'painting')
                                 {{ $item->painting->name ?? 'N/A' }}
@@ -402,4 +438,44 @@
     </div>
     @endif
 </div>
+
+<!-- Image Modal -->
+<div id="imageModal" class="fixed inset-0 bg-black bg-opacity-75 z-50 hidden flex items-center justify-center p-4" onclick="closeImageModal()">
+    <div class="relative max-w-4xl max-h-full" onclick="event.stopPropagation()">
+        <button onclick="closeImageModal()" class="absolute -top-10 right-0 text-white hover:text-gray-300">
+            <i class="fas fa-times text-2xl"></i>
+        </button>
+        <img id="modalImage" src="" alt="" class="max-w-full max-h-[90vh] object-contain rounded-lg">
+        <p id="modalImageTitle" class="text-white text-center mt-4 text-lg"></p>
+    </div>
+</div>
+
+@push('scripts')
+<script>
+function showImageModal(imageSrc, imageTitle) {
+    const modal = document.getElementById('imageModal');
+    const modalImage = document.getElementById('modalImage');
+    const modalTitle = document.getElementById('modalImageTitle');
+    
+    modalImage.src = imageSrc;
+    modalTitle.textContent = imageTitle;
+    modal.classList.remove('hidden');
+    document.body.style.overflow = 'hidden';
+}
+
+function closeImageModal() {
+    const modal = document.getElementById('imageModal');
+    modal.classList.add('hidden');
+    document.body.style.overflow = 'auto';
+}
+
+// Close modal with ESC key
+document.addEventListener('keydown', function(event) {
+    if (event.key === 'Escape') {
+        closeImageModal();
+    }
+});
+</script>
+@endpush
+
 @endsection

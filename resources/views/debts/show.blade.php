@@ -27,53 +27,53 @@
                 Thông tin công nợ
             </h3>
             
-            <div class="space-y-3">
+            <div class="space-y-4">
                 <div>
-                    <label class="text-sm text-gray-500">Mã hóa đơn</label>
-                    <p class="font-medium text-blue-600">{{ $debt->sale->invoice_code }}</p>
+                    <label class="text-sm text-gray-500 font-medium">Mã hóa đơn</label>
+                    <p class="font-bold text-blue-600 text-lg">{{ $debt->sale->invoice_code }}</p>
                 </div>
                 
                 <div>
-                    <label class="text-sm text-gray-500">Khách hàng</label>
-                    <p class="font-medium text-gray-900">{{ $debt->customer->name }}</p>
+                    <label class="text-sm text-gray-500 font-medium">Tên khách hàng</label>
+                    <p class="font-medium text-gray-900 text-base">{{ $debt->customer->name }}</p>
                 </div>
                 
                 <div>
-                    <label class="text-sm text-gray-500">Số điện thoại</label>
-                    <p class="font-medium text-gray-900">
+                    <label class="text-sm text-gray-500 font-medium">Số điện thoại</label>
+                    <p class="font-medium text-gray-900 text-base">
                         <i class="fas fa-phone text-blue-500 mr-2"></i>{{ $debt->customer->phone ?? '-' }}
                     </p>
                 </div>
                 
                 <div>
-                    <label class="text-sm text-gray-500">Ngày bán</label>
-                    <p class="font-medium text-gray-900">{{ $debt->sale->sale_date->format('d/m/Y') }}</p>
+                    <label class="text-sm text-gray-500 font-medium">Ngày mua hàng</label>
+                    <p class="font-medium text-gray-900 text-base">{{ $debt->sale->sale_date->format('d/m/Y') }}</p>
                 </div>
                 
                 <div>
-                    <label class="text-sm text-gray-500">Hạn thanh toán</label>
-                    <p class="font-medium {{ $debt->isOverdue() ? 'text-red-600' : 'text-gray-900' }}">
+                    <label class="text-sm text-gray-500 font-medium">Hạn trả tiền</label>
+                    <p class="font-medium {{ $debt->isOverdue() ? 'text-red-600' : 'text-gray-900' }} text-base">
                         {{ $debt->due_date ? $debt->due_date->format('d/m/Y') : '-' }}
                         @if($debt->isOverdue())
-                            <span class="text-xs">(Quá hạn)</span>
+                            <span class="text-sm ml-1">(Đã quá hạn)</span>
                         @endif
                     </p>
                 </div>
             </div>
 
             <!-- Amount Summary -->
-            <div class="mt-6 pt-6 border-t space-y-3">
-                <div class="flex justify-between">
-                    <span class="text-gray-600">Tổng tiền:</span>
-                    <span class="font-bold text-gray-900">{{ number_format($debt->total_amount, 0, ',', '.') }}đ</span>
+            <div class="mt-6 pt-6 border-t-2 space-y-4">
+                <div class="flex justify-between items-center">
+                    <span class="text-gray-700 font-medium text-base">Tổng tiền hóa đơn:</span>
+                    <span class="font-bold text-gray-900 text-lg">{{ number_format($debt->total_amount, 0, ',', '.') }}đ</span>
                 </div>
-                <div class="flex justify-between">
-                    <span class="text-gray-600">Đã thanh toán:</span>
-                    <span class="font-bold text-green-600">{{ number_format($debt->paid_amount, 0, ',', '.') }}đ</span>
+                <div class="flex justify-between items-center bg-green-50 p-3 rounded-lg">
+                    <span class="text-green-700 font-medium text-base">Khách đã trả:</span>
+                    <span class="font-bold text-green-700 text-lg">{{ number_format($debt->paid_amount, 0, ',', '.') }}đ</span>
                 </div>
-                <div class="flex justify-between pt-3 border-t">
-                    <span class="text-gray-900 font-medium">Còn nợ:</span>
-                    <span class="font-bold text-red-600 text-xl">{{ number_format($debt->debt_amount, 0, ',', '.') }}đ</span>
+                <div class="flex justify-between items-center pt-3 border-t-2 bg-red-50 p-4 rounded-lg border-2 border-red-200">
+                    <span class="text-red-700 font-bold text-lg">Còn nợ:</span>
+                    <span class="font-bold text-red-600 text-2xl">{{ number_format($debt->debt_amount, 0, ',', '.') }}đ</span>
                 </div>
             </div>
 
@@ -121,19 +121,20 @@
     <div class="lg:col-span-2">
         <div class="bg-white rounded-xl shadow-lg p-6 fade-in">
             <h3 class="text-lg font-bold text-gray-800 mb-4 flex items-center">
-                <i class="fas fa-history text-blue-500 mr-2"></i>
-                Lịch sử thanh toán
+                <i class="fas fa-receipt text-blue-500 mr-2"></i>
+                Các lần khách đã trả tiền
             </h3>
+            <p class="text-sm text-gray-500 mb-4 italic">Danh sách các lần khách hàng đã thanh toán cho hóa đơn này</p>
 
             @if($debt->sale->payments->count() > 0)
             <div class="overflow-x-auto">
                 <table class="w-full">
                     <thead class="bg-gray-50">
                         <tr>
-                            <th class="px-4 py-2 text-left text-sm font-medium text-gray-700">Ngày thanh toán</th>
-                            <th class="px-4 py-2 text-right text-sm font-medium text-gray-700">Số tiền</th>
-                            <th class="px-4 py-2 text-center text-sm font-medium text-gray-700">Phương thức</th>
-                            <th class="px-4 py-2 text-center text-sm font-medium text-gray-700">Người thu</th>
+                            <th class="px-4 py-2 text-left text-sm font-medium text-gray-700">Ngày trả</th>
+                            <th class="px-4 py-2 text-right text-sm font-medium text-gray-700">Số tiền đã trả</th>
+                            <th class="px-4 py-2 text-center text-sm font-medium text-gray-700">Hình thức</th>
+                            <th class="px-4 py-2 text-center text-sm font-medium text-gray-700">Người thu tiền</th>
                             <th class="px-4 py-2 text-left text-sm font-medium text-gray-700">Ghi chú</th>
                         </tr>
                     </thead>

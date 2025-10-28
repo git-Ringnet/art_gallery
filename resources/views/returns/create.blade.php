@@ -245,14 +245,21 @@ function displayProducts(items, returnedQty) {
         hasItems = true;
         const div = document.createElement('div');
         div.className = 'border rounded-lg p-4 mb-3';
+        
+        // Build image HTML
+        const imageHtml = item.painting_image ? 
+            `<img src="/storage/${item.painting_image}" alt="${item.item_name}" class="w-20 h-20 object-cover rounded-lg cursor-pointer hover:opacity-80 transition-opacity flex-shrink-0" onclick="showImageModal('/storage/${item.painting_image}', '${item.item_name.replace(/'/g, "\\'")}')">` :
+            '<div class="w-20 h-20 bg-gray-200 rounded-lg flex items-center justify-center flex-shrink-0"><i class="fas fa-image text-gray-400"></i></div>';
+        
         div.innerHTML = `
-            <div class="flex justify-between items-start mb-2">
+            <div class="flex items-start gap-4 mb-2">
+                ${imageHtml}
                 <div class="flex-1">
                     <h4 class="font-medium">${item.item_name}</h4>
                     <p class="text-sm text-gray-600">Đã mua: ${item.quantity} | Đã trả: ${returnedQty[item.id] || 0} | Còn lại: ${available}</p>
                     <p class="text-sm text-green-600">Đơn giá: ${parseFloat(item.unit_price).toLocaleString('vi-VN')}đ</p>
                 </div>
-                <div class="text-right">
+                <div class="text-right flex-shrink-0">
                     <label class="text-sm text-gray-600">Số lượng trả:</label>
                     <input type="number" 
                            name="items[${item.id}][quantity]" 
@@ -403,7 +410,7 @@ function renderExchangeProducts() {
         <tr class="${rowClass} border-b transition-colors">
             <td class="px-3 py-3">
                 ${product.image ? 
-                    `<img src="/storage/${product.image}" class="w-14 h-14 object-cover rounded-lg shadow-sm border-2 border-gray-200" alt="${product.name}">` : 
+                    `<img src="/storage/${product.image}" class="w-14 h-14 object-cover rounded-lg shadow-sm border-2 border-gray-200 cursor-pointer hover:opacity-80 transition-opacity" alt="${product.name}" onclick="showImageModal('/storage/${product.image}', '${product.name.replace(/'/g, "\\'")}')">` : 
                     '<div class="w-14 h-14 bg-gradient-to-br from-gray-200 to-gray-300 rounded-lg flex items-center justify-center shadow-sm"><i class="fas fa-image text-gray-400 text-xl"></i></div>'}
             </td>
             <td class="px-3 py-3">
@@ -717,5 +724,41 @@ function showNotification(message, type = 'info') {
         setTimeout(() => notification.remove(), 300);
     }, 5000);
 }
+
+// Image modal functions
+function showImageModal(imageSrc, imageTitle) {
+    const modal = document.getElementById('imageModal');
+    const modalImage = document.getElementById('modalImage');
+    const modalTitle = document.getElementById('modalImageTitle');
+    
+    modalImage.src = imageSrc;
+    modalTitle.textContent = imageTitle;
+    modal.classList.remove('hidden');
+    document.body.style.overflow = 'hidden';
+}
+
+function closeImageModal() {
+    const modal = document.getElementById('imageModal');
+    modal.classList.add('hidden');
+    document.body.style.overflow = 'auto';
+}
+    
+// Close modal with ESC key
+document.addEventListener('keydown', function(event) {
+    if (event.key === 'Escape') {
+        closeImageModal();
+    }
+});
 </script>
 @endpush
+
+<!-- Image Modal -->
+<div id="imageModal" class="fixed inset-0 bg-black bg-opacity-75 z-50 hidden flex items-center justify-center p-4" onclick="closeImageModal()">
+    <div class="relative max-w-4xl max-h-full" onclick="event.stopPropagation()">
+        <button onclick="closeImageModal()" class="absolute -top-10 right-0 text-white hover:text-gray-300">
+            <i class="fas fa-times text-2xl"></i>
+        </button>
+        <img id="modalImage" src="" alt="" class="max-w-full max-h-[90vh] object-contain rounded-lg">
+        <p id="modalImageTitle" class="text-white text-center mt-4 text-lg"></p>
+    </div>
+</div>

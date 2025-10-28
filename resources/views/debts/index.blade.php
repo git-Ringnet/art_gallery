@@ -171,15 +171,15 @@
         <table class="w-full">
             <thead class="bg-gradient-to-r from-blue-500 to-cyan-600 text-white">
                 <tr>
-                    <th class="px-4 py-3 text-left">Ngày TT</th>
-                    <th class="px-4 py-3 text-left">Mã HĐ</th>
+                    <th class="px-4 py-3 text-left">Ngày trả tiền</th>
+                    <th class="px-4 py-3 text-left">Mã hóa đơn</th>
                     <th class="px-4 py-3 text-left">Khách hàng</th>
-                    <th class="px-4 py-3 text-left">SĐT</th>
-                    <th class="px-4 py-3 text-right">Tổng tiền</th>
-                    <th class="px-4 py-3 text-right">Đã trả</th>
-                    <th class="px-4 py-3 text-center">PT Thanh toán</th>
-                    <th class="px-4 py-3 text-right">Còn nợ</th>
-                    <th class="px-4 py-3 text-center">TT Thanh toán</th>
+                    <th class="px-4 py-3 text-left">Số điện thoại</th>
+                    <th class="px-4 py-3 text-right">Tổng hóa đơn</th>
+                    <th class="px-4 py-3 text-right">Số tiền trả lần này</th>
+                    <th class="px-4 py-3 text-center">Hình thức</th>
+                    <th class="px-4 py-3 text-right">Còn thiếu</th>
+                    <th class="px-4 py-3 text-center">Tình trạng</th>
                     <th class="px-4 py-3 text-center">Thao tác</th>
                 </tr>
             </thead>
