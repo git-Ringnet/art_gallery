@@ -42,9 +42,10 @@ class Debt extends Model
 
     public function updateDebtAmount()
     {
-        // Đồng bộ với Sale
+        // Đồng bộ với Sale - cập nhật cả total_amount
+        $this->total_amount = $this->sale->total_vnd;
         $this->paid_amount = $this->sale->paid_amount;
-        $this->debt_amount = $this->total_amount - $this->paid_amount;
+        $this->debt_amount = $this->sale->debt_amount;
         
         // Đồng bộ status với Sale payment_status
         $this->status = $this->sale->payment_status;

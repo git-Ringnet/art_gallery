@@ -140,13 +140,13 @@
 
             <!-- Tổng tiền -->
             <div class="grid grid-cols-2 gap-4 mb-4">
-                <div class=" p-4 rounded-lg">
+                <div>
                     <label class="block text-sm font-medium text-blue-900 mb-2">Tổng tiền USD</label>
-                    <input type="text" id="total_usd" readonly class="w-full px-4 py-3 border-2 border-blue-300 rounded-lg bg-white font-bold text-blue-600 text-xl">
+                    <input type="text" id="total_usd" readonly class="w-full px-4 py-2 border-2 border-blue-300 rounded-lg bg-white font-bold text-blue-600">
                 </div>
-                <div class=" p-4 rounded-lg">
+                <div>
                     <label class="block text-sm font-medium text-green-900 mb-2">Tổng tiền VND</label>
-                    <input type="text" id="total_vnd" readonly class="w-full px-4 py-3 border-2 border-green-300 rounded-lg bg-white font-bold text-green-600 text-xl">
+                    <input type="text" id="total_vnd" readonly class="w-full px-4 py-2 border-2 border-green-300 rounded-lg bg-white font-bold text-green-600">
                 </div>
             </div>
 
@@ -156,13 +156,13 @@
                     <label class="block text-sm font-medium text-gray-700 mb-2">Khách trả (VND)</label>
                     <input type="number" name="payment_amount" id="paid" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500" value="0" step="1000" onchange="calcDebt()" placeholder="Nhập số tiền...">
                 </div>
-                <div class=" p-3 rounded-lg">
+                <div>
                     <label class="block text-sm font-medium text-yellow-900 mb-2">Công nợ hiện tại</label>
-                    <input type="text" id="current_debt" readonly class="w-full px-3 py-2 border border-yellow-300 rounded-lg bg-white font-bold text-orange-600 text-lg">
+                    <input type="text" id="current_debt" readonly class="w-full px-4 py-2 border border-yellow-300 rounded-lg bg-white font-bold text-orange-600">
                 </div>
-                <div class=" p-3 rounded-lg">
+                <div>
                     <label class="block text-sm font-medium text-red-900 mb-2">Còn nợ</label>
-                    <input type="text" id="debt" readonly class="w-full px-3 py-2 border border-red-300 rounded-lg bg-white font-bold text-red-600 text-lg">
+                    <input type="text" id="debt" readonly class="w-full px-4 py-2 border border-red-300 rounded-lg bg-white font-bold text-red-600">
                 </div>
             </div>
         </div>
@@ -172,19 +172,19 @@
 
         <!-- Ghi chú -->
         <div class="mb-6">
-            <label class="block text-sm font-medium text-gray-700 mb-2">📝 Ghi chú</label>
+            <label class="block text-sm font-medium text-gray-700 mb-2">Ghi chú</label>
             <textarea name="notes" rows="3" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500" placeholder="Nhập ghi chú (không bắt buộc)..."></textarea>
         </div>
 
         <!-- Buttons -->
         <div class="flex gap-4 pt-6 border-t-2 border-gray-200">
-            <button type="submit" name="action" value="save" class="flex-1 bg-green-600 hover:bg-green-700 text-white py-4 rounded-lg transition-colors font-bold text-lg shadow-lg">
+            <button type="submit" name="action" value="save" class="flex-1 bg-green-600 hover:bg-green-700 text-white py-3 rounded-lg transition-colors font-medium shadow-lg">
                 <i class="fas fa-save mr-2"></i>Lưu hóa đơn
             </button>
-            <button type="submit" name="action" value="save_and_print" class="flex-1 bg-blue-600 hover:bg-blue-700 text-white py-4 rounded-lg transition-colors font-bold text-lg shadow-lg">
+            <button type="submit" name="action" value="save_and_print" class="flex-1 bg-blue-600 hover:bg-blue-700 text-white py-3 rounded-lg transition-colors font-medium shadow-lg">
                 <i class="fas fa-print mr-2"></i>Lưu & In
             </button>
-            <a href="{{ route('sales.index') }}" class="flex-1 bg-gray-500 hover:bg-gray-600 text-white py-4 rounded-lg transition-colors font-bold text-lg text-center shadow-lg">
+            <a href="{{ route('sales.index') }}" class="flex-1 bg-gray-500 hover:bg-gray-600 text-white py-3 rounded-lg transition-colors font-medium text-center shadow-lg">
                 <i class="fas fa-times mr-2"></i>Hủy bỏ
             </a>
         </div>
@@ -335,7 +335,7 @@ function addItem() {
     function filterPaintings(query, idx) {
         const suggestions = document.getElementById(`painting-suggestions-${idx}`);
         
-        if (!query || query.length < 2) {
+        if (!query || query.length < 1) {
             suggestions.classList.add('hidden');
             return;
         }
@@ -365,7 +365,7 @@ function addItem() {
         const input = document.getElementById(`painting-search-${idx}`);
         const suggestions = document.getElementById(`painting-suggestions-${idx}`);
         
-        if (input && input.value.length >= 2) {
+        if (input && input.value.length >= 1) {
             filterPaintings(input.value, idx);
         }
     }
@@ -398,7 +398,7 @@ function selectPainting(paintingId, idx) {
 function filterSupplies(query, idx) {
     const suggestions = document.getElementById(`supply-suggestions-${idx}`);
     
-    if (!query || query.length < 2) {
+    if (!query || query.length < 1) {
         suggestions.classList.add('hidden');
         return;
     }
@@ -428,7 +428,7 @@ function showSupplySuggestions(idx) {
     const input = document.getElementById(`supply-search-${idx}`);
     const suggestions = document.getElementById(`supply-suggestions-${idx}`);
     
-    if (input.value.length >= 2) {
+    if (input.value.length >= 1) {
         filterSupplies(input.value, idx);
     }
 }

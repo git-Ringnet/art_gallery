@@ -13,7 +13,7 @@
     <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <!-- Left Column - Search Invoice -->
         <div class="lg:col-span-2">
-            <div class="bg-white rounded-xl shadow-lg p-6 glass-effect mb-6">
+            <div class="bg-white rounded-xl shadow-lg p-6  mb-6">
                 <h3 class="text-lg font-semibold mb-4">Tìm hóa đơn gốc</h3>
                 
                 <div class="flex gap-3">
@@ -56,7 +56,7 @@
             </div>
             
             <!-- Products List - Return Items -->
-            <div class="bg-white rounded-xl shadow-lg p-6 glass-effect mb-6">
+            <div class="bg-white rounded-xl shadow-lg p-6  mb-6">
                 <h3 class="text-lg font-semibold mb-4">Sản phẩm trả lại</h3>
                 
                 <div id="products-container">
@@ -68,7 +68,7 @@
             </div>
             
             <!-- Exchange Products - Only show when type is exchange -->
-            <div id="exchange-section" class="bg-white rounded-xl shadow-lg p-6 glass-effect hidden">
+            <div id="exchange-section" class="bg-white rounded-xl shadow-lg p-6  hidden">
                 <h3 class="text-lg font-semibold mb-4">Sản phẩm đổi mới</h3>
                 
                 <div class="mb-4">
@@ -113,7 +113,7 @@
         
         <!-- Right Column - Return Info -->
         <div>
-            <div class="bg-white rounded-xl shadow-lg p-6 glass-effect sticky top-6">
+            <div class="bg-white rounded-xl shadow-lg p-6  sticky top-6">
                 <h3 class="text-lg font-semibold mb-4">Thông tin đổi/trả</h3>
                 
                 <div class="space-y-4">
@@ -286,24 +286,22 @@ function searchProductsAuto() {
     clearTimeout(searchTimeout);
     const query = document.getElementById('product-search').value.trim();
     
-    if (query.length < 2) {
+    if (query.length < 1) {
         document.getElementById('product-suggestions').classList.add('hidden');
         return;
     }
     
     searchTimeout = setTimeout(() => {
-        Promise.all([
-            fetch(`{{ route('sales.api.search.paintings') }}?q=${query}`).then(r => r.json()),
-            fetch(`{{ route('sales.api.search.supplies') }}?q=${query}`).then(r => r.json())
-        ]).then(([paintings, supplies]) => {
-            const products = [
-                ...paintings.map(p => ({...p, type: 'painting'})),
-                ...supplies.map(s => ({...s, type: 'supply'}))
-            ];
-            displaySuggestions(products);
-        }).catch(err => {
-            console.error(err);
-        });
+        // Chỉ tìm tranh, không tìm vật tư
+        fetch(`{{ route('sales.api.search.paintings') }}?q=${query}`)
+            .then(r => r.json())
+            .then(paintings => {
+                const products = paintings.map(p => ({...p, type: 'painting'}));
+                displaySuggestions(products);
+            })
+            .catch(err => {
+                console.error(err);
+            });
     }, 300);
 }
 
@@ -521,7 +519,7 @@ function searchSupplyForExchange(index, query) {
     clearTimeout(supplySearchTimeout);
     const container = document.getElementById(`supply-suggestions-${index}`);
     
-    if (query.length < 2) {
+    if (query.length < 1) {
         container.classList.add('hidden');
         return;
     }
