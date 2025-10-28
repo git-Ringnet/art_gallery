@@ -62,6 +62,19 @@ async function renderPermissions() {
     html += '<input type="text" id="search-modules" placeholder="Tìm module..." class="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 pl-10" onkeyup="filterPermissionModules(this.value)">';
     html += '<i class="fas fa-search absolute left-3 top-3 text-gray-400"></i>';
     html += '</div></div>';
+    // Định nghĩa quyền cho từng module
+    const modulePermissions = {
+        'dashboard': ['can_view', 'can_export', 'can_print'],
+        'sales': ['can_view', 'can_create', 'can_edit', 'can_delete', 'can_export', 'can_print', 'can_approve', 'can_cancel'],
+        'debt': ['can_view', 'can_edit', 'can_export', 'can_print'],
+        'returns': ['can_view', 'can_create', 'can_edit', 'can_delete', 'can_export', 'can_print', 'can_approve', 'can_cancel'],
+        'inventory': ['can_view', 'can_create', 'can_edit', 'can_delete', 'can_export', 'can_import', 'can_print'],
+        'showrooms': ['can_view', 'can_create', 'can_edit', 'can_delete'],
+        'customers': ['can_view', 'can_create', 'can_edit', 'can_delete', 'can_export', 'can_print'],
+        'employees': ['can_view', 'can_create', 'can_edit', 'can_delete', 'can_export', 'can_print'],
+        'permissions': ['can_view', 'can_create', 'can_edit', 'can_delete']
+    };
+    
     html += '<div class="overflow-x-auto"><table class="min-w-full divide-y-2 divide-gray-200 border-2 border-gray-200 rounded-lg">';
     html += '<thead class="bg-gray-100"><tr>';
     html += '<th class="px-6 py-4 text-left large-text font-bold text-gray-700 uppercase">Module</th>';
@@ -72,19 +85,80 @@ async function renderPermissions() {
     html += '<th class="px-6 py-4 text-center large-text font-bold text-gray-700 uppercase">Xuất</th>';
     html += '<th class="px-6 py-4 text-center large-text font-bold text-gray-700 uppercase">Nhập</th>';
     html += '<th class="px-6 py-4 text-center large-text font-bold text-gray-700 uppercase">In</th>';
+    html += '<th class="px-6 py-4 text-center large-text font-bold text-gray-700 uppercase">Duyệt</th>';
+    html += '<th class="px-6 py-4 text-center large-text font-bold text-gray-700 uppercase">Hủy</th>';
     html += '</tr></thead><tbody class="bg-white divide-y-2 divide-gray-200">';
     
     for (const [key, label] of Object.entries(modules)) {
         const perms = currentPermissions[key] || {};
+        const allowedPerms = modulePermissions[key] || ['can_view'];
+        
         html += '<tr class="hover:bg-gray-50 module-row" data-module-name="' + label.toLowerCase() + '">';
         html += '<td class="px-6 py-4 large-text font-semibold text-gray-900">' + label + '</td>';
-        html += '<td class="px-6 py-4 text-center"><input type="checkbox" class="perm-checkbox large-checkbox" data-module="' + key + '" data-action="can_view" ' + (perms.can_view ? 'checked' : '') + '></td>';
-        html += '<td class="px-6 py-4 text-center"><input type="checkbox" class="perm-checkbox large-checkbox" data-module="' + key + '" data-action="can_create" ' + (perms.can_create ? 'checked' : '') + '></td>';
-        html += '<td class="px-6 py-4 text-center"><input type="checkbox" class="perm-checkbox large-checkbox" data-module="' + key + '" data-action="can_edit" ' + (perms.can_edit ? 'checked' : '') + '></td>';
-        html += '<td class="px-6 py-4 text-center"><input type="checkbox" class="perm-checkbox large-checkbox" data-module="' + key + '" data-action="can_delete" ' + (perms.can_delete ? 'checked' : '') + '></td>';
-        html += '<td class="px-6 py-4 text-center"><input type="checkbox" class="perm-checkbox large-checkbox" data-module="' + key + '" data-action="can_export" ' + (perms.can_export ? 'checked' : '') + '></td>';
-        html += '<td class="px-6 py-4 text-center"><input type="checkbox" class="perm-checkbox large-checkbox" data-module="' + key + '" data-action="can_import" ' + (perms.can_import ? 'checked' : '') + '></td>';
-        html += '<td class="px-6 py-4 text-center"><input type="checkbox" class="perm-checkbox large-checkbox" data-module="' + key + '" data-action="can_print" ' + (perms.can_print ? 'checked' : '') + '></td>';
+        
+        // Xem
+        html += '<td class="px-6 py-4 text-center">';
+        if (allowedPerms.includes('can_view')) {
+            html += '<input type="checkbox" class="perm-checkbox large-checkbox" data-module="' + key + '" data-action="can_view" ' + (perms.can_view ? 'checked' : '') + '>';
+        }
+        html += '</td>';
+        
+        // Thêm
+        html += '<td class="px-6 py-4 text-center">';
+        if (allowedPerms.includes('can_create')) {
+            html += '<input type="checkbox" class="perm-checkbox large-checkbox" data-module="' + key + '" data-action="can_create" ' + (perms.can_create ? 'checked' : '') + '>';
+        }
+        html += '</td>';
+        
+        // Sửa
+        html += '<td class="px-6 py-4 text-center">';
+        if (allowedPerms.includes('can_edit')) {
+            html += '<input type="checkbox" class="perm-checkbox large-checkbox" data-module="' + key + '" data-action="can_edit" ' + (perms.can_edit ? 'checked' : '') + '>';
+        }
+        html += '</td>';
+        
+        // Xóa
+        html += '<td class="px-6 py-4 text-center">';
+        if (allowedPerms.includes('can_delete')) {
+            html += '<input type="checkbox" class="perm-checkbox large-checkbox" data-module="' + key + '" data-action="can_delete" ' + (perms.can_delete ? 'checked' : '') + '>';
+        }
+        html += '</td>';
+        
+        // Xuất
+        html += '<td class="px-6 py-4 text-center">';
+        if (allowedPerms.includes('can_export')) {
+            html += '<input type="checkbox" class="perm-checkbox large-checkbox" data-module="' + key + '" data-action="can_export" ' + (perms.can_export ? 'checked' : '') + '>';
+        }
+        html += '</td>';
+        
+        // Nhập
+        html += '<td class="px-6 py-4 text-center">';
+        if (allowedPerms.includes('can_import')) {
+            html += '<input type="checkbox" class="perm-checkbox large-checkbox" data-module="' + key + '" data-action="can_import" ' + (perms.can_import ? 'checked' : '') + '>';
+        }
+        html += '</td>';
+        
+        // In
+        html += '<td class="px-6 py-4 text-center">';
+        if (allowedPerms.includes('can_print')) {
+            html += '<input type="checkbox" class="perm-checkbox large-checkbox" data-module="' + key + '" data-action="can_print" ' + (perms.can_print ? 'checked' : '') + '>';
+        }
+        html += '</td>';
+        
+        // Duyệt
+        html += '<td class="px-6 py-4 text-center">';
+        if (allowedPerms.includes('can_approve')) {
+            html += '<input type="checkbox" class="perm-checkbox large-checkbox" data-module="' + key + '" data-action="can_approve" ' + (perms.can_approve ? 'checked' : '') + '>';
+        }
+        html += '</td>';
+        
+        // Hủy
+        html += '<td class="px-6 py-4 text-center">';
+        if (allowedPerms.includes('can_cancel')) {
+            html += '<input type="checkbox" class="perm-checkbox large-checkbox" data-module="' + key + '" data-action="can_cancel" ' + (perms.can_cancel ? 'checked' : '') + '>';
+        }
+        html += '</td>';
+        
         html += '</tr>';
     }
     
@@ -212,7 +286,18 @@ async function savePermissions() {
         
         let perm = permissions.find(p => p.module === module);
         if (!perm) {
-            perm = { module: module, can_view: false, can_create: false, can_edit: false, can_delete: false, can_export: false, can_import: false, can_print: false };
+            perm = { 
+                module: module, 
+                can_view: false, 
+                can_create: false, 
+                can_edit: false, 
+                can_delete: false, 
+                can_export: false, 
+                can_import: false, 
+                can_print: false,
+                can_approve: false,
+                can_cancel: false
+            };
             permissions.push(perm);
         }
         perm[action] = checkbox.checked;

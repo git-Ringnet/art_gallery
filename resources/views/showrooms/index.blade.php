@@ -5,10 +5,12 @@
 @section('page-description', 'Quản lý các phòng trưng bày')
 
 @section('header-actions')
+    @hasPermission('showrooms', 'can_create')
     <a href="{{ route('showrooms.create') }}"
         class="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors">
         <i class="fas fa-plus mr-2"></i>Thêm phòng
     </a>
+    @endhasPermission
 @endsection
 
 @section('content')
@@ -63,10 +65,14 @@
                     </p>
                 @endif
                 <div class="mt-3 flex space-x-2">
+                    @hasPermission('showrooms', 'can_edit')
                     <a href="{{ route('showrooms.edit', $showroom->id) }}"
                         class="px-3 py-1 bg-blue-600 text-white rounded hover:bg-blue-700">
                         <i class="fas fa-edit mr-1"></i>Sửa
                     </a>
+                    @endhasPermission
+                    
+                    @hasPermission('showrooms', 'can_delete')
                     <form action="{{ route('showrooms.destroy', $showroom->id) }}" method="POST" class="inline"
                         onsubmit="return confirm('Bạn có chắc chắn muốn xóa phòng trưng bày này?')">
                         @csrf
@@ -75,6 +81,7 @@
                             <i class="fas fa-trash mr-1"></i>Xóa
                         </button>
                     </form>
+                    @endhasPermission
                 </div>
             </div>
         @empty

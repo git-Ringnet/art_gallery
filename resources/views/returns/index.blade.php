@@ -6,12 +6,17 @@
 
 @section('header-actions')
 <div class="flex gap-3">
+    @hasPermission('returns', 'can_create')
     <a href="{{ route('returns.create') }}" class="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors">
         <i class="fas fa-plus mr-2"></i>Tạo phiếu đổi/trả
     </a>
+    @endhasPermission
+    
+    @hasPermission('returns', 'can_edit')
     <button onclick="recalculateSaleTotals()" class="bg-orange-600 text-white px-4 py-2 rounded-lg hover:bg-orange-700 transition-colors">
         <i class="fas fa-calculator mr-2"></i>Sửa lại tổng hóa đơn
     </button>
+    @endhasPermission
 </div>
 @endsection
 
@@ -170,13 +175,16 @@
                     <td class="px-4 py-4 whitespace-nowrap text-sm text-center">
                         <div class="flex items-center justify-center gap-1">
                             <!-- View -->
+                            @hasPermission('returns', 'can_view')
                             <a href="{{ route('returns.show', $return->id) }}" 
                                class="w-8 h-8 flex items-center justify-center rounded-lg bg-blue-100 text-blue-600 hover:bg-blue-200 transition-colors" 
                                title="Xem chi tiết">
                                 <i class="fas fa-eye text-sm"></i>
                             </a>
+                            @endhasPermission
                             
                             <!-- Edit -->
+                            @hasPermission('returns', 'can_edit')
                             @if($return->status == 'pending')
                             <a href="{{ route('returns.edit', $return->id) }}" 
                                class="w-8 h-8 flex items-center justify-center rounded-lg bg-yellow-100 text-yellow-600 hover:bg-yellow-200 transition-colors" 
@@ -184,8 +192,10 @@
                                 <i class="fas fa-edit text-sm"></i>
                             </a>
                             @endif
+                            @endhasPermission
                             
                             <!-- Approve -->
+                            @hasPermission('returns', 'can_approve')
                             @if($return->status == 'pending')
                             <form action="{{ route('returns.approve', $return->id) }}" method="POST" class="inline">
                                 @csrf
@@ -197,8 +207,10 @@
                                 </button>
                             </form>
                             @endif
+                            @endhasPermission
                             
                             <!-- Complete -->
+                            @hasPermission('returns', 'can_edit')
                             @if($return->status == 'approved')
                             <form action="{{ route('returns.complete', $return->id) }}" method="POST" class="inline">
                                 @csrf
@@ -210,15 +222,19 @@
                                 </button>
                             </form>
                             @endif
+                            @endhasPermission
                             
                             <!-- Print -->
+                            @hasPermission('returns', 'can_print')
                             <a href="{{ route('returns.show', $return->id) }}" 
                                class="w-8 h-8 flex items-center justify-center rounded-lg bg-gray-100 text-gray-600 hover:bg-gray-200 transition-colors" 
                                title="In phiếu">
                                 <i class="fas fa-print text-sm"></i>
                             </a>
+                            @endhasPermission
                             
                             <!-- Cancel -->
+                            @hasPermission('returns', 'can_cancel')
                             @if($return->status != 'cancelled' && $return->status != 'completed')
                             <form action="{{ route('returns.cancel', $return->id) }}" method="POST" class="inline" onsubmit="return confirm('Bạn có chắc chắn muốn hủy phiếu này?')">
                                 @csrf
@@ -230,8 +246,10 @@
                                 </button>
                             </form>
                             @endif
+                            @endhasPermission
                             
                             <!-- Delete -->
+                            @hasPermission('returns', 'can_delete')
                             @if($return->status == 'cancelled')
                             <form action="{{ route('returns.destroy', $return->id) }}" method="POST" class="inline" onsubmit="return confirm('Bạn có chắc chắn muốn xóa phiếu này?')">
                                 @csrf
@@ -243,6 +261,7 @@
                                 </button>
                             </form>
                             @endif
+                            @endhasPermission
                         </div>
                     </td>
                 </tr>

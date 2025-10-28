@@ -97,12 +97,23 @@
                                         <h5 class="font-bold text-gray-900 text-lg mb-2">{{ $role->name }}</h5>
                                         <p class="text-sm text-gray-600 mb-3">{{ $role->description }}</p>
                                         <div class="flex flex-wrap gap-2">
-                                            @foreach($role->permissions as $permission)
+                                            @php
+                                                // Lấy danh sách modules từ rolePermissions (có ít nhất 1 quyền = true)
+                                                $activeModules = $role->rolePermissions->filter(function($rp) {
+                                                    return $rp->can_view || $rp->can_create || $rp->can_edit || 
+                                                           $rp->can_delete || $rp->can_export || $rp->can_import || 
+                                                           $rp->can_print || $rp->can_approve || $rp->can_cancel;
+                                                })->pluck('permission');
+                                            @endphp
+                                            @foreach($activeModules as $permission)
                                                 <span
                                                     class="inline-flex items-center px-3 py-2 rounded-full text-sm font-semibold bg-blue-100 text-blue-800">
                                                     {{ $modules[$permission->module] ?? $permission->module }}
                                                 </span>
                                             @endforeach
+                                            @if($activeModules->isEmpty())
+                                                <span class="text-sm text-gray-500 italic">Chưa có quyền nào</span>
+                                            @endif
                                         </div>
                                     </div>
                                     <div class="flex gap-2 ml-4">

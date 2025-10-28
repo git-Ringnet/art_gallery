@@ -5,9 +5,11 @@
 @section('page-description', 'Quản lý tất cả các khoản công nợ')
 
 @section('header-actions')
+@hasPermission('debt', 'can_export')
 <a href="{{ route('debt.export') }}" class="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors">
     <i class="fas fa-file-excel mr-2"></i>Xuất báo cáo
 </a>
+@endhasPermission
 @endsection
 
 @section('content')
@@ -87,14 +89,19 @@
                         @endif
                     </td>
                     <td class="px-4 py-4 whitespace-nowrap text-sm">
+                        @hasPermission('debt', 'can_view')
                         <a href="{{ route('debt.show', $debt['invoice_id']) }}" class="text-blue-600 hover:text-blue-900 mr-3" title="Xem chi tiết">
                             <i class="fas fa-eye"></i>
                         </a>
+                        @endhasPermission
+                        
+                        @hasPermission('debt', 'can_edit')
                         @if($debt['debt'] > 0)
                         <button onclick="showCollectDebtModal('{{ $debt['invoice_id'] }}', {{ $debt['debt'] }})" class="text-green-600 hover:text-green-900" title="Thu nợ">
                             <i class="fas fa-money-bill-wave"></i>
                         </button>
                         @endif
+                        @endhasPermission
                     </td>
                 </tr>
                 @empty

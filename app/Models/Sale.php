@@ -10,6 +10,7 @@ class Sale extends Model
     use HasFactory;
 
     protected $fillable = [
+        'year',
         'invoice_code',
         'customer_id',
         'showroom_id',

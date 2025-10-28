@@ -6,6 +6,7 @@
 
 @section('header-actions')
 <div class="flex gap-2">
+    @hasPermission('employees', 'can_export')
     <div class="relative">
         <button onclick="toggleExportDropdown()" type="button" class="bg-green-500 hover:bg-green-600 text-white px-6 py-2 rounded-lg transition-colors flex items-center">
             <i class="fas fa-download mr-2"></i>Xuất file
@@ -38,11 +39,14 @@
             </div>
         </div>
     </div>
+    @endhasPermission
 
+    @hasPermission('employees', 'can_create')
     <a href="{{ route('employees.create') }}"
         class="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors">
         <i class="fas fa-plus mr-2"></i>Thêm nhân viên
     </a>
+    @endhasPermission
 </div>
 @endsection
 
@@ -155,9 +159,13 @@
                     {{ $employee->created_at->format('d/m/Y') }}
                 </td>
                 <td class="px-4 py-4 whitespace-nowrap text-sm">
+                    @hasPermission('employees', 'can_view')
                     <a href="{{ route('employees.show', $employee->id) }}" class="text-indigo-600 hover:text-indigo-900 mr-2" title="Xem chi tiết">
                         <i class="fas fa-eye px-3 py-2 rounded-lg bg-blue-100 text-blue-600"></i>
                     </a>
+                    @endhasPermission
+                    
+                    @hasPermission('employees', 'can_edit')
                     <a href="{{ route('employees.edit', $employee->id) }}" class="text-yellow-600 hover:text-yellow-900 mr-2" title="Chỉnh sửa">
                         <i class="fas fa-edit px-3 py-2 rounded-lg bg-yellow-100 text-yellow-600"></i>
                     </a>
@@ -176,7 +184,9 @@
                         @endif
                     </form>
                     @endif
+                    @endhasPermission
 
+                    @hasPermission('employees', 'can_delete')
                     <form action="{{ route('employees.destroy', $employee->id) }}" method="POST" class="inline" onsubmit="return confirm('Xóa nhân viên này?');">
                         @csrf
                         @method('DELETE')
@@ -184,6 +194,7 @@
                             <i class="fas fa-trash px-3 py-2 rounded-lg bg-red-100 text-red-400"></i>
                         </button>
                     </form>
+                    @endhasPermission
                 </td>
             </tr>
             @empty

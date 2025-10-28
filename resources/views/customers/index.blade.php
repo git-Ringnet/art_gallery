@@ -5,10 +5,12 @@
 @section('page-description', 'Danh sách khách hàng và thông tin liên hệ')
 
 @section('header-actions')
+@hasPermission('customers', 'can_create')
 <a href="{{ route('customers.create') }}" class="bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded-lg transition-colors flex items-center space-x-2">
     <i class="fas fa-plus"></i>
     <span>Thêm khách hàng</span>
 </a>
+@endhasPermission
 @endsection
 
 @section('content')
@@ -92,18 +94,22 @@
                     <td class="px-4 py-3">
                         <div class="flex items-center justify-center space-x-2">
                             <!-- Xem chi tiết -->
+                            @hasPermission('customers', 'can_view')
                             <a href="{{ route('customers.show', $customer->id) }}" 
                                 class="w-8 h-8 flex items-center justify-center bg-blue-100 text-blue-600 rounded-lg hover:bg-blue-200 transition-colors" 
                                 title="Xem chi tiết">
                                 <i class="fas fa-eye"></i>
                             </a>
+                            @endhasPermission
                             
                             <!-- Sửa -->
+                            @hasPermission('customers', 'can_edit')
                             <a href="{{ route('customers.edit', $customer->id) }}" 
                                 class="w-8 h-8 flex items-center justify-center bg-yellow-100 text-yellow-600 rounded-lg hover:bg-yellow-200 transition-colors" 
                                 title="Sửa">
                                 <i class="fas fa-edit"></i>
                             </a>
+                            @endhasPermission
                             
                             <!-- Icon trạng thái công nợ hoặc nút xóa -->
                             @if($customer->total_debt > 0)
@@ -120,12 +126,14 @@
                                 </span>
                             @else
                                 <!-- Chưa có giao dịch - cho phép xóa -->
+                                @hasPermission('customers', 'can_delete')
                                 <button type="button"
                                     onclick="showDeleteModal('{{ route('customers.destroy', $customer->id) }}', 'Bạn có chắc chắn muốn xóa khách hàng {{ $customer->name }}?')"
                                     class="w-8 h-8 flex items-center justify-center bg-red-100 text-red-600 rounded-lg hover:bg-red-200 transition-colors" 
                                     title="Xóa khách hàng">
                                     <i class="fas fa-trash"></i>
                                 </button>
+                                @endhasPermission
                             @endif
                         </div>
                     </td>

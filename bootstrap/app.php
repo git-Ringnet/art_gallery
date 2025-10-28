@@ -13,6 +13,11 @@ return Application::configure(basePath: dirname(__DIR__))
     ->withMiddleware(function (Middleware $middleware) {
         // Thêm middleware kiểm tra trạng thái user vào group 'web'
         $middleware->appendToGroup('web', \App\Http\Middleware\CheckUserActive::class);
+        
+        // Đăng ký middleware alias
+        $middleware->alias([
+            'permission' => \App\Http\Middleware\CheckPermission::class,
+        ]);
     })
     ->withExceptions(function (Exceptions $exceptions) {
         //
