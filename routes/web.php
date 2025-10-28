@@ -29,6 +29,8 @@ Route::middleware(['auth'])->group(function () {
         Route::put('/{id}', [SalesController::class, 'update'])->name('update');
         Route::delete('/{id}', [SalesController::class, 'destroy'])->name('destroy');
         Route::get('/{id}/print', [SalesController::class, 'print'])->name('print');
+        Route::post('/{id}/approve', [SalesController::class, 'approve'])->name('approve');
+        Route::post('/{id}/cancel', [SalesController::class, 'cancel'])->name('cancel');
 
         // API routes for search
         Route::get('/api/paintings/{id}', [SalesController::class, 'getPainting'])->name('api.painting');

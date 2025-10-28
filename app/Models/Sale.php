@@ -26,6 +26,7 @@ class Sale extends Model
         'paid_amount',
         'debt_amount',
         'payment_status',
+        'sale_status',
         'notes',
     ];
 
@@ -171,5 +172,41 @@ class Sale extends Model
                                ->orWhere('phone', 'like', "%{$search}%");
               });
         });
+    }
+
+    public function scopePending($query)
+    {
+        return $query->where('sale_status', 'pending');
+    }
+
+    public function scopeCompleted($query)
+    {
+        return $query->where('sale_status', 'completed');
+    }
+
+    public function isPending()
+    {
+        return $this->sale_status === 'pending';
+    }
+
+    public function isCompleted()
+    {
+        return $this->sale_status === 'completed';
+    }
+
+    public function isCancelled()
+    {
+        return $this->sale_status === 'cancelled';
+    }
+
+    public function canEdit()
+    {
+        // Cho phép edit khi chưa hủy
+        return $this->sale_status !== 'cancelled';
+    }
+
+    public function canApprove()
+    {
+        return $this->sale_status === 'pending';
     }
 }

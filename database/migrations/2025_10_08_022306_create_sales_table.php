@@ -25,7 +25,8 @@ return new class extends Migration
             $table->decimal('total_vnd', 15, 2)->comment('Tổng cộng (VND)');
             $table->decimal('paid_amount', 15, 2)->default(0)->comment('Số tiền đã thanh toán (VND)');
             $table->decimal('debt_amount', 15, 2)->default(0)->comment('Số tiền còn nợ (VND)');
-            $table->enum('payment_status', ['unpaid', 'partial', 'paid'])->default('unpaid')->comment('Trạng thái thanh toán');
+            $table->enum('payment_status', ['unpaid', 'partial', 'paid', 'cancelled'])->default('unpaid')->comment('Trạng thái thanh toán');
+            $table->enum('sale_status', ['pending', 'completed', 'cancelled'])->default('pending')->comment('Trạng thái phiếu: pending=Chờ duyệt, completed=Đã hoàn thành, cancelled=Đã hủy');
             $table->text('notes')->nullable()->comment('Ghi chú');
             $table->timestamps();
             
@@ -34,6 +35,7 @@ return new class extends Migration
             $table->index('showroom_id');
             $table->index('sale_date');
             $table->index('payment_status');
+            $table->index('sale_status');
         });
     }
 

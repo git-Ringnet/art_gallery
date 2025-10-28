@@ -130,52 +130,52 @@
     </div>
 
     <!-- Main Content -->
-    <div id="main-content" class="content-transition ml-64 p-6">
-        <!-- Header -->
-        <div class="bg-white rounded-xl shadow-lg p-6 mb-6 relative z-40 no-print">
+    <div id="main-content" class="content-transition ml-64">
+        <!-- Admin Header (Logo + User Info) -->
+        <div class="bg-white shadow-md p-4 mb-0 relative z-40 no-print">
             <div class="flex justify-between items-center">
-                <!-- Menu Toggle Button (Mobile) -->
-                <button id="menu-toggle" onclick="toggleSidebar()" class="md:hidden mr-4 p-2 rounded-lg hover:bg-gray-100 transition-colors">
-                    <i class="fas fa-bars text-gray-700 text-xl"></i>
-                </button>
-                
-                <div>
-                    <h2 class="text-2xl font-bold text-gray-800">@yield('page-title', 'Báo cáo thống kê')</h2>
-                    <p class="text-gray-600">@yield('page-description', 'Tổng quan hệ thống quản lý tranh')</p>
+                <!-- Menu Toggle Button (Mobile) + Logo -->
+                <div class="flex items-center space-x-3">
+                    <button id="menu-toggle" onclick="toggleSidebar()" class="md:hidden p-2 rounded-lg hover:bg-gray-100 transition-colors">
+                        <i class="fas fa-bars text-gray-700 text-xl"></i>
+                    </button>
+                    <div class="flex items-center space-x-2">
+                        <div class="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center">
+                            <i class="fas fa-palette text-white text-lg"></i>
+                        </div>
+                        <h1 class="text-lg font-bold text-gray-800 hidden md:block">Quản lý Tranh</h1>
+                    </div>
                 </div>
-                <div class="flex items-center space-x-4">
-                    @yield('header-actions')
+                
+                <!-- User Profile Dropdown -->
+                <div class="relative z-50">
+                    <button onclick="toggleUserDropdown()" class="flex items-center space-x-2 bg-white border border-gray-300 rounded-lg px-3 py-2 hover:bg-gray-50 transition-colors">
+                        <img src="https://ui-avatars.com/api/?name={{ urlencode(Auth::user()->name) }}&background=4F46E5&color=fff" alt="User" class="w-8 h-8 rounded-full">
+                        <span class="text-sm font-medium text-gray-700">{{ Auth::user()->name }}</span>
+                        <i class="fas fa-chevron-down text-gray-500 text-xs"></i>
+                    </button>
                     
-                    <!-- User Profile Dropdown -->
-                    <div class="relative z-50">
-                        <button onclick="toggleUserDropdown()" class="flex items-center space-x-2 bg-white border border-gray-300 rounded-lg px-3 py-2 hover:bg-gray-50 transition-colors">
-                            <img src="https://ui-avatars.com/api/?name={{ urlencode(Auth::user()->name) }}&background=4F46E5&color=fff" alt="User" class="w-8 h-8 rounded-full">
-                            <span class="text-sm font-medium text-gray-700">{{ Auth::user()->name }}</span>
-                            <i class="fas fa-chevron-down text-gray-500 text-xs"></i>
-                        </button>
-                        
-                        <!-- Dropdown Menu -->
-                        <div id="user-dropdown" class="hidden absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-lg border border-gray-200 z-[9999]">
-                            <div class="py-1">
-                                <div class="px-4 py-2 border-b border-gray-100">
-                                    <p class="text-sm font-medium text-gray-900">{{ Auth::user()->name }}</p>
-                                    <p class="text-xs text-gray-500">{{ Auth::user()->email }}</p>
-                                </div>
-                                
-                                <a href="{{ route('profile.edit') }}" class="flex items-center px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 transition-colors">
-                                    <i class="fas fa-user mr-3 text-gray-400"></i>
-                                    Hồ sơ cá nhân
-                                </a>
-                                
-                                <div class="border-t border-gray-100">
-                                    <form method="POST" action="{{ route('logout') }}">
-                                        @csrf
-                                        <button type="submit" class="w-full text-left flex items-center px-4 py-2 text-sm text-red-600 hover:bg-red-50 transition-colors">
-                                            <i class="fas fa-sign-out-alt mr-3"></i>
-                                            Đăng xuất
-                                        </button>
-                                    </form>
-                                </div>
+                    <!-- Dropdown Menu -->
+                    <div id="user-dropdown" class="hidden absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-lg border border-gray-200 z-[9999]">
+                        <div class="py-1">
+                            <div class="px-4 py-2 border-b border-gray-100">
+                                <p class="text-sm font-medium text-gray-900">{{ Auth::user()->name }}</p>
+                                <p class="text-xs text-gray-500">{{ Auth::user()->email }}</p>
+                            </div>
+                            
+                            <a href="{{ route('profile.edit') }}" class="flex items-center px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 transition-colors">
+                                <i class="fas fa-user mr-3 text-gray-400"></i>
+                                Hồ sơ cá nhân
+                            </a>
+                            
+                            <div class="border-t border-gray-100">
+                                <form method="POST" action="{{ route('logout') }}">
+                                    @csrf
+                                    <button type="submit" class="w-full text-left flex items-center px-4 py-2 text-sm text-red-600 hover:bg-red-50 transition-colors">
+                                        <i class="fas fa-sign-out-alt mr-3"></i>
+                                        Đăng xuất
+                                    </button>
+                                </form>
                             </div>
                         </div>
                     </div>
@@ -183,10 +183,23 @@
             </div>
         </div>
 
-       
+        <!-- Page Header (Title + Actions) -->
+        <div class="bg-white rounded-xl shadow-lg p-6 m-6 mb-6 relative z-30 no-print">
+            <div class="flex justify-between items-center">
+                <div>
+                    <h2 class="text-2xl font-bold text-gray-800">@yield('page-title', 'Báo cáo thống kê')</h2>
+                    <p class="text-gray-600">@yield('page-description', 'Tổng quan hệ thống quản lý tranh')</p>
+                </div>
+                <div class="flex items-center space-x-4">
+                    @yield('header-actions')
+                </div>
+            </div>
+        </div>
 
         <!-- Page Content -->
-        @yield('content')
+        <div class="px-6 pb-6">
+            @yield('content')
+        </div>
     </div>
 
     <script>

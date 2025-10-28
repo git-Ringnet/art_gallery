@@ -27,8 +27,11 @@ class SaleSeeder extends Seeder
         // Sử dụng tỷ giá mặc định
         $exchangeRate = 25000;
 
-        // Tạo 10 hóa đơn mẫu
+        // Tạo 10 hóa đơn mẫu với các trạng thái khác nhau
         for ($i = 1; $i <= 10; $i++) {
+            // Phân bổ trạng thái: 3 chờ duyệt, 6 đã hoàn thành, 1 đã hủy
+            $saleStatus = $i <= 3 ? 'pending' : ($i <= 9 ? 'completed' : 'cancelled');
+            
             $sale = Sale::create([
                 'invoice_code' => 'HD2510' . str_pad($i, 4, '0', STR_PAD_LEFT),
                 'customer_id' => $customers->random()->id,
@@ -46,6 +49,7 @@ class SaleSeeder extends Seeder
                 'paid_amount' => 0,
                 'debt_amount' => 0,
                 'payment_status' => 'unpaid',
+                'sale_status' => $saleStatus,
                 'notes' => 'Hóa đơn mẫu số ' . $i,
             ]);
 

@@ -278,43 +278,7 @@ class SalesController extends Controller
                 // Calculate totals
                 $saleItem->calculateTotals();
 
-                // Process painting stock - TRỪ KHO
-                if ($saleItem->painting_id) {
-                    $painting = Painting::find($saleItem->painting_id);
-                    if ($painting && $painting->reduceQuantity($saleItem->quantity)) {
-                        InventoryTransaction::create([
-                            'transaction_type' => 'export',
-                            'item_type' => 'painting',
-                            'item_id' => $saleItem->painting_id,
-                            'quantity' => $saleItem->quantity,
-                            'reference_type' => 'sale',
-                            'reference_id' => $sale->id,
-                            'transaction_date' => $sale->sale_date,
-                            'notes' => "Bán trong hóa đơn {$sale->invoice_code}",
-                            'created_by' => $user->id,
-                        ]);
-                    }
-                }
-
-                // Process supply usage
-                if ($saleItem->supply_id && $saleItem->supply_length) {
-                    $supply = Supply::find($saleItem->supply_id);
-                    $totalRequired = $saleItem->supply_length * $saleItem->quantity;
-                    
-                    if ($supply && $supply->reduceQuantity($totalRequired)) {
-                        InventoryTransaction::create([
-                            'transaction_type' => 'export',
-                            'item_type' => 'supply',
-                            'item_id' => $saleItem->supply_id,
-                            'quantity' => $totalRequired,
-                            'reference_type' => 'sale',
-                            'reference_id' => $sale->id,
-                            'transaction_date' => $sale->sale_date,
-                            'notes' => "Sử dụng cho hóa đơn {$sale->invoice_code}",
-                            'created_by' => $user->id,
-                        ]);
-                    }
-                }
+                // KHÔNG TRỪ KHO Ở ĐÂY - Sẽ trừ khi duyệt phiếu (approve)
             }
 
             // Calculate sale totals
@@ -376,6 +340,13 @@ class SalesController extends Controller
     public function edit($id)
     {
         $sale = Sale::with(['saleItems.painting', 'saleItems.supply', 'customer', 'payments'])->findOrFail($id);
+        
+        // Cho phép edit cả khi đã duyệt (để thêm thanh toán)
+        if (!$sale->canEdit()) {
+            return redirect()->route('sales.show', $id)
+                ->with('error', 'Không thể sửa phiếu đã hủy.');
+        }
+        
         $showrooms = Showroom::active()->get();
         $supplies = Supply::all();
         $paintings = Painting::available()->get();
@@ -388,6 +359,11 @@ class SalesController extends Controller
     public function update(Request $request, $id)
     {
         $sale = Sale::findOrFail($id);
+        
+        // Cho phép edit khi chưa hủy
+        if (!$sale->canEdit()) {
+            return back()->with('error', 'Không thể sửa phiếu đã hủy');
+        }
 
         // Add invoice_code validation for update
         $request->merge(['invoice_code' => $request->invoice_code ?: null]);
@@ -499,20 +475,22 @@ class SalesController extends Controller
                 'invoice_code' => $request->invoice_code ?: $sale->invoice_code,
             ]);
 
-            // Hoàn trả kho từ items cũ trước khi xóa
-            foreach ($sale->saleItems as $oldItem) {
-                if ($oldItem->painting_id) {
-                    $painting = Painting::find($oldItem->painting_id);
-                    if ($painting) {
-                        $painting->increaseQuantity($oldItem->quantity);
+            // Hoàn trả kho từ items cũ trước khi xóa (nếu phiếu đã duyệt)
+            if ($sale->isCompleted()) {
+                foreach ($sale->saleItems as $oldItem) {
+                    if ($oldItem->painting_id) {
+                        $painting = Painting::find($oldItem->painting_id);
+                        if ($painting) {
+                            $painting->increaseQuantity($oldItem->quantity);
+                        }
                     }
-                }
-                
-                if ($oldItem->supply_id && $oldItem->supply_length) {
-                    $supply = Supply::find($oldItem->supply_id);
-                    if ($supply) {
-                        $totalUsed = $oldItem->supply_length * $oldItem->quantity;
-                        $supply->increaseQuantity($totalUsed);
+                    
+                    if ($oldItem->supply_id && $oldItem->supply_length) {
+                        $supply = Supply::find($oldItem->supply_id);
+                        if ($supply) {
+                            $totalUsed = $oldItem->supply_length * $oldItem->quantity;
+                            $supply->increaseQuantity($totalUsed);
+                        }
                     }
                 }
             }
@@ -538,41 +516,21 @@ class SalesController extends Controller
                 // Calculate totals
                 $saleItem->calculateTotals();
 
-                // Process painting stock - TRỪ KHO
-                if ($saleItem->painting_id) {
-                    $painting = Painting::find($saleItem->painting_id);
-                    if ($painting && $painting->reduceQuantity($saleItem->quantity)) {
-                        InventoryTransaction::create([
-                            'transaction_type' => 'export',
-                            'item_type' => 'painting',
-                            'item_id' => $saleItem->painting_id,
-                            'quantity' => $saleItem->quantity,
-                            'reference_type' => 'sale',
-                            'reference_id' => $sale->id,
-                            'transaction_date' => $sale->sale_date,
-                            'notes' => "Bán trong hóa đơn {$sale->invoice_code}",
-                            'created_by' => $user->id,
-                        ]);
+                // Trừ kho ngay nếu phiếu đã duyệt
+                if ($sale->isCompleted()) {
+                    if ($saleItem->painting_id) {
+                        $painting = Painting::find($saleItem->painting_id);
+                        if ($painting && !$painting->reduceQuantity($saleItem->quantity)) {
+                            throw new \Exception("Không đủ số lượng tranh {$painting->name} trong kho");
+                        }
                     }
-                }
-
-                // Process supply usage
-                if ($saleItem->supply_id && $saleItem->supply_length) {
-                    $supply = Supply::find($saleItem->supply_id);
-                    $totalRequired = $saleItem->supply_length * $saleItem->quantity;
                     
-                    if ($supply && $supply->reduceQuantity($totalRequired)) {
-                        InventoryTransaction::create([
-                            'transaction_type' => 'export',
-                            'item_type' => 'supply',
-                            'item_id' => $saleItem->supply_id,
-                            'quantity' => $totalRequired,
-                            'reference_type' => 'sale',
-                            'reference_id' => $sale->id,
-                            'transaction_date' => $sale->sale_date,
-                            'notes' => "Sử dụng cho hóa đơn {$sale->invoice_code}",
-                            'created_by' => $user->id,
-                        ]);
+                    if ($saleItem->supply_id && $saleItem->supply_length) {
+                        $supply = Supply::find($saleItem->supply_id);
+                        $totalRequired = $saleItem->supply_length * $saleItem->quantity;
+                        if ($supply && !$supply->reduceQuantity($totalRequired)) {
+                            throw new \Exception("Không đủ số lượng vật tư {$supply->name} trong kho");
+                        }
                     }
                 }
             }
@@ -580,7 +538,7 @@ class SalesController extends Controller
             // Calculate sale totals
             $sale->calculateTotals();
 
-            // Add new payment if provided (thêm payment mới, không update cũ)
+            // Add new payment if provided
             if ($request->filled('payment_amount') && $request->payment_amount > 0) {
                 Payment::create([
                     'sale_id' => $sale->id,
@@ -637,9 +595,14 @@ class SalesController extends Controller
         Log::info('Delete request for sale ID: ' . $id);
         
         $sale = Sale::findOrFail($id);
-        Log::info('Sale found: ' . $sale->invoice_code . ', Paid amount: ' . $sale->paid_amount);
+        Log::info('Sale found: ' . $sale->invoice_code . ', Status: ' . $sale->sale_status . ', Paid amount: ' . $sale->paid_amount);
 
-        // Check if sale can be deleted (no payments made)
+        // Check if sale can be deleted
+        if ($sale->sale_status === 'completed') {
+            Log::info('Cannot delete completed sale');
+            return back()->with('error', 'Không thể xóa phiếu đã hoàn thành. Vui lòng sử dụng chức năng trả hàng.');
+        }
+
         if ($sale->paid_amount > 0) {
             Log::info('Cannot delete sale with payments');
             return back()->with('error', 'Không thể xóa hóa đơn đã có thanh toán');
@@ -647,17 +610,20 @@ class SalesController extends Controller
 
         DB::beginTransaction();
         try {
-            // Restore painting quantities
-            foreach ($sale->saleItems as $item) {
-                if ($item->painting_id) {
-                    $painting = Painting::find($item->painting_id);
-                    $painting->increaseQuantity($item->quantity);
-                }
+            // Chỉ hoàn kho nếu phiếu đã duyệt (completed)
+            // Phiếu "Chờ duyệt" chưa trừ kho nên không cần hoàn
+            if ($sale->sale_status === 'completed') {
+                foreach ($sale->saleItems as $item) {
+                    if ($item->painting_id) {
+                        $painting = Painting::find($item->painting_id);
+                        $painting->increaseQuantity($item->quantity);
+                    }
 
-                if ($item->supply_id && $item->supply_length) {
-                    $supply = Supply::find($item->supply_id);
-                    $totalUsed = $item->supply_length * $item->quantity;
-                    $supply->increaseQuantity($totalUsed);
+                    if ($item->supply_id && $item->supply_length) {
+                        $supply = Supply::find($item->supply_id);
+                        $totalUsed = $item->supply_length * $item->quantity;
+                        $supply->increaseQuantity($totalUsed);
+                    }
                 }
             }
 
@@ -788,6 +754,112 @@ class SalesController extends Controller
         }
 
         return response()->json($suggestions);
+    }
+
+    public function approve($id)
+    {
+        $sale = Sale::with('saleItems')->findOrFail($id);
+
+        // Check if sale can be approved
+        if (!$sale->canApprove()) {
+            return back()->with('error', 'Phiếu bán hàng này không thể duyệt');
+        }
+
+        DB::beginTransaction();
+        try {
+            $user = $this->getDefaultUser();
+
+            // Trừ kho khi duyệt phiếu
+            foreach ($sale->saleItems as $saleItem) {
+                // Process painting stock
+                if ($saleItem->painting_id) {
+                    $painting = Painting::find($saleItem->painting_id);
+                    if ($painting) {
+                        if (!$painting->reduceQuantity($saleItem->quantity)) {
+                            throw new \Exception("Không đủ số lượng tranh {$painting->name} trong kho");
+                        }
+                        
+                        InventoryTransaction::create([
+                            'transaction_type' => 'export',
+                            'item_type' => 'painting',
+                            'item_id' => $saleItem->painting_id,
+                            'quantity' => $saleItem->quantity,
+                            'reference_type' => 'sale',
+                            'reference_id' => $sale->id,
+                            'transaction_date' => $sale->sale_date,
+                            'notes' => "Bán trong hóa đơn {$sale->invoice_code}",
+                            'created_by' => $user->id,
+                        ]);
+                    }
+                }
+
+                // Process supply usage
+                if ($saleItem->supply_id && $saleItem->supply_length) {
+                    $supply = Supply::find($saleItem->supply_id);
+                    $totalRequired = $saleItem->supply_length * $saleItem->quantity;
+                    
+                    if ($supply) {
+                        if (!$supply->reduceQuantity($totalRequired)) {
+                            throw new \Exception("Không đủ số lượng vật tư {$supply->name} trong kho");
+                        }
+                        
+                        InventoryTransaction::create([
+                            'transaction_type' => 'export',
+                            'item_type' => 'supply',
+                            'item_id' => $saleItem->supply_id,
+                            'quantity' => $totalRequired,
+                            'reference_type' => 'sale',
+                            'reference_id' => $sale->id,
+                            'transaction_date' => $sale->sale_date,
+                            'notes' => "Sử dụng cho hóa đơn {$sale->invoice_code}",
+                            'created_by' => $user->id,
+                        ]);
+                    }
+                }
+            }
+
+            // Update sale status to completed
+            $sale->update(['sale_status' => 'completed']);
+
+            DB::commit();
+
+            return back()->with('success', 'Đã duyệt phiếu bán hàng ' . $sale->invoice_code . ' và trừ kho thành công');
+
+        } catch (\Exception $e) {
+            DB::rollBack();
+            Log::error('Approve sale error: ' . $e->getMessage());
+            return back()->with('error', 'Có lỗi xảy ra: ' . $e->getMessage());
+        }
+    }
+
+    public function cancel($id)
+    {
+        $sale = Sale::findOrFail($id);
+
+        // Chỉ cho hủy khi phiếu chờ duyệt
+        if (!$sale->isPending()) {
+            return back()->with('error', 'Chỉ có thể hủy phiếu đang chờ duyệt');
+        }
+
+        // Không cho hủy nếu đã có thanh toán
+        if ($sale->paid_amount > 0) {
+            return back()->with('error', 'Không thể hủy phiếu đã có thanh toán');
+        }
+
+        DB::beginTransaction();
+        try {
+            // Update sale status to cancelled
+            $sale->update(['sale_status' => 'cancelled']);
+
+            DB::commit();
+
+            return back()->with('success', 'Đã hủy phiếu bán hàng ' . $sale->invoice_code);
+
+        } catch (\Exception $e) {
+            DB::rollBack();
+            Log::error('Cancel sale error: ' . $e->getMessage());
+            return back()->with('error', 'Có lỗi xảy ra: ' . $e->getMessage());
+        }
     }
 }
 

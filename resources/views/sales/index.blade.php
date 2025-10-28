@@ -235,7 +235,8 @@
                     <th class="px-4 py-3 text-right">Tổng tiền</th>
                     <th class="px-4 py-3 text-right">Đã trả</th>
                     <th class="px-4 py-3 text-right">Còn nợ</th>
-                    <th class="px-4 py-3 text-center">Trạng thái</th>
+                    <th class="px-4 py-3 text-center">Tình trạng</th>
+                    <th class="px-4 py-3 text-center">Thanh toán</th>
                     <th class="px-4 py-3 text-center">Thao tác</th>
                 </tr>
             </thead>
@@ -271,6 +272,21 @@
                         {{ number_format($sale->debt_amount) }}đ
                     </td>
                     <td class="px-4 py-3 text-center">
+                        @if($sale->sale_status == 'pending')
+                            <span class="px-3 py-2 text-sm font-bold rounded-lg bg-yellow-100 text-yellow-800">
+                                <i class="fas fa-clock mr-1"></i>Chờ duyệt
+                            </span>
+                        @elseif($sale->sale_status == 'completed')
+                            <span class="px-3 py-2 text-sm font-bold rounded-lg bg-green-100 text-green-800">
+                                <i class="fas fa-check-circle mr-1"></i>Đã hoàn thành
+                            </span>
+                        @elseif($sale->sale_status == 'cancelled')
+                            <span class="px-3 py-2 text-sm font-bold rounded-lg bg-gray-100 text-gray-800">
+                                <i class="fas fa-ban mr-1"></i>Đã hủy
+                            </span>
+                        @endif
+                    </td>
+                    <td class="px-4 py-3 text-center">
                         @if($sale->payment_status == 'cancelled')
                             <span class="px-3 py-2 text-sm font-bold rounded-lg bg-gray-100 text-gray-800">Đã hủy</span>
                         @elseif($sale->payment_status == 'paid')
@@ -283,6 +299,32 @@
                     </td>
                     <td class="px-4 py-3">
                         <div class="flex items-center justify-center space-x-2">
+                            <!-- Approve button - chỉ hiện khi chờ duyệt -->
+                            @if($sale->canApprove())
+                            <form method="POST" action="{{ route('sales.approve', $sale->id) }}" class="inline">
+                                @csrf
+                                <button type="submit" 
+                                        onclick="return confirm('Xác nhận duyệt phiếu {{ $sale->invoice_code }}?')"
+                                        class="w-8 h-8 flex items-center justify-center bg-green-100 text-green-600 rounded-lg hover:bg-green-200 transition-colors" 
+                                        title="Duyệt phiếu">
+                                    <i class="fas fa-check-circle"></i>
+                                </button>
+                            </form>
+                            @endif
+                            
+                            <!-- Cancel button - chỉ hiện khi chờ duyệt và chưa thanh toán -->
+                            @if($sale->isPending() && $sale->paid_amount == 0)
+                            <form method="POST" action="{{ route('sales.cancel', $sale->id) }}" class="inline">
+                                @csrf
+                                <button type="submit" 
+                                        onclick="return confirm('Xác nhận hủy phiếu {{ $sale->invoice_code }}?')"
+                                        class="w-8 h-8 flex items-center justify-center bg-red-100 text-red-600 rounded-lg hover:bg-red-200 transition-colors" 
+                                        title="Hủy phiếu">
+                                    <i class="fas fa-ban"></i>
+                                </button>
+                            </form>
+                            @endif
+                            
                             <!-- Show button - luôn hiển thị -->
                             <a href="{{ route('sales.show', $sale->id) }}" 
                                class="w-8 h-8 flex items-center justify-center bg-blue-100 text-blue-600 rounded-lg hover:bg-blue-200 transition-colors" 
@@ -290,10 +332,8 @@
                                 <i class="fas fa-eye"></i>
                             </a>
                             
-                            <!-- Edit button - ẩn khi đã hủy hoặc đã thanh toán đủ -->
-                            @if($sale->payment_status == 'cancelled')
-                                <!-- Không hiển thị Edit khi đã hủy -->
-                            @elseif($sale->payment_status != 'paid')
+                            <!-- Edit button - chỉ hiện khi chờ duyệt -->
+                            @if($sale->canEdit())
                             <a href="{{ route('sales.edit', $sale->id) }}" 
                                class="w-8 h-8 flex items-center justify-center bg-yellow-100 text-yellow-600 rounded-lg hover:bg-yellow-200 transition-colors" 
                                title="Chỉnh sửa">
@@ -301,7 +341,7 @@
                             </a>
                             @else
                             <span class="w-8 h-8 flex items-center justify-center bg-gray-100 text-gray-400 rounded-lg cursor-not-allowed" 
-                                  title="Đã thanh toán đủ">
+                                  title="Không thể sửa">
                                 <i class="fas fa-lock"></i>
                             </span>
                             @endif

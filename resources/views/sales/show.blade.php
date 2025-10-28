@@ -6,12 +6,30 @@
 
 @section('header-actions')
 <div class="flex gap-2">
+    @if($sale->canApprove())
+    <form method="POST" action="{{ route('sales.approve', $sale->id) }}" class="inline">
+        @csrf
+        <button type="submit" onclick="return confirm('Xác nhận duyệt phiếu bán hàng này?')" class="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700">
+            <i class="fas fa-check-circle mr-2"></i>Duyệt phiếu
+        </button>
+    </form>
+    @endif
+    @if($sale->isPending() && $sale->paid_amount == 0)
+    <form method="POST" action="{{ route('sales.cancel', $sale->id) }}" class="inline">
+        @csrf
+        <button type="submit" onclick="return confirm('Xác nhận hủy phiếu bán hàng này?')" class="bg-red-600 text-white px-4 py-2 rounded-lg hover:bg-red-700">
+            <i class="fas fa-ban mr-2"></i>Hủy phiếu
+        </button>
+    </form>
+    @endif
     <a href="{{ route('sales.print', $sale->id) }}" target="_blank" class="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700">
         <i class="fas fa-print mr-2"></i>In
     </a>
+    @if($sale->canEdit())
     <a href="{{ route('sales.edit', $sale->id) }}" class="bg-yellow-600 text-white px-4 py-2 rounded-lg hover:bg-yellow-700">
         <i class="fas fa-edit mr-2"></i>Sửa
     </a>
+    @endif
     <a href="{{ route('sales.index') }}" class="bg-gray-600 text-white px-4 py-2 rounded-lg hover:bg-gray-700">
         <i class="fas fa-arrow-left mr-2"></i>Quay lại
     </a>
@@ -334,35 +352,61 @@
         <!-- Status -->
         <div class="bg-white rounded-xl shadow-lg p-6">
             <h3 class="font-semibold text-lg mb-4">Trạng thái</h3>
-            <div class="text-center">
-                @php
-                    $hasExchange = $sale->returns->where('type', 'exchange')->where('status', 'completed')->count() > 0;
-                @endphp
-                @if($sale->payment_status == 'cancelled')
-                    <span class="inline-block px-4 py-2 text-sm font-semibold rounded-full bg-gray-100 text-gray-800">
-                        <i class="fas fa-ban mr-1"></i>Đã hủy (Trả hàng)
-                    </span>
-                @elseif($sale->payment_status == 'paid')
-                    <span class="inline-block px-4 py-2 text-sm font-semibold rounded-full bg-green-100 text-green-800">
-                        <i class="fas fa-check-circle mr-1"></i>Đã thanh toán
-                    </span>
-                @elseif($sale->payment_status == 'partial')
-                    <span class="inline-block px-4 py-2 text-sm font-semibold rounded-full bg-yellow-100 text-yellow-800">
-                        <i class="fas fa-clock mr-1"></i>Thanh toán một phần
-                    </span>
-                @else
-                    <span class="inline-block px-4 py-2 text-sm font-semibold rounded-full bg-red-100 text-red-800">
-                        <i class="fas fa-times-circle mr-1"></i>Chưa thanh toán
-                    </span>
-                @endif
-                
-                @if($hasExchange)
-                    <div class="mt-2">
-                        <span class="inline-block px-3 py-1 text-xs font-semibold rounded-full bg-blue-100 text-blue-800">
-                            <i class="fas fa-exchange-alt mr-1"></i>Có đổi hàng
-                        </span>
+            <div class="space-y-3">
+                <!-- Sale Status -->
+                <div>
+                    <p class="text-sm text-gray-600 mb-2 font-medium">Tình trạng phiếu:</p>
+                    <div class="text-center">
+                        @if($sale->sale_status == 'pending')
+                            <span class="inline-block px-4 py-2 text-sm font-semibold rounded-full bg-yellow-100 text-yellow-800">
+                                <i class="fas fa-clock mr-1"></i>Chờ duyệt
+                            </span>
+                        @elseif($sale->sale_status == 'completed')
+                            <span class="inline-block px-4 py-2 text-sm font-semibold rounded-full bg-green-100 text-green-800">
+                                <i class="fas fa-check-circle mr-1"></i>Đã hoàn thành
+                            </span>
+                        @elseif($sale->sale_status == 'cancelled')
+                            <span class="inline-block px-4 py-2 text-sm font-semibold rounded-full bg-gray-100 text-gray-800">
+                                <i class="fas fa-ban mr-1"></i>Đã hủy
+                            </span>
+                        @endif
                     </div>
-                @endif
+                </div>
+
+                <!-- Payment Status -->
+                <div class="pt-3 border-t">
+                    <p class="text-sm text-gray-600 mb-2 font-medium">Thanh toán:</p>
+                    <div class="text-center">
+                        @php
+                            $hasExchange = $sale->returns->where('type', 'exchange')->where('status', 'completed')->count() > 0;
+                        @endphp
+                        @if($sale->payment_status == 'cancelled')
+                            <span class="inline-block px-4 py-2 text-sm font-semibold rounded-full bg-gray-100 text-gray-800">
+                                <i class="fas fa-ban mr-1"></i>Đã hủy (Trả hàng)
+                            </span>
+                        @elseif($sale->payment_status == 'paid')
+                            <span class="inline-block px-4 py-2 text-sm font-semibold rounded-full bg-green-100 text-green-800">
+                                <i class="fas fa-check-circle mr-1"></i>Đã thanh toán
+                            </span>
+                        @elseif($sale->payment_status == 'partial')
+                            <span class="inline-block px-4 py-2 text-sm font-semibold rounded-full bg-yellow-100 text-yellow-800">
+                                <i class="fas fa-clock mr-1"></i>Thanh toán một phần
+                            </span>
+                        @else
+                            <span class="inline-block px-4 py-2 text-sm font-semibold rounded-full bg-red-100 text-red-800">
+                                <i class="fas fa-times-circle mr-1"></i>Chưa thanh toán
+                            </span>
+                        @endif
+                        
+                        @if($hasExchange)
+                            <div class="mt-2">
+                                <span class="inline-block px-3 py-1 text-xs font-semibold rounded-full bg-blue-100 text-blue-800">
+                                    <i class="fas fa-exchange-alt mr-1"></i>Có đổi hàng
+                                </span>
+                            </div>
+                        @endif
+                    </div>
+                </div>
             </div>
         </div>
 
