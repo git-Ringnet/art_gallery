@@ -132,7 +132,7 @@
     <!-- Main Content -->
     <div id="main-content" class="content-transition ml-64 p-6">
         <!-- Header -->
-        <div class="bg-white rounded-xl shadow-lg p-6 mb-6 glass-effect relative z-40 no-print">
+        <div class="bg-white rounded-xl shadow-lg p-6 mb-6 relative z-40 no-print">
             <div class="flex justify-between items-center">
                 <!-- Menu Toggle Button (Mobile) -->
                 <button id="menu-toggle" onclick="toggleSidebar()" class="md:hidden mr-4 p-2 rounded-lg hover:bg-gray-100 transition-colors">

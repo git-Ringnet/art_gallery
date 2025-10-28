@@ -381,7 +381,10 @@ function selectPainting(paintingId, idx) {
             document.querySelector(`.vnd-${idx}`).value = painting.price_vnd || 0;
             
             const imgUrl = painting.image ? `/storage/${painting.image}` : 'https://via.placeholder.com/80x60?text=No+Image';
-            document.getElementById(`img-${idx}`).src = imgUrl;
+            const imgElement = document.getElementById(`img-${idx}`);
+            imgElement.src = imgUrl;
+            imgElement.onclick = () => showImageModal(imgUrl, painting.name);
+            imgElement.classList.add('cursor-pointer', 'hover:opacity-80', 'transition-opacity');
             
             document.getElementById(`painting-suggestions-${idx}`).classList.add('hidden');
             calc();
@@ -555,8 +558,45 @@ function loadCurrentDebt(customerId) {
 }
 
 document.addEventListener('DOMContentLoaded', () => addItem());
+
+// Image modal functions
+function showImageModal(imageSrc, imageTitle) {
+    const modal = document.getElementById('imageModal');
+    const modalImage = document.getElementById('modalImage');
+    const modalTitle = document.getElementById('modalImageTitle');
+    
+    modalImage.src = imageSrc;
+    modalTitle.textContent = imageTitle;
+    modal.classList.remove('hidden');
+    document.body.style.overflow = 'hidden';
+}
+
+function closeImageModal() {
+    const modal = document.getElementById('imageModal');
+    modal.classList.add('hidden');
+    document.body.style.overflow = 'auto';
+}
+
+// Close modal with ESC key
+document.addEventListener('keydown', function(event) {
+    if (event.key === 'Escape') {
+        closeImageModal();
+    }
+});
 </script>
 
 
 @endpush
+
+<!-- Image Modal -->
+<div id="imageModal" class="fixed inset-0 bg-black bg-opacity-75 z-50 hidden flex items-center justify-center p-4" onclick="closeImageModal()">
+    <div class="relative max-w-4xl max-h-full" onclick="event.stopPropagation()">
+        <button onclick="closeImageModal()" class="absolute -top-10 right-0 text-white hover:text-gray-300">
+            <i class="fas fa-times text-2xl"></i>
+        </button>
+        <img id="modalImage" src="" alt="" class="max-w-full max-h-[90vh] object-contain rounded-lg">
+        <p id="modalImageTitle" class="text-white text-center mt-4 text-lg"></p>
+    </div>
+</div>
+
 @endsection

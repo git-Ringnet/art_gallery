@@ -111,6 +111,7 @@
                 <tbody class="bg-white divide-y divide-gray-200">
                     @forelse($inventory as $item)
                         <tr class="hover:bg-gray-50">
+                            
                             <td class="px-4 py-4 whitespace-nowrap text-sm font-medium text-indigo-600">{{ $item['code'] }}
                             </td>
                             <td class="px-4 py-4 whitespace-nowrap text-sm text-gray-900">{{ $item['name'] }}</td>
@@ -212,6 +213,17 @@
     </div>
 @endsection
 
+<!-- Image Modal -->
+<div id="imageModal" class="fixed inset-0 bg-black bg-opacity-75 z-50 hidden flex items-center justify-center p-4" onclick="closeImageModal()">
+    <div class="relative max-w-4xl max-h-full" onclick="event.stopPropagation()">
+        <button onclick="closeImageModal()" class="absolute -top-10 right-0 text-white hover:text-gray-300">
+            <i class="fas fa-times text-2xl"></i>
+        </button>
+        <img id="modalImage" src="" alt="" class="max-w-full max-h-[90vh] object-contain rounded-lg">
+        <p id="modalImageTitle" class="text-white text-center mt-4 text-lg"></p>
+    </div>
+</div>
+
 @push('scripts')
     <script>
 function toggleExportDropdown() {
@@ -226,6 +238,30 @@ document.addEventListener('click', function(event) {
     
     if (dropdown && !dropdown.contains(event.target) && !button) {
         dropdown.classList.add('hidden');
+    }
+});
+
+function showImageModal(imageSrc, imageTitle) {
+    const modal = document.getElementById('imageModal');
+    const modalImage = document.getElementById('modalImage');
+    const modalTitle = document.getElementById('modalImageTitle');
+    
+    modalImage.src = imageSrc;
+    modalTitle.textContent = imageTitle;
+    modal.classList.remove('hidden');
+    document.body.style.overflow = 'hidden';
+}
+
+function closeImageModal() {
+    const modal = document.getElementById('imageModal');
+    modal.classList.add('hidden');
+    document.body.style.overflow = 'auto';
+}
+
+// Close modal with ESC key
+document.addEventListener('keydown', function(event) {
+    if (event.key === 'Escape') {
+        closeImageModal();
     }
 });
     </script>
