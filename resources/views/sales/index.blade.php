@@ -13,6 +13,8 @@
 @endsection
 
 @section('content')
+<x-alert />
+
 <!-- Quick Stats
 <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
     <div class="bg-white rounded-lg shadow p-4">

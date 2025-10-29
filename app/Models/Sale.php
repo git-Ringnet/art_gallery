@@ -95,22 +95,25 @@ class Sale extends Model
 
     public static function generateInvoiceCode()
     {
-        $prefix = 'HD';
-        $year = now()->format('y');
-        $month = now()->format('m');
-        
-        $lastInvoice = self::where('invoice_code', 'like', "{$prefix}{$year}{$month}%")
-                          ->orderBy('invoice_code', 'desc')
-                          ->first();
-        
-        if ($lastInvoice) {
-            $lastNumber = (int) substr($lastInvoice->invoice_code, -4);
-            $newNumber = $lastNumber + 1;
-        } else {
-            $newNumber = 1;
-        }
-        
-        return $prefix . $year . $month . str_pad($newNumber, 4, '0', STR_PAD_LEFT);
+        return \DB::transaction(function () {
+            $prefix = 'HD';
+            $year = now()->format('y');
+            $month = now()->format('m');
+            
+            $lastInvoice = self::where('invoice_code', 'like', "{$prefix}{$year}{$month}%")
+                              ->lockForUpdate()
+                              ->orderBy('invoice_code', 'desc')
+                              ->first();
+            
+            if ($lastInvoice) {
+                $lastNumber = (int) substr($lastInvoice->invoice_code, -4);
+                $newNumber = $lastNumber + 1;
+            } else {
+                $newNumber = 1;
+            }
+            
+            return $prefix . $year . $month . str_pad($newNumber, 4, '0', STR_PAD_LEFT);
+        });
     }
 
     public function calculateTotals()

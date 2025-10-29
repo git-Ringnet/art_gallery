@@ -172,7 +172,7 @@ class SalesController extends Controller
             'items.*.price_usd' => 'nullable|numeric|min:0',
             'items.*.price_vnd' => 'nullable|numeric|min:0',
             'items.*.discount_percent' => 'nullable|numeric|min:0|max:100',
-            'exchange_rate' => 'required|numeric|min:0',
+            'exchange_rate' => 'required|numeric|min:1',
             'discount_percent' => 'nullable|numeric|min:0|max:100',
             'payment_amount' => 'nullable|numeric|min:0',
             'payment_method' => 'nullable|in:cash,bank_transfer,card,other',
@@ -397,7 +397,7 @@ class SalesController extends Controller
             'items.*.price_usd' => 'nullable|numeric|min:0',
             'items.*.price_vnd' => 'nullable|numeric|min:0',
             'items.*.discount_percent' => 'nullable|numeric|min:0|max:100',
-            'exchange_rate' => 'required|numeric|min:0',
+            'exchange_rate' => 'required|numeric|min:1',
             'discount_percent' => 'nullable|numeric|min:0|max:100',
             'payment_amount' => 'nullable|numeric|min:0',
             'payment_method' => 'nullable|in:cash,bank_transfer,card,other',
@@ -597,12 +597,8 @@ class SalesController extends Controller
         $sale = Sale::findOrFail($id);
         Log::info('Sale found: ' . $sale->invoice_code . ', Status: ' . $sale->sale_status . ', Paid amount: ' . $sale->paid_amount);
 
-        // Check if sale can be deleted
-        if ($sale->sale_status === 'completed') {
-            Log::info('Cannot delete completed sale');
-            return back()->with('error', 'Không thể xóa phiếu đã hoàn thành. Vui lòng sử dụng chức năng trả hàng.');
-        }
-
+        // Chỉ không cho xóa nếu đã có thanh toán
+        // Phiếu completed nhưng chưa thanh toán vẫn có thể xóa
         if ($sale->paid_amount > 0) {
             Log::info('Cannot delete sale with payments');
             return back()->with('error', 'Không thể xóa hóa đơn đã có thanh toán');
