@@ -131,7 +131,7 @@
             <div class="grid grid-cols-2 gap-4 mb-4">
                 <div>
                     <label class="block text-sm font-medium text-gray-700 mb-2">Tỷ giá (VND/USD) <span class="text-red-500">*</span></label>
-                    <input type="number" name="exchange_rate" id="rate" required class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500" value="{{ round($sale->exchange_rate) }}" step="1" onchange="calc()">
+                    <input type="text" name="exchange_rate" id="rate" required class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500" value="{{ number_format(round($sale->exchange_rate)) }}" oninput="formatVND(this)" onblur="formatVND(this)" onchange="calc()">
                 </div>
                 <div>
                     <label class="block text-sm font-medium text-gray-700 mb-2">Giảm giá (%)</label>
@@ -155,7 +155,7 @@
             <div class="grid grid-cols-3 gap-4">
                 <div>
                     <label class="block text-sm font-medium text-gray-700 mb-2">Khách trả thêm (VND)</label>
-                    <input type="number" name="payment_amount" id="paid" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500" value="0" step="1000" onchange="calcDebt()" placeholder="Nhập số tiền trả thêm...">
+                    <input type="text" name="payment_amount" id="paid" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500" value="0" oninput="formatVND(this)" onblur="formatVND(this)" onchange="calcDebt()" placeholder="Nhập số tiền trả thêm...">
                     
                     <!-- Lịch sử thanh toán -->
                     @if($sale->payments->count() > 0)
@@ -213,6 +213,7 @@
 </div>
 
 @push('scripts')
+<script src="{{ asset('js/number-format.js') }}"></script>
 <script>
 let idx = 0;
 const paintings = @json($paintings);
@@ -335,10 +336,10 @@ function addItem() {
             </select>
         </td>
         <td class="px-3 py-3 border">
-            <input type="number" name="items[${idx}][price_usd]" id="usd-input-${idx}" class="usd-${idx} w-full px-3 py-2 border border-gray-300 rounded-lg text-right" value="0" step="0.01" onchange="calc()">
+            <input type="text" name="items[${idx}][price_usd]" id="usd-input-${idx}" class="usd-${idx} w-full px-3 py-2 border border-gray-300 rounded-lg text-right" value="0.00" oninput="formatUSD(this)" onblur="formatUSD(this)" onchange="calc()">
         </td>
         <td class="px-3 py-3 border">
-            <input type="number" name="items[${idx}][price_vnd]" id="vnd-input-${idx}" class="vnd-${idx} w-full px-3 py-2 border border-gray-300 rounded-lg text-right" value="0" step="1000" onchange="calc()">
+            <input type="text" name="items[${idx}][price_vnd]" id="vnd-input-${idx}" class="vnd-${idx} w-full px-3 py-2 border border-gray-300 rounded-lg text-right" value="0" oninput="formatVND(this)" onblur="formatVND(this)" onchange="calc()">
         </td>
         <td class="px-3 py-3 border text-center">
             <input type="number" name="items[${idx}][discount_percent]" class="w-full px-3 py-2 border border-gray-300 rounded-lg text-center" value="0" min="0" max="100" step="1" onchange="calc()">
@@ -399,8 +400,18 @@ function selectPainting(paintingId, idx) {
             document.getElementById(`painting-id-${idx}`).value = painting.id;
             document.getElementById(`painting-search-${idx}`).value = `${painting.code} - ${painting.name}`;
             document.getElementById(`desc-${idx}`).value = painting.name;
-            document.querySelector(`.usd-${idx}`).value = painting.price_usd || 0;
-            document.querySelector(`.vnd-${idx}`).value = painting.price_vnd || 0;
+            
+            const usdInput = document.querySelector(`.usd-${idx}`);
+            const vndInput = document.querySelector(`.vnd-${idx}`);
+            
+            if (usdInput) {
+                const usdValue = parseFloat(painting.price_usd) || 0;
+                usdInput.value = usdValue.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2});
+            }
+            if (vndInput) {
+                const vndValue = parseInt(painting.price_vnd) || 0;
+                vndInput.value = vndValue.toLocaleString('en-US');
+            }
             
             const imgUrl = painting.image ? `/storage/${painting.image}` : 'https://via.placeholder.com/80x60?text=No+Image';
             document.getElementById(`img-${idx}`).src = imgUrl;
@@ -491,7 +502,8 @@ function togCur(sel, i) {
 }
 
 function calc() {
-    const rate = parseFloat(document.getElementById('rate').value) || 25000;
+    const rateVal = unformatNumber(document.getElementById('rate').value);
+    const rate = parseFloat(rateVal) || 25000;
     const disc = parseFloat(document.getElementById('discount').value) || 0;
     const rows = document.querySelectorAll('#items-body tr');
     
@@ -504,7 +516,8 @@ function calc() {
         const itemDiscountPercent = parseFloat(row.querySelector('[name*="[discount_percent]"]')?.value || 0);
         
         if (cur === 'USD') {
-            const usd = parseFloat(row.querySelector('[name*="[price_usd]"]')?.value || 0);
+            const usdVal = unformatNumber(row.querySelector('[name*="[price_usd]"]')?.value || '0');
+            const usd = parseFloat(usdVal);
             const subtotal = usd * qty;
             const itemDiscountAmt = subtotal * (itemDiscountPercent / 100);
             const itemTotalUsd = subtotal - itemDiscountAmt;
@@ -512,7 +525,8 @@ function calc() {
             totUsd += itemTotalUsd;
             totVnd += itemTotalVnd;
         } else if (cur === 'VND') {
-            const vnd = parseFloat(row.querySelector('[name*="[price_vnd]"]')?.value || 0);
+            const vndVal = unformatNumber(row.querySelector('[name*="[price_vnd]"]')?.value || '0');
+            const vnd = parseFloat(vndVal);
             const subtotal = vnd * qty;
             const itemDiscountAmt = subtotal * (itemDiscountPercent / 100);
             const itemTotalVnd = subtotal - itemDiscountAmt;
@@ -520,8 +534,10 @@ function calc() {
             totVnd += itemTotalVnd;
             totUsd += itemTotalUsd;
         } else { // BOTH
-            const usd = parseFloat(row.querySelector('[name*="[price_usd]"]')?.value || 0);
-            const vnd = parseFloat(row.querySelector('[name*="[price_vnd]"]')?.value || 0);
+            const usdVal = unformatNumber(row.querySelector('[name*="[price_usd]"]')?.value || '0');
+            const vndVal = unformatNumber(row.querySelector('[name*="[price_vnd]"]')?.value || '0');
+            const usd = parseFloat(usdVal);
+            const vnd = parseFloat(vndVal);
             const subtotalUsd = usd * qty;
             const subtotalVnd = vnd * qty;
             const itemDiscountAmtUsd = subtotalUsd * (itemDiscountPercent / 100);
@@ -548,7 +564,8 @@ function calcDebt() {
     
     // Tổng đã trả (từ database) + số tiền trả thêm (từ input)
     const currentPaid = {{ $sale->paid_amount }};
-    const additionalPaid = parseFloat(document.getElementById('paid').value) || 0;
+    const paidVal = unformatNumber(document.getElementById('paid').value);
+    const additionalPaid = parseFloat(paidVal) || 0;
     const totalPaid = currentPaid + additionalPaid;
     
     const debt = Math.max(0, tot - totalPaid);
@@ -609,14 +626,46 @@ function loadExistingItems() {
         document.querySelector(`[name="items[${index}][supply_length]"]`).value = Math.round(item.supply_length || 0);
         document.querySelector(`[name="items[${index}][quantity]"]`).value = item.quantity;
         document.querySelector(`[name="items[${index}][currency]"]`).value = item.currency;
-        document.querySelector(`[name="items[${index}][price_usd]"]`).value = item.price_usd || 0;
-        document.querySelector(`[name="items[${index}][price_vnd]"]`).value = Math.round(item.price_vnd || 0);
+        
+        // Format prices
+        const usdInput = document.querySelector(`[name="items[${index}][price_usd]"]`);
+        const vndInput = document.querySelector(`[name="items[${index}][price_vnd]"]`);
+        if (usdInput && vndInput) {
+            const usdVal = parseFloat(item.price_usd) || 0;
+            const vndVal = parseInt(item.price_vnd) || 0;
+            usdInput.value = usdVal.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2});
+            vndInput.value = vndVal.toLocaleString('en-US');
+        }
+        
         document.querySelector(`[name="items[${index}][discount_percent]"]`).value = Math.round(item.discount_percent || 0);
         
         // Set currency display
         togCur(document.querySelector(`[name="items[${index}][currency]"]`), index);
     });
 }
+
+// Before form submit, remove formatting
+document.getElementById('sales-form').addEventListener('submit', function(e) {
+    document.getElementById('rate').value = unformatNumber(document.getElementById('rate').value);
+    document.getElementById('paid').value = unformatNumber(document.getElementById('paid').value);
+    
+    document.querySelectorAll('[name*="[price_usd]"]').forEach(input => {
+        input.value = unformatNumber(input.value);
+    });
+    document.querySelectorAll('[name*="[price_vnd]"]').forEach(input => {
+        input.value = unformatNumber(input.value);
+    });
+    
+    // Convert BOTH to USD or VND
+    document.querySelectorAll('[name*="[currency]"]').forEach(select => {
+        if (select.value === 'BOTH') {
+            const row = select.closest('tr');
+            const usdVal = parseFloat(unformatNumber(row.querySelector('[name*="[price_usd]"]').value)) || 0;
+            const vndVal = parseFloat(unformatNumber(row.querySelector('[name*="[price_vnd]"]').value)) || 0;
+            select.value = (usdVal > 0) ? 'USD' : 'VND';
+        }
+    });
+});
 
 document.addEventListener('DOMContentLoaded', () => {
     loadExistingItems();
