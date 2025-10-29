@@ -269,6 +269,7 @@
                     <td class="px-4 py-3 text-right">
                         @php
                             $hasReturns = $sale->returns()->where('status', 'completed')->where('type', 'return')->exists();
+                            $hasExchanges = $sale->returns()->where('status', 'completed')->where('type', 'exchange')->exists();
                             
                             // Lấy original_total, nếu không có thì tính từ items
                             if ($sale->original_total_vnd) {
@@ -279,6 +280,9 @@
                                 $originalTotal = $sale->saleItems->sum('total_vnd');
                                 $originalTotalUsd = $originalTotal / $sale->exchange_rate;
                             }
+                            
+                            // Kiểm tra xem có thay đổi tổng tiền không (do return hoặc exchange)
+                            $totalChanged = ($hasReturns || $hasExchanges) && $originalTotal != $sale->total_vnd;
                         @endphp
                         
                         @if($hasReturns && $sale->total_vnd == 0)
@@ -288,13 +292,20 @@
                             <div class="text-xs text-red-600 mt-1">
                                 <i class="fas fa-undo mr-1"></i>Đã trả hết
                             </div>
-                        @elseif($hasReturns && $originalTotal != $sale->total_vnd)
-                            <!-- Trả một phần - hiển thị giá gốc gạch ngang và giá mới -->
+                        @elseif($totalChanged)
+                            <!-- Có thay đổi (trả hàng hoặc đổi hàng) - hiển thị giá gốc gạch ngang và giá mới -->
                             <div class="text-xs text-gray-400 line-through">{{ number_format($originalTotal) }}đ</div>
-                            <div class="font-medium text-orange-600">{{ number_format($sale->total_vnd) }}đ</div>
+                            <div class="font-medium {{ $hasExchanges ? 'text-purple-600' : 'text-orange-600' }}">
+                                {{ number_format($sale->total_vnd) }}đ
+                            </div>
                             <div class="text-xs text-gray-500">${{ number_format($sale->total_usd, 2) }}</div>
+                            @if($hasExchanges)
+                                <div class="text-xs text-purple-600 mt-1">
+                                    <i class="fas fa-exchange-alt mr-1"></i>Đã đổi hàng
+                                </div>
+                            @endif
                         @else
-                            <!-- Không có trả hàng hoặc chưa trả -->
+                            <!-- Không có thay đổi -->
                             <div class="font-medium text-gray-900">{{ number_format($sale->total_vnd) }}đ</div>
                             <div class="text-xs text-gray-500">${{ number_format($sale->total_usd, 2) }}</div>
                         @endif

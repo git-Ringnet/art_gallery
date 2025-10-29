@@ -27,12 +27,20 @@ class DebtController extends Controller
             ['path' => request()->url(), 'query' => request()->query()]
         );
 
-        // Statistics
+        // Statistics - CHỈ tính các phiếu đã duyệt
         $stats = [
-            'total_payments' => Payment::sum('amount'),
-            'total_debt' => \App\Models\Sale::where('debt_amount', '>', 0)->sum('debt_amount'),
-            'debt_count' => \App\Models\Sale::where('debt_amount', '>', 0)->count(),
-            'total_count' => Payment::count(),
+            'total_payments' => Payment::whereHas('sale', function($q) {
+                $q->where('sale_status', 'completed');
+            })->sum('amount'),
+            'total_debt' => \App\Models\Sale::where('sale_status', 'completed')
+                ->where('debt_amount', '>', 0)
+                ->sum('debt_amount'),
+            'debt_count' => \App\Models\Sale::where('sale_status', 'completed')
+                ->where('debt_amount', '>', 0)
+                ->count(),
+            'total_count' => Payment::whereHas('sale', function($q) {
+                $q->where('sale_status', 'completed');
+            })->count(),
         ];
 
         return view('debts.index', compact('payments', 'stats'));
@@ -58,8 +66,10 @@ class DebtController extends Controller
             return response()->json([]);
         }
 
-        // Tìm kiếm khách hàng có thanh toán
-        $customers = \App\Models\Customer::whereHas('sales.payments')
+        // Tìm kiếm khách hàng có thanh toán (chỉ phiếu đã duyệt)
+        $customers = \App\Models\Customer::whereHas('sales', function($q) {
+                $q->where('sale_status', 'completed')->whereHas('payments');
+            })
             ->where(function($q) use ($search) {
                 $q->where('name', 'like', "%{$search}%")
                   ->orWhere('phone', 'like', "%{$search}%");
@@ -67,8 +77,9 @@ class DebtController extends Controller
             ->limit(10)
             ->get(['id', 'name', 'phone']);
 
-        // Tìm kiếm mã hóa đơn có thanh toán
-        $invoices = \App\Models\Sale::whereHas('payments')
+        // Tìm kiếm mã hóa đơn có thanh toán (chỉ phiếu đã duyệt)
+        $invoices = \App\Models\Sale::where('sale_status', 'completed')
+            ->whereHas('payments')
             ->where('invoice_code', 'like', "%{$search}%")
             ->limit(5)
             ->get(['id', 'invoice_code']);
@@ -96,17 +107,23 @@ class DebtController extends Controller
 
     private function getFilteredPayments(Request $request, $all = false)
     {
-        // Lấy TẤT CẢ Payment (lịch sử thanh toán)
-        $query = Payment::with(['sale.customer', 'sale.debt', 'sale.payments']);
+        // Lấy TẤT CẢ Payment (lịch sử thanh toán) - CHỈ của các phiếu đã duyệt
+        $query = Payment::with(['sale.customer', 'sale.debt', 'sale.payments'])
+            ->whereHas('sale', function($q) {
+                $q->where('sale_status', 'completed');
+            });
 
         // Search
         if ($request->filled('search')) {
             $search = $request->search;
             $query->whereHas('sale', function($q) use ($search) {
-                $q->where('invoice_code', 'like', "%{$search}%")
-                  ->orWhereHas('customer', function($cq) use ($search) {
-                      $cq->where('name', 'like', "%{$search}%")
-                         ->orWhere('phone', 'like', "%{$search}%");
+                $q->where('sale_status', 'completed')
+                  ->where(function($sq) use ($search) {
+                      $sq->where('invoice_code', 'like', "%{$search}%")
+                         ->orWhereHas('customer', function($cq) use ($search) {
+                             $cq->where('name', 'like', "%{$search}%")
+                                ->orWhere('phone', 'like', "%{$search}%");
+                         });
                   });
             });
         }

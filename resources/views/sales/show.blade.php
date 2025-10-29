@@ -340,14 +340,22 @@
                     <span class="font-bold text-lg">Tổng cộng:</span>
                     <div class="text-right">
                         @php
-                            // Kiểm tra xem có sản phẩm nào bị trả không
-                            $hasReturns = $sale->returns()->where('status', 'completed')->exists();
+                            // Kiểm tra xem có return hoặc exchange không
+                            $hasReturns = $sale->returns()->where('status', 'completed')->where('type', 'return')->exists();
+                            $hasExchanges = $sale->returns()->where('status', 'completed')->where('type', 'exchange')->exists();
                             
-                            if ($hasReturns) {
-                                // Tính tổng gốc từ tất cả items (bao gồm cả đã trả)
+                            // Lấy original_total
+                            if ($sale->original_total_vnd) {
+                                $originalTotal = $sale->original_total_vnd;
+                                $originalTotalUsd = $sale->original_total_usd;
+                            } else {
+                                // Tính từ items (cho dữ liệu cũ)
                                 $originalTotal = $sale->saleItems->sum('total_vnd');
                                 $originalTotalUsd = $originalTotal / $sale->exchange_rate;
                             }
+                            
+                            // Kiểm tra xem có thay đổi tổng tiền không
+                            $totalChanged = ($hasReturns || $hasExchanges) && $originalTotal != $sale->total_vnd;
                         @endphp
                         
                         @if($hasReturns && $sale->total_vnd == 0)
@@ -357,19 +365,27 @@
                             <div class="text-xs text-red-600 mt-1">
                                 <i class="fas fa-undo mr-1"></i>Đã trả hết hàng
                             </div>
-                        @elseif($hasReturns && $originalTotal != $sale->total_vnd)
-                            <!-- Trả một phần - hiển thị tổng cũ bị gạch -->
+                        @elseif($totalChanged)
+                            <!-- Có thay đổi (trả hàng hoặc đổi hàng) - hiển thị tổng cũ bị gạch -->
                             <div class="text-sm text-gray-400 line-through mb-1">
                                 ${{ number_format($originalTotalUsd, 2) }} / {{ number_format($originalTotal) }}đ
                             </div>
                             <!-- Hiển thị tổng mới -->
-                            <div class="font-bold text-lg text-green-600">${{ number_format($sale->total_usd, 2) }}</div>
-                            <div class="text-sm text-green-600">{{ number_format($sale->total_vnd) }}đ</div>
-                            <div class="text-xs text-orange-600 mt-1">
-                                <i class="fas fa-info-circle mr-1"></i>Đã trừ hàng trả
+                            <div class="font-bold text-lg {{ $hasExchanges ? 'text-purple-600' : 'text-green-600' }}">
+                                ${{ number_format($sale->total_usd, 2) }}
+                            </div>
+                            <div class="text-sm {{ $hasExchanges ? 'text-purple-600' : 'text-green-600' }}">
+                                {{ number_format($sale->total_vnd) }}đ
+                            </div>
+                            <div class="text-xs {{ $hasExchanges ? 'text-purple-600' : 'text-orange-600' }} mt-1">
+                                @if($hasExchanges)
+                                    <i class="fas fa-exchange-alt mr-1"></i>Đã đổi hàng
+                                @else
+                                    <i class="fas fa-info-circle mr-1"></i>Đã trừ hàng trả
+                                @endif
                             </div>
                         @else
-                            <!-- Không có trả hàng -->
+                            <!-- Không có thay đổi -->
                             <div class="font-bold text-lg text-green-600">${{ number_format($sale->total_usd, 2) }}</div>
                             <div class="text-sm text-gray-500">{{ number_format($sale->total_vnd) }}đ</div>
                         @endif

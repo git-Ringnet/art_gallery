@@ -147,7 +147,30 @@
                 </div>
                 <div>
                     <label class="block text-sm font-medium text-green-900 mb-2">Tổng tiền VND</label>
-                    <input type="text" id="total_vnd" readonly class="w-full px-4 py-2 border-2 border-green-300 rounded-lg bg-white font-bold text-green-600" value="{{ number_format($sale->total_vnd) }}đ">
+                    @php
+                        $hasReturns = $sale->returns()->where('status', 'completed')->where('type', 'return')->exists();
+                        $hasExchanges = $sale->returns()->where('status', 'completed')->where('type', 'exchange')->exists();
+                        
+                        // Lấy original_total
+                        if ($sale->original_total_vnd) {
+                            $originalTotal = $sale->original_total_vnd;
+                        } else {
+                            $originalTotal = $sale->saleItems->sum('total_vnd');
+                        }
+                        
+                        $showStrikethrough = ($hasReturns || $hasExchanges) && $originalTotal != $sale->total_vnd;
+                    @endphp
+                    
+                    @if($showStrikethrough)
+                        <!-- Có trả/đổi hàng - hiển thị giá gốc gạch ngang -->
+                        <div class="w-full px-4 py-2 border-2 border-green-300 rounded-lg bg-white">
+                            <div class="text-xs text-gray-400 line-through">{{ number_format($originalTotal, 0, ',', '.') }}đ</div>
+                            <div class="font-bold text-orange-600">{{ number_format($sale->total_vnd, 0, ',', '.') }}đ</div>
+                        </div>
+                    @else
+                        <!-- Không có trả/đổi hàng -->
+                        <input type="text" id="total_vnd" readonly class="w-full px-4 py-2 border-2 border-green-300 rounded-lg bg-white font-bold text-green-600" value="{{ number_format($sale->total_vnd) }}đ">
+                    @endif
                 </div>
             </div>
 

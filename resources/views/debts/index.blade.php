@@ -212,6 +212,7 @@
                         @php
                             $sale = $payment->sale;
                             $hasReturns = $sale->returns()->where('status', 'completed')->where('type', 'return')->exists();
+                            $hasExchanges = $sale->returns()->where('status', 'completed')->where('type', 'exchange')->exists();
                             
                             // Lấy original_total, nếu không có thì tính từ items
                             if ($sale->original_total_vnd) {
@@ -227,12 +228,12 @@
                             <div class="text-xs text-red-600 mt-1">
                                 <i class="fas fa-undo mr-1"></i>Đã trả hết
                             </div>
-                        @elseif($hasReturns && $originalTotal != $sale->total_vnd)
-                            <!-- Trả một phần - hiển thị giá gốc gạch ngang và giá mới -->
+                        @elseif(($hasReturns || $hasExchanges) && $originalTotal != $sale->total_vnd)
+                            <!-- Trả/Đổi một phần - hiển thị giá gốc gạch ngang và giá mới -->
                             <div class="text-xs text-gray-400 line-through">{{ number_format($originalTotal, 0, ',', '.') }}đ</div>
                             <div class="text-orange-600">{{ number_format($sale->total_vnd, 0, ',', '.') }}đ</div>
                         @else
-                            <!-- Không có trả hàng -->
+                            <!-- Không có trả/đổi hàng -->
                             <div class="text-gray-900">{{ number_format($sale->total_vnd, 0, ',', '.') }}đ</div>
                         @endif
                     </td>
