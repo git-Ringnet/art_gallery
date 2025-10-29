@@ -81,6 +81,14 @@ class ReturnController extends Controller
             ], 404);
         }
 
+        // Chỉ cho phép trả/đổi hàng từ phiếu đã hoàn thành
+        if ($sale->sale_status !== 'completed') {
+            return response()->json([
+                'success' => false,
+                'message' => 'Chỉ có thể trả/đổi hàng từ phiếu bán đã được duyệt và hoàn thành'
+            ], 400);
+        }
+
         // Get returned quantities for each item (only approved/completed returns)
         $returnedQuantities = [];
         foreach ($sale->items as $item) {
