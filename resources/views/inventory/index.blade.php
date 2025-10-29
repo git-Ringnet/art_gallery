@@ -6,6 +6,7 @@
 
 @section('header-actions')
     <div class="flex gap-2">
+        @hasPermission('inventory', 'can_export')
         <div class="relative">
             <button onclick="toggleExportDropdown()" type="button" class="bg-green-500 hover:bg-green-600 text-white px-6 py-2 rounded-lg transition-colors flex items-center">
                 <i class="fas fa-download mr-2"></i>Xuất file
@@ -38,11 +39,14 @@
                 </div>
             </div>
         </div>
+        @endhasPermission
 
+        @hasPermission('inventory', 'can_import')
         <a href="{{ route('inventory.import.painting.form') }}"
             class="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors">
             <i class="fas fa-plus mr-2"></i>Nhập kho
         </a>
+        @endhasPermission
     </div>
 @endsection
 
@@ -157,14 +161,21 @@
                             </td>
                             <td class="px-4 py-4 whitespace-nowrap text-sm">
                                 @if ($item['type'] == 'painting')
+                                    @hasPermission('inventory', 'can_view')
                                     <a href="{{ route('inventory.paintings.show', $item['id']) }}"
                                         class="text-indigo-600 hover:text-indigo-900 mr-3" title="Xem chi tiết">
                                         <i class="fas fa-eye px-3 py-2 rounded-lg bg-blue-100 text-blue-600"></i>
                                     </a>
+                                    @endhasPermission
+                                    
+                                    @hasPermission('inventory', 'can_edit')
                                     <a href="{{ route('inventory.paintings.edit', $item['id']) }}"
                                         class="text-yellow-600 hover:text-yellow-900 mr-3" title="Chỉnh sửa">
                                         <i class="fas fa-edit px-3 py-2 rounded-lg bg-yellow-100 text-yellow-600"></i>
                                     </a>
+                                    @endhasPermission
+                                    
+                                    @hasPermission('inventory', 'can_delete')
                                     <form action="{{ route('inventory.paintings.destroy', $item['id']) }}" method="POST"
                                         class="inline" onsubmit="return confirm('Xóa tranh này?');">
                                         @csrf
@@ -173,18 +184,25 @@
                                             <i class="fas fa-trash px-3 py-2 rounded-lg bg-red-100 text-red-400"></i>
                                         </button>
                                     </form>
+                                    @endhasPermission
                                 @endif
+                                
                                 @if ($item['type'] == 'supply')
+                                    @hasPermission('inventory', 'can_view')
                                     <a href="{{ route('inventory.supplies.show', $item['id']) }}"
                                         class="text-indigo-600 hover:text-indigo-900 mr-3" title="Xem chi tiết">
                                         <i class="fas fa-eye px-3 py-2 rounded-lg bg-blue-100 text-blue-600"></i>
                                     </a>
+                                    @endhasPermission
+                                    
+                                    @hasPermission('inventory', 'can_edit')
                                     <a href="{{ route('inventory.supplies.edit', $item['id']) }}"
                                         class="text-yellow-600 hover:text-yellow-900 mr-3" title="Chỉnh sửa">
                                         <i class="fas fa-edit px-3 py-2 rounded-lg bg-yellow-100 text-yellow-600"></i>
                                     </a>
-                                @endif
-                                @if ($item['type'] == 'supply')
+                                    @endhasPermission
+                                    
+                                    @hasPermission('inventory', 'can_delete')
                                     <form action="{{ route('inventory.supplies.destroy', $item['id']) }}" method="POST"
                                         class="inline" onsubmit="return confirm('Xóa vật tư này?');">
                                         @csrf
@@ -193,6 +211,7 @@
                                             <i class="fas fa-trash px-3 py-2 rounded-lg bg-red-100 text-red-400"></i>
                                         </button>
                                     </form>
+                                    @endhasPermission
                                 @endif
                             </td>
                         </tr>

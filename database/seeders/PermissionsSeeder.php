@@ -41,7 +41,7 @@ class PermissionsSeeder extends Seeder
         );
 
         foreach (Permission::all() as $permission) {
-            RolePermission::firstOrCreate(
+            RolePermission::updateOrCreate(
                 [
                     'role_id' => $adminRole->id,
                     'permission_id' => $permission->id,
@@ -54,6 +54,8 @@ class PermissionsSeeder extends Seeder
                     'can_export' => true,
                     'can_import' => true,
                     'can_print' => true,
+                    'can_approve' => true,
+                    'can_cancel' => true,
                 ]
             );
         }
@@ -68,7 +70,7 @@ class PermissionsSeeder extends Seeder
         foreach ($salesModules as $module) {
             $permission = Permission::where('module', $module)->first();
             if ($permission) {
-                RolePermission::firstOrCreate(
+                RolePermission::updateOrCreate(
                     [
                         'role_id' => $salesRole->id,
                         'permission_id' => $permission->id,
@@ -81,6 +83,8 @@ class PermissionsSeeder extends Seeder
                         'can_export' => true,
                         'can_import' => false,
                         'can_print' => true,
+                        'can_approve' => false,
+                        'can_cancel' => false,
                     ]
                 );
             }
@@ -96,7 +100,7 @@ class PermissionsSeeder extends Seeder
         foreach ($warehouseModules as $module) {
             $permission = Permission::where('module', $module)->first();
             if ($permission) {
-                RolePermission::firstOrCreate(
+                RolePermission::updateOrCreate(
                     [
                         'role_id' => $warehouseRole->id,
                         'permission_id' => $permission->id,
@@ -109,6 +113,8 @@ class PermissionsSeeder extends Seeder
                         'can_export' => true,
                         'can_import' => $module === 'inventory',
                         'can_print' => true,
+                        'can_approve' => false,
+                        'can_cancel' => false,
                     ]
                 );
             }
@@ -124,7 +130,7 @@ class PermissionsSeeder extends Seeder
         foreach ($accountantModules as $module) {
             $permission = Permission::where('module', $module)->first();
             if ($permission) {
-                RolePermission::firstOrCreate(
+                RolePermission::updateOrCreate(
                     [
                         'role_id' => $accountantRole->id,
                         'permission_id' => $permission->id,
@@ -137,6 +143,8 @@ class PermissionsSeeder extends Seeder
                         'can_export' => true,
                         'can_import' => false,
                         'can_print' => true,
+                        'can_approve' => false,
+                        'can_cancel' => false,
                     ]
                 );
             }

@@ -14,12 +14,12 @@ class DatabaseSeeder extends Seeder
     public function run(): void
     {
         $this->call([
-            RolePermissionSeeder::class,
+            PermissionsSeeder::class,  // Tạo roles và permissions trước
             ShowroomSeeder::class,
             SupplySeeder::class,
             PaintingSeeder::class,
             CustomerSeeder::class,
-            UserSeeder::class,
+            UserSeeder::class,  // Tạo users sau khi có roles
             // SaleSeeder::class,
             // ReturnSeeder::class,
         ]);

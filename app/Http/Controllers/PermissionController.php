@@ -80,6 +80,8 @@ class PermissionController extends Controller
                 'can_export' => $rp->can_export,
                 'can_import' => $rp->can_import,
                 'can_print' => $rp->can_print,
+                'can_approve' => $rp->can_approve ?? false,
+                'can_cancel' => $rp->can_cancel ?? false,
             ];
         }
 
@@ -121,6 +123,8 @@ class PermissionController extends Controller
             'permissions.*.can_export' => 'boolean',
             'permissions.*.can_import' => 'boolean',
             'permissions.*.can_print' => 'boolean',
+            'permissions.*.can_approve' => 'boolean',
+            'permissions.*.can_cancel' => 'boolean',
         ])->validate();
 
         // Delete existing permissions
@@ -146,6 +150,8 @@ class PermissionController extends Controller
                 'can_export' => $permData['can_export'] ?? false,
                 'can_import' => $permData['can_import'] ?? false,
                 'can_print' => $permData['can_print'] ?? false,
+                'can_approve' => $permData['can_approve'] ?? false,
+                'can_cancel' => $permData['can_cancel'] ?? false,
             ]);
         }
 

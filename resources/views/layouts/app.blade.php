@@ -89,42 +89,68 @@
             </div>
             
             <nav class="space-y-2">
+                @canAccess('dashboard')
                 <a href="{{ route('dashboard.index') }}" class="nav-item flex items-center space-x-3 p-3 rounded-lg hover:bg-white hover:bg-opacity-20 transition-all duration-200 {{ request()->routeIs('dashboard.*') ? 'bg-white bg-opacity-20' : '' }}">
                     <i class="fas fa-tachometer-alt w-5"></i>
                     <span>Báo cáo thống kê</span>
                 </a>
+                @endcanAccess
+                
+                @canAccess('sales')
                 <a href="{{ route('sales.index') }}" class="nav-item flex items-center space-x-3 p-3 rounded-lg hover:bg-white hover:bg-opacity-20 transition-all duration-200 {{ request()->routeIs('sales.*') ? 'bg-white bg-opacity-20' : '' }}">
                     <i class="fas fa-shopping-cart w-5"></i>
                     <span>Bán hàng</span>
                 </a>
+                @endcanAccess
+                
+                @canAccess('debt')
                 <a href="{{ route('debt.index') }}" class="nav-item flex items-center space-x-3 p-3 rounded-lg hover:bg-white hover:bg-opacity-20 transition-all duration-200 {{ request()->routeIs('debt.*') ? 'bg-white bg-opacity-20' : '' }}">
                     <i class="fas fa-credit-card w-5"></i>
                     <span>Lịch sử công nợ</span>
                 </a>
+                @endcanAccess
+                
+                @canAccess('returns')
                 <a href="{{ route('returns.index') }}" class="nav-item flex items-center space-x-3 p-3 rounded-lg hover:bg-white hover:bg-opacity-20 transition-all duration-200 {{ request()->routeIs('returns.*') ? 'bg-white bg-opacity-20' : '' }}">
                     <i class="fas fa-undo w-5"></i>
                     <span>Đổi/Trả hàng</span>
                 </a>
+                @endcanAccess
+                
+                @canAccess('inventory')
                 <a href="{{ route('inventory.index') }}" class="nav-item flex items-center space-x-3 p-3 rounded-lg hover:bg-white hover:bg-opacity-20 transition-all duration-200 {{ request()->routeIs('inventory.*') ? 'bg-white bg-opacity-20' : '' }}">
                     <i class="fas fa-warehouse w-5"></i>
                     <span>Quản lý kho</span>
                 </a>
+                @endcanAccess
+                
+                @canAccess('showrooms')
                 <a href="{{ route('showrooms.index') }}" class="nav-item flex items-center space-x-3 p-3 rounded-lg hover:bg-white hover:bg-opacity-20 transition-all duration-200 {{ request()->routeIs('showrooms.*') ? 'bg-white bg-opacity-20' : '' }}">
                     <i class="fas fa-store w-5"></i>
                     <span>Phòng trưng bày</span>
                 </a>
+                @endcanAccess
+                
+                @canAccess('customers')
                 <a href="{{ route('customers.index') }}" class="nav-item flex items-center space-x-3 p-3 rounded-lg hover:bg-white hover:bg-opacity-20 transition-all duration-200 {{ request()->routeIs('customers.*') ? 'bg-white bg-opacity-20' : '' }}">
                     <i class="fas fa-users w-5"></i>
                     <span>Khách hàng</span>
                 </a>
+                @endcanAccess
+                
+                @canAccess('employees')
                 <a href="{{ route('employees.index') }}" class="nav-item flex items-center space-x-3 p-3 rounded-lg hover:bg-white hover:bg-opacity-20 transition-all duration-200 {{ request()->routeIs('employees.*') ? 'bg-white bg-opacity-20' : '' }}">
                     <i class="fas fa-user-tie w-5"></i>
                     <span>Nhân viên</span>
                 </a>
+                @endcanAccess
+                
+                @canAccess('permissions')
                 <a href="{{ route('permissions.index') }}" class="nav-item flex items-center space-x-3 p-3 rounded-lg hover:bg-white hover:bg-opacity-20 transition-all duration-200 {{ request()->routeIs('permissions.*') ? 'bg-white bg-opacity-20' : '' }}">
                     <i class="fas fa-user-shield w-5"></i>
                     <span>Phân quyền</span>
                 </a>
+                @endcanAccess
             </nav>
         </div>
     </div>
@@ -147,7 +173,33 @@
                     </div>
                 </div>
                 
-                <!-- User Profile Dropdown -->
+                <!-- Year Selector + User Profile -->
+                <div class="flex items-center space-x-3">
+                    <!-- Year Selector Dropdown -->
+                    <div class="relative">
+                        <button onclick="toggleYearDropdown()" class="flex items-center space-x-2 bg-white border border-gray-300 rounded-lg px-3 py-2 hover:bg-gray-50 transition-colors">
+                            <i class="fas fa-calendar-alt text-gray-600"></i>
+                            <span class="text-sm font-medium text-gray-700" id="current-year-display">{{ date('Y') }}</span>
+                            <i class="fas fa-chevron-down text-gray-500 text-xs"></i>
+                        </button>
+                        
+                        <!-- Year Dropdown Menu -->
+                        <div id="year-dropdown" class="hidden absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-lg border border-gray-200 z-[9999]">
+                            <div class="py-1" id="year-list">
+                                <!-- Will be populated by JavaScript -->
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Archive Warning Badge -->
+                    <div id="archive-warning" class="hidden">
+                        <span class="px-3 py-1 bg-orange-100 text-orange-700 text-xs font-semibold rounded-full">
+                            <i class="fas fa-exclamation-triangle mr-1"></i>
+                            <span id="archive-year-text">Đang xem năm 2024</span>
+                        </span>
+                    </div>
+
+                    <!-- User Profile Dropdown -->
                 <div class="relative z-50">
                     <button onclick="toggleUserDropdown()" class="flex items-center space-x-2 bg-white border border-gray-300 rounded-lg px-3 py-2 hover:bg-gray-50 transition-colors">
                         <img src="https://ui-avatars.com/api/?name={{ urlencode(Auth::user()->name) }}&background=4F46E5&color=fff" alt="User" class="w-8 h-8 rounded-full">
@@ -218,6 +270,116 @@
             }
         }
 
+        // Year Dropdown Functions
+        function toggleYearDropdown() {
+            const dropdown = document.getElementById('year-dropdown');
+            if (dropdown) {
+                dropdown.classList.toggle('hidden');
+                if (!dropdown.classList.contains('hidden')) {
+                    loadAvailableYears();
+                }
+            }
+        }
+
+        async function loadAvailableYears() {
+            try {
+                const response = await fetch('/year/info');
+                const data = await response.json();
+                
+                const yearList = document.getElementById('year-list');
+                yearList.innerHTML = '';
+                
+                data.available_years.forEach(yearDb => {
+                    const item = document.createElement('button');
+                    item.className = 'w-full text-left px-4 py-2 text-sm hover:bg-gray-100 transition-colors flex items-center justify-between';
+                    item.onclick = () => switchYear(yearDb.year);
+                    
+                    const yearText = document.createElement('span');
+                    yearText.textContent = `Năm ${yearDb.year}`;
+                    if (yearDb.is_active) {
+                        yearText.className = 'font-semibold text-blue-600';
+                    }
+                    
+                    item.appendChild(yearText);
+                    
+                    if (yearDb.year == data.selected_year) {
+                        const check = document.createElement('i');
+                        check.className = 'fas fa-check text-blue-600';
+                        item.appendChild(check);
+                    }
+                    
+                    yearList.appendChild(item);
+                });
+                
+                // Update display
+                updateYearDisplay(data);
+            } catch (error) {
+                console.error('Error loading years:', error);
+            }
+        }
+
+        async function switchYear(year) {
+            try {
+                const response = await fetch('/year/switch', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content
+                    },
+                    body: JSON.stringify({ year: year })
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    // Close dropdown
+                    document.getElementById('year-dropdown').classList.add('hidden');
+                    
+                    // Show notification
+                    showNotification(data.message, 'success');
+                    
+                    // Update display
+                    document.getElementById('current-year-display').textContent = year;
+                    
+                    // Show/hide archive warning
+                    const archiveWarning = document.getElementById('archive-warning');
+                    if (data.is_archive) {
+                        archiveWarning.classList.remove('hidden');
+                        document.getElementById('archive-year-text').textContent = `Đang xem năm ${year}`;
+                    } else {
+                        archiveWarning.classList.add('hidden');
+                    }
+                    
+                    // Reload page to show data from selected year
+                    setTimeout(() => {
+                        window.location.reload();
+                    }, 1000);
+                } else {
+                    showNotification(data.message, 'error');
+                }
+            } catch (error) {
+                console.error('Error switching year:', error);
+                showNotification('Có lỗi khi chuyển năm', 'error');
+            }
+        }
+
+        function updateYearDisplay(data) {
+            document.getElementById('current-year-display').textContent = data.selected_year;
+            
+            const archiveWarning = document.getElementById('archive-warning');
+            if (data.is_viewing_archive) {
+                archiveWarning.classList.remove('hidden');
+                document.getElementById('archive-year-text').textContent = `Đang xem năm ${data.selected_year}`;
+            } else {
+                archiveWarning.classList.add('hidden');
+            }
+        }
+
+        // Load year info on page load
+        document.addEventListener('DOMContentLoaded', function() {
+            loadAvailableYears();
+        });
+
         // Close dropdown when clicking outside
         document.addEventListener('click', function(event) {
             const dropdown = document.getElementById('user-dropdown');
@@ -225,6 +387,13 @@
             
             if (dropdown && !dropdown.contains(event.target) && !dropdownButton.contains(event.target)) {
                 dropdown.classList.add('hidden');
+            }
+            
+            const yearDropdown = document.getElementById('year-dropdown');
+            const yearButton = document.querySelector('[onclick="toggleYearDropdown()"]');
+            
+            if (yearDropdown && !yearDropdown.contains(event.target) && !yearButton.contains(event.target)) {
+                yearDropdown.classList.add('hidden');
             }
         });
 
