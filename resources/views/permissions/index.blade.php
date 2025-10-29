@@ -99,10 +99,10 @@
                                         <div class="flex flex-wrap gap-2">
                                             @php
                                                 // Lấy danh sách modules từ rolePermissions (có ít nhất 1 quyền = true)
-                                                $activeModules = $role->rolePermissions->filter(function($rp) {
-                                                    return $rp->can_view || $rp->can_create || $rp->can_edit || 
-                                                           $rp->can_delete || $rp->can_export || $rp->can_import || 
-                                                           $rp->can_print || $rp->can_approve || $rp->can_cancel;
+                                                $activeModules = $role->rolePermissions->filter(function ($rp) {
+                                                    return $rp->can_view || $rp->can_create || $rp->can_edit ||
+                                                        $rp->can_delete || $rp->can_export || $rp->can_import ||
+                                                        $rp->can_print || $rp->can_approve || $rp->can_cancel;
                                                 })->pluck('permission');
                                             @endphp
                                             @foreach($activeModules as $permission)
@@ -121,7 +121,7 @@
                                             class="text-blue-600 hover:text-blue-800 p-2 rounded-lg transition-colors">
                                             <i class="fas fa-edit px-3 py-2 rounded-lg bg-yellow-100 text-yellow-600"></i>
                                         </button>
-                                        {{-- <form action="{{ route('permissions.roles.delete', $role->id) }}" method="POST"
+                                        <form action="{{ route('permissions.roles.delete', $role->id) }}" method="POST"
                                             class="inline" onsubmit="return confirm('Bạn có chắc muốn xóa vai trò này?')">
                                             @csrf
                                             @method('DELETE')
@@ -129,7 +129,7 @@
                                                 class="text-red-600 hover:text-red-800 p-2 rounded-lg transition-colors">
                                                 <i class="fas fa-trash px-3 py-2 rounded-lg bg-red-100 text-red-400"></i>
                                             </button>
-                                        </form> --}}
+                                        </form>
                                     </div>
                                 </div>
                             </div>

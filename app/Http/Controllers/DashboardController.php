@@ -3,7 +3,9 @@
 namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 use App\Models\Sale;
 use App\Models\Debt;
 use App\Models\Painting;
@@ -16,6 +18,14 @@ class DashboardController extends Controller
 {
     public function index(Request $request)
     {
+        // Kiểm tra quyền truy cập dashboard
+        $user = Auth::user();
+        
+        if (!$user || !$user->canAccess('dashboard')) {
+            // Không có quyền dashboard → Hiển thị trang welcome
+            return view('dashboard.no-access');
+        }
+
         $period = $request->get('period', 'week');
         $fromDate = $request->get('from_date');
         $toDate = $request->get('to_date');
@@ -24,6 +34,7 @@ class DashboardController extends Controller
         
         return view('dashboard.index', compact('stats', 'period'));
     }
+
 
     public function getStats(Request $request)
     {

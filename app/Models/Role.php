@@ -46,7 +46,13 @@ class Role extends Model
 
     public function canAccess($module)
     {
-        return $this->permissions()->where('module', $module)->exists();
+        // Kiểm tra xem role có ít nhất 1 quyền can_view cho module này không
+        return $this->rolePermissions()
+            ->whereHas('permission', function($query) use ($module) {
+                $query->where('module', $module);
+            })
+            ->where('can_view', true)
+            ->exists();
     }
 
     public function getModulePermissions($module)

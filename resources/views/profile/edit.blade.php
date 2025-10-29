@@ -76,41 +76,6 @@
                 </button>
             </form>
         </div>
-
-        <!-- Delete Account -->
-        <div class="bg-white rounded-xl shadow-lg p-6 border-2 border-red-200">
-            <h3 class="text-lg font-semibold mb-2 text-red-600">Xóa tài khoản</h3>
-            <p class="text-sm text-gray-600 mb-4">Sau khi xóa tài khoản, tất cả dữ liệu sẽ bị xóa vĩnh viễn.</p>
-            
-            <button onclick="confirmDelete()" class="bg-red-600 text-white px-6 py-2 rounded-lg hover:bg-red-700 transition-colors">
-                <i class="fas fa-trash mr-2"></i>Xóa tài khoản
-            </button>
-        </div>
     </div>
 </div>
-
-<script>
-function confirmDelete() {
-    if (confirm('Bạn có chắc chắn muốn xóa tài khoản? Hành động này không thể hoàn tác!')) {
-        const form = document.createElement('form');
-        form.method = 'POST';
-        form.action = '{{ route("profile.destroy") }}';
-        
-        const csrfToken = document.createElement('input');
-        csrfToken.type = 'hidden';
-        csrfToken.name = '_token';
-        csrfToken.value = '{{ csrf_token() }}';
-        
-        const methodField = document.createElement('input');
-        methodField.type = 'hidden';
-        methodField.name = '_method';
-        methodField.value = 'DELETE';
-        
-        form.appendChild(csrfToken);
-        form.appendChild(methodField);
-        document.body.appendChild(form);
-        form.submit();
-    }
-}
-</script>
 @endsection

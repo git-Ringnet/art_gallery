@@ -65,16 +65,16 @@
                 </div>
                 <div class="grid grid-cols-2 gap-3">
                     <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-2">Rộng (W)</label>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Rộng (cm)</label>
                         <input type="number" name="width" value="{{ old('width') }}"
                             class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                            placeholder="Rộng (W)">
+                            placeholder="Rộng (cm)">
                     </div>
                     <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-2">Cao (H)</label>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Cao (cm)</label>
                         <input type="number" name="height" value="{{ old('height') }}"
                             class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                            placeholder="Cao (H)">
+                            placeholder="Cao (cm)">
                     </div>
                 </div>
                 <div>

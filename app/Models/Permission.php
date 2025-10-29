@@ -42,6 +42,7 @@ class Permission extends Model
             'customers' => 'Khách hàng',
             'employees' => 'Nhân viên',
             'permissions' => 'Phân quyền',
+            'year_database' => 'Database',
         ];
     }
 

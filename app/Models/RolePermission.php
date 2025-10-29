@@ -19,6 +19,8 @@ class RolePermission extends Model
         'can_export',
         'can_import',
         'can_print',
+        'can_approve',
+        'can_cancel',
     ];
 
     protected $casts = [
@@ -29,6 +31,8 @@ class RolePermission extends Model
         'can_export' => 'boolean',
         'can_import' => 'boolean',
         'can_print' => 'boolean',
+        'can_approve' => 'boolean',
+        'can_cancel' => 'boolean',
     ];
 
     public function role()

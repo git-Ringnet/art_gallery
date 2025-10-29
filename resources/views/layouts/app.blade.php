@@ -75,6 +75,23 @@
     @stack('styles')
 </head>
 <body class="bg-gradient-to-br from-blue-50 to-cyan-100 min-h-screen">
+    @php
+        // Kiểm tra xem user có quyền truy cập bất kỳ module nào không
+        $hasAnyAccess = auth()->check() && auth()->user()->role && (
+            auth()->user()->canAccess('dashboard') ||
+            auth()->user()->canAccess('sales') ||
+            auth()->user()->canAccess('debt') ||
+            auth()->user()->canAccess('returns') ||
+            auth()->user()->canAccess('inventory') ||
+            auth()->user()->canAccess('showrooms') ||
+            auth()->user()->canAccess('customers') ||
+            auth()->user()->canAccess('employees') ||
+            auth()->user()->canAccess('permissions') ||
+            auth()->user()->canAccess('year_database')
+        );
+    @endphp
+
+    @if($hasAnyAccess)
     <!-- Overlay for mobile -->
     <div id="overlay" onclick="toggleSidebar()"></div>
 
@@ -151,20 +168,30 @@
                     <span>Phân quyền</span>
                 </a>
                 @endcanAccess
+                
+                @canAccess('year_database')
+                <a href="{{ route('year.index') }}" class="nav-item flex items-center space-x-3 p-3 rounded-lg hover:bg-white hover:bg-opacity-20 transition-all duration-200 {{ request()->routeIs('year.*') ? 'bg-white bg-opacity-20' : '' }}">
+                    <i class="fas fa-database w-5"></i>
+                    <span>Database</span>
+                </a>
+                @endcanAccess
             </nav>
         </div>
     </div>
+    @endif
 
     <!-- Main Content -->
-    <div id="main-content" class="content-transition ml-64">
+    <div id="main-content" class="content-transition {{ $hasAnyAccess ? 'ml-64' : '' }}">
         <!-- Admin Header (Logo + User Info) -->
         <div class="bg-white shadow-md p-4 mb-0 relative z-40 no-print">
             <div class="flex justify-between items-center">
                 <!-- Menu Toggle Button (Mobile) + Logo -->
                 <div class="flex items-center space-x-3">
+                    @if($hasAnyAccess)
                     <button id="menu-toggle" onclick="toggleSidebar()" class="md:hidden p-2 rounded-lg hover:bg-gray-100 transition-colors">
                         <i class="fas fa-bars text-gray-700 text-xl"></i>
                     </button>
+                    @endif
                     <div class="flex items-center space-x-2">
                         <div class="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center">
                             <i class="fas fa-palette text-white text-lg"></i>
@@ -173,31 +200,23 @@
                     </div>
                 </div>
                 
-                <!-- Year Selector + User Profile -->
+                <!-- Archive Warning + User Profile -->
                 <div class="flex items-center space-x-3">
-                    <!-- Year Selector Dropdown -->
-                    <div class="relative">
-                        <button onclick="toggleYearDropdown()" class="flex items-center space-x-2 bg-white border border-gray-300 rounded-lg px-3 py-2 hover:bg-gray-50 transition-colors">
-                            <i class="fas fa-calendar-alt text-gray-600"></i>
-                            <span class="text-sm font-medium text-gray-700" id="current-year-display">{{ date('Y') }}</span>
-                            <i class="fas fa-chevron-down text-gray-500 text-xs"></i>
-                        </button>
-                        
-                        <!-- Year Dropdown Menu -->
-                        <div id="year-dropdown" class="hidden absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-lg border border-gray-200 z-[9999]">
-                            <div class="py-1" id="year-list">
-                                <!-- Will be populated by JavaScript -->
-                            </div>
-                        </div>
-                    </div>
+                    <!-- Archive Warning Badge (chỉ hiện khi xem năm cũ) -->
+                    @php
+                        $yearService = app(\App\Services\YearDatabaseService::class);
+                        $isViewingArchive = $yearService->isViewingArchive();
+                        $selectedYear = $yearService->getSelectedYear();
+                    @endphp
                     
-                    <!-- Archive Warning Badge -->
-                    <div id="archive-warning" class="hidden">
+                    @if($isViewingArchive)
+                    <div>
                         <span class="px-3 py-1 bg-orange-100 text-orange-700 text-xs font-semibold rounded-full">
                             <i class="fas fa-exclamation-triangle mr-1"></i>
-                            <span id="archive-year-text">Đang xem năm 2024</span>
+                            Đang xem năm {{ $selectedYear }} (Chỉ đọc)
                         </span>
                     </div>
+                    @endif
 
                     <!-- User Profile Dropdown -->
                 <div class="relative z-50">
@@ -251,7 +270,21 @@
 
         <!-- Page Content -->
         <div class="px-6 pb-6">
+            @if(!$hasAnyAccess)
+            <!-- Thông báo không có quyền -->
+            <div class="max-w-2xl mx-auto mt-12">
+                <div class="bg-white rounded-lg shadow-lg p-8 text-center">
+                    <div class="w-20 h-20 bg-yellow-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                        <i class="fas fa-lock text-yellow-600 text-3xl"></i>
+                    </div>
+                    <h3 class="text-2xl font-bold text-gray-800 mb-2">Chưa có quyền truy cập</h3>
+                    <p class="text-gray-600 mb-6">Tài khoản của bạn chưa được cấp quyền truy cập vào bất kỳ chức năng nào trong hệ thống.</p>
+                    <p class="text-sm text-gray-500">Vui lòng liên hệ quản trị viên để được cấp quyền.</p>
+                </div>
+            </div>
+            @else
             @yield('content')
+            @endif
         </div>
     </div>
 
@@ -288,6 +321,11 @@
                 const data = await response.json();
                 
                 const yearList = document.getElementById('year-list');
+                // Kiểm tra xem element có tồn tại không (một số trang không có year dropdown)
+                if (!yearList) {
+                    return;
+                }
+                
                 yearList.innerHTML = '';
                 
                 data.available_years.forEach(yearDb => {
@@ -365,14 +403,22 @@
         }
 
         function updateYearDisplay(data) {
-            document.getElementById('current-year-display').textContent = data.selected_year;
+            const currentYearDisplay = document.getElementById('current-year-display');
+            if (currentYearDisplay) {
+                currentYearDisplay.textContent = data.selected_year;
+            }
             
             const archiveWarning = document.getElementById('archive-warning');
-            if (data.is_viewing_archive) {
-                archiveWarning.classList.remove('hidden');
-                document.getElementById('archive-year-text').textContent = `Đang xem năm ${data.selected_year}`;
-            } else {
-                archiveWarning.classList.add('hidden');
+            if (archiveWarning) {
+                if (data.is_viewing_archive) {
+                    archiveWarning.classList.remove('hidden');
+                    const archiveYearText = document.getElementById('archive-year-text');
+                    if (archiveYearText) {
+                        archiveYearText.textContent = `Đang xem năm ${data.selected_year}`;
+                    }
+                } else {
+                    archiveWarning.classList.add('hidden');
+                }
             }
         }
 

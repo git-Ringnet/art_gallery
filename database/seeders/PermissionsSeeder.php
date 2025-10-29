@@ -22,6 +22,7 @@ class PermissionsSeeder extends Seeder
             'customers' => 'Khách hàng',
             'employees' => 'Nhân viên',
             'permissions' => 'Phân quyền',
+            'year_database' => 'Database',
         ];
 
         foreach ($modules as $key => $name) {

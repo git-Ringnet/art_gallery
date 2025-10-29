@@ -8,19 +8,21 @@
     <div class="flex gap-2">
         @hasPermission('inventory', 'can_export')
         <div class="relative">
-            <button onclick="toggleExportDropdown()" type="button" class="bg-green-500 hover:bg-green-600 text-white px-6 py-2 rounded-lg transition-colors flex items-center">
+            <button onclick="toggleExportDropdown()" type="button"
+                class="bg-green-500 hover:bg-green-600 text-white px-6 py-2 rounded-lg transition-colors flex items-center">
                 <i class="fas fa-download mr-2"></i>Xuất file
                 <i class="fas fa-chevron-down ml-2 text-xs"></i>
             </button>
-            <div id="exportDropdown" class="hidden absolute right-0 mt-2 w-56 bg-white rounded-lg shadow-xl z-50 border border-gray-200">
+            <div id="exportDropdown"
+                class="hidden absolute right-0 mt-2 w-56 bg-white rounded-lg shadow-xl z-50 border border-gray-200">
                 <!-- Excel Export -->
                 <div class="py-2 border-b border-gray-200">
                     <div class="px-4 py-2 text-xs font-semibold text-gray-500 uppercase">Excel</div>
-                    <a href="{{ route('inventory.export.excel', array_merge(request()->query(), ['scope' => 'current'])) }}" 
+                    <a href="{{ route('inventory.export.excel', array_merge(request()->query(), ['scope' => 'current'])) }}"
                         class="block px-4 py-2 text-sm text-gray-700 hover:bg-blue-50 transition-colors">
                         <i class="fas fa-file-excel text-green-600 mr-2"></i>Trang hiện tại
                     </a>
-                    <a href="{{ route('inventory.export.excel', array_merge(request()->query(), ['scope' => 'all'])) }}" 
+                    <a href="{{ route('inventory.export.excel', array_merge(request()->query(), ['scope' => 'all'])) }}"
                         class="block px-4 py-2 text-sm text-gray-700 hover:bg-blue-50 transition-colors">
                         <i class="fas fa-file-excel text-green-600 mr-2"></i>Tất cả kết quả
                     </a>
@@ -28,11 +30,11 @@
                 <!-- PDF Export -->
                 <div class="py-2">
                     <div class="px-4 py-2 text-xs font-semibold text-gray-500 uppercase">PDF</div>
-                    <a href="{{ route('inventory.export.pdf', array_merge(request()->query(), ['scope' => 'current'])) }}" 
+                    <a href="{{ route('inventory.export.pdf', array_merge(request()->query(), ['scope' => 'current'])) }}"
                         class="block px-4 py-2 text-sm text-gray-700 hover:bg-red-50 transition-colors">
                         <i class="fas fa-file-pdf text-red-600 mr-2"></i>Trang hiện tại
                     </a>
-                    <a href="{{ route('inventory.export.pdf', array_merge(request()->query(), ['scope' => 'all'])) }}" 
+                    <a href="{{ route('inventory.export.pdf', array_merge(request()->query(), ['scope' => 'all'])) }}"
                         class="block px-4 py-2 text-sm text-gray-700 hover:bg-red-50 transition-colors">
                         <i class="fas fa-file-pdf text-red-600 mr-2"></i>Tất cả kết quả
                     </a>
@@ -41,7 +43,7 @@
         </div>
         @endhasPermission
 
-        @hasPermission('inventory', 'can_import')
+        @hasPermission('inventory', 'can_create')
         <a href="{{ route('inventory.import.painting.form') }}"
             class="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors">
             <i class="fas fa-plus mr-2"></i>Nhập kho
@@ -115,7 +117,7 @@
                 <tbody class="bg-white divide-y divide-gray-200">
                     @forelse($inventory as $item)
                         <tr class="hover:bg-gray-50">
-                            
+
                             <td class="px-4 py-4 whitespace-nowrap text-sm font-medium text-indigo-600">{{ $item['code'] }}
                             </td>
                             <td class="px-4 py-4 whitespace-nowrap text-sm text-gray-900">{{ $item['name'] }}</td>
@@ -167,14 +169,14 @@
                                         <i class="fas fa-eye px-3 py-2 rounded-lg bg-blue-100 text-blue-600"></i>
                                     </a>
                                     @endhasPermission
-                                    
+
                                     @hasPermission('inventory', 'can_edit')
-                                    <a href="{{ route('inventory.paintings.edit', $item['id']) }}"
+                                    <a href="{{ route('inventory.paintings.edit', ['id' => $item['id'], 'return_url' => request()->fullUrl()]) }}"
                                         class="text-yellow-600 hover:text-yellow-900 mr-3" title="Chỉnh sửa">
                                         <i class="fas fa-edit px-3 py-2 rounded-lg bg-yellow-100 text-yellow-600"></i>
                                     </a>
                                     @endhasPermission
-                                    
+
                                     @hasPermission('inventory', 'can_delete')
                                     <form action="{{ route('inventory.paintings.destroy', $item['id']) }}" method="POST"
                                         class="inline" onsubmit="return confirm('Xóa tranh này?');">
@@ -186,7 +188,7 @@
                                     </form>
                                     @endhasPermission
                                 @endif
-                                
+
                                 @if ($item['type'] == 'supply')
                                     @hasPermission('inventory', 'can_view')
                                     <a href="{{ route('inventory.supplies.show', $item['id']) }}"
@@ -194,14 +196,14 @@
                                         <i class="fas fa-eye px-3 py-2 rounded-lg bg-blue-100 text-blue-600"></i>
                                     </a>
                                     @endhasPermission
-                                    
+
                                     @hasPermission('inventory', 'can_edit')
                                     <a href="{{ route('inventory.supplies.edit', $item['id']) }}"
                                         class="text-yellow-600 hover:text-yellow-900 mr-3" title="Chỉnh sửa">
                                         <i class="fas fa-edit px-3 py-2 rounded-lg bg-yellow-100 text-yellow-600"></i>
                                     </a>
                                     @endhasPermission
-                                    
+
                                     @hasPermission('inventory', 'can_delete')
                                     <form action="{{ route('inventory.supplies.destroy', $item['id']) }}" method="POST"
                                         class="inline" onsubmit="return confirm('Xóa vật tư này?');">
@@ -233,7 +235,8 @@
 @endsection
 
 <!-- Image Modal -->
-<div id="imageModal" class="fixed inset-0 bg-black bg-opacity-75 z-50 hidden flex items-center justify-center p-4" onclick="closeImageModal()">
+<div id="imageModal" class="fixed inset-0 bg-black bg-opacity-75 z-50 hidden flex items-center justify-center p-4"
+    onclick="closeImageModal()">
     <div class="relative max-w-4xl max-h-full" onclick="event.stopPropagation()">
         <button onclick="closeImageModal()" class="absolute -top-10 right-0 text-white hover:text-gray-300">
             <i class="fas fa-times text-2xl"></i>
@@ -245,43 +248,43 @@
 
 @push('scripts')
     <script>
-function toggleExportDropdown() {
-    const dropdown = document.getElementById('exportDropdown');
-    dropdown.classList.toggle('hidden');
-}
+        function toggleExportDropdown() {
+            const dropdown = document.getElementById('exportDropdown');
+            dropdown.classList.toggle('hidden');
+        }
 
-// Close dropdown when clicking outside
-document.addEventListener('click', function(event) {
-    const dropdown = document.getElementById('exportDropdown');
-    const button = event.target.closest('[onclick="toggleExportDropdown()"]');
-    
-    if (dropdown && !dropdown.contains(event.target) && !button) {
-        dropdown.classList.add('hidden');
-    }
-});
+        // Close dropdown when clicking outside
+        document.addEventListener('click', function (event) {
+            const dropdown = document.getElementById('exportDropdown');
+            const button = event.target.closest('[onclick="toggleExportDropdown()"]');
 
-function showImageModal(imageSrc, imageTitle) {
-    const modal = document.getElementById('imageModal');
-    const modalImage = document.getElementById('modalImage');
-    const modalTitle = document.getElementById('modalImageTitle');
-    
-    modalImage.src = imageSrc;
-    modalTitle.textContent = imageTitle;
-    modal.classList.remove('hidden');
-    document.body.style.overflow = 'hidden';
-}
+            if (dropdown && !dropdown.contains(event.target) && !button) {
+                dropdown.classList.add('hidden');
+            }
+        });
 
-function closeImageModal() {
-    const modal = document.getElementById('imageModal');
-    modal.classList.add('hidden');
-    document.body.style.overflow = 'auto';
-}
+        function showImageModal(imageSrc, imageTitle) {
+            const modal = document.getElementById('imageModal');
+            const modalImage = document.getElementById('modalImage');
+            const modalTitle = document.getElementById('modalImageTitle');
 
-// Close modal with ESC key
-document.addEventListener('keydown', function(event) {
-    if (event.key === 'Escape') {
-        closeImageModal();
-    }
-});
+            modalImage.src = imageSrc;
+            modalTitle.textContent = imageTitle;
+            modal.classList.remove('hidden');
+            document.body.style.overflow = 'hidden';
+        }
+
+        function closeImageModal() {
+            const modal = document.getElementById('imageModal');
+            modal.classList.add('hidden');
+            document.body.style.overflow = 'auto';
+        }
+
+        // Close modal with ESC key
+        document.addEventListener('keydown', function (event) {
+            if (event.key === 'Escape') {
+                closeImageModal();
+            }
+        });
     </script>
 @endpush

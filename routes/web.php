@@ -11,6 +11,7 @@ require __DIR__ . '/auth.php';
 
 // Protected routes - require authentication
 Route::middleware(['auth'])->group(function () {
+    // Route gốc - Controller sẽ xử lý redirect dựa vào quyền
     Route::get('/', [DashboardController::class, 'index'])->name('dashboard');
 
     // Dashboard routes
@@ -29,8 +30,8 @@ Route::middleware(['auth'])->group(function () {
         Route::put('/{id}', [SalesController::class, 'update'])->middleware('permission:sales,can_edit')->name('update');
         Route::delete('/{id}', [SalesController::class, 'destroy'])->middleware('permission:sales,can_delete')->name('destroy');
         Route::get('/{id}/print', [SalesController::class, 'print'])->middleware('permission:sales,can_print')->name('print');
-        Route::post('/{id}/approve', [SalesController::class, 'approve'])->middleware('permission:sales,can_edit')->name('approve');
-        Route::post('/{id}/cancel', [SalesController::class, 'cancel'])->middleware('permission:sales,can_edit')->name('cancel');
+        Route::post('/{id}/approve', [SalesController::class, 'approve'])->middleware('permission:sales,can_approve')->name('approve');
+        Route::post('/{id}/cancel', [SalesController::class, 'cancel'])->middleware('permission:sales,can_cancel')->name('cancel');
 
         // API routes for search
         Route::get('/api/paintings/{id}', [SalesController::class, 'getPainting'])->name('api.painting');
@@ -60,9 +61,9 @@ Route::middleware(['auth'])->group(function () {
         Route::get('/{id}', [App\Http\Controllers\ReturnController::class, 'show'])->middleware('permission:returns,can_view')->name('show');
         Route::get('/{id}/edit', [App\Http\Controllers\ReturnController::class, 'edit'])->middleware('permission:returns,can_edit')->name('edit');
         Route::put('/{id}', [App\Http\Controllers\ReturnController::class, 'update'])->middleware('permission:returns,can_edit')->name('update');
-        Route::put('/{id}/approve', [App\Http\Controllers\ReturnController::class, 'approve'])->middleware('permission:returns,can_edit')->name('approve');
+        Route::put('/{id}/approve', [App\Http\Controllers\ReturnController::class, 'approve'])->middleware('permission:returns,can_approve')->name('approve');
         Route::put('/{id}/complete', [App\Http\Controllers\ReturnController::class, 'complete'])->middleware('permission:returns,can_edit')->name('complete');
-        Route::put('/{id}/cancel', [App\Http\Controllers\ReturnController::class, 'cancel'])->middleware('permission:returns,can_edit')->name('cancel');
+        Route::put('/{id}/cancel', [App\Http\Controllers\ReturnController::class, 'cancel'])->middleware('permission:returns,can_cancel')->name('cancel');
         Route::delete('/{id}', [App\Http\Controllers\ReturnController::class, 'destroy'])->middleware('permission:returns,can_delete')->name('destroy');
         Route::post('/recalculate-sale-totals', [App\Http\Controllers\ReturnController::class, 'recalculateSaleTotals'])->name('recalculateSaleTotals');
     });
@@ -72,11 +73,11 @@ Route::middleware(['auth'])->group(function () {
         Route::get('/', [App\Http\Controllers\InventoryController::class, 'index'])->middleware('permission:inventory,can_view')->name('index');
         Route::get('/export/excel', [App\Http\Controllers\InventoryController::class, 'exportExcel'])->middleware('permission:inventory,can_export')->name('export.excel');
         Route::get('/export/pdf', [App\Http\Controllers\InventoryController::class, 'exportPdf'])->middleware('permission:inventory,can_export')->name('export.pdf');
-        Route::get('/import', [App\Http\Controllers\InventoryController::class, 'import'])->middleware('permission:inventory,can_import')->name('import');
-        Route::get('/import/painting', [App\Http\Controllers\InventoryController::class, 'importPaintingForm'])->middleware('permission:inventory,can_import')->name('import.painting.form');
-        Route::get('/import/supply', [App\Http\Controllers\InventoryController::class, 'importSupplyForm'])->middleware('permission:inventory,can_import')->name('import.supply.form');
-        Route::post('/import/painting', [App\Http\Controllers\InventoryController::class, 'importPainting'])->middleware('permission:inventory,can_import')->name('import.painting');
-        Route::post('/import/supply', [App\Http\Controllers\InventoryController::class, 'importSupply'])->middleware('permission:inventory,can_import')->name('import.supply');
+        Route::get('/import', [App\Http\Controllers\InventoryController::class, 'import'])->middleware('permission:inventory,can_create')->name('import');
+        Route::get('/import/painting', [App\Http\Controllers\InventoryController::class, 'importPaintingForm'])->middleware('permission:inventory,can_create')->name('import.painting.form');
+        Route::get('/import/supply', [App\Http\Controllers\InventoryController::class, 'importSupplyForm'])->middleware('permission:inventory,can_create')->name('import.supply.form');
+        Route::post('/import/painting', [App\Http\Controllers\InventoryController::class, 'importPainting'])->middleware('permission:inventory,can_create')->name('import.painting');
+        Route::post('/import/supply', [App\Http\Controllers\InventoryController::class, 'importSupply'])->middleware('permission:inventory,can_create')->name('import.supply');
 
         Route::get('/paintings/{id}/show', [App\Http\Controllers\InventoryController::class, 'showPainting'])->middleware('permission:inventory,can_view')->name('paintings.show');
         Route::get('/paintings/{id}/edit', [App\Http\Controllers\InventoryController::class, 'editPainting'])->middleware('permission:inventory,can_edit')->name('paintings.edit');
@@ -148,9 +149,15 @@ Route::middleware(['auth'])->group(function () {
 
     // Year Database routes
     Route::prefix('year')->name('year.')->group(function () {
-        Route::get('/', [App\Http\Controllers\YearDatabaseController::class, 'index'])->middleware('permission:permissions,can_view')->name('index');
-        Route::post('/switch', [App\Http\Controllers\YearDatabaseController::class, 'switchYear'])->name('switch');
-        Route::post('/reset', [App\Http\Controllers\YearDatabaseController::class, 'resetYear'])->name('reset');
-        Route::get('/info', [App\Http\Controllers\YearDatabaseController::class, 'getCurrentInfo'])->name('info');
+        Route::get('/', [App\Http\Controllers\YearDatabaseController::class, 'index'])->middleware('permission:year_database,can_view')->name('index');
+        Route::post('/switch', [App\Http\Controllers\YearDatabaseController::class, 'switchYear'])->middleware('permission:year_database,can_view')->name('switch');
+        Route::post('/reset', [App\Http\Controllers\YearDatabaseController::class, 'resetYear'])->middleware('permission:year_database,can_view')->name('reset');
+        Route::get('/info', [App\Http\Controllers\YearDatabaseController::class, 'getCurrentInfo'])->middleware('permission:year_database,can_view')->name('info');
+
+        // Export & Import
+        Route::post('/export', [App\Http\Controllers\YearDatabaseController::class, 'exportDatabase'])->middleware('permission:year_database,can_export')->name('export');
+        Route::post('/import', [App\Http\Controllers\YearDatabaseController::class, 'importDatabase'])->middleware('permission:year_database,can_import')->name('import');
+        Route::get('/export/{id}/download', [App\Http\Controllers\YearDatabaseController::class, 'downloadExport'])->middleware('permission:year_database,can_view')->name('export.download');
+        Route::delete('/export/{id}', [App\Http\Controllers\YearDatabaseController::class, 'deleteExport'])->middleware('permission:year_database,can_delete')->name('export.delete');
     });
 });

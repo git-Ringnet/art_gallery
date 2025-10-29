@@ -34,6 +34,12 @@ async function loadRolePermissions(roleId) {
         currentPermissions = data.permissions || {};
         currentFieldPermissions = data.fieldPermissions || {};
         
+        // Debug: Log permissions từ server
+        console.log('Loaded permissions from server:', data.permissions);
+        if (data.permissions.sales) {
+            console.log('Sales permissions from server:', data.permissions.sales);
+        }
+        
         await renderPermissions();
     } catch (error) {
         console.error('Error loading permissions:', error);
@@ -64,15 +70,35 @@ async function renderPermissions() {
     html += '</div></div>';
     // Định nghĩa quyền cho từng module
     const modulePermissions = {
-        'dashboard': ['can_view', 'can_export', 'can_print'],
-        'sales': ['can_view', 'can_create', 'can_edit', 'can_delete', 'can_export', 'can_print', 'can_approve', 'can_cancel'],
-        'debt': ['can_view', 'can_edit', 'can_export', 'can_print'],
-        'returns': ['can_view', 'can_create', 'can_edit', 'can_delete', 'can_export', 'can_print', 'can_approve', 'can_cancel'],
-        'inventory': ['can_view', 'can_create', 'can_edit', 'can_delete', 'can_export', 'can_import', 'can_print'],
+        // Dashboard - KHÔNG có export/import (chỉ xem)
+        'dashboard': ['can_view'],
+        
+        // Sales - KHÔNG có export/import
+        'sales': ['can_view', 'can_create', 'can_edit', 'can_delete', 'can_print', 'can_approve', 'can_cancel'],
+        
+        // Debt - CÓ export (can_edit = thu tiền công nợ)
+        'debt': ['can_view', 'can_edit', 'can_export'],
+        
+        // Returns - KHÔNG có export/import
+        'returns': ['can_view', 'can_create', 'can_edit', 'can_delete', 'can_print', 'can_approve', 'can_cancel'],
+        
+        // Inventory - CÓ export (can_create = thêm/nhập tranh vào kho)
+        'inventory': ['can_view', 'can_create', 'can_edit', 'can_delete', 'can_export'],
+        
+        // Showrooms - KHÔNG có export/import
         'showrooms': ['can_view', 'can_create', 'can_edit', 'can_delete'],
-        'customers': ['can_view', 'can_create', 'can_edit', 'can_delete', 'can_export', 'can_print'],
-        'employees': ['can_view', 'can_create', 'can_edit', 'can_delete', 'can_export', 'can_print'],
-        'permissions': ['can_view', 'can_create', 'can_edit', 'can_delete']
+        
+        // Customers - KHÔNG có export/import
+        'customers': ['can_view', 'can_create', 'can_edit', 'can_delete'],
+        
+        // Employees - CÓ export
+        'employees': ['can_view', 'can_create', 'can_edit', 'can_delete', 'can_export'],
+        
+        // Permissions - KHÔNG có export/import
+        'permissions': ['can_view', 'can_create', 'can_edit', 'can_delete'],
+        
+        // Year Database - CÓ export + import (export/import database SQL)
+        'year_database': ['can_view', 'can_export', 'can_import', 'can_delete']
     };
     
     html += '<div class="overflow-x-auto"><table class="min-w-full divide-y-2 divide-gray-200 border-2 border-gray-200 rounded-lg">';
@@ -92,6 +118,11 @@ async function renderPermissions() {
     for (const [key, label] of Object.entries(modules)) {
         const perms = currentPermissions[key] || {};
         const allowedPerms = modulePermissions[key] || ['can_view'];
+        
+        // Debug: Log permissions của sales
+        if (key === 'sales') {
+            console.log('Rendering sales permissions:', perms);
+        }
         
         html += '<tr class="hover:bg-gray-50 module-row" data-module-name="' + label.toLowerCase() + '">';
         html += '<td class="px-6 py-4 large-text font-semibold text-gray-900">' + label + '</td>';
@@ -165,7 +196,7 @@ async function renderPermissions() {
     html += '</tbody></table></div></div>';
     
     // Field permissions
-    html += '<div>';
+    html += '<div class="hidden">';
     html += '<div class="flex items-center justify-between mb-4">';
     html += '<h5 class="font-bold text-lg text-gray-800">Quyền trường dữ liệu</h5>';
     html += '<div class="flex gap-2">';
@@ -317,6 +348,18 @@ async function savePermissions() {
     
     console.log('Saving permissions:', permissions);
     console.log('Saving field permissions:', fieldPermissions);
+    
+    // Log chi tiết permissions của sales
+    const salesPerm = permissions.find(p => p.module === 'sales');
+    if (salesPerm) {
+        console.log('Sales permissions detail:', salesPerm);
+    }
+    
+    // Validate permissions data
+    if (permissions.length === 0) {
+        alert('Vui lòng chọn ít nhất một quyền');
+        return;
+    }
     
     try {
         // Use FormData for better Laravel compatibility

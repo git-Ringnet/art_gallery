@@ -10,6 +10,7 @@ use Illuminate\Support\Facades\Storage;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Maatwebsite\Excel\Facades\Excel;
 use App\Exports\InventoryExport;
+use Illuminate\Support\Facades\Log;
 
 class InventoryController extends Controller
 {
@@ -37,7 +38,7 @@ class InventoryController extends Controller
         $suppliesQuery = Supply::query();
         if ($search) {
             $suppliesQuery->where('code', 'like', "%{$search}%")
-                         ->orWhere('name', 'like', "%{$search}%");
+                ->orWhere('name', 'like', "%{$search}%");
         }
         if ($dateFrom) {
             $suppliesQuery->where('import_date', '>=', $dateFrom);
@@ -200,7 +201,7 @@ class InventoryController extends Controller
             'quantity' => $validated['quantity'],
             'notes' => $validated['notes'] ?? null,
         ]);
-        
+
         return redirect()->route('inventory.index')
             ->with('success', 'Đã nhập vật tư thành công');
     }
@@ -211,54 +212,90 @@ class InventoryController extends Controller
         return view('inventory.paintings.show', compact('painting'));
     }
 
-    public function editPainting($id)
+    public function editPainting(Request $request, $id)
     {
         $painting = Painting::findOrFail($id);
+        
+        // Store the return URL in session
+        if ($request->has('return_url')) {
+            session(['painting_edit_return_url' => $request->get('return_url')]);
+        }
+        
         return view('inventory.paintings.edit', compact('painting'));
     }
 
     public function updatePainting(Request $request, $id)
     {
-        $painting = Painting::findOrFail($id);
+        try {
+            $painting = Painting::findOrFail($id);
 
-        $validated = $request->validate([
-            'code' => 'required|string|max:50|unique:paintings,code,' . $id,
-            'name' => 'required|string|max:255',
-            'artist' => 'required|string|max:255',
-            'material' => 'required|string|max:100',
-            'width' => 'nullable|numeric',
-            'height' => 'nullable|numeric',
-            'paint_year' => 'nullable',
-            'price_usd' => 'required|numeric|min:0',
-            'import_date' => 'nullable|date',
-            'export_date' => 'nullable|date|after:import_date',
-            'notes' => 'nullable|string',
-            'image' => 'nullable|image|max:2048',
-            'remove_image' => 'nullable|in:0,1',
-        ], [
-            'code.unique' => 'Mã tranh đã tồn tại trong hệ thống.',
-            'code.required' => 'Vui lòng nhập mã tranh.',
-        ]);
+            $validated = $request->validate([
+                'code' => 'required|string|max:50|unique:paintings,code,' . $id,
+                'name' => 'required|string|max:255',
+                'artist' => 'required|string|max:255',
+                'material' => 'required|string|max:100',
+                'width' => 'nullable|numeric',
+                'height' => 'nullable|numeric',
+                'paint_year' => 'nullable',
+                'price_usd' => 'required|numeric|min:0',
+                'import_date' => 'nullable|date',
+                'export_date' => 'nullable|date|after:import_date',
+                'notes' => 'nullable|string',
+                'image' => 'nullable|image|max:2048',
+                'remove_image' => 'nullable|in:0,1',
+            ], [
+                'code.unique' => 'Mã tranh đã tồn tại trong hệ thống.',
+                'code.required' => 'Vui lòng nhập mã tranh.',
+            ]);
 
-        // Remove old image if requested
-        if ($request->input('remove_image') === '1' && $painting->image) {
-            Storage::disk('public')->delete($painting->image);
-            $validated['image'] = null;
-        }
-
-        // Replace with new image: delete old first
-        if ($request->hasFile('image')) {
-            if ($painting->image) {
+            // Remove old image if requested
+            if ($request->input('remove_image') === '1' && $painting->image) {
                 Storage::disk('public')->delete($painting->image);
+                $validated['image'] = null;
             }
-            $imagePath = $request->file('image')->store('paintings', 'public');
-            $validated['image'] = $imagePath;
+
+            // Replace with new image: delete old first
+            if ($request->hasFile('image')) {
+                if ($painting->image) {
+                    Storage::disk('public')->delete($painting->image);
+                }
+                $imagePath = $request->file('image')->store('paintings', 'public');
+                $validated['image'] = $imagePath;
+            }
+
+            $updateResult = $painting->update($validated);
+            
+            Log::info('Painting update result', [
+                'painting_id' => $id,
+                'update_result' => $updateResult,
+                'validated_data' => $validated
+            ]);
+
+            // Get the return URL from session or default to index
+            $returnUrl = session('painting_edit_return_url', route('inventory.index'));
+            session()->forget('painting_edit_return_url');
+
+            return redirect($returnUrl)
+                ->with('success', 'Cập nhật tranh thành công');
+                
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            Log::error('Validation error in updatePainting', [
+                'errors' => $e->errors(),
+                'painting_id' => $id
+            ]);
+            return back()->withErrors($e->errors())->withInput();
+            
+        } catch (\Exception $e) {
+            Log::error('Error updating painting', [
+                'painting_id' => $id,
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
+            ]);
+            
+            return back()
+                ->with('error', 'Có lỗi xảy ra: ' . $e->getMessage())
+                ->withInput();
         }
-
-        $painting->update($validated);
-
-        return redirect()->route('inventory.index')
-            ->with('success', 'Cập nhật tranh thành công');
     }
 
     public function destroyPainting($id)
@@ -345,7 +382,7 @@ class InventoryController extends Controller
         $suppliesQuery = Supply::query();
         if ($search) {
             $suppliesQuery->where('code', 'like', "%{$search}%")
-                         ->orWhere('name', 'like', "%{$search}%");
+                ->orWhere('name', 'like', "%{$search}%");
         }
         if ($dateFrom) {
             $suppliesQuery->where('import_date', '>=', $dateFrom);
@@ -402,7 +439,7 @@ class InventoryController extends Controller
         }
 
         $filename = 'quan-ly-kho-' . date('Y-m-d-His') . '.xlsx';
-        
+
         return Excel::download(new InventoryExport($inventory), $filename);
     }
 
@@ -432,7 +469,7 @@ class InventoryController extends Controller
         $suppliesQuery = Supply::query();
         if ($search) {
             $suppliesQuery->where('code', 'like', "%{$search}%")
-                         ->orWhere('name', 'like', "%{$search}%");
+                ->orWhere('name', 'like', "%{$search}%");
         }
         if ($dateFrom) {
             $suppliesQuery->where('import_date', '>=', $dateFrom);
@@ -483,7 +520,7 @@ class InventoryController extends Controller
         }
 
         $pdf = Pdf::loadView('inventory.export-pdf', compact('inventory', 'search', 'type', 'dateFrom', 'dateTo', 'scope'));
-        
+
         $filename = 'quan-ly-kho-' . date('Y-m-d-His') . '.pdf';
         return $pdf->download($filename);
     }
