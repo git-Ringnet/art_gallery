@@ -13,6 +13,7 @@ class Payment extends Model
         'sale_id',
         'amount',
         'payment_method',
+        'transaction_type',
         'payment_date',
         'notes',
         'created_by',
@@ -44,6 +45,21 @@ class Payment extends Model
             'card' => 'Thẻ',
             'other' => 'Khác',
         ];
+    }
+
+    public static function getTransactionTypes()
+    {
+        return [
+            'sale_payment' => 'Thanh toán bán hàng',
+            'return' => 'Trả hàng',
+            'exchange' => 'Đổi hàng',
+        ];
+    }
+
+    public function getTransactionTypeLabel()
+    {
+        $types = self::getTransactionTypes();
+        return $types[$this->transaction_type] ?? 'Thanh toán bán hàng';
     }
 
     protected static function boot()

@@ -134,6 +134,7 @@
                             <th class="px-4 py-2 text-left text-sm font-medium text-gray-700">Ngày trả</th>
                             <th class="px-4 py-2 text-right text-sm font-medium text-gray-700">Số tiền đã trả</th>
                             <th class="px-4 py-2 text-center text-sm font-medium text-gray-700">Hình thức</th>
+                            <th class="px-4 py-2 text-center text-sm font-medium text-gray-700">Loại giao dịch</th>
                             <th class="px-4 py-2 text-center text-sm font-medium text-gray-700">Người thu tiền</th>
                             <th class="px-4 py-2 text-left text-sm font-medium text-gray-700">Ghi chú</th>
                         </tr>
@@ -163,11 +164,7 @@
                                 @endif
                             </td>
                             <td class="px-4 py-3 text-center">
-                                @if(str_contains($payment->notes ?? '', 'Hoàn tiền') || str_contains($payment->notes ?? '', 'phiếu trả'))
-                                    <span class="px-2 py-1 bg-orange-100 text-orange-800 text-xs rounded-full">
-                                        <i class="fas fa-undo mr-1"></i>Trả hàng
-                                    </span>
-                                @elseif($payment->payment_method === 'cash')
+                                @if($payment->payment_method === 'cash')
                                     <span class="px-2 py-1 bg-green-100 text-green-800 text-xs rounded-full">
                                         <i class="fas fa-money-bill-wave mr-1"></i>Tiền mặt
                                     </span>
@@ -178,6 +175,24 @@
                                 @else
                                     <span class="px-2 py-1 bg-purple-100 text-purple-800 text-xs rounded-full">
                                         <i class="fas fa-credit-card mr-1"></i>Thẻ
+                                    </span>
+                                @endif
+                            </td>
+                            <td class="px-4 py-3 text-center">
+                                @php
+                                    $transactionType = $payment->transaction_type ?? 'sale_payment';
+                                @endphp
+                                @if($transactionType === 'sale_payment')
+                                    <span class="px-2 py-1 bg-blue-100 text-blue-700 text-xs rounded-full font-semibold">
+                                        <i class="fas fa-shopping-cart mr-1"></i>TT Bán hàng
+                                    </span>
+                                @elseif($transactionType === 'return')
+                                    <span class="px-2 py-1 bg-orange-100 text-orange-700 text-xs rounded-full font-semibold">
+                                        <i class="fas fa-undo mr-1"></i>Trả hàng
+                                    </span>
+                                @elseif($transactionType === 'exchange')
+                                    <span class="px-2 py-1 bg-purple-100 text-purple-700 text-xs rounded-full font-semibold">
+                                        <i class="fas fa-exchange-alt mr-1"></i>Đổi hàng
                                     </span>
                                 @endif
                             </td>

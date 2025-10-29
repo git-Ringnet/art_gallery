@@ -834,6 +834,7 @@ class ReturnController extends Controller
                     'payment_date' => $return->return_date,
                     'amount' => -$return->total_refund,
                     'payment_method' => 'cash',
+                    'transaction_type' => 'return',
                     'notes' => "Hoàn tiền cho phiếu trả {$return->return_code}",
                     'created_by' => Auth::id(),
                 ]);
@@ -844,6 +845,7 @@ class ReturnController extends Controller
                     'payment_date' => $return->return_date,
                     'amount' => $return->exchange_amount,
                     'payment_method' => 'cash',
+                    'transaction_type' => 'exchange',
                     'notes' => "Chênh lệch đổi hàng {$return->return_code}" . ($return->exchange_amount > 0 ? ' (Thu thêm)' : ' (Hoàn lại)'),
                     'created_by' => Auth::id(),
                 ]);

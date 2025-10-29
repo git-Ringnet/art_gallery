@@ -34,6 +34,7 @@ class DebtHistoryExport implements FromCollection, WithHeadings, WithMapping, Wi
             'Tổng tiền',
             'Đã trả',
             'PT Thanh toán',
+            'Loại giao dịch',
             'Còn nợ',
             'Trạng thái TT'
         ];
@@ -67,6 +68,15 @@ class DebtHistoryExport implements FromCollection, WithHeadings, WithMapping, Wi
             default => 'Khác'
         };
 
+        // Transaction type text
+        $transactionType = $payment->transaction_type ?? 'sale_payment';
+        $transactionTypeText = match($transactionType) {
+            'sale_payment' => 'Thanh toán bán hàng',
+            'return' => 'Trả hàng',
+            'exchange' => 'Đổi hàng',
+            default => 'Thanh toán bán hàng'
+        };
+
         $paymentDateTime = $payment->payment_date->timezone('Asia/Ho_Chi_Minh');
         $timeStr = $paymentDateTime->format('H:i:s');
         // Chỉ hiển thị giờ nếu không phải 00:00:00 hoặc 07:00:00 (data cũ từ UTC)
@@ -81,6 +91,7 @@ class DebtHistoryExport implements FromCollection, WithHeadings, WithMapping, Wi
             number_format($payment->sale->total_vnd, 0, ',', '.') . 'đ',
             number_format($payment->amount, 0, ',', '.') . 'đ',
             $paymentMethodText,
+            $transactionTypeText,
             number_format($remainingDebt, 0, ',', '.') . 'đ',
             $statusText
         ];
@@ -104,8 +115,9 @@ class DebtHistoryExport implements FromCollection, WithHeadings, WithMapping, Wi
             'F' => 18,  // Tổng tiền
             'G' => 18,  // Đã trả
             'H' => 15,  // PT Thanh toán
-            'I' => 18,  // Còn nợ
-            'J' => 25,  // Trạng thái TT
+            'I' => 22,  // Loại giao dịch
+            'J' => 18,  // Còn nợ
+            'K' => 25,  // Trạng thái TT
         ];
     }
 }

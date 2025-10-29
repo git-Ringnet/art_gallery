@@ -223,6 +223,7 @@ class DebtController extends Controller
             'sale_id' => $debt->sale_id,
             'amount' => $validated['amount'],
             'payment_method' => $validated['payment_method'] ?? 'cash',
+            'transaction_type' => 'sale_payment',
             'payment_date' => now(),
             'notes' => $validated['notes'] ?? null,
             'created_by' => auth()->id(),

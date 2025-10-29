@@ -290,6 +290,7 @@ class SalesController extends Controller
                     'sale_id' => $sale->id,
                     'amount' => $request->payment_amount,
                     'payment_method' => $request->payment_method ?? 'cash',
+                    'transaction_type' => 'sale_payment',
                     'payment_date' => $request->sale_date,
                     'created_by' => $user->id,
                 ]);
@@ -544,6 +545,7 @@ class SalesController extends Controller
                     'sale_id' => $sale->id,
                     'amount' => $request->payment_amount,
                     'payment_method' => $request->payment_method ?? 'cash',
+                    'transaction_type' => 'sale_payment',
                     'payment_date' => now(),
                     'notes' => 'Trả nợ thêm',
                     'created_by' => $user->id,

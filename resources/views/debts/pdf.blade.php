@@ -82,6 +82,7 @@
                 <th class="text-right">Tổng tiền</th>
                 <th class="text-right">Đã trả</th>
                 <th class="text-center">PT TT</th>
+                <th class="text-center">Loại GD</th>
                 <th class="text-right">Còn nợ</th>
                 <th class="text-center">Trạng thái</th>
             </tr>
@@ -109,6 +110,18 @@
                         CK
                     @else
                         Thẻ
+                    @endif
+                </td>
+                <td class="text-center">
+                    @php
+                        $transactionType = $payment->transaction_type ?? 'sale_payment';
+                    @endphp
+                    @if($transactionType === 'sale_payment')
+                        TT Bán
+                    @elseif($transactionType === 'return')
+                        Trả hàng
+                    @elseif($transactionType === 'exchange')
+                        Đổi hàng
                     @endif
                 </td>
                 <td class="text-right">

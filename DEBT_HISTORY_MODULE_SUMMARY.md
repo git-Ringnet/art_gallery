@@ -25,6 +25,7 @@ Module Lịch sử Công nợ hiển thị **từng lần thanh toán** (payment
 - **PDF**: Layout landscape, có màu sắc phân biệt trạng thái
 - **2 options**: Trang hiện tại (15 records) hoặc Tất cả kết quả (theo filter)
 - Filename tự động có timestamp
+- Bao gồm cột "Loại giao dịch"
 
 ### 4. **Chi tiết Công nợ (Show)**
 - Thông tin hóa đơn và khách hàng
@@ -38,6 +39,13 @@ Module Lịch sử Công nợ hiển thị **từng lần thanh toán** (payment
 - Chọn phương thức thanh toán: Tiền mặt / Chuyển khoản / Thẻ
 - Ghi chú thanh toán
 - Tự động cập nhật trạng thái hóa đơn và công nợ
+
+### 6. **Loại Giao Dịch**
+- **Thanh toán bán hàng**: Khi khách thanh toán tiền mua hàng
+- **Trả hàng**: Khi khách trả hàng và được hoàn tiền
+- **Đổi hàng**: Khi khách đổi hàng (thu thêm hoặc hoàn lại chênh lệch)
+- Tự động phân loại dựa vào nguồn gốc thanh toán
+- Hiển thị với badge màu sắc riêng biệt
 
 ---
 
@@ -65,6 +73,17 @@ Module Lịch sử Công nợ hiển thị **từng lần thanh toán** (payment
 ### Vấn đề 7 & 8: Export thiếu thông tin
 **Thêm**: Cột Giờ TT và PT Thanh toán trong cả Excel và PDF
 
+### Vấn đề 9: Thiếu phân biệt loại giao dịch
+**Trước**: Không phân biệt được thanh toán từ bán hàng, trả hàng hay đổi hàng
+**Sau**: 
+- Thêm cột `transaction_type` vào bảng `payments`
+- Tự động set loại giao dịch khi tạo payment:
+  - `sale_payment`: Thanh toán bán hàng (từ SalesController, DebtController)
+  - `return`: Trả hàng (từ ReturnController khi hoàn thành phiếu trả)
+  - `exchange`: Đổi hàng (từ ReturnController khi hoàn thành phiếu đổi)
+- Hiển thị cột "Loại giao dịch" trong index, show, Excel và PDF
+- Badge màu sắc: Xanh dương (Bán hàng), Cam (Trả hàng), Tím (Đổi hàng)
+
 ---
 
 ## 📊 CẤU TRÚC DỮ LIỆU
@@ -75,6 +94,7 @@ Module Lịch sử Công nợ hiển thị **từng lần thanh toán** (payment
 - sale_id (FK to sales)
 - amount (decimal)
 - payment_method (cash/bank_transfer/card)
+- transaction_type (sale_payment/return/exchange) ← MỚI
 - payment_date (datetime) ← Đã sửa từ date
 - notes (text)
 - created_by (FK to users)
@@ -183,6 +203,11 @@ POST /debt/{id}/collect                 → debt.collect (Thu nợ)
 - **Chuyển khoản**: Xanh dương (blue-100/blue-700)
 - **Thẻ**: Tím (purple-100/purple-700)
 
+### Màu sắc loại giao dịch
+- **Thanh toán bán hàng**: Xanh dương (blue-100/blue-700)
+- **Trả hàng**: Cam (orange-100/orange-700)
+- **Đổi hàng**: Tím (purple-100/purple-700)
+
 ### Icons
 - Lịch sử công nợ: `fa-credit-card`
 - Thanh toán: `fa-money-bill-wave`
@@ -248,6 +273,20 @@ Không có issues đã biết.
 
 ---
 
-**Ngày cập nhật**: 14/10/2025
-**Version**: 1.0
+**Ngày cập nhật**: 29/10/2025
+**Version**: 1.1
 **Status**: ✅ Production Ready
+
+---
+
+## 📝 CHANGELOG
+
+### Version 1.1 (29/10/2025)
+- ✨ **NEW**: Thêm cột "Loại giao dịch" để phân biệt thanh toán bán hàng, trả hàng, đổi hàng
+- ✨ **NEW**: Tự động phân loại giao dịch khi tạo payment
+- ✨ **NEW**: Hiển thị loại giao dịch trong index, show, Excel và PDF
+- 🔧 **UPDATE**: Cập nhật database schema với cột `transaction_type`
+- 🔧 **UPDATE**: Migration tự động phân loại dữ liệu cũ dựa vào notes
+
+### Version 1.0 (14/10/2025)
+- 🎉 Initial release với đầy đủ tính năng cơ bản

@@ -177,7 +177,8 @@
                     <th class="px-4 py-3 text-left">Số điện thoại</th>
                     <th class="px-4 py-3 text-right">Tổng hóa đơn</th>
                     <th class="px-4 py-3 text-right">Số tiền trả lần này</th>
-                    <th class="px-4 py-3 text-center">Hình thức</th>
+                    <th class="px-4 py-3 text-center">Phương thức</th>
+                    <th class="px-4 py-3 text-center">Loại giao dịch</th>
                     <th class="px-4 py-3 text-right">Còn thiếu</th>
                     <th class="px-4 py-3 text-center">Tình trạng</th>
                     <th class="px-4 py-3 text-center">Thao tác</th>
@@ -225,6 +226,24 @@
                         @else
                             <span class="px-2 py-1 bg-purple-100 text-purple-700 text-xs rounded-full">
                                 <i class="fas fa-credit-card mr-1"></i>Thẻ
+                            </span>
+                        @endif
+                    </td>
+                    <td class="px-4 py-3 text-center">
+                        @php
+                            $transactionType = $payment->transaction_type ?? 'sale_payment';
+                        @endphp
+                        @if($transactionType === 'sale_payment')
+                            <span class="px-3 py-1 bg-blue-100 text-blue-700 text-xs font-semibold rounded-full">
+                                <i class="fas fa-shopping-cart mr-1"></i>Bán hàng
+                            </span>
+                        @elseif($transactionType === 'return')
+                            <span class="px-3 py-1 bg-orange-100 text-orange-700 text-xs font-semibold rounded-full">
+                                <i class="fas fa-undo mr-1"></i>Trả hàng
+                            </span>
+                        @elseif($transactionType === 'exchange')
+                            <span class="px-3 py-1 bg-purple-100 text-purple-700 text-xs font-semibold rounded-full">
+                                <i class="fas fa-exchange-alt mr-1"></i>Đổi hàng
                             </span>
                         @endif
                     </td>
@@ -295,7 +314,7 @@
                 </tr>
                 @empty
                 <tr>
-                    <td colspan="10" class="px-4 py-8 text-center text-gray-500">
+                    <td colspan="11" class="px-4 py-8 text-center text-gray-500">
                         <i class="fas fa-inbox text-4xl mb-2"></i>
                         <p>Chưa có lịch sử thanh toán nào</p>
                     </td>
