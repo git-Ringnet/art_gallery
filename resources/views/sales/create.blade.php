@@ -305,18 +305,18 @@ function addItem() {
         <td class="px-3 py-3 border">
             <input type="number" name="items[${idx}][quantity]" required class="w-full px-3 py-2 border border-gray-300 rounded-lg text-center font-medium" value="1" min="1" onchange="calc()">
         </td>
-        <td class="px-3 py-3 border">
+         <td class="px-3 py-3 border">
             <select name="items[${idx}][currency]" class="w-full px-3 py-2 border border-gray-300 rounded-lg" onchange="togCur(this, ${idx})">
                 <option value="USD">USD</option>
                 <option value="VND">VND</option>
-                <option value="BOTH">Cả 2</option>
+                <option value="BOTH" selected>Cả 2</option>
             </select>
         </td>
         <td class="px-3 py-3 border">
             <input type="number" name="items[${idx}][price_usd]" id="usd-input-${idx}" class="usd-${idx} w-full px-3 py-2 border border-gray-300 rounded-lg text-right" value="0" step="0.01" onchange="calc()">
         </td>
         <td class="px-3 py-3 border">
-            <input type="number" name="items[${idx}][price_vnd]" id="vnd-input-${idx}" class="vnd-${idx} w-full px-3 py-2 border border-gray-300 rounded-lg text-right hidden" value="0" step="1000" onchange="calc()">
+            <input type="number" name="items[${idx}][price_vnd]" id="vnd-input-${idx}" class="vnd-${idx} w-full px-3 py-2 border border-gray-300 rounded-lg text-right" value="0" step="1000" onchange="calc()">
         </td>
         <td class="px-3 py-3 border text-center">
             <input type="number" name="items[${idx}][discount_percent]" class="w-full px-3 py-2 border border-gray-300 rounded-lg text-center" value="0" min="0" max="100" step="1" onchange="calc()">
@@ -460,11 +460,9 @@ function togCur(sel, i) {
     if (cur === 'USD') {
         usdInput.classList.remove('hidden');
         vndInput.classList.add('hidden');
-        vndInput.value = 0;
     } else if (cur === 'VND') {
         usdInput.classList.add('hidden');
         vndInput.classList.remove('hidden');
-        usdInput.value = 0;
     } else { // BOTH
         usdInput.classList.remove('hidden');
         vndInput.classList.remove('hidden');
