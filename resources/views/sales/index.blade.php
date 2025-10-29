@@ -278,7 +278,7 @@
                             </span>
                         @elseif($sale->sale_status == 'completed')
                             <span class="px-3 py-2 text-sm font-bold rounded-lg bg-green-100 text-green-800">
-                                <i class="fas fa-check-circle mr-1"></i>Đã hoàn thành
+                                <i class="fas fa-check-circle mr-1"></i>Đã duyệt phiếu
                             </span>
                         @elseif($sale->sale_status == 'cancelled')
                             <span class="px-3 py-2 text-sm font-bold rounded-lg bg-gray-100 text-gray-800">
