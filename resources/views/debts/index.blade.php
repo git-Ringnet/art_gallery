@@ -208,8 +208,33 @@
                     <td class="px-4 py-3">
                         {{ $payment->sale->customer->phone ?? '-' }}
                     </td>
-                    <td class="px-4 py-3 text-right font-medium text-gray-900">
-                        {{ number_format($payment->sale->total_vnd, 0, ',', '.') }}đ
+                    <td class="px-4 py-3 text-right font-medium">
+                        @php
+                            $sale = $payment->sale;
+                            $hasReturns = $sale->returns()->where('status', 'completed')->where('type', 'return')->exists();
+                            
+                            // Lấy original_total, nếu không có thì tính từ items
+                            if ($sale->original_total_vnd) {
+                                $originalTotal = $sale->original_total_vnd;
+                            } else {
+                                $originalTotal = $sale->saleItems->sum('total_vnd');
+                            }
+                        @endphp
+                        
+                        @if($hasReturns && $sale->total_vnd == 0)
+                            <!-- Trả hết - hiển thị giá gốc không gạch ngang -->
+                            <div class="text-gray-900">{{ number_format($originalTotal, 0, ',', '.') }}đ</div>
+                            <div class="text-xs text-red-600 mt-1">
+                                <i class="fas fa-undo mr-1"></i>Đã trả hết
+                            </div>
+                        @elseif($hasReturns && $originalTotal != $sale->total_vnd)
+                            <!-- Trả một phần - hiển thị giá gốc gạch ngang và giá mới -->
+                            <div class="text-xs text-gray-400 line-through">{{ number_format($originalTotal, 0, ',', '.') }}đ</div>
+                            <div class="text-orange-600">{{ number_format($sale->total_vnd, 0, ',', '.') }}đ</div>
+                        @else
+                            <!-- Không có trả hàng -->
+                            <div class="text-gray-900">{{ number_format($sale->total_vnd, 0, ',', '.') }}đ</div>
+                        @endif
                     </td>
                     <td class="px-4 py-3 text-right text-green-600 font-bold">
                         {{ number_format($payment->amount, 0, ',', '.') }}đ
