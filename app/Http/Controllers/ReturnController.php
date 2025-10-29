@@ -226,18 +226,18 @@ class ReturnController extends Controller
                 ];
             }
 
-            // Calculate actual refund amount based on what customer has paid
-            // If customer paid less than total, refund proportionally
+            // LOGIC MỚI: Chỉ hoàn nếu đã trả > tổng mới
             $paidAmount = $sale->paid_amount;
-            $totalAmount = $sale->total_vnd;
+            $currentTotal = $sale->total_vnd;
             
-            // Calculate refund: only refund what customer actually paid
-            if ($paidAmount >= $totalReturnValue) {
-                // Customer paid enough, refund full value
-                $totalRefund = $totalReturnValue;
+            // Tính tổng mới sau khi trừ hàng trả
+            $newTotal = $currentTotal - $totalReturnValue;
+            
+            // Chỉ hoàn nếu đã trả > tổng mới
+            if ($paidAmount > $newTotal) {
+                $totalRefund = $paidAmount - $newTotal;
             } else {
-                // Customer paid less, refund only what they paid
-                $totalRefund = $paidAmount;
+                $totalRefund = 0;
             }
 
             // Calculate exchange amount if type is exchange
@@ -728,157 +728,121 @@ class ReturnController extends Controller
                 }
             }
 
-            // Update sale totals based on return type
             $sale = $return->sale;
             
+            // LOGIC MỚI: Áp dụng cho TẤT CẢ phiếu
             if ($return->type === 'return') {
-                // For returns: reduce sale total by returned value
-                $returnedValue = $return->total_refund;
-                $newTotalVnd = $sale->total_vnd - $returnedValue;
-                $newTotalUsd = $sale->total_usd - ($returnedValue / $sale->exchange_rate);
+                // Đánh dấu các sản phẩm đã trả
+                foreach ($return->items as $returnItem) {
+                    $saleItem = $returnItem->saleItem;
+                    $returnedQty = $returnItem->quantity;
+                    
+                    $saleItem->returned_quantity += $returnedQty;
+                    
+                    if ($saleItem->returned_quantity >= $saleItem->quantity) {
+                        $saleItem->is_returned = true;
+                    }
+                    
+                    $saleItem->save();
+                }
                 
-                // Update sale totals
+                // Lưu original_total nếu chưa có (lần trả đầu tiên)
+                if (!$sale->original_total_vnd) {
+                    $sale->original_total_vnd = $sale->total_vnd;
+                    $sale->original_total_usd = $sale->total_usd;
+                }
+                
+                // Tính giá trị hàng trả lần này
+                $returnedValue = $return->items->sum('subtotal');
+                
+                // Giảm total hiện tại
+                $newTotalVnd = $sale->total_vnd - $returnedValue;
+                $newTotalUsd = $newTotalVnd / $sale->exchange_rate;
+                
+                $sale->update([
+                    'total_vnd' => $newTotalVnd,
+                    'total_usd' => $newTotalUsd,
+                    'original_total_vnd' => $sale->original_total_vnd,
+                    'original_total_usd' => $sale->original_total_usd,
+                ]);
+                
+                // Tính số tiền cần hoàn
+                $paidAmount = $sale->payments()->sum('amount');
+                $refundAmount = 0;
+                
+                // Chỉ hoàn nếu đã trả > total mới
+                if ($paidAmount > $newTotalVnd) {
+                    $refundAmount = $paidAmount - $newTotalVnd;
+                }
+                
+                if ($refundAmount > 0) {
+                    Payment::create([
+                        'sale_id' => $return->sale_id,
+                        'payment_date' => $return->return_date,
+                        'amount' => -$refundAmount,
+                        'payment_method' => 'cash',
+                        'transaction_type' => 'return',
+                        'notes' => "Hoàn tiền cho phiếu trả {$return->return_code}",
+                        'created_by' => Auth::id(),
+                    ]);
+                }
+                
+            } elseif ($return->type === 'exchange') {
+                // Đổi hàng: Tính lại total
+                $returnedValue = $return->items->sum('subtotal');
+                $exchangeValue = $return->exchangeItems->sum('subtotal');
+                
+                $newTotalVnd = $sale->total_vnd - $returnedValue + $exchangeValue;
+                $newTotalUsd = $newTotalVnd / $sale->exchange_rate;
+                
                 $sale->update([
                     'total_vnd' => $newTotalVnd,
                     'total_usd' => $newTotalUsd,
                 ]);
-            } elseif ($return->type === 'exchange') {
-                // For exchanges: update sale items to reflect the new products
-                // Remove or reduce old items (set quantity to 0 instead of deleting to avoid foreign key issues)
-                foreach ($return->items as $returnItem) {
-                    $saleItem = $returnItem->saleItem;
-                    // Reduce quantity or set to 0 if fully exchanged
-                    if ($saleItem->quantity <= $returnItem->quantity) {
-                        $saleItem->update([
-                            'quantity' => 0,
-                            'total_usd' => 0,
-                            'total_vnd' => 0,
-                        ]);
-                    } else {
-                        $newQty = $saleItem->quantity - $returnItem->quantity;
-                        $saleItem->update([
-                            'quantity' => $newQty,
-                            'total_usd' => $newQty * $saleItem->price_usd * (1 - $saleItem->discount_percent / 100),
-                            'total_vnd' => $newQty * $saleItem->price_vnd * (1 - $saleItem->discount_percent / 100),
-                        ]);
-                    }
-                }
                 
-                // Add new exchange items to sale
-                foreach ($return->exchangeItems as $exchangeItem) {
-                    // Calculate price before discount
-                    $discountPercent = $exchangeItem->discount_percent ?? 0;
-                    $priceBeforeDiscount = $discountPercent > 0 ? 
-                        $exchangeItem->unit_price / (1 - $discountPercent / 100) : 
-                        $exchangeItem->unit_price;
-                    
-                    $priceUsd = $priceBeforeDiscount / $sale->exchange_rate;
-                    $priceVnd = $priceBeforeDiscount;
-                    
-                    // Get item description
-                    $description = '';
-                    if ($exchangeItem->item_type === 'painting') {
-                        $painting = Painting::find($exchangeItem->item_id);
-                        $description = $painting ? $painting->name : 'N/A';
-                    } else {
-                        $supply = Supply::find($exchangeItem->item_id);
-                        $description = $supply ? $supply->name : 'N/A';
-                    }
-                    
-                    // Determine supply_id and supply_length
-                    // If item is painting with frame supply, use exchangeItem's supply info
-                    // If item is supply itself, use item_id as supply_id
-                    $saleSupplyId = null;
-                    $saleSupplyLength = null;
-                    
-                    if ($exchangeItem->item_type === 'painting' && $exchangeItem->supply_id) {
-                        // Painting with frame supply
-                        $saleSupplyId = $exchangeItem->supply_id;
-                        $saleSupplyLength = $exchangeItem->supply_length > 0 ? $exchangeItem->supply_length : null;
-                    } elseif ($exchangeItem->item_type === 'supply') {
-                        // Supply item
-                        $saleSupplyId = $exchangeItem->item_id;
-                        $saleSupplyLength = $exchangeItem->supply_length > 0 ? $exchangeItem->supply_length : null;
-                    }
-                    
-                    $saleItemData = [
-                        'painting_id' => $exchangeItem->item_type === 'painting' ? $exchangeItem->item_id : null,
-                        'description' => $description,
-                        'quantity' => $exchangeItem->quantity,
-                        'currency' => 'VND',
-                        'price_usd' => $priceUsd,
-                        'price_vnd' => $priceVnd,
-                        'discount_percent' => $discountPercent,
-                        'total_usd' => $exchangeItem->subtotal / $sale->exchange_rate,
-                        'total_vnd' => $exchangeItem->subtotal,
-                    ];
-                    
-                    // Only add supply_id and supply_length if they exist
-                    if ($saleSupplyId) {
-                        $saleItemData['supply_id'] = $saleSupplyId;
-                        $saleItemData['supply_length'] = $saleSupplyLength;
-                    }
-                    
-                    $sale->items()->create($saleItemData);
+                // Tạo payment cho chênh lệch nếu cần
+                if ($return->exchange_amount != 0) {
+                    Payment::create([
+                        'sale_id' => $return->sale_id,
+                        'payment_date' => $return->return_date,
+                        'amount' => $return->exchange_amount,
+                        'payment_method' => 'cash',
+                        'transaction_type' => 'exchange',
+                        'notes' => "Chênh lệch đổi hàng {$return->return_code}" . ($return->exchange_amount > 0 ? ' (Thu thêm)' : ' (Hoàn lại)'),
+                        'created_by' => Auth::id(),
+                    ]);
                 }
-                
-                // Recalculate sale totals
-                $sale->calculateTotals();
-            }
-            
-            // Create payment based on type
-            if ($return->type === 'return') {
-                // Full refund for return
-                Payment::create([
-                    'sale_id' => $return->sale_id,
-                    'payment_date' => $return->return_date,
-                    'amount' => -$return->total_refund,
-                    'payment_method' => 'cash',
-                    'transaction_type' => 'return',
-                    'notes' => "Hoàn tiền cho phiếu trả {$return->return_code}",
-                    'created_by' => Auth::id(),
-                ]);
-            } elseif ($return->type === 'exchange' && $return->exchange_amount != 0) {
-                // Payment for exchange difference
-                Payment::create([
-                    'sale_id' => $return->sale_id,
-                    'payment_date' => $return->return_date,
-                    'amount' => $return->exchange_amount,
-                    'payment_method' => 'cash',
-                    'transaction_type' => 'exchange',
-                    'notes' => "Chênh lệch đổi hàng {$return->return_code}" . ($return->exchange_amount > 0 ? ' (Thu thêm)' : ' (Hoàn lại)'),
-                    'created_by' => Auth::id(),
-                ]);
             }
 
             $return->update(['status' => 'completed']);
 
-            // Update sale payment status based on return type
+            // Update sale payment status
+            $sale->fresh()->updatePaymentStatus();
+            
+            // Kiểm tra nếu trả hết hàng
             if ($return->type === 'return') {
-                $sale = $return->sale->fresh(); // Refresh to get updated totals
                 $totalSaleItems = $sale->items->sum('quantity');
                 $totalReturnedItems = ReturnItem::whereHas('return', function($q) use ($sale) {
                     $q->where('sale_id', $sale->id)
                       ->where('status', 'completed')
-                      ->where('type', 'return'); // Only count returns, not exchanges
+                      ->where('type', 'return');
                 })->sum('quantity');
 
                 if ($totalReturnedItems >= $totalSaleItems) {
-                    // All items returned, cancel the sale
-                    $sale->update(['payment_status' => 'cancelled']);
+                    // Trả hết hàng - set cancelled
+                    $sale->update([
+                        'sale_status' => 'cancelled',
+                        'payment_status' => 'cancelled',
+                        'debt_amount' => 0,
+                    ]);
                     
-                    // Update debt if exists
                     if ($sale->debt) {
-                        $sale->debt->update(['status' => 'cancelled']);
+                        $sale->debt->update([
+                            'status' => 'cancelled',
+                            'debt_amount' => 0,
+                        ]);
                     }
-                } else {
-                    // Partial return, update payment status
-                    $sale->updatePaymentStatus();
                 }
-            } elseif ($return->type === 'exchange') {
-                // For exchanges: just update payment status, don't change sale status
-                // Sale remains active with updated items
-                $sale->fresh()->updatePaymentStatus();
             }
 
             DB::commit();
@@ -938,61 +902,5 @@ class ReturnController extends Controller
         }
     }
 
-    /**
-     * Recalculate sale totals for all completed returns
-     * This method fixes the issue where completed returns didn't reduce sale totals
-     */
-    public function recalculateSaleTotals()
-    {
-        try {
-            DB::beginTransaction();
 
-            // Get all sales that have completed returns
-            $salesWithReturns = Sale::whereHas('returns', function($q) {
-                $q->where('status', 'completed');
-            })->get();
-
-            foreach ($salesWithReturns as $sale) {
-                // Calculate total returned value for this sale (only returns, not exchanges)
-                $totalReturnedValue = ReturnItem::whereHas('return', function($q) use ($sale) {
-                    $q->where('sale_id', $sale->id)
-                      ->where('status', 'completed')
-                      ->where('type', 'return'); // Only count returns, not exchanges
-                })->sum('subtotal');
-
-                if ($totalReturnedValue > 0) {
-                    // Get original sale total (before any returns)
-                    $originalTotalVnd = $sale->subtotal_vnd - $sale->discount_vnd;
-                    
-                    // Calculate new total after returns
-                    $newTotalVnd = $originalTotalVnd - $totalReturnedValue;
-                    $newTotalUsd = $newTotalVnd / $sale->exchange_rate;
-
-                    // Update sale totals
-                    $sale->update([
-                        'total_vnd' => $newTotalVnd,
-                        'total_usd' => $newTotalUsd,
-                    ]);
-
-                    // Update payment status
-                    $sale->updatePaymentStatus();
-                }
-            }
-
-            DB::commit();
-
-            return response()->json([
-                'success' => true,
-                'message' => 'Đã cập nhật lại tổng hóa đơn cho ' . $salesWithReturns->count() . ' hóa đơn có phiếu trả'
-            ]);
-
-        } catch (\Exception $e) {
-            DB::rollBack();
-            
-            return response()->json([
-                'success' => false,
-                'message' => 'Lỗi: ' . $e->getMessage()
-            ], 500);
-        }
-    }
 }

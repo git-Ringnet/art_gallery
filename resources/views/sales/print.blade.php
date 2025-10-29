@@ -100,39 +100,43 @@
                     </tr>
                 </thead>
                 <tbody>
-                    @foreach($sale->saleItems as $index => $item)
-                    <tr class="border-b border-gray-200">
-                        <td class="px-4 py-3 text-sm">{{ $index + 1 }}</td>
-                        <td class="px-4 py-3 text-sm">
-                            <div class="font-medium">{{ $item->description }}</div>
-                            @if($item->painting)
-                                <div class="text-xs text-gray-500">Tranh: {{ $item->painting->code }}</div>
-                            @endif
-                            @if($item->supply)
-                                <div class="text-xs text-gray-500">Vật tư: {{ $item->supply->name }} ({{ $item->supply_length }}m)</div>
-                            @endif
-                        </td>
-                        <td class="px-4 py-3 text-sm text-center">{{ $item->quantity }}</td>
-                        <td class="px-4 py-3 text-sm text-right">
-                            @if($item->currency == 'USD')
-                                <div>${{ number_format($item->price_usd, 2) }}</div>
-                                <div class="text-xs text-gray-500">{{ number_format($item->price_vnd) }}đ</div>
-                            @else
-                                <div>{{ number_format($item->price_vnd) }}đ</div>
-                            @endif
-                        </td>
-                        <td class="px-4 py-3 text-sm text-right">
-                            @if($item->discount_percent > 0)
-                                <span class="text-red-600">{{ number_format($item->discount_percent, 0) }}%</span>
-                            @else
-                                -
-                            @endif
-                        </td>
-                        <td class="px-4 py-3 text-sm text-right font-semibold">
-                            <div>${{ number_format($item->total_usd, 2) }}</div>
-                            <div class="text-xs text-gray-500">{{ number_format($item->total_vnd) }}đ</div>
-                        </td>
-                    </tr>
+                    @php $displayIndex = 0; @endphp
+                    @foreach($sale->saleItems as $item)
+                        @if(!($item->is_returned ?? false))
+                            @php $displayIndex++; @endphp
+                            <tr class="border-b border-gray-200">
+                                <td class="px-4 py-3 text-sm">{{ $displayIndex }}</td>
+                                <td class="px-4 py-3 text-sm">
+                                    <div class="font-medium">{{ $item->description }}</div>
+                                    @if($item->painting)
+                                        <div class="text-xs text-gray-500">Tranh: {{ $item->painting->code }}</div>
+                                    @endif
+                                    @if($item->supply)
+                                        <div class="text-xs text-gray-500">Vật tư: {{ $item->supply->name }} ({{ $item->supply_length }}m)</div>
+                                    @endif
+                                </td>
+                                <td class="px-4 py-3 text-sm text-center">{{ $item->quantity }}</td>
+                                <td class="px-4 py-3 text-sm text-right">
+                                    @if($item->currency == 'USD')
+                                        <div>${{ number_format($item->price_usd, 2) }}</div>
+                                        <div class="text-xs text-gray-500">{{ number_format($item->price_vnd) }}đ</div>
+                                    @else
+                                        <div>{{ number_format($item->price_vnd) }}đ</div>
+                                    @endif
+                                </td>
+                                <td class="px-4 py-3 text-sm text-right">
+                                    @if($item->discount_percent > 0)
+                                        <span class="text-red-600">{{ number_format($item->discount_percent, 0) }}%</span>
+                                    @else
+                                        -
+                                    @endif
+                                </td>
+                                <td class="px-4 py-3 text-sm text-right font-semibold">
+                                    <div>${{ number_format($item->total_usd, 2) }}</div>
+                                    <div class="text-xs text-gray-500">{{ number_format($item->total_vnd) }}đ</div>
+                                </td>
+                            </tr>
+                        @endif
                     @endforeach
                 </tbody>
             </table>

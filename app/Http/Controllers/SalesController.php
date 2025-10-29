@@ -283,6 +283,12 @@ class SalesController extends Controller
 
             // Calculate sale totals
             $sale->calculateTotals();
+            
+            // Lưu original_total (giá trị gốc ban đầu)
+            $sale->update([
+                'original_total_vnd' => $sale->total_vnd,
+                'original_total_usd' => $sale->total_usd,
+            ]);
 
             // Create payment if provided
             if ($request->filled('payment_amount') && $request->payment_amount > 0) {
@@ -538,6 +544,14 @@ class SalesController extends Controller
 
             // Calculate sale totals
             $sale->calculateTotals();
+            
+            // Cập nhật original_total nếu chưa có (cho phiếu cũ)
+            if (!$sale->original_total_vnd) {
+                $sale->update([
+                    'original_total_vnd' => $sale->total_vnd,
+                    'original_total_usd' => $sale->total_usd,
+                ]);
+            }
 
             // Add new payment if provided
             if ($request->filled('payment_amount') && $request->payment_amount > 0) {

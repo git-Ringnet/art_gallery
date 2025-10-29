@@ -42,22 +42,30 @@ class DebtHistoryExport implements FromCollection, WithHeadings, WithMapping, Wi
 
     public function map($payment): array
     {
-        // Tính số nợ còn lại SAU khi thanh toán này
-        $paidUpToNow = $payment->sale->payments()
-            ->where('id', '<=', $payment->id)
-            ->sum('amount');
-        $remainingDebt = $payment->sale->total_vnd - $paidUpToNow;
-
-        // Tính trạng thái tại thời điểm đó
-        $paidAtThisTime = $paidUpToNow;
-        $totalAmount = $payment->sale->total_vnd;
+        // Kiểm tra nếu sale đã bị hủy
+        $isCancelled = $payment->sale->sale_status === 'cancelled';
         
-        if ($paidAtThisTime >= $totalAmount) {
-            $statusText = 'Đã Thanh Toán';
-        } elseif ($paidAtThisTime > 0) {
-            $statusText = 'Thanh Toán một phần';
+        if ($isCancelled) {
+            $remainingDebt = 0;
+            $statusText = 'Đã hủy';
         } else {
-            $statusText = 'Chưa Thanh Toán';
+            // Tính số nợ còn lại SAU khi thanh toán này
+            $paidUpToNow = $payment->sale->payments()
+                ->where('id', '<=', $payment->id)
+                ->sum('amount');
+            $remainingDebt = $payment->sale->total_vnd - $paidUpToNow;
+
+            // Tính trạng thái tại thời điểm đó
+            $paidAtThisTime = $paidUpToNow;
+            $totalAmount = $payment->sale->total_vnd;
+            
+            if ($paidAtThisTime >= $totalAmount) {
+                $statusText = 'Đã Thanh Toán';
+            } elseif ($paidAtThisTime > 0) {
+                $statusText = 'Thanh Toán một phần';
+            } else {
+                $statusText = 'Chưa Thanh Toán';
+            }
         }
 
         // Payment method text
@@ -92,7 +100,7 @@ class DebtHistoryExport implements FromCollection, WithHeadings, WithMapping, Wi
             number_format($payment->amount, 0, ',', '.') . 'đ',
             $paymentMethodText,
             $transactionTypeText,
-            number_format($remainingDebt, 0, ',', '.') . 'đ',
+            $isCancelled ? '(Đã hủy)' : number_format($remainingDebt, 0, ',', '.') . 'đ',
             $statusText
         ];
     }

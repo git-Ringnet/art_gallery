@@ -249,24 +249,27 @@
                     </td>
                     <td class="px-4 py-3 text-right font-bold">
                         @php
-                            // Tính số nợ còn lại SAU khi thanh toán này (dùng ID để đảm bảo thứ tự)
-                            $paidUpToNow = $payment->sale->payments()
-                                ->where('id', '<=', $payment->id)
-                                ->sum('amount');
-                            $remainingDebt = $payment->sale->total_vnd - $paidUpToNow;
+                            // Kiểm tra nếu sale đã bị hủy (trả hàng)
+                            $isCancelled = $payment->sale->sale_status === 'cancelled';
                             
-                            // Check if sale has exchange that changed total
-                            $hasExchange = $payment->sale->returns()
-                                ->where('type', 'exchange')
-                                ->where('status', 'completed')
-                                ->exists();
+                            if ($isCancelled) {
+                                // Đã hủy - không còn nợ
+                                $remainingDebt = 0;
+                            } else {
+                                // Tính số nợ còn lại SAU khi thanh toán này
+                                $paidUpToNow = $payment->sale->payments()
+                                    ->where('id', '<=', $payment->id)
+                                    ->sum('amount');
+                                $remainingDebt = $payment->sale->total_vnd - $paidUpToNow;
+                            }
                         @endphp
-                        <span class="{{ $remainingDebt > 0 ? 'text-red-600' : ($remainingDebt < 0 ? 'text-green-600' : 'text-gray-600') }}">
-                            {{ number_format($remainingDebt, 0, ',', '.') }}đ
-                        </span>
-                        @if($hasExchange && $remainingDebt < 0)
-                            <span class="text-xs text-gray-500 block" title="Số âm do đổi hàng làm thay đổi tổng hóa đơn">
-                                (Đã đổi hàng)
+                        @if($isCancelled)
+                            <span class="text-gray-500 text-xs">
+                                (Đã hủy)
+                            </span>
+                        @else
+                            <span class="{{ $remainingDebt > 0 ? 'text-red-600' : ($remainingDebt < 0 ? 'text-green-600' : 'text-gray-600') }}">
+                                {{ number_format($remainingDebt, 0, ',', '.') }}đ
                             </span>
                         @endif
                     </td>
@@ -279,7 +282,7 @@
                             $totalAmount = $payment->sale->total_vnd;
                             
                             // Xác định trạng thái tại thời điểm đó
-                            if ($payment->sale->payment_status == 'cancelled') {
+                            if ($payment->sale->sale_status == 'cancelled') {
                                 $statusClass = 'bg-gray-100 text-gray-800';
                                 $statusText = 'Đã hủy';
                             } elseif ($paidAtThisTime >= $totalAmount) {

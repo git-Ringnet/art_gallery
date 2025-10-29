@@ -130,6 +130,7 @@
                         <option value="paid" {{ request('payment_status') == 'paid' ? 'selected' : '' }}>Đã Thanh Toán</option>
                         <option value="partial" {{ request('payment_status') == 'partial' ? 'selected' : '' }}>Thanh Toán một phần</option>
                         <option value="unpaid" {{ request('payment_status') == 'unpaid' ? 'selected' : '' }}>Chưa Thanh Toán</option>
+                        <option value="cancelled" {{ request('payment_status') == 'cancelled' ? 'selected' : '' }}>Đã hủy</option>
                     </select>
                 </div>
 
@@ -266,14 +267,47 @@
                         </span>
                     </td>
                     <td class="px-4 py-3 text-right">
-                        <div class="font-medium text-gray-900">{{ number_format($sale->total_vnd) }}đ</div>
-                        <div class="text-xs text-gray-500">${{ number_format($sale->total_usd, 2) }}</div>
+                        @php
+                            $hasReturns = $sale->returns()->where('status', 'completed')->where('type', 'return')->exists();
+                            
+                            // Lấy original_total, nếu không có thì tính từ items
+                            if ($sale->original_total_vnd) {
+                                $originalTotal = $sale->original_total_vnd;
+                                $originalTotalUsd = $sale->original_total_usd;
+                            } else {
+                                // Tính từ items (cho dữ liệu cũ)
+                                $originalTotal = $sale->saleItems->sum('total_vnd');
+                                $originalTotalUsd = $originalTotal / $sale->exchange_rate;
+                            }
+                        @endphp
+                        
+                        @if($hasReturns && $sale->total_vnd == 0)
+                            <!-- Trả hết - hiển thị giá gốc không gạch ngang -->
+                            <div class="font-medium text-gray-900">{{ number_format($originalTotal) }}đ</div>
+                            <div class="text-xs text-gray-500">${{ number_format($originalTotalUsd, 2) }}</div>
+                            <div class="text-xs text-red-600 mt-1">
+                                <i class="fas fa-undo mr-1"></i>Đã trả hết
+                            </div>
+                        @elseif($hasReturns && $originalTotal != $sale->total_vnd)
+                            <!-- Trả một phần - hiển thị giá gốc gạch ngang và giá mới -->
+                            <div class="text-xs text-gray-400 line-through">{{ number_format($originalTotal) }}đ</div>
+                            <div class="font-medium text-orange-600">{{ number_format($sale->total_vnd) }}đ</div>
+                            <div class="text-xs text-gray-500">${{ number_format($sale->total_usd, 2) }}</div>
+                        @else
+                            <!-- Không có trả hàng hoặc chưa trả -->
+                            <div class="font-medium text-gray-900">{{ number_format($sale->total_vnd) }}đ</div>
+                            <div class="text-xs text-gray-500">${{ number_format($sale->total_usd, 2) }}</div>
+                        @endif
                     </td>
                     <td class="px-4 py-3 text-right text-green-600 font-bold">
                         {{ number_format($sale->paid_amount) }}đ
                     </td>
-                    <td class="px-4 py-3 text-right text-red-600 font-bold">
-                        {{ number_format($sale->debt_amount) }}đ
+                    <td class="px-4 py-3 text-right font-bold">
+                        @if($sale->sale_status == 'cancelled')
+                            <span class="text-gray-500 text-sm">(Đã hủy)</span>
+                        @else
+                            <span class="text-red-600">{{ number_format($sale->debt_amount) }}đ</span>
+                        @endif
                     </td>
                     <td class="px-4 py-3 text-center">
                         @if($sale->sale_status == 'pending')
@@ -291,7 +325,7 @@
                         @endif
                     </td>
                     <td class="px-4 py-3 text-center">
-                        @if($sale->payment_status == 'cancelled')
+                        @if($sale->sale_status == 'cancelled')
                             <span class="px-3 py-2 text-sm font-bold rounded-lg bg-gray-100 text-gray-800">Đã hủy</span>
                         @elseif($sale->payment_status == 'paid')
                             <span class="px-3 py-2 text-sm font-bold rounded-lg bg-green-100 text-green-800">Đã Thanh Toán</span>

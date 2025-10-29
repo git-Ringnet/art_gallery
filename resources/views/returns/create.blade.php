@@ -581,21 +581,33 @@ function updateSummary() {
         returnValue += qty * price;
     });
     
-    // Calculate actual refund (limited by paid amount)
+    // LOGIC MỚI: Chỉ hoàn tiền nếu đã trả > tổng mới
     const paidAmount = saleData ? parseFloat(saleData.paid_amount) : 0;
-    const actualRefund = Math.min(returnValue, paidAmount);
+    const currentTotal = saleData ? parseFloat(saleData.total_vnd) : 0;
+    
+    // Tính tổng mới sau khi trừ hàng trả
+    const newTotal = currentTotal - returnValue;
+    
+    // Chỉ hoàn nếu đã trả > tổng mới
+    let actualRefund = 0;
+    if (paidAmount > newTotal) {
+        actualRefund = paidAmount - newTotal;
+    }
     
     document.getElementById('summary-return-qty').textContent = returnQty;
     document.getElementById('summary-return-value').textContent = returnValue.toLocaleString('vi-VN') + 'đ';
     document.getElementById('summary-return-amount').textContent = actualRefund.toLocaleString('vi-VN') + 'đ';
     
     // Update refund note
-    if (returnValue > paidAmount && paidAmount > 0) {
-        document.getElementById('refund-note').textContent = 'Giới hạn bởi số tiền đã thanh toán (' + paidAmount.toLocaleString('vi-VN') + 'đ)';
-        document.getElementById('refund-note').classList.add('text-red-600', 'font-medium');
+    if (actualRefund > 0) {
+        document.getElementById('refund-note').textContent = 'Hoàn vì đã trả (' + paidAmount.toLocaleString('vi-VN') + 'đ) > tổng mới (' + newTotal.toLocaleString('vi-VN') + 'đ)';
+        document.getElementById('refund-note').className = 'text-xs text-red-600 italic font-medium';
+    } else if (paidAmount > 0) {
+        document.getElementById('refund-note').textContent = 'Không hoàn vì số đã trả (' + paidAmount.toLocaleString('vi-VN') + 'đ) có thể bù vào tổng mới (' + newTotal.toLocaleString('vi-VN') + 'đ)';
+        document.getElementById('refund-note').className = 'text-xs text-green-600 italic font-medium';
     } else {
-        document.getElementById('refund-note').textContent = 'Tối đa bằng số tiền đã thanh toán';
-        document.getElementById('refund-note').classList.remove('text-red-600', 'font-medium');
+        document.getElementById('refund-note').textContent = 'Chưa thanh toán trước đó';
+        document.getElementById('refund-note').className = 'text-xs text-gray-500 italic';
     }
     
     // Calculate exchange amount if type is exchange

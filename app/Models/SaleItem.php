@@ -22,6 +22,8 @@ class SaleItem extends Model
         'discount_percent',
         'total_usd',
         'total_vnd',
+        'is_returned',
+        'returned_quantity',
     ];
 
     protected function casts(): array

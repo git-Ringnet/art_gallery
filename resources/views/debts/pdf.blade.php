@@ -126,27 +126,43 @@
                 </td>
                 <td class="text-right">
                     @php
-                        $paidUpToNow = $payment->sale->payments()
-                            ->where('id', '<=', $payment->id)
-                            ->sum('amount');
-                        $remainingDebt = $payment->sale->total_vnd - $paidUpToNow;
+                        $isCancelled = $payment->sale->sale_status === 'cancelled';
+                        
+                        if ($isCancelled) {
+                            $remainingDebt = 0;
+                        } else {
+                            $paidUpToNow = $payment->sale->payments()
+                                ->where('id', '<=', $payment->id)
+                                ->sum('amount');
+                            $remainingDebt = $payment->sale->total_vnd - $paidUpToNow;
+                        }
                     @endphp
-                    {{ number_format($remainingDebt, 0, ',', '.') }}đ
+                    @if($isCancelled)
+                        (Đã hủy)
+                    @else
+                        {{ number_format($remainingDebt, 0, ',', '.') }}đ
+                    @endif
                 </td>
                 <td class="text-center">
                     @php
-                        $paidAtThisTime = $paidUpToNow;
-                        $totalAmount = $payment->sale->total_vnd;
-                        
-                        if ($paidAtThisTime >= $totalAmount) {
-                            $statusClass = 'status-paid';
-                            $statusText = 'Đã TT';
-                        } elseif ($paidAtThisTime > 0) {
-                            $statusClass = 'status-partial';
-                            $statusText = 'TT 1 phần';
-                        } else {
+                        if ($isCancelled) {
                             $statusClass = 'status-unpaid';
-                            $statusText = 'Chưa TT';
+                            $statusText = 'Đã hủy';
+                        } else {
+                            $paidAtThisTime = $paidUpToNow;
+                            $totalAmount = $payment->sale->total_vnd;
+                            
+                                if ($paidAtThisTime >= $totalAmount) {
+                                    $statusClass = 'status-paid';
+                                    $statusText = 'Đã TT';
+                                } elseif ($paidAtThisTime > 0) {
+                                    $statusClass = 'status-partial';
+                                    $statusText = 'TT 1 phần';
+                                } else {
+                                    $statusClass = 'status-unpaid';
+                                    $statusText = 'Chưa TT';
+                                }
+                            }
                         }
                     @endphp
                     <span class="{{ $statusClass }}">{{ $statusText }}</span>

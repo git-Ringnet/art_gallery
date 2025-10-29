@@ -102,31 +102,44 @@
                         @php $displayIndex = 0; @endphp
                         @foreach($sale->saleItems as $item)
                             @if($item->quantity > 0)
-                                @php $displayIndex++; @endphp
-                                <tr>
-                                    <td class="px-4 py-3 text-sm">{{ $displayIndex }}</td>
+                                @php 
+                                    $displayIndex++; 
+                                    $isReturned = $item->is_returned ?? false;
+                                    $rowClass = $isReturned ? 'bg-red-50 opacity-60' : '';
+                                    $textClass = $isReturned ? 'line-through text-gray-400' : '';
+                                @endphp
+                                <tr class="{{ $rowClass }}">
+                                    <td class="px-4 py-3 text-sm {{ $textClass }}">{{ $displayIndex }}</td>
                                     <td class="px-4 py-3">
                                         @if($item->painting && $item->painting->image)
                                             <img src="{{ asset('storage/' . $item->painting->image) }}" alt="{{ $item->painting->name }}" 
-                                                class="w-16 h-16 object-cover rounded-lg cursor-pointer hover:opacity-80 transition-opacity"
-                                                onclick="showImageModal('{{ asset('storage/' . $item->painting->image) }}', '{{ $item->painting->name }}')">
+                                                class="w-16 h-16 object-cover rounded-lg {{ $isReturned ? 'opacity-40' : 'cursor-pointer hover:opacity-80' }} transition-opacity"
+                                                @if(!$isReturned) onclick="showImageModal('{{ asset('storage/' . $item->painting->image) }}', '{{ $item->painting->name }}')" @endif>
                                         @else
-                                            <div class="w-16 h-16 bg-gray-200 rounded-lg flex items-center justify-center">
+                                            <div class="w-16 h-16 bg-gray-200 rounded-lg flex items-center justify-center {{ $isReturned ? 'opacity-40' : '' }}">
                                                 <i class="fas fa-image text-gray-400"></i>
+                                            </div>
+                                        @endif
+                                        @if($isReturned)
+                                            <div class="text-xs text-red-600 font-semibold mt-1">
+                                                <i class="fas fa-undo mr-1"></i>Đã trả
                                             </div>
                                         @endif
                                     </td>
                                     <td class="px-4 py-3">
-                                        <div class="font-medium">{{ $item->description }}</div>
+                                        <div class="font-medium {{ $textClass }}">{{ $item->description }}</div>
                                         @if($item->painting)
-                                            <div class="text-xs text-gray-500">Tranh: {{ $item->painting->code }}</div>
+                                            <div class="text-xs text-gray-500 {{ $textClass }}">Tranh: {{ $item->painting->code }}</div>
                                         @endif
                                         @if($item->supply)
-                                            <div class="text-xs text-gray-500">Vật tư: {{ $item->supply->name }} ({{ $item->supply_length }}m)</div>
+                                            <div class="text-xs text-gray-500 {{ $textClass }}">Vật tư: {{ $item->supply->name }} ({{ $item->supply_length }}m)</div>
+                                        @endif
+                                        @if($isReturned && $item->returned_quantity > 0)
+                                            <div class="text-xs text-red-600 mt-1">Đã trả: {{ $item->returned_quantity }}/{{ $item->quantity }}</div>
                                         @endif
                                     </td>
-                                    <td class="px-4 py-3 text-center text-sm">{{ $item->quantity }}</td>
-                                    <td class="px-4 py-3 text-right text-sm">
+                                    <td class="px-4 py-3 text-center text-sm {{ $textClass }}">{{ $item->quantity }}</td>
+                                    <td class="px-4 py-3 text-right text-sm {{ $textClass }}">
                                         @if($item->currency == 'USD')
                                             <div>${{ number_format($item->price_usd, 2) }}</div>
                                             <div class="text-xs text-gray-500">{{ number_format($item->price_vnd) }}đ</div>
@@ -134,14 +147,14 @@
                                             <div>{{ number_format($item->price_vnd) }}đ</div>
                                         @endif
                                     </td>
-                                    <td class="px-4 py-3 text-right text-sm">
+                                    <td class="px-4 py-3 text-right text-sm {{ $textClass }}">
                                         @if($item->discount_percent > 0)
                                             <span class="text-red-600">{{ number_format($item->discount_percent, 0) }}%</span>
                                         @else
                                             <span class="text-gray-400">-</span>
                                         @endif
                                     </td>
-                                    <td class="px-4 py-3 text-right text-sm font-semibold">
+                                    <td class="px-4 py-3 text-right text-sm font-semibold {{ $textClass }}">
                                         <div>${{ number_format($item->total_usd, 2) }}</div>
                                         <div class="text-xs text-gray-500">{{ number_format($item->total_vnd) }}đ</div>
                                     </td>
@@ -326,15 +339,54 @@
                 <div class="border-t pt-3 flex justify-between">
                     <span class="font-bold text-lg">Tổng cộng:</span>
                     <div class="text-right">
-                        <div class="font-bold text-lg text-green-600">${{ number_format($sale->total_usd, 2) }}</div>
-                        <div class="text-sm text-gray-500">{{ number_format($sale->total_vnd) }}đ</div>
+                        @php
+                            // Kiểm tra xem có sản phẩm nào bị trả không
+                            $hasReturns = $sale->returns()->where('status', 'completed')->exists();
+                            
+                            if ($hasReturns) {
+                                // Tính tổng gốc từ tất cả items (bao gồm cả đã trả)
+                                $originalTotal = $sale->saleItems->sum('total_vnd');
+                                $originalTotalUsd = $originalTotal / $sale->exchange_rate;
+                            }
+                        @endphp
+                        
+                        @if($hasReturns && $sale->total_vnd == 0)
+                            <!-- Trả hết - hiển thị giá gốc không gạch ngang -->
+                            <div class="font-bold text-lg text-gray-900">${{ number_format($originalTotalUsd, 2) }}</div>
+                            <div class="text-sm text-gray-500">{{ number_format($originalTotal) }}đ</div>
+                            <div class="text-xs text-red-600 mt-1">
+                                <i class="fas fa-undo mr-1"></i>Đã trả hết hàng
+                            </div>
+                        @elseif($hasReturns && $originalTotal != $sale->total_vnd)
+                            <!-- Trả một phần - hiển thị tổng cũ bị gạch -->
+                            <div class="text-sm text-gray-400 line-through mb-1">
+                                ${{ number_format($originalTotalUsd, 2) }} / {{ number_format($originalTotal) }}đ
+                            </div>
+                            <!-- Hiển thị tổng mới -->
+                            <div class="font-bold text-lg text-green-600">${{ number_format($sale->total_usd, 2) }}</div>
+                            <div class="text-sm text-green-600">{{ number_format($sale->total_vnd) }}đ</div>
+                            <div class="text-xs text-orange-600 mt-1">
+                                <i class="fas fa-info-circle mr-1"></i>Đã trừ hàng trả
+                            </div>
+                        @else
+                            <!-- Không có trả hàng -->
+                            <div class="font-bold text-lg text-green-600">${{ number_format($sale->total_usd, 2) }}</div>
+                            <div class="text-sm text-gray-500">{{ number_format($sale->total_vnd) }}đ</div>
+                        @endif
                     </div>
                 </div>
                 <div class="flex justify-between bg-blue-50 p-3 rounded">
                     <span class="text-blue-700 font-medium">Tổng tiền khách đã trả:</span>
                     <span class="font-bold text-blue-700 text-lg">{{ number_format($sale->paid_amount) }}đ</span>
                 </div>
-                @if($sale->debt_amount > 0)
+                @if($sale->sale_status == 'cancelled')
+                <div class="flex justify-between text-gray-600 bg-gray-50 p-3 rounded border-2 border-gray-200">
+                    <span class="font-bold text-base">
+                        <i class="fas fa-ban mr-1"></i>Đã hủy (Trả hàng)
+                    </span>
+                    <span class="font-bold text-base">Không còn nợ</span>
+                </div>
+                @elseif($sale->debt_amount > 0)
                 <div class="flex justify-between text-red-600 bg-red-50 p-3 rounded border-2 border-red-200">
                     <span class="font-bold text-base">Số tiền còn thiếu:</span>
                     <span class="font-bold text-xl">{{ number_format($sale->debt_amount) }}đ</span>

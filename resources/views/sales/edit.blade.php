@@ -598,7 +598,14 @@ function generateInvoiceCode() {
 
 // Load existing sale items
 function loadExistingItems() {
-    saleItems.forEach((item, index) => {
+    let displayIndex = 0;
+    saleItems.forEach((item, originalIndex) => {
+        // Bỏ qua sản phẩm đã trả
+        if (item.is_returned) {
+            return; // Skip this item
+        }
+        
+        const index = displayIndex;
         addItem();
         
         // Set painting
@@ -641,6 +648,8 @@ function loadExistingItems() {
         
         // Set currency display
         togCur(document.querySelector(`[name="items[${index}][currency]"]`), index);
+        
+        displayIndex++; // Tăng index cho item tiếp theo
     });
 }
 

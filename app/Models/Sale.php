@@ -24,6 +24,8 @@ class Sale extends Model
         'discount_vnd',
         'total_usd',
         'total_vnd',
+        'original_total_usd',
+        'original_total_vnd',
         'paid_amount',
         'debt_amount',
         'payment_status',
@@ -43,6 +45,8 @@ class Sale extends Model
             'discount_vnd' => 'decimal:2',
             'total_usd' => 'decimal:2',
             'total_vnd' => 'decimal:2',
+            'original_total_usd' => 'decimal:2',
+            'original_total_vnd' => 'decimal:2',
             'paid_amount' => 'decimal:2',
             'debt_amount' => 'decimal:2',
         ];
