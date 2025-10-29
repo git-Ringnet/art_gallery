@@ -234,6 +234,7 @@
                 </div>
             </div>
         </div>
+        </div>
 
         <!-- Page Header (Title + Actions) -->
         <div class="bg-white rounded-xl shadow-lg p-6 m-6 mb-6 relative z-30 no-print">
