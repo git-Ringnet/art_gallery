@@ -243,15 +243,15 @@
                     <td class="px-4 py-3 text-center">
                         @if($payment->payment_method === 'cash')
                             <span class="px-2 py-1 bg-green-100 text-green-700 text-xs rounded-full">
-                                <i class="fas fa-money-bill-wave mr-1"></i>Tiền mặt
+                                Tiền mặt
                             </span>
                         @elseif($payment->payment_method === 'bank_transfer')
                             <span class="px-2 py-1 bg-blue-100 text-blue-700 text-xs rounded-full">
-                                <i class="fas fa-university mr-1"></i>CK
+                                CK
                             </span>
                         @else
                             <span class="px-2 py-1 bg-purple-100 text-purple-700 text-xs rounded-full">
-                                <i class="fas fa-credit-card mr-1"></i>Thẻ
+                                Thẻ
                             </span>
                         @endif
                     </td>

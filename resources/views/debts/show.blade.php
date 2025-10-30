@@ -10,13 +10,17 @@
 </a>
 @if($debt->sale->payment_status !== 'paid')
 <button onclick="showCollectModal()" class="bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded-lg transition-colors">
-    <i class="fas fa-money-bill-wave mr-2"></i>Thanh toán
+    Thanh toán
 </button>
 @endif
 @endsection
 
 @section('content')
 <x-alert />
+
+@push('scripts')
+<script src="{{ asset('js/number-format.js') }}"></script>
+@endpush
 
 <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
     <!-- Debt Info -->
@@ -228,7 +232,7 @@
         <div class="mt-2">
             <div class="flex items-center justify-between mb-6 pb-4 border-b-2 border-gray-200">
                 <h3 class="text-3xl font-bold text-gray-900 flex items-center">
-                    <i class="fas fa-money-bill-wave text-green-600 mr-3 text-4xl"></i>
+                    
                     Thanh toán
                 </h3>
                 <button onclick="closeCollectModal()" class="text-gray-400 hover:text-gray-600 text-3xl w-10 h-10">
@@ -236,7 +240,7 @@
                 </button>
             </div>
             
-            <form method="POST" action="{{ route('debt.collect', $debt->id) }}">
+            <form method="POST" action="{{ route('debt.collect', $debt->id) }}" id="payment-form" onsubmit="return validatePayment(event)">
                 @csrf
                 
                 <div class="space-y-6">
@@ -250,9 +254,11 @@
                         <label class="block text-xl font-bold text-gray-900 mb-3">
                             Số tiền thu <span class="text-red-500 text-2xl">*</span>
                         </label>
-                        <input type="number" name="amount" required min="1" max="{{ $debt->sale->debt_amount }}"
+                        <input type="text" name="amount" id="payment-amount" required
                             class="w-full px-6 py-5 text-2xl font-semibold border-2 border-gray-300 rounded-xl focus:ring-4 focus:ring-blue-500 focus:border-blue-500"
-                            placeholder="Nhập số tiền...">
+                            placeholder="Nhập số tiền..."
+                            oninput="formatVND(this)" 
+                            onblur="formatVND(this)">
                         <p class="text-lg text-gray-600 mt-3 flex items-center">
                             <i class="fas fa-info-circle mr-2 text-blue-500"></i>
                             Tối đa: <span class="font-bold ml-2">{{ number_format($debt->sale->debt_amount, 0, ',', '.') }}đ</span>
@@ -290,18 +296,68 @@
 </div>
 
 <script>
+const maxDebt = {{ $debt->sale->debt_amount }};
+
 function showCollectModal() {
     document.getElementById('collectModal').classList.remove('hidden');
+    // Reset form
+    document.getElementById('payment-form').reset();
 }
 
 function closeCollectModal() {
     document.getElementById('collectModal').classList.add('hidden');
 }
 
+function validatePayment(event) {
+    const input = document.getElementById('payment-amount');
+    const amountStr = input.value;
+    
+    // Unformat number (remove dots)
+    const amount = unformatNumber(amountStr);
+    
+    // Validate
+    if (!amount || amount <= 0) {
+        alert('Vui lòng nhập số tiền hợp lệ');
+        return false;
+    }
+    
+    if (amount > maxDebt) {
+        alert(`Số tiền nhập vượt quá số nợ!\nSố nợ: ${maxDebt.toLocaleString('vi-VN')}đ\nSố tiền nhập: ${amount.toLocaleString('vi-VN')}đ`);
+        return false;
+    }
+    
+    // Set unformatted value before submit
+    input.value = amount;
+    
+    return true;
+}
+
 // Close modal when clicking outside
 document.getElementById('collectModal')?.addEventListener('click', function(e) {
     if (e.target === this) {
         closeCollectModal();
+    }
+});
+
+// Real-time validation
+document.getElementById('payment-amount')?.addEventListener('input', function() {
+    const amount = unformatNumber(this.value);
+    const infoText = this.parentElement.querySelector('p');
+    
+    if (amount > maxDebt) {
+        this.classList.add('border-red-500', 'bg-red-50');
+        this.classList.remove('border-gray-300');
+        if (infoText) {
+            infoText.innerHTML = `<i class="fas fa-exclamation-triangle mr-2 text-red-500"></i>
+                <span class="text-red-600 font-bold">Vượt quá số nợ! Tối đa: ${maxDebt.toLocaleString('vi-VN')}đ</span>`;
+        }
+    } else {
+        this.classList.remove('border-red-500', 'bg-red-50');
+        this.classList.add('border-gray-300');
+        if (infoText) {
+            infoText.innerHTML = `<i class="fas fa-info-circle mr-2 text-blue-500"></i>
+                Tối đa: <span class="font-bold ml-2">${maxDebt.toLocaleString('vi-VN')}đ</span>`;
+        }
     }
 });
 </script>
