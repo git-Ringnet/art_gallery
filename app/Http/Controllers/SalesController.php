@@ -704,6 +704,23 @@ class SalesController extends Controller
         return response()->json($customer);
     }
 
+    public function getCustomerDebt($id)
+    {
+        $customer = Customer::findOrFail($id);
+        
+        // Tính tổng công nợ hiện tại của khách hàng
+        // Lấy từ tất cả các sales chưa thanh toán hết
+        $totalDebt = $customer->sales()
+            ->whereIn('payment_status', ['unpaid', 'partial'])
+            ->sum('debt_amount');
+        
+        return response()->json([
+            'customer_id' => $customer->id,
+            'customer_name' => $customer->name,
+            'total_debt' => $totalDebt
+        ]);
+    }
+
     public function searchPaintings(Request $request)
     {
         $query = $request->get('q', '');

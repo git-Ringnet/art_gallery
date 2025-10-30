@@ -37,6 +37,7 @@ Route::middleware(['auth'])->group(function () {
         Route::get('/api/paintings/{id}', [SalesController::class, 'getPainting'])->name('api.painting');
         Route::get('/api/supplies/{id}', [SalesController::class, 'getSupply'])->name('api.supply');
         Route::get('/api/customers/{id}', [SalesController::class, 'getCustomer'])->name('api.customer');
+        Route::get('/api/customers/{id}/debt', [SalesController::class, 'getCustomerDebt'])->name('api.customer.debt');
         Route::get('/api/search/paintings', [SalesController::class, 'searchPaintings'])->name('api.search.paintings');
         Route::get('/api/search/supplies', [SalesController::class, 'searchSupplies'])->name('api.search.supplies');
         Route::get('/api/search/suggestions', [SalesController::class, 'searchSuggestions'])->name('api.search.suggestions');

@@ -691,9 +691,17 @@ function calcDebt() {
 // Load công nợ hiện tại khi chọn khách hàng
 function loadCurrentDebt(customerId) {
     if (customerId) {
-        // TODO: Gọi API để lấy công nợ hiện tại
-        // Tạm thời set 0
-        document.getElementById('current_debt').value = '0đ';
+        fetch(`/sales/api/customers/${customerId}/debt`)
+            .then(response => response.json())
+            .then(data => {
+                const currentDebt = data.total_debt || 0;
+                const formattedDebt = Math.round(currentDebt).toLocaleString('en-US').replace(/,/g, '.');
+                document.getElementById('current_debt').value = formattedDebt + 'đ';
+            })
+            .catch(error => {
+                console.error('Error loading customer debt:', error);
+                document.getElementById('current_debt').value = '0đ';
+            });
     } else {
         document.getElementById('current_debt').value = '0đ';
     }
@@ -795,6 +803,12 @@ document.addEventListener('DOMContentLoaded', () => {
     loadExistingItems();
     calc();
     calcDebt(); // Tính còn nợ ngay khi load trang
+    
+    // Load công nợ hiện tại của khách hàng
+    const customerId = document.getElementById('customer_id').value;
+    if (customerId) {
+        loadCurrentDebt(customerId);
+    }
 });
 </script>
 

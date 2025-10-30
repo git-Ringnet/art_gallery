@@ -157,7 +157,7 @@
                     <input type="text" name="payment_amount" id="paid" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500" value="0" oninput="formatVND(this)" onblur="formatVND(this)" onchange="calcDebt()" placeholder="Nhập số tiền...">
                 </div>
                 <div>
-                    <label class="block text-sm font-medium text-yellow-900 mb-2">Công nợ hiện tại</label>
+                    <label class="block text-sm font-medium text-yellow-900 mb-2">Nợ cũ</label>
                     <input type="text" id="current_debt" readonly class="w-full px-4 py-2 border border-yellow-300 rounded-lg bg-white font-bold text-orange-600">
                 </div>
                 <div>
@@ -564,9 +564,17 @@ function calcDebt() {
 // Load công nợ hiện tại khi chọn khách hàng
 function loadCurrentDebt(customerId) {
     if (customerId) {
-        // TODO: Gọi API để lấy công nợ hiện tại
-        // Tạm thời set 0
-        document.getElementById('current_debt').value = '0đ';
+        fetch(`/sales/api/customers/${customerId}/debt`)
+            .then(response => response.json())
+            .then(data => {
+                const currentDebt = data.total_debt || 0;
+                const formattedDebt = Math.round(currentDebt).toLocaleString('en-US').replace(/,/g, '.');
+                document.getElementById('current_debt').value = formattedDebt + 'đ';
+            })
+            .catch(error => {
+                console.error('Error loading customer debt:', error);
+                document.getElementById('current_debt').value = '0đ';
+            });
     } else {
         document.getElementById('current_debt').value = '0đ';
     }
