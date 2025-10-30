@@ -7,6 +7,22 @@
 @section('content')
 <x-alert />
 
+@php
+    $hasReturns = $sale->returns()->whereIn('status', ['approved', 'completed'])->exists();
+@endphp
+
+@if($hasReturns)
+<div class="bg-yellow-50 border-l-4 border-yellow-500 p-4 mb-6 rounded-lg">
+    <div class="flex items-center">
+        <i class="fas fa-exclamation-triangle text-yellow-600 text-2xl mr-3"></i>
+        <div>
+            <h4 class="text-yellow-800 font-semibold">Lưu ý: Phiếu này đã có trả/đổi hàng</h4>
+            <p class="text-yellow-700 text-sm">Không thể sửa danh sách sản phẩm. Chỉ có thể trả thêm tiền hoặc cập nhật thông tin khách hàng.</p>
+        </div>
+    </div>
+</div>
+@endif
+
 <div class="bg-white rounded-xl shadow-lg p-8 glass-effect">
     <form action="{{ route('sales.update', $sale->id) }}" method="POST" id="sales-form">
         @csrf
@@ -89,36 +105,98 @@
         </div>
 
         <!-- BƯỚC 3: DANH SÁCH SẢN PHẨM -->
-        <div class="bg-purple-50 border-l-4 border-purple-500 p-6 rounded-lg mb-6">
-            <div class="flex justify-between items-center mb-4">
-                <h3 class="text-xl font-bold text-purple-900 flex items-center">
-                    <span class="bg-purple-500 text-white w-8 h-8 rounded-full flex items-center justify-center mr-3">3</span>
-                    Danh sách sản phẩm
+        @if($hasReturns)
+            <!-- Hiển thị readonly khi đã có return -->
+            <div class="bg-gray-50 border-l-4 border-gray-400 p-6 rounded-lg mb-6">
+                <h3 class="text-xl font-bold text-gray-700 mb-4 flex items-center">
+                    <span class="bg-gray-400 text-white w-8 h-8 rounded-full flex items-center justify-center mr-3">3</span>
+                    Danh sách sản phẩm (Chỉ xem)
                 </h3>
-                <button type="button" onclick="addItem()" class="bg-purple-500 hover:bg-purple-600 text-white px-6 py-2 rounded-lg transition-colors font-medium">
-                    <i class="fas fa-plus mr-2"></i>Thêm sản phẩm
-                </button>
+                <div class="overflow-x-auto">
+                    <table class="w-full">
+                        <thead class="bg-gray-200">
+                            <tr>
+                                <th class="px-4 py-3 text-left">Hình ảnh</th>
+                                <th class="px-4 py-3 text-left">Sản phẩm</th>
+                                <th class="px-4 py-3 text-center">SL</th>
+                                <th class="px-4 py-3 text-right">Đơn giá</th>
+                                <th class="px-4 py-3 text-right">Giảm giá</th>
+                                <th class="px-4 py-3 text-right">Thành tiền</th>
+                            </tr>
+                        </thead>
+                        <tbody class="bg-white divide-y">
+                            @foreach($sale->saleItems as $item)
+                            <tr class="{{ $item->is_returned ? 'bg-red-50 opacity-60' : '' }}">
+                                <td class="px-4 py-3">
+                                    @if($item->painting_id && $item->painting && $item->painting->image)
+                                        <img src="{{ asset('storage/' . $item->painting->image) }}" class="w-16 h-16 object-cover rounded" alt="{{ $item->description }}">
+                                    @else
+                                        <div class="w-16 h-16 bg-gray-200 rounded flex items-center justify-center">
+                                            <i class="fas fa-image text-gray-400"></i>
+                                        </div>
+                                    @endif
+                                </td>
+                                <td class="px-4 py-3">
+                                    <div class="font-medium {{ $item->is_returned ? 'line-through text-gray-500' : '' }}">
+                                        {{ $item->description }}
+                                    </div>
+                                    @if($item->is_returned)
+                                        <span class="text-xs text-red-600 font-semibold">
+                                            <i class="fas fa-undo mr-1"></i>Đã trả
+                                        </span>
+                                    @endif
+                                </td>
+                                <td class="px-4 py-3 text-center">{{ $item->quantity }}</td>
+                                <td class="px-4 py-3 text-right">
+                                    @if($item->currency === 'USD')
+                                        ${{ number_format($item->price_usd, 2) }}
+                                    @else
+                                        {{ number_format($item->price_vnd, 0, ',', '.') }}đ
+                                    @endif
+                                </td>
+                                <td class="px-4 py-3 text-right">{{ $item->discount_percent }}%</td>
+                                <td class="px-4 py-3 text-right font-semibold">
+                                    {{ number_format($item->total_vnd, 0, ',', '.') }}đ
+                                </td>
+                            </tr>
+                            @endforeach
+                        </tbody>
+                    </table>
+                </div>
             </div>
-            <div class="#">
-                <table class="w-full border-collapse">
-                    <thead>
-                        <tr class="bg-purple-100">
-                            <th class="px-3 py-3 text-left text-sm font-medium text-gray-700 border">Hình ảnh</th>
-                            <th class="px-3 py-3 text-left text-sm font-medium text-gray-700 border">Mô tả(Mã tranh/Khung)</th>
-                            <th class="px-3 py-3 text-left text-sm font-medium text-gray-700 border">Vật tư(Khung)</th>
-                            <th class="px-3 py-3 text-left text-sm font-medium text-gray-700 border">Số mét/Cây</th>
-                            <th class="px-3 py-3 text-center text-sm font-medium text-gray-700 border">Số lượng</th>
-                            <th class="px-3 py-3 text-center text-sm font-medium text-gray-700 border">Loại tiền</th>
-                            <th class="px-3 py-3 text-right text-sm font-medium text-gray-700 border">Giá USD</th>
-                            <th class="px-3 py-3 text-right text-sm font-medium text-gray-700 border">Giá VND</th>
-                            <th class="px-3 py-3 text-center text-sm font-medium text-gray-700 border">Giảm giá (%)</th>
-                            <th class="px-3 py-3 text-center text-sm font-medium text-gray-700 border">Xóa</th>
-                        </tr>
-                    </thead>
-                    <tbody id="items-body" class="bg-white"></tbody>
-                </table>
+        @else
+            <!-- Form edit bình thường khi chưa có return -->
+            <div class="bg-purple-50 border-l-4 border-purple-500 p-6 rounded-lg mb-6">
+                <div class="flex justify-between items-center mb-4">
+                    <h3 class="text-xl font-bold text-purple-900 flex items-center">
+                        <span class="bg-purple-500 text-white w-8 h-8 rounded-full flex items-center justify-center mr-3">3</span>
+                        Danh sách sản phẩm
+                    </h3>
+                    <button type="button" onclick="addItem()" class="bg-purple-500 hover:bg-purple-600 text-white px-6 py-2 rounded-lg transition-colors font-medium">
+                        <i class="fas fa-plus mr-2"></i>Thêm sản phẩm
+                    </button>
+                </div>
+                <div class="#">
+                    <table class="w-full border-collapse">
+                        <thead>
+                            <tr class="bg-purple-100">
+                                <th class="px-3 py-3 text-left text-sm font-medium text-gray-700 border">Hình ảnh</th>
+                                <th class="px-3 py-3 text-left text-sm font-medium text-gray-700 border">Mô tả(Mã tranh/Khung)</th>
+                                <th class="px-3 py-3 text-left text-sm font-medium text-gray-700 border">Vật tư(Khung)</th>
+                                <th class="px-3 py-3 text-left text-sm font-medium text-gray-700 border">Số mét/Cây</th>
+                                <th class="px-3 py-3 text-center text-sm font-medium text-gray-700 border">Số lượng</th>
+                                <th class="px-3 py-3 text-center text-sm font-medium text-gray-700 border">Loại tiền</th>
+                                <th class="px-3 py-3 text-right text-sm font-medium text-gray-700 border">Giá USD</th>
+                                <th class="px-3 py-3 text-right text-sm font-medium text-gray-700 border">Giá VND</th>
+                                <th class="px-3 py-3 text-center text-sm font-medium text-gray-700 border">Giảm giá (%)</th>
+                                <th class="px-3 py-3 text-center text-sm font-medium text-gray-700 border">Xóa</th>
+                            </tr>
+                        </thead>
+                        <tbody id="items-body" class="bg-white"></tbody>
+                    </table>
+                </div>
             </div>
-        </div>
+        @endif
 
         <!-- BƯỚC 4: TÍNH TOÁN & THANH TOÁN -->
         <div class="bg-orange-50 border-l-4 border-orange-500 p-6 rounded-lg mb-6">
@@ -177,30 +255,44 @@
             <!-- Thanh toán -->
             <div class="grid grid-cols-3 gap-4">
                 <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-2">Khách trả thêm (VND)</label>
-                    <input type="text" name="payment_amount" id="paid" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500" value="0" oninput="formatVND(this)" onblur="formatVND(this)" onchange="calcDebt()" placeholder="Nhập số tiền trả thêm...">
-                    
-                    <!-- Lịch sử thanh toán -->
-                    @if($sale->payments->count() > 0)
-                    <div class="mt-3 p-3 bg-gray-50 rounded-lg border border-gray-200">
-                        <div class="text-xs font-semibold text-gray-600 mb-2 flex items-center">
-                            <i class="fas fa-history mr-1"></i> Lịch sử thanh toán
-                        </div>
-                        <div class="space-y-1 max-h-32 overflow-y-auto">
-                            @foreach($sale->payments as $payment)
-                            <div class="flex justify-between items-center text-xs py-1">
-                                <span class="text-gray-600">{{ $payment->payment_date->format('d/m/Y') }}</span>
-                                <span class="font-semibold {{ $payment->amount < 0 ? 'text-red-600' : 'text-green-600' }}">
-                                    {{ $payment->amount < 0 ? '' : '+' }}{{ number_format($payment->amount) }}đ
-                                </span>
+                    @if($sale->sale_status === 'completed')
+                        <!-- Phiếu đã duyệt - cho phép trả thêm -->
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Khách trả thêm (VND)</label>
+                        <input type="text" name="payment_amount" id="paid" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500" value="0" oninput="formatVND(this)" onblur="formatVND(this)" onchange="calcDebt()" placeholder="Nhập số tiền trả thêm...">
+                        
+                        <!-- Lịch sử thanh toán -->
+                        @if($sale->payments->count() > 0)
+                        <div class="mt-3 p-3 bg-gray-50 rounded-lg border border-gray-200">
+                            <div class="text-xs font-semibold text-gray-600 mb-2 flex items-center">
+                                <i class="fas fa-history mr-1"></i> Lịch sử thanh toán
                             </div>
-                            @endforeach
+                            <div class="space-y-1 max-h-32 overflow-y-auto">
+                                @foreach($sale->payments as $payment)
+                                <div class="flex justify-between items-center text-xs py-1">
+                                    <span class="text-gray-600">{{ $payment->payment_date->format('d/m/Y') }}</span>
+                                    <span class="font-semibold {{ $payment->amount < 0 ? 'text-red-600' : 'text-green-600' }}">
+                                        {{ $payment->amount < 0 ? '' : '+' }}{{ number_format($payment->amount) }}đ
+                                    </span>
+                                </div>
+                                @endforeach
+                            </div>
+                            <div class="mt-2 pt-2 border-t border-gray-300 flex justify-between items-center">
+                                <span class="text-xs font-semibold text-gray-700">Tổng đã trả:</span>
+                                <span class="text-sm font-bold text-blue-600">{{ number_format($sale->paid_amount) }}đ</span>
+                            </div>
                         </div>
-                        <div class="mt-2 pt-2 border-t border-gray-300 flex justify-between items-center">
-                            <span class="text-xs font-semibold text-gray-700">Tổng đã trả:</span>
-                            <span class="text-sm font-bold text-blue-600">{{ number_format($sale->paid_amount) }}đ</span>
+                        @endif
+                    @else
+                        <!-- Phiếu pending - hiển thị số tiền đã trả (chưa tạo payment) -->
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Đã trả (VND)</label>
+                        <input type="text" name="payment_amount" id="paid" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 bg-blue-50" value="{{ number_format($sale->paid_amount) }}" oninput="formatVND(this)" onblur="formatVND(this)" onchange="calcDebt()" placeholder="Nhập số tiền đã trả...">
+                        
+                        <div class="mt-3 p-3 bg-blue-50 rounded-lg border border-blue-200">
+                            <div class="text-xs text-blue-800 flex items-center">
+                                <i class="fas fa-info-circle mr-2"></i>
+                                <span>Số tiền này sẽ được ghi vào lịch sử thanh toán khi duyệt phiếu</span>
+                            </div>
                         </div>
-                    </div>
                     @endif
                 </div>
                 <div>

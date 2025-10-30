@@ -241,6 +241,11 @@ class SalesController extends Controller
             // Get default user
             $user = $this->getDefaultUser();
 
+            // Lấy số tiền đã trả (nếu có)
+            $paidAmount = $request->filled('payment_amount') && $request->payment_amount > 0 
+                ? $request->payment_amount 
+                : 0;
+
             // Create sale
             $sale = Sale::create([
                 'invoice_code' => $request->invoice_code ?: Sale::generateInvoiceCode(),
@@ -254,7 +259,7 @@ class SalesController extends Controller
                 'subtotal_vnd' => 0,
                 'total_usd' => 0,
                 'total_vnd' => 0,
-                'paid_amount' => 0,
+                'paid_amount' => $paidAmount,
                 'debt_amount' => 0,
                 'payment_status' => 'unpaid',
                 'notes' => $request->notes,
@@ -290,17 +295,8 @@ class SalesController extends Controller
                 'original_total_usd' => $sale->total_usd,
             ]);
 
-            // Create payment if provided
-            if ($request->filled('payment_amount') && $request->payment_amount > 0) {
-                Payment::create([
-                    'sale_id' => $sale->id,
-                    'amount' => $request->payment_amount,
-                    'payment_method' => $request->payment_method ?? 'cash',
-                    'transaction_type' => 'sale_payment',
-                    'payment_date' => $request->sale_date,
-                    'created_by' => $user->id,
-                ]);
-            }
+            // KHÔNG tạo payment khi tạo phiếu pending
+            // Payment sẽ được tạo khi duyệt phiếu (approve)
 
             // Create debt if there's remaining amount
             if ($sale->debt_amount > 0) {
@@ -372,6 +368,9 @@ class SalesController extends Controller
             return back()->with('error', 'Không thể sửa phiếu đã hủy');
         }
 
+        // Kiểm tra xem có return/exchange không
+        $hasReturns = $sale->returns()->whereIn('status', ['approved', 'completed'])->exists();
+
         // Add invoice_code validation for update
         $request->merge(['invoice_code' => $request->invoice_code ?: null]);
         
@@ -386,7 +385,8 @@ class SalesController extends Controller
             ]);
         }
 
-        $validated = $request->validate([
+        // Validation rules khác nhau tùy theo có return hay không
+        $rules = [
             'customer_id' => 'nullable|exists:customers,id',
             'customer_name' => 'required_without:customer_id|string|max:255',
             'customer_phone' => 'required_without:customer_id|string|max:20',
@@ -394,22 +394,30 @@ class SalesController extends Controller
             'customer_address' => 'nullable|string',
             'showroom_id' => 'required|exists:showrooms,id',
             'sale_date' => 'required|date',
-            'items' => 'required|array|min:1',
-            'items.*.painting_id' => 'nullable|exists:paintings,id',
-            'items.*.description' => 'required|string',
-            'items.*.quantity' => 'required|numeric|min:1',
-            'items.*.supply_id' => 'nullable|exists:supplies,id',
-            'items.*.supply_length' => 'nullable|numeric|min:0',
-            'items.*.currency' => 'required|in:USD,VND',
-            'items.*.price_usd' => 'nullable|numeric|min:0',
-            'items.*.price_vnd' => 'nullable|numeric|min:0',
-            'items.*.discount_percent' => 'nullable|numeric|min:0|max:100',
-            'exchange_rate' => 'required|numeric|min:1',
-            'discount_percent' => 'nullable|numeric|min:0|max:100',
             'payment_amount' => 'nullable|numeric|min:0',
             'payment_method' => 'nullable|in:cash,bank_transfer,card,other',
             'notes' => 'nullable|string',
-        ], [
+        ];
+
+        // Chỉ validate items nếu CHƯA có return
+        if (!$hasReturns) {
+            $rules = array_merge($rules, [
+                'items' => 'required|array|min:1',
+                'items.*.painting_id' => 'nullable|exists:paintings,id',
+                'items.*.description' => 'required|string',
+                'items.*.quantity' => 'required|numeric|min:1',
+                'items.*.supply_id' => 'nullable|exists:supplies,id',
+                'items.*.supply_length' => 'nullable|numeric|min:0',
+                'items.*.currency' => 'required|in:USD,VND',
+                'items.*.price_usd' => 'nullable|numeric|min:0',
+                'items.*.price_vnd' => 'nullable|numeric|min:0',
+                'items.*.discount_percent' => 'nullable|numeric|min:0|max:100',
+                'exchange_rate' => 'required|numeric|min:1',
+                'discount_percent' => 'nullable|numeric|min:0|max:100',
+            ]);
+        }
+
+        $validated = $request->validate($rules, [
             'customer_id.exists' => 'Khách hàng không tồn tại',
             'customer_name.required_without' => 'Tên khách hàng là bắt buộc',
             'customer_name.string' => 'Tên khách hàng phải là chuỗi ký tự',
@@ -482,88 +490,100 @@ class SalesController extends Controller
                 'invoice_code' => $request->invoice_code ?: $sale->invoice_code,
             ]);
 
-            // Hoàn trả kho từ items cũ trước khi xóa (nếu phiếu đã duyệt)
-            if ($sale->isCompleted()) {
-                foreach ($sale->saleItems as $oldItem) {
-                    if ($oldItem->painting_id) {
-                        $painting = Painting::find($oldItem->painting_id);
-                        if ($painting) {
-                            $painting->increaseQuantity($oldItem->quantity);
-                        }
-                    }
-                    
-                    if ($oldItem->supply_id && $oldItem->supply_length) {
-                        $supply = Supply::find($oldItem->supply_id);
-                        if ($supply) {
-                            $totalUsed = $oldItem->supply_length * $oldItem->quantity;
-                            $supply->increaseQuantity($totalUsed);
-                        }
-                    }
-                }
-            }
-            
-            // Delete existing sale items
-            $sale->saleItems()->delete();
-
-            // Create new sale items
-            foreach ($request->items as $item) {
-                $saleItem = SaleItem::create([
-                    'sale_id' => $sale->id,
-                    'painting_id' => $item['painting_id'] ?? null,
-                    'description' => $item['description'],
-                    'quantity' => $item['quantity'],
-                    'supply_id' => $item['supply_id'] ?? null,
-                    'supply_length' => $item['supply_length'] ?? null,
-                    'currency' => $item['currency'],
-                    'price_usd' => $item['currency'] === 'USD' ? ($item['price_usd'] ?? 0) : 0,
-                    'price_vnd' => $item['currency'] === 'VND' ? ($item['price_vnd'] ?? 0) : 0,
-                    'discount_percent' => $item['discount_percent'] ?? 0,
-                ]);
-
-                // Calculate totals
-                $saleItem->calculateTotals();
-
-                // Trừ kho ngay nếu phiếu đã duyệt
+            // Nếu CHƯA có return: Cho phép sửa sản phẩm
+            if (!$hasReturns) {
+                // Hoàn trả kho từ items cũ trước khi xóa (nếu phiếu đã duyệt)
                 if ($sale->isCompleted()) {
-                    if ($saleItem->painting_id) {
-                        $painting = Painting::find($saleItem->painting_id);
-                        if ($painting && !$painting->reduceQuantity($saleItem->quantity)) {
-                            throw new \Exception("Không đủ số lượng tranh {$painting->name} trong kho");
+                    foreach ($sale->saleItems as $oldItem) {
+                        if ($oldItem->painting_id) {
+                            $painting = Painting::find($oldItem->painting_id);
+                            if ($painting) {
+                                $painting->increaseQuantity($oldItem->quantity);
+                            }
                         }
-                    }
-                    
-                    if ($saleItem->supply_id && $saleItem->supply_length) {
-                        $supply = Supply::find($saleItem->supply_id);
-                        $totalRequired = $saleItem->supply_length * $saleItem->quantity;
-                        if ($supply && !$supply->reduceQuantity($totalRequired)) {
-                            throw new \Exception("Không đủ số lượng vật tư {$supply->name} trong kho");
+                        
+                        if ($oldItem->supply_id && $oldItem->supply_length) {
+                            $supply = Supply::find($oldItem->supply_id);
+                            if ($supply) {
+                                $totalUsed = $oldItem->supply_length * $oldItem->quantity;
+                                $supply->increaseQuantity($totalUsed);
+                            }
                         }
                     }
                 }
-            }
+                
+                // Delete existing sale items
+                $sale->saleItems()->delete();
 
-            // Calculate sale totals
-            $sale->calculateTotals();
-            
-            // Cập nhật original_total nếu chưa có (cho phiếu cũ)
-            if (!$sale->original_total_vnd) {
-                $sale->update([
-                    'original_total_vnd' => $sale->total_vnd,
-                    'original_total_usd' => $sale->total_usd,
-                ]);
-            }
+                // Create new sale items
+                foreach ($request->items as $item) {
+                    $saleItem = SaleItem::create([
+                        'sale_id' => $sale->id,
+                        'painting_id' => $item['painting_id'] ?? null,
+                        'description' => $item['description'],
+                        'quantity' => $item['quantity'],
+                        'supply_id' => $item['supply_id'] ?? null,
+                        'supply_length' => $item['supply_length'] ?? null,
+                        'currency' => $item['currency'],
+                        'price_usd' => $item['currency'] === 'USD' ? ($item['price_usd'] ?? 0) : 0,
+                        'price_vnd' => $item['currency'] === 'VND' ? ($item['price_vnd'] ?? 0) : 0,
+                        'discount_percent' => $item['discount_percent'] ?? 0,
+                    ]);
 
-            // Add new payment if provided
+                    // Calculate totals
+                    $saleItem->calculateTotals();
+
+                    // Trừ kho ngay nếu phiếu đã duyệt
+                    if ($sale->isCompleted()) {
+                        if ($saleItem->painting_id) {
+                            $painting = Painting::find($saleItem->painting_id);
+                            if ($painting && !$painting->reduceQuantity($saleItem->quantity)) {
+                                throw new \Exception("Không đủ số lượng tranh {$painting->name} trong kho");
+                            }
+                        }
+                        
+                        if ($saleItem->supply_id && $saleItem->supply_length) {
+                            $supply = Supply::find($saleItem->supply_id);
+                            $totalRequired = $saleItem->supply_length * $saleItem->quantity;
+                            if ($supply && !$supply->reduceQuantity($totalRequired)) {
+                                throw new \Exception("Không đủ số lượng vật tư {$supply->name} trong kho");
+                            }
+                        }
+                    }
+                }
+
+                // Calculate sale totals
+                $sale->calculateTotals();
+                
+                // Cập nhật original_total nếu chưa có (cho phiếu cũ)
+                if (!$sale->original_total_vnd) {
+                    $sale->update([
+                        'original_total_vnd' => $sale->total_vnd,
+                        'original_total_usd' => $sale->total_usd,
+                    ]);
+                }
+            }
+            // Nếu ĐÃ có return: Chỉ xử lý thanh toán, không động đến sale_items
+
+            // Xử lý thanh toán
             if ($request->filled('payment_amount') && $request->payment_amount > 0) {
-                Payment::create([
-                    'sale_id' => $sale->id,
-                    'amount' => $request->payment_amount,
-                    'payment_method' => $request->payment_method ?? 'cash',
-                    'transaction_type' => 'sale_payment',
-                    'payment_date' => now(),
-                    'notes' => 'Trả nợ thêm',
-                    'created_by' => $user->id,
-                ]);
+                if ($sale->sale_status === 'completed') {
+                    // Phiếu đã duyệt - tạo payment mới (trả thêm)
+                    Payment::create([
+                        'sale_id' => $sale->id,
+                        'amount' => $request->payment_amount,
+                        'payment_method' => $request->payment_method ?? 'cash',
+                        'transaction_type' => 'sale_payment',
+                        'payment_date' => now(),
+                        'notes' => 'Trả nợ thêm',
+                        'created_by' => $user->id,
+                    ]);
+                } else {
+                    // Phiếu pending - cập nhật paid_amount trong sale (chưa tạo payment)
+                    $sale->paid_amount = $request->payment_amount;
+                    $sale->debt_amount = $sale->total_vnd - $sale->paid_amount;
+                    $sale->save();
+                }
             }
 
             // Update debt if there's remaining amount
@@ -832,6 +852,19 @@ class SalesController extends Controller
 
             // Update sale status to completed
             $sale->update(['sale_status' => 'completed']);
+
+            // Tạo payment record từ paid_amount ban đầu (nếu có)
+            if ($sale->paid_amount > 0) {
+                Payment::create([
+                    'sale_id' => $sale->id,
+                    'amount' => $sale->paid_amount,
+                    'payment_method' => 'cash', // Default
+                    'transaction_type' => 'sale_payment',
+                    'payment_date' => $sale->sale_date,
+                    'notes' => 'Thanh toán ban đầu khi duyệt phiếu',
+                    'created_by' => $user->id,
+                ]);
+            }
 
             DB::commit();
 

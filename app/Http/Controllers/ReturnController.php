@@ -788,19 +788,53 @@ class ReturnController extends Controller
                 }
                 
             } elseif ($return->type === 'exchange') {
-                // Đổi hàng: Tính lại total
-                $returnedValue = $return->items->sum('subtotal');
-                $exchangeValue = $return->exchangeItems->sum('subtotal');
+                // Đổi hàng: Cập nhật sale_items
                 
-                $newTotalVnd = $sale->total_vnd - $returnedValue + $exchangeValue;
-                $newTotalUsd = $newTotalVnd / $sale->exchange_rate;
+                // 1. Đánh dấu sản phẩm cũ là đã trả
+                foreach ($return->items as $returnItem) {
+                    $saleItem = $returnItem->saleItem;
+                    $returnedQty = $returnItem->quantity;
+                    
+                    $saleItem->returned_quantity += $returnedQty;
+                    
+                    if ($saleItem->returned_quantity >= $saleItem->quantity) {
+                        $saleItem->is_returned = true;
+                    }
+                    
+                    $saleItem->save();
+                }
                 
-                $sale->update([
-                    'total_vnd' => $newTotalVnd,
-                    'total_usd' => $newTotalUsd,
-                ]);
+                // 2. Thêm sản phẩm mới vào sale_items
+                foreach ($return->exchangeItems as $exchangeItem) {
+                    $newSaleItem = SaleItem::create([
+                        'sale_id' => $sale->id,
+                        'painting_id' => $exchangeItem->item_type === 'painting' ? $exchangeItem->item_id : null,
+                        'supply_id' => $exchangeItem->item_type === 'supply' ? $exchangeItem->item_id : null,
+                        'description' => $exchangeItem->item_type === 'painting' 
+                            ? ($exchangeItem->painting->name ?? 'N/A')
+                            : ($exchangeItem->supply->name ?? 'N/A'),
+                        'quantity' => $exchangeItem->quantity,
+                        'supply_length' => $exchangeItem->supply_length ?? 0,
+                        'currency' => 'VND',
+                        'price_usd' => 0,
+                        'price_vnd' => $exchangeItem->unit_price,
+                        'discount_percent' => $exchangeItem->discount_percent ?? 0,
+                    ]);
+                    
+                    // Calculate totals for new item
+                    $newSaleItem->calculateTotals();
+                }
                 
-                // Tạo payment cho chênh lệch nếu cần
+                // 3. Lưu original_total nếu chưa có
+                if (!$sale->original_total_vnd) {
+                    $sale->original_total_vnd = $sale->total_vnd;
+                    $sale->original_total_usd = $sale->total_usd;
+                }
+                
+                // 4. Tính lại total từ sale_items
+                $sale->calculateTotals();
+                
+                // 5. Tạo payment cho chênh lệch nếu cần
                 if ($return->exchange_amount != 0) {
                     Payment::create([
                         'sale_id' => $return->sale_id,

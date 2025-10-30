@@ -122,8 +122,14 @@ class Sale extends Model
 
     public function calculateTotals()
     {
-        $subtotalUsd = $this->saleItems()->sum('total_usd');
-        $subtotalVnd = $this->saleItems()->sum('total_vnd');
+        // CHỈ tính các sản phẩm chưa bị trả (is_returned = false hoặc null)
+        $subtotalUsd = $this->saleItems()->where(function($q) {
+            $q->where('is_returned', false)->orWhereNull('is_returned');
+        })->sum('total_usd');
+        
+        $subtotalVnd = $this->saleItems()->where(function($q) {
+            $q->where('is_returned', false)->orWhereNull('is_returned');
+        })->sum('total_vnd');
         
         $discountUsd = $subtotalUsd * ($this->discount_percent / 100);
         $discountVnd = $subtotalVnd * ($this->discount_percent / 100);
@@ -146,8 +152,15 @@ class Sale extends Model
 
     public function updatePaymentStatus()
     {
-        $paidAmount = $this->payments()->sum('amount');
-        $this->paid_amount = $paidAmount;
+        // CHỈ cập nhật paid_amount từ payments nếu phiếu đã duyệt
+        if ($this->sale_status === 'completed' || $this->sale_status === 'cancelled') {
+            $paidAmount = $this->payments()->sum('amount');
+            $this->paid_amount = $paidAmount;
+        } else {
+            // Phiếu pending: giữ nguyên paid_amount đã nhập
+            $paidAmount = $this->paid_amount;
+        }
+        
         $this->debt_amount = $this->total_vnd - $paidAmount;
         
         if ($paidAmount >= $this->total_vnd) {
