@@ -778,7 +778,7 @@ class ReturnController extends Controller
                 if ($refundAmount > 0) {
                     Payment::create([
                         'sale_id' => $return->sale_id,
-                        'payment_date' => $return->return_date,
+                        'payment_date' => now(),
                         'amount' => -$refundAmount,
                         'payment_method' => 'cash',
                         'transaction_type' => 'return',
@@ -838,7 +838,7 @@ class ReturnController extends Controller
                 if ($return->exchange_amount != 0) {
                     Payment::create([
                         'sale_id' => $return->sale_id,
-                        'payment_date' => $return->return_date,
+                        'payment_date' => now(),
                         'amount' => $return->exchange_amount,
                         'payment_method' => 'cash',
                         'transaction_type' => 'exchange',

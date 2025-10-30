@@ -45,6 +45,7 @@
         <table class="w-full">
             <thead class="bg-gradient-to-r from-blue-500 to-cyan-600 text-white">
                 <tr>
+                    <th class="px-4 py-3 text-center">STT</th>
                     <th class="px-4 py-3 text-left">Tên khách hàng</th>
                     <th class="px-4 py-3 text-left">Số điện thoại</th>
                     <th class="px-4 py-3 text-left">Email</th>
@@ -55,8 +56,11 @@
                 </tr>
             </thead>
             <tbody class="divide-y divide-gray-200">
-                @forelse($customers as $customer)
+                @forelse($customers as $index => $customer)
                 <tr class="hover:bg-gray-50 transition-colors">
+                    <td class="px-4 py-3 text-center text-gray-600 font-medium">
+                        {{ ($customers->currentPage() - 1) * $customers->perPage() + $index + 1 }}
+                    </td>
                     <td class="px-4 py-3">
                         <div class="font-medium text-gray-900">{{ $customer->name }}</div>
                     </td>

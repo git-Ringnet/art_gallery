@@ -86,6 +86,7 @@
         <table class="w-full">
             <thead class="bg-gradient-to-r from-blue-500 to-cyan-600 text-white">
                 <tr>
+                    <th class="px-4 py-3 text-center">STT</th>
                     <th class="px-4 py-3 text-left  ">Mã phiếu</th>
                     <th class="px-4 py-3 text-left  ">Loại</th>
                     <th class="px-4 py-3 text-left  ">Mã HD gốc</th>
@@ -99,8 +100,11 @@
                 </tr>
             </thead>
             <tbody class="bg-white divide-y divide-gray-200">
-                @forelse($returns as $return)
+                @forelse($returns as $index => $return)
                 <tr class="hover:bg-gray-50">
+                    <td class="px-4 py-3 text-center text-gray-600 font-medium">
+                        {{ ($returns->currentPage() - 1) * $returns->perPage() + $index + 1 }}
+                    </td>
                     <td class="px-4 py-3 whitespace-nowrap  font-medium text-indigo-600">
                         {{ $return->return_code }}
                     </td>

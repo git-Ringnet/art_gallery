@@ -236,15 +236,25 @@ class DebtController extends Controller
         ]);
 
         // Tạo payment mới
+        $currentTime = now();
+        \Log::info('=== CREATING PAYMENT ===');
+        \Log::info('Current time (now()): ' . $currentTime);
+        \Log::info('Timezone: ' . config('app.timezone'));
+        \Log::info('Date format: ' . $currentTime->format('Y-m-d H:i:s'));
+        
         $payment = Payment::create([
             'sale_id' => $debt->sale_id,
             'amount' => $validated['amount'],
             'payment_method' => $validated['payment_method'] ?? 'cash',
             'transaction_type' => 'sale_payment',
-            'payment_date' => now(),
+            'payment_date' => $currentTime,
             'notes' => $validated['notes'] ?? null,
             'created_by' => auth()->id(),
         ]);
+        
+        \Log::info('Payment created with ID: ' . $payment->id);
+        \Log::info('Payment date saved: ' . $payment->payment_date);
+        \Log::info('Payment date formatted: ' . $payment->payment_date->format('Y-m-d H:i:s'));
 
         // Update sale payment status (sẽ tự động update debt)
         $debt->sale->refresh(); // Refresh để lấy data mới nhất

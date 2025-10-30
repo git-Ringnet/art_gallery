@@ -877,7 +877,7 @@ class SalesController extends Controller
                     'amount' => $sale->paid_amount,
                     'payment_method' => 'cash', // Default
                     'transaction_type' => 'sale_payment',
-                    'payment_date' => $sale->sale_date,
+                    'payment_date' => now(),
                     'notes' => 'Thanh toán ban đầu khi duyệt phiếu',
                     'created_by' => $user->id,
                 ]);

@@ -232,6 +232,7 @@
         <table class="w-full">
             <thead class="bg-gradient-to-r from-blue-500 to-cyan-600 text-white">
                 <tr>
+                    <th class="px-4 py-3 text-center">STT</th>
                     <th class="px-4 py-3 text-left">Mã HD</th>
                     <th class="px-4 py-3 text-left">Ngày bán</th>
                     <th class="px-4 py-3 text-left">Khách hàng</th>
@@ -246,8 +247,11 @@
                 </tr>
             </thead>
             <tbody class="divide-y divide-gray-200">
-                @forelse($sales as $sale)
+                @forelse($sales as $index => $sale)
                 <tr class="hover:bg-gray-50 transition-colors">
+                    <td class="px-4 py-3 text-center text-gray-600 font-medium">
+                        {{ ($sales->currentPage() - 1) * $sales->perPage() + $index + 1 }}
+                    </td>
                     <td class="px-4 py-3">
                         <span class="font-medium text-blue-600">{{ $sale->invoice_code }}</span>
                     </td>

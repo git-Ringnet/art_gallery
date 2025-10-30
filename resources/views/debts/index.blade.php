@@ -171,6 +171,7 @@
         <table class="w-full">
             <thead class="bg-gradient-to-r from-blue-500 to-cyan-600 text-white">
                 <tr>
+                    <th class="px-4 py-3 text-center">STT</th>
                     <th class="px-4 py-3 text-left">Ngày trả tiền</th>
                     <th class="px-4 py-3 text-left">Mã hóa đơn</th>
                     <th class="px-4 py-3 text-left">Khách hàng</th>
@@ -185,19 +186,19 @@
                 </tr>
             </thead>
             <tbody class="divide-y divide-gray-200">
-                @forelse($payments as $payment)
+                @forelse($payments as $index => $payment)
                 <tr class="hover:bg-gray-50 transition-colors">
+                    <td class="px-4 py-3 text-center text-gray-600 font-medium">
+                        {{ ($payments->currentPage() - 1) * $payments->perPage() + $index + 1 }}
+                    </td>
                     <td class="px-4 py-3">
                         @php
-                            $paymentDateTime = $payment->payment_date->timezone('Asia/Ho_Chi_Minh');
-                            $timeStr = $paymentDateTime->format('H:i:s');
-                            // Chỉ hiển thị giờ nếu không phải 00:00:00 hoặc 07:00:00 (data cũ từ UTC)
-                            $hasTime = $timeStr !== '00:00:00' && $timeStr !== '07:00:00';
+                            // Debug: Log payment date info
+                            \Log::info("Payment #{$payment->id} - Raw: {$payment->payment_date} | Formatted: " . $payment->payment_date->format('Y-m-d H:i:s'));
                         @endphp
-                        <div class="text-gray-900 text-sm">{{ $paymentDateTime->format('d/m/Y') }}</div>
-                        @if($hasTime)
-                            <div class="text-gray-500 text-xs">{{ $paymentDateTime->format('H:i') }}</div>
-                        @endif
+                        <div class="text-gray-900 text-sm font-medium">{{ $payment->payment_date->format('d/m/Y') }}</div>
+                        <div class="text-gray-500 text-xs">{{ $payment->payment_date->format('H:i:s') }}</div>
+                        <!-- <div class="text-xs text-gray-400">Debug: {{ $payment->payment_date->format('Y-m-d H:i:s') }}</div> -->
                     </td>
                     <td class="px-4 py-3">
                         <span class="font-medium text-blue-600">{{ $payment->sale->invoice_code }}</span>
