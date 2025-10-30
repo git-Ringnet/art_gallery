@@ -86,25 +86,25 @@
         <table class="w-full">
             <thead class="bg-gradient-to-r from-blue-500 to-cyan-600 text-white">
                 <tr>
-                    <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider">Mã phiếu</th>
-                    <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider">Loại</th>
-                    <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider">Mã HD gốc</th>
-                    <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider">Ngày</th>
-                    <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider">Khách hàng</th>
-                    <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider">Sản phẩm</th>
-                    <th class="px-4 py-3 text-right text-xs font-semibold uppercase tracking-wider">Số lượng</th>
-                    <th class="px-4 py-3 text-right text-xs font-semibold uppercase tracking-wider">Tiền hoàn/chênh lệch</th>
-                    <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider">Trạng thái</th>
-                    <th class="px-4 py-3 text-center text-xs font-semibold uppercase tracking-wider">Thao tác</th>
+                    <th class="px-4 py-3 text-left  ">Mã phiếu</th>
+                    <th class="px-4 py-3 text-left  ">Loại</th>
+                    <th class="px-4 py-3 text-left  ">Mã HD gốc</th>
+                    <th class="px-4 py-3 text-left  ">Ngày</th>
+                    <th class="px-4 py-3 text-left  ">Khách hàng</th>
+                    <th class="px-4 py-3 text-left  ">Sản phẩm</th>
+                    <th class="px-4 py-3 text-right ">Số lượng</th>
+                    <th class="px-4 py-3 text-right ">Tiền hoàn/chênh lệch</th>
+                    <th class="px-4 py-3 text-left  ">Trạng thái</th>
+                    <th class="px-4 py-3 text-center">Thao tác</th>
                 </tr>
             </thead>
             <tbody class="bg-white divide-y divide-gray-200">
                 @forelse($returns as $return)
                 <tr class="hover:bg-gray-50">
-                    <td class="px-4 py-4 whitespace-nowrap text-sm font-medium text-indigo-600">
+                    <td class="px-4 py-3 whitespace-nowrap  font-medium text-indigo-600">
                         {{ $return->return_code }}
                     </td>
-                    <td class="px-4 py-4 whitespace-nowrap text-sm">
+                    <td class="px-4 py-3 whitespace-nowrap ">
                         @if($return->type == 'exchange')
                             <span class="px-2 py-1 text-xs font-semibold rounded-full bg-blue-100 text-blue-800">
                                 <i class="fas fa-exchange-alt mr-1"></i>Đổi hàng
@@ -115,21 +115,21 @@
                             </span>
                         @endif
                     </td>
-                    <td class="px-4 py-4 whitespace-nowrap text-sm text-blue-600">
+                    <td class="px-4 py-3 whitespace-nowrap  text-blue-600">
                         <a href="{{ route('sales.show', $return->sale_id) }}" class="hover:underline">
                             {{ $return->sale->invoice_code ?? 'N/A' }}
                         </a>
                     </td>
-                    <td class="px-4 py-4 whitespace-nowrap text-sm text-gray-900">
+                    <td class="px-4 py-3 whitespace-nowrap  text-gray-900">
                         {{ $return->return_date->format('d/m/Y') }}
                     </td>
-                    <td class="px-4 py-4 whitespace-nowrap">
+                    <td class="px-4 py-3 whitespace-nowrap">
                         <div>
-                            <div class="text-sm font-medium text-gray-900">{{ $return->customer->name ?? 'N/A' }}</div>
-                            <div class="text-sm text-gray-500">{{ $return->customer->phone ?? '' }}</div>
+                            <div class=" font-medium text-gray-900">{{ $return->customer->name ?? 'N/A' }}</div>
+                            <div class=" text-gray-500">{{ $return->customer->phone ?? '' }}</div>
                         </div>
                     </td>
-                    <td class="px-4 py-4 text-sm text-gray-900">
+                    <td class="px-4 py-3  text-gray-900">
                         @php
                             $itemNames = $return->items->map(function($item) {
                                 if ($item->item_type === 'painting') {
@@ -145,10 +145,10 @@
                             <span class="text-gray-500">+{{ $moreCount }}</span>
                         @endif
                     </td>
-                    <td class="px-4 py-4 whitespace-nowrap text-sm text-right text-gray-900">
+                    <td class="px-4 py-3 whitespace-nowrap  text-right text-gray-900">
                         {{ $return->items->sum('quantity') }}
                     </td>
-                    <td class="px-4 py-4 whitespace-nowrap text-sm text-right">
+                    <td class="px-4 py-3 whitespace-nowrap  text-right">
                         @if($return->type == 'exchange')
                             @if($return->exchange_amount > 0)
                                 <span class="font-semibold text-red-600">+{{ number_format($return->exchange_amount, 0, ',', '.') }}đ</span>
@@ -161,25 +161,25 @@
                             <span class="font-semibold text-red-600">{{ number_format($return->total_refund, 0, ',', '.') }}đ</span>
                         @endif
                     </td>
-                    <td class="px-4 py-4 whitespace-nowrap">
+                    <td class="px-4 py-3 whitespace-nowrap">
                         @if($return->status == 'completed')
-                            <span class="px-3 py-2 text-sm font-bold rounded-lg bg-green-100 text-green-800">Hoàn thành</span>
+                            <span class="px-3 py-2  font-bold rounded-lg bg-green-100 text-green-800">Hoàn thành</span>
                         @elseif($return->status == 'approved')
-                            <span class="px-3 py-2 text-sm font-bold rounded-lg bg-green-100 text-green-800">Đã duyệt</span>
+                            <span class="px-3 py-2  font-bold rounded-lg bg-green-100 text-green-800">Đã duyệt</span>
                         @elseif($return->status == 'pending')
-                            <span class="px-3 py-2 text-sm font-bold rounded-lg bg-yellow-100 text-yellow-800">Chờ duyệt</span>
+                            <span class="px-3 py-2  font-bold rounded-lg bg-yellow-100 text-yellow-800">Chờ duyệt</span>
                         @else
-                            <span class="px-3 py-2 text-sm font-bold rounded-lg bg-red-100 text-red-800">Đã hủy</span>
+                            <span class="px-3 py-2  font-bold rounded-lg bg-red-100 text-red-800">Đã hủy</span>
                         @endif
                     </td>
-                    <td class="px-4 py-4 whitespace-nowrap text-sm text-center">
+                    <td class="px-4 py-3 whitespace-nowrap text-center">
                         <div class="flex items-center justify-center gap-1">
                             <!-- View -->
                             @hasPermission('returns', 'can_view')
                             <a href="{{ route('returns.show', $return->id) }}" 
                                class="w-8 h-8 flex items-center justify-center rounded-lg bg-blue-100 text-blue-600 hover:bg-blue-200 transition-colors" 
                                title="Xem chi tiết">
-                                <i class="fas fa-eye text-sm"></i>
+                                <i class="fas fa-eye "></i>
                             </a>
                             @endhasPermission
                             
@@ -189,7 +189,7 @@
                             <a href="{{ route('returns.edit', $return->id) }}" 
                                class="w-8 h-8 flex items-center justify-center rounded-lg bg-yellow-100 text-yellow-600 hover:bg-yellow-200 transition-colors" 
                                title="Chỉnh sửa">
-                                <i class="fas fa-edit text-sm"></i>
+                                <i class="fas fa-edit "></i>
                             </a>
                             @endif
                             @endhasPermission
@@ -203,7 +203,7 @@
                                 <button type="submit" 
                                         class="w-8 h-8 flex items-center justify-center rounded-lg bg-green-100 text-green-600 hover:bg-green-200 transition-colors" 
                                         title="Duyệt phiếu">
-                                    <i class="fas fa-check text-sm"></i>
+                                    <i class="fas fa-check "></i>
                                 </button>
                             </form>
                             @endif
@@ -218,7 +218,7 @@
                                 <button type="submit" 
                                         class="w-8 h-8 flex items-center justify-center rounded-lg bg-blue-100 text-blue-600 hover:bg-blue-200 transition-colors" 
                                         title="Hoàn thành">
-                                    <i class="fas fa-check-double text-sm"></i>
+                                    <i class="fas fa-check-double "></i>
                                 </button>
                             </form>
                             @endif
@@ -229,7 +229,7 @@
                             <a href="{{ route('returns.show', $return->id) }}" 
                                class="w-8 h-8 flex items-center justify-center rounded-lg bg-gray-100 text-gray-600 hover:bg-gray-200 transition-colors" 
                                title="In phiếu">
-                                <i class="fas fa-print text-sm"></i>
+                                <i class="fas fa-print "></i>
                             </a>
                             @endhasPermission
                             
@@ -242,7 +242,7 @@
                                 <button type="submit" 
                                         class="w-8 h-8 flex items-center justify-center rounded-lg bg-red-100 text-red-600 hover:bg-red-200 transition-colors" 
                                         title="Hủy phiếu">
-                                    <i class="fas fa-ban text-sm"></i>
+                                    <i class="fas fa-ban "></i>
                                 </button>
                             </form>
                             @endif
@@ -257,7 +257,7 @@
                                 <button type="submit" 
                                         class="w-8 h-8 flex items-center justify-center rounded-full bg-gray-100 text-gray-600 hover:bg-gray-200 transition-colors" 
                                         title="Xóa phiếu">
-                                    <i class="fas fa-trash text-sm"></i>
+                                    <i class="fas fa-trash "></i>
                                 </button>
                             </form>
                             @endif
@@ -278,11 +278,9 @@
     </div>
     
     <!-- Pagination -->
-    @if($returns->hasPages())
     <div class="mt-6">
         {{ $returns->links() }}
     </div>
-    @endif
 </div>
 @endsection
 

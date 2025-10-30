@@ -15,7 +15,7 @@ class ReturnSeeder extends Seeder
     public function run(): void
     {
         // Get some sales to create returns for
-        $sales = Sale::with('items')->take(3)->get();
+        $sales = Sale::with('items')->take(20)->get();
         $user = User::first();
 
         foreach ($sales as $sale) {

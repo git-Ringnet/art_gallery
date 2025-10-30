@@ -13,7 +13,7 @@ class DebtController extends Controller
         $allPayments = $this->getFilteredPayments($request);
 
         // Manual pagination
-        $perPage = 15;
+        $perPage = 10;
         $currentPage = request()->get('page', 1);
         $offset = ($currentPage - 1) * $perPage;
         

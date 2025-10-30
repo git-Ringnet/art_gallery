@@ -444,11 +444,9 @@
     </div>
     
     <!-- Pagination -->
-    @if($sales->hasPages())
-    <div class="mt-4">
+    <div class="mt-6">
         {{ $sales->links() }}
     </div>
-    @endif
 </div>
 
 <!-- Print Invoice Modal -->

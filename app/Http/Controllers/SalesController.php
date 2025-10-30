@@ -115,7 +115,7 @@ class SalesController extends Controller
             $query->orderBy($sortBy, $sortOrder);
         }
 
-        $sales = $query->paginate(20)->withQueryString();
+        $sales = $query->paginate(10)->withQueryString();
 
         // Get filter options
         $showrooms = Showroom::active()->get();

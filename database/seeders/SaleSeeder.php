@@ -28,7 +28,7 @@ class SaleSeeder extends Seeder
         $exchangeRate = 25000;
 
         // Tạo 10 hóa đơn mẫu với các trạng thái khác nhau
-        for ($i = 1; $i <= 10; $i++) {
+        for ($i = 1; $i <= 20; $i++) {
             // Phân bổ trạng thái: 3 chờ duyệt, 6 đã hoàn thành, 1 đã hủy
             $saleStatus = $i <= 3 ? 'pending' : ($i <= 9 ? 'completed' : 'cancelled');
             

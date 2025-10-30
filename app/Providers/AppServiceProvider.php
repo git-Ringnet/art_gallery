@@ -19,6 +19,9 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
+        // Use Tailwind for pagination
+        \Illuminate\Pagination\Paginator::useTailwind();
+        
         // Register Blade directives for permissions
         \Illuminate\Support\Facades\Blade::directive('canAccess', function ($module) {
             return "<?php if(auth()->check() && auth()->user()->canAccess($module)): ?>";

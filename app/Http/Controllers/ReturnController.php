@@ -54,7 +54,7 @@ class ReturnController extends Controller
             $query->whereDate('return_date', '<=', $request->to_date);
         }
 
-        $returns = $query->orderBy('created_at', 'desc')->paginate(20)->appends($request->query());
+        $returns = $query->orderBy('created_at', 'desc')->paginate(10)->appends($request->query());
 
         return view('returns.index', compact('returns'));
     }
