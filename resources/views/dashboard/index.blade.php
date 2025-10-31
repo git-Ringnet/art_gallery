@@ -12,13 +12,13 @@
 @section('content')
 <div class="fade-in">
     <!-- Time Filter -->
-    <div class="bg-white rounded-xl shadow-lg p-4 mb-6 no-print">
-        <div class="flex flex-wrap items-center gap-4">
-            <div class="flex items-center">
-                <label for="dashboard-time-filter" class="mr-2 text-sm font-medium text-gray-700">
+    <div class="bg-white rounded-xl shadow-lg p-3 mb-4 no-print">
+        <div class="flex flex-col lg:flex-row flex-wrap items-start lg:items-center gap-3">
+            <div class="flex items-center w-full lg:w-auto">
+                <label for="dashboard-time-filter" class="mr-2 text-xs font-medium text-gray-700 whitespace-nowrap">
                     <i class="fas fa-calendar-alt mr-1 text-blue-500"></i>Thời gian
                 </label>
-                <select id="dashboard-time-filter" class="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white">
+                <select id="dashboard-time-filter" class="px-3 py-1.5 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white flex-1 lg:flex-none">
                     <option value="">-- Chọn --</option>
                     <option value="week" {{ $period == 'week' && !request('from_date') ? 'selected' : '' }}>Tuần này</option>
                     <option value="month" {{ $period == 'month' && !request('from_date') ? 'selected' : '' }}>Tháng này</option>
@@ -26,100 +26,102 @@
                 </select>
             </div>
             
-            <div class="flex items-center gap-2 border-l pl-4">
-                <label class="text-sm font-medium text-gray-700">Hoặc chọn khoảng:</label>
-                <input type="date" id="dashboard-from-date" 
-                    value="{{ request('from_date') }}"
-                    class="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                    placeholder="Từ ngày">
-                <span class="text-gray-500">→</span>
-                <input type="date" id="dashboard-to-date" 
-                    value="{{ request('to_date') }}"
-                    class="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                    placeholder="Đến ngày">
-                <button id="dashboard-apply-range" class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors">
-                    <i class="fas fa-filter mr-1"></i>Áp dụng
-                </button>
-                <button id="dashboard-clear-range" class="px-4 py-2 bg-gray-500 text-white rounded-lg hover:bg-gray-600 transition-colors">
-                    <i class="fas fa-times mr-1"></i>Xóa bộ lọc
-                </button>
+            <div class="flex flex-col sm:flex-row items-start sm:items-center gap-2 w-full lg:w-auto lg:border-l lg:pl-3">
+                <label class="text-xs font-medium text-gray-700 whitespace-nowrap">Hoặc chọn khoảng:</label>
+                <div class="flex flex-wrap items-center gap-2 w-full sm:w-auto">
+                    <input type="date" id="dashboard-from-date" 
+                        value="{{ request('from_date') }}"
+                        class="px-2 py-1.5 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent flex-1 sm:flex-none"
+                        placeholder="Từ ngày">
+                    <span class="text-gray-500 text-sm">→</span>
+                    <input type="date" id="dashboard-to-date" 
+                        value="{{ request('to_date') }}"
+                        class="px-2 py-1.5 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent flex-1 sm:flex-none"
+                        placeholder="Đến ngày">
+                    <button id="dashboard-apply-range" class="px-3 py-1.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm whitespace-nowrap">
+                        <i class="fas fa-filter mr-1"></i>Áp dụng
+                    </button>
+                    <button id="dashboard-clear-range" class="px-3 py-1.5 bg-gray-500 text-white rounded-lg hover:bg-gray-600 transition-colors text-sm whitespace-nowrap">
+                        <i class="fas fa-times mr-1"></i>Xóa
+                    </button>
+                </div>
             </div>
         </div>
     </div>
 
     <!-- Stats Cards -->
-    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-6">
-        <div class="bg-white rounded-xl shadow-lg p-6 border-l-4 border-green-500">
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-4">
+        <div class="bg-white rounded-xl shadow-lg p-4 border-l-4 border-green-500">
             <div class="flex items-center justify-between">
-                <div>
-                    <p class="text-gray-600 text-xs flex items-center">
-                        Doanh số
-                        <span class="ml-2 px-2 py-0.5 bg-green-100 text-green-700 text-xs rounded-full">Theo bộ lọc</span>
+                <div class="flex-1 min-w-0">
+                    <p class="text-gray-600 text-xs flex flex-wrap items-center gap-1">
+                        <span>Doanh số</span>
+                        <span class="px-1.5 py-0.5 bg-green-100 text-green-700 text-xs rounded-full whitespace-nowrap">Theo bộ lọc</span>
                     </p>
-                    <p id="dashboard-sales" class="text-2xl font-bold text-green-600">{{ number_format($stats['sales']) }}đ</p>
+                    <p id="dashboard-sales" class="text-xl font-bold text-green-600 truncate">{{ number_format($stats['sales']) }}đ</p>
                 </div>
-                <div class="w-12 h-12 bg-green-100 rounded-lg flex items-center justify-center">
-                    <i class="fas fa-chart-line text-green-600"></i>
+                <div class="w-10 h-10 bg-green-100 rounded-lg flex items-center justify-center flex-shrink-0 ml-2">
+                    <i class="fas fa-chart-line text-green-600 text-lg"></i>
                 </div>
             </div>
         </div>
         
-        <div class="bg-white rounded-xl shadow-lg p-6 border-l-4 border-red-500">
+        <div class="bg-white rounded-xl shadow-lg p-4 border-l-4 border-red-500">
             <div class="flex items-center justify-between">
-                <div>
-                    <p class="text-gray-600 text-xs flex items-center">
-                        Công nợ còn lại
-                        <span class="ml-2 px-2 py-0.5 bg-gray-100 text-gray-600 text-xs rounded-full">Tổng</span>
+                <div class="flex-1 min-w-0">
+                    <p class="text-gray-600 text-xs flex flex-wrap items-center gap-1">
+                        <span>Công nợ còn lại</span>
+                        <span class="px-1.5 py-0.5 bg-gray-100 text-gray-600 text-xs rounded-full whitespace-nowrap">Tổng</span>
                     </p>
-                    <p id="dashboard-debt" class="text-2xl font-bold text-red-600">{{ number_format($stats['debt']) }}đ</p>
+                    <p id="dashboard-debt" class="text-xl font-bold text-red-600 truncate">{{ number_format($stats['debt']) }}đ</p>
                 </div>
-                <div class="w-12 h-12 bg-red-100 rounded-lg flex items-center justify-center">
-                    <i class="fas fa-exclamation-triangle text-red-600"></i>
+                <div class="w-10 h-10 bg-red-100 rounded-lg flex items-center justify-center flex-shrink-0 ml-2">
+                    <i class="fas fa-exclamation-triangle text-red-600 text-lg"></i>
                 </div>
             </div>
         </div>
         
-        <div class="bg-white rounded-xl shadow-lg p-6 border-l-4 border-blue-500">
+        <div class="bg-white rounded-xl shadow-lg p-4 border-l-4 border-blue-500">
             <div class="flex items-center justify-between">
-                <div>
-                    <p class="text-gray-600 text-xs flex items-center">
-                        Tồn Vật tư
-                        <span class="ml-2 px-2 py-0.5 bg-gray-100 text-gray-600 text-xs rounded-full">Hiện tại</span>
+                <div class="flex-1 min-w-0">
+                    <p class="text-gray-600 text-xs flex flex-wrap items-center gap-1">
+                        <span>Tồn Vật tư</span>
+                        <span class="px-1.5 py-0.5 bg-gray-100 text-gray-600 text-xs rounded-full whitespace-nowrap">Hiện tại</span>
                     </p>
-                    <p id="dashboard-stock-supplies" class="text-2xl font-bold text-blue-600">{{ $stats['stock_supplies'] }}</p>
+                    <p id="dashboard-stock-supplies" class="text-xl font-bold text-blue-600">{{ $stats['stock_supplies'] }}</p>
                 </div>
-                <div class="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center">
-                    <i class="fas fa-box text-blue-600"></i>
+                <div class="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center flex-shrink-0 ml-2">
+                    <i class="fas fa-box text-blue-600 text-lg"></i>
                 </div>
             </div>
         </div>
         
-        <div class="bg-white rounded-xl shadow-lg p-6 border-l-4 border-purple-500">
+        <div class="bg-white rounded-xl shadow-lg p-4 border-l-4 border-purple-500">
             <div class="flex items-center justify-between">
-                <div>
-                    <p class="text-gray-600 text-xs flex items-center">
-                        Tồn tranh
-                        <span class="ml-2 px-2 py-0.5 bg-gray-100 text-gray-600 text-xs rounded-full">Hiện tại</span>
+                <div class="flex-1 min-w-0">
+                    <p class="text-gray-600 text-xs flex flex-wrap items-center gap-1">
+                        <span>Tồn tranh</span>
+                        <span class="px-1.5 py-0.5 bg-gray-100 text-gray-600 text-xs rounded-full whitespace-nowrap">Hiện tại</span>
                     </p>
-                    <p id="dashboard-stock-paintings" class="text-2xl font-bold text-purple-600">{{ $stats['stock_paintings'] }}</p>
+                    <p id="dashboard-stock-paintings" class="text-xl font-bold text-purple-600">{{ $stats['stock_paintings'] }}</p>
                 </div>
-                <div class="w-12 h-12 bg-purple-100 rounded-lg flex items-center justify-center">
-                    <i class="fas fa-image text-purple-600"></i>
+                <div class="w-10 h-10 bg-purple-100 rounded-lg flex items-center justify-center flex-shrink-0 ml-2">
+                    <i class="fas fa-image text-purple-600 text-lg"></i>
                 </div>
             </div>
         </div>
     </div>
 
     <!-- Charts -->
-    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
-        <div class="bg-white rounded-xl shadow-lg p-6 ">
-            <div class="mb-4">
-                <div class="flex items-center justify-between mb-2">
-                    <h3 class="text-lg font-semibold flex items-center">
-                        Biểu đồ doanh thu
-                        <span class="ml-2 px-2 py-1 bg-green-100 text-green-700 text-xs rounded-full font-normal">Theo bộ lọc</span>
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-4">
+        <div class="bg-white rounded-xl shadow-lg p-4">
+            <div class="mb-3">
+                <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-2 gap-2">
+                    <h3 class="text-base font-semibold flex flex-wrap items-center gap-1">
+                        <span>Biểu đồ doanh thu</span>
+                        <span class="px-2 py-0.5 bg-green-100 text-green-700 text-xs rounded-full font-normal whitespace-nowrap">Theo bộ lọc</span>
                     </h3>
-                    <span id="dashboard-range-label" class="text-sm px-3 py-1 bg-blue-50 text-blue-700 rounded-full font-medium">
+                    <span id="dashboard-range-label" class="text-xs px-2 py-1 bg-blue-50 text-blue-700 rounded-full font-medium whitespace-nowrap">
                         Theo {{ $period == 'week' ? 'tuần' : ($period == 'month' ? 'tháng' : 'năm') }}
                     </span>
                 </div>
@@ -128,92 +130,90 @@
             <canvas id="revenueChart" width="400" height="200"></canvas>
         </div>
         
-        <div class="bg-white rounded-xl shadow-lg p-6 ">
-            <div class="mb-4">
-                <h3 class="text-lg font-semibold mb-2 flex items-center">
-                    Phân bố sản phẩm bán ra
-                    <span class="ml-2 px-2 py-1 bg-green-100 text-green-700 text-xs rounded-full font-normal">Theo bộ lọc</span>
+        <div class="bg-white rounded-xl shadow-lg p-4">
+            <div class="mb-3">
+                <h3 class="text-base font-semibold mb-2 flex flex-wrap items-center gap-1">
+                    <span>Phân bố sản phẩm bán ra</span>
+                    <span class="px-2 py-0.5 bg-green-100 text-green-700 text-xs rounded-full font-normal whitespace-nowrap">Theo bộ lọc</span>
                 </h3>
                 <p class="text-xs text-gray-500">Tỷ lệ sản phẩm bán ra trong khoảng thời gian đã chọn</p>
             </div>
             <div class="flex justify-center">
-                <div style="width: 550px; height: 500px;">
-                    <canvas id="productChart" width="550" height="550"></canvas>
+                <div class="w-full max-w-md">
+                    <canvas id="productChart"></canvas>
                 </div>
             </div>
         </div>
     </div>
 
     <!-- Additional Stats -->
-    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
-        <div class="bg-white rounded-xl shadow-lg p-6 ">
-            <h3 class="text-lg font-semibold mb-2 flex items-center justify-between">
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-4 mb-4">
+        <div class="bg-white rounded-xl shadow-lg p-4">
+            <h3 class="text-base font-semibold mb-2 flex flex-wrap items-center justify-between gap-2">
                 <span>Thống kê khách hàng</span>
-                <span class="text-xs font-normal px-2 py-1 bg-green-100 text-green-700 rounded-full">Theo bộ lọc</span>
+                <span class="text-xs font-normal px-2 py-0.5 bg-green-100 text-green-700 rounded-full whitespace-nowrap">Theo bộ lọc</span>
             </h3>
-            <p class="text-xs text-gray-500 mb-4">Dữ liệu thay đổi theo khoảng thời gian đã chọn</p>
-            <div class="space-y-4">
-                <div class="flex justify-between items-center p-3 bg-blue-50 rounded-lg">
+            <p class="text-xs text-gray-500 mb-3">Dữ liệu thay đổi theo khoảng thời gian đã chọn</p>
+            <div class="space-y-3">
+                <div class="flex justify-between items-center p-2 bg-blue-50 rounded-lg">
                     <div>
-                        <p class="text-sm text-blue-600">Khách hàng mới</p>
-                        <p class="text-xl font-bold text-blue-700" data-stat="new-customers">{{ $stats['customer_stats']['new_customers'] }}</p>
+                        <p class="text-xs text-blue-600">Khách hàng mới</p>
+                        <p class="text-lg font-bold text-blue-700" data-stat="new-customers">{{ $stats['customer_stats']['new_customers'] }}</p>
                     </div>
-                    <i class="fas fa-user-plus text-blue-500 text-2xl"></i>
+                    <i class="fas fa-user-plus text-blue-500 text-xl"></i>
                 </div>
-                <div class="flex justify-between items-center p-3 bg-purple-50 rounded-lg">
+                <div class="flex justify-between items-center p-2 bg-purple-50 rounded-lg">
                     <div>
-                        <p class="text-sm text-purple-600">Tổng giao dịch</p>
-                        <p class="text-xl font-bold text-purple-700" data-stat="total-transactions">{{ $stats['customer_stats']['total_transactions'] }}</p>
+                        <p class="text-xs text-purple-600">Tổng giao dịch</p>
+                        <p class="text-lg font-bold text-purple-700" data-stat="total-transactions">{{ $stats['customer_stats']['total_transactions'] }}</p>
                     </div>
-                    <i class="fas fa-shopping-bag text-purple-500 text-2xl"></i>
+                    <i class="fas fa-shopping-bag text-purple-500 text-xl"></i>
                 </div>
             </div>
         </div>
 
-        <div class="bg-white rounded-xl shadow-lg p-6 ">
-            <h3 class="text-lg font-semibold mb-2 flex items-center justify-between">
+        <div class="bg-white rounded-xl shadow-lg p-4">
+            <h3 class="text-base font-semibold mb-2 flex flex-wrap items-center justify-between gap-2">
                 <span>Thống kê kho hàng</span>
-                <span class="text-xs font-normal px-2 py-1 bg-blue-100 text-blue-700 rounded-full">Tháng {{ date('m/Y') }}</span>
+                <span class="text-xs font-normal px-2 py-0.5 bg-blue-100 text-blue-700 rounded-full whitespace-nowrap">Tháng {{ date('m/Y') }}</span>
             </h3>
-            <p class="text-xs text-gray-500 mb-4">Dữ liệu cố định theo tháng hiện tại</p>
-            <div class="space-y-4">
-                <div class="flex justify-between items-center p-3 bg-orange-50 rounded-lg">
+            <p class="text-xs text-gray-500 mb-3">Dữ liệu cố định theo tháng hiện tại</p>
+            <div class="space-y-3">
+                <div class="flex justify-between items-center p-2 bg-orange-50 rounded-lg">
                     <div>
-                        <p class="text-sm text-orange-600">Nhập kho</p>
-                        <p class="text-xl font-bold text-orange-700" data-stat="imports-month">{{ $stats['inventory_stats']['imports_this_month'] }} sản phẩm</p>
+                        <p class="text-xs text-orange-600">Nhập kho</p>
+                        <p class="text-lg font-bold text-orange-700" data-stat="imports-month">{{ $stats['inventory_stats']['imports_this_month'] }} SP</p>
                     </div>
-                    <i class="fas fa-arrow-down text-orange-500 text-2xl"></i>
+                    <i class="fas fa-arrow-down text-orange-500 text-xl"></i>
                 </div>
-                <div class="flex justify-between items-center p-3 bg-red-50 rounded-lg">
+                <div class="flex justify-between items-center p-2 bg-red-50 rounded-lg">
                     <div>
-                        <p class="text-sm text-red-600">Xuất kho</p>
-                        <p class="text-xl font-bold text-red-700" data-stat="exports-month">{{ $stats['inventory_stats']['exports_this_month'] }} sản phẩm</p>
+                        <p class="text-xs text-red-600">Xuất kho</p>
+                        <p class="text-lg font-bold text-red-700" data-stat="exports-month">{{ $stats['inventory_stats']['exports_this_month'] }} SP</p>
                     </div>
-                    <i class="fas fa-arrow-up text-red-500 text-2xl"></i>
+                    <i class="fas fa-arrow-up text-red-500 text-xl"></i>
                 </div>
             </div>
         </div>
 
-        <div class="bg-white rounded-xl shadow-lg p-6 ">
-            <h3 class="text-lg font-semibold mb-2 flex items-center justify-between">
+        <div class="bg-white rounded-xl shadow-lg p-4">
+            <h3 class="text-base font-semibold mb-2 flex flex-wrap items-center justify-between gap-2">
                 <span>Sản phẩm bán chạy</span>
-                <span class="text-xs font-normal px-2 py-1 bg-green-100 text-green-700 rounded-full">Theo bộ lọc</span>
+                <span class="text-xs font-normal px-2 py-0.5 bg-green-100 text-green-700 rounded-full whitespace-nowrap">Theo bộ lọc</span>
             </h3>
-            <p class="text-xs text-gray-500 mb-4">Top sản phẩm trong khoảng thời gian đã chọn</p>
-            <div class="space-y-3" id="top-products-list">
+            <p class="text-xs text-gray-500 mb-3">Top sản phẩm trong khoảng thời gian đã chọn</p>
+            <div class="space-y-2" id="top-products-list">
                 @forelse($stats['top_products'] as $product)
-                <div class="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-                    <div class="flex items-center space-x-3">
-                        <img src="{{ $product['image'] }}" alt="{{ $product['name'] }}" class="w-10 h-10 rounded-lg object-cover">
-                        <div>
-                            <p class="font-medium">{{ $product['name'] }}</p>
-                            <p class="text-sm text-gray-600">Đã bán: {{ $product['quantity'] }} | Doanh thu: {{ number_format($product['revenue']/1000000, 1) }}M</p>
-                        </div>
+                <div class="flex items-center gap-2 p-2 bg-gray-50 rounded-lg">
+                    <img src="{{ $product['image'] }}" alt="{{ $product['name'] }}" class="w-10 h-10 rounded-lg object-cover flex-shrink-0">
+                    <div class="flex-1 min-w-0">
+                        <p class="font-medium text-sm truncate">{{ $product['name'] }}</p>
+                        <p class="text-xs text-gray-600">Bán: {{ $product['quantity'] }} | DT: {{ number_format($product['revenue']/1000000, 1) }}M</p>
                     </div>
                 </div>
                 @empty
-                <div class="text-center text-gray-500 py-4">
-                    <p>Chưa có dữ liệu bán hàng</p>
+                <div class="text-center text-gray-500 py-3">
+                    <p class="text-sm">Chưa có dữ liệu bán hàng</p>
                 </div>
                 @endforelse
             </div>

@@ -7,36 +7,36 @@
 @section('content')
 <x-alert />
 
-<div class="bg-white rounded-xl shadow-lg p-8 glass-effect">
+<div class="bg-white rounded-xl shadow-lg p-4 glass-effect">
     <form action="{{ route('sales.store') }}" method="POST" id="sales-form">
         @csrf
         
         <!-- BƯỚC 1: THÔNG TIN CƠ BẢN -->
-        <div class="bg-blue-50 border-l-4 border-blue-500 p-6 rounded-lg mb-6">
-            <h3 class="text-xl font-bold text-blue-900 mb-4 flex items-center">
-                <span class="bg-blue-500 text-white w-8 h-8 rounded-full flex items-center justify-center mr-3">1</span>
+        <div class="bg-blue-50 border-l-4 border-blue-500 p-4 rounded-lg mb-4">
+            <h3 class="text-base font-bold text-blue-900 mb-3 flex items-center">
+                <span class="bg-blue-500 text-white w-7 h-7 rounded-full flex items-center justify-center mr-2 text-sm">1</span>
                 Thông tin hóa đơn
             </h3>
-            <div class="grid grid-cols-3 gap-4">
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
                 <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-2">Số hóa đơn</label>
+                    <label class="block text-xs font-medium text-gray-700 mb-1">Số hóa đơn</label>
                     <div class="flex gap-2">
                         <input type="text" 
                                name="invoice_code" 
                                id="invoice_code" 
-                               class="flex-1 px-4 py-2 border border-gray-300 rounded-lg font-medium text-blue-600" 
+                               class="flex-1 px-3 py-1.5 text-sm border border-gray-300 rounded-lg font-medium text-blue-600" 
                                placeholder="Tự động tạo...">
                         <button type="button" 
                                 onclick="generateInvoiceCode()" 
-                                class="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-lg transition-colors"
+                                class="bg-blue-500 hover:bg-blue-600 text-white px-3 py-1.5 rounded-lg transition-colors"
                                 title="Tự động tạo">
-                            <i class="fas fa-magic"></i>
+                            <i class="fas fa-magic text-sm"></i>
                         </button>
                     </div>
                 </div>
                 <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-2">Showroom <span class="text-red-500">*</span></label>
-                    <select name="showroom_id" required class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500">
+                    <label class="block text-xs font-medium text-gray-700 mb-1">Showroom <span class="text-red-500">*</span></label>
+                    <select name="showroom_id" required class="w-full px-3 py-1.5 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500">
                         <option value="">-- Chọn showroom --</option>
                         @foreach($showrooms as $showroom)
                             <option value="{{ $showroom->id }}">{{ $showroom->name }}</option>
@@ -44,26 +44,26 @@
                     </select>
                 </div>
                 <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-2">Ngày bán <span class="text-red-500">*</span></label>
-                    <input type="date" name="sale_date" required class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500" value="{{ date('Y-m-d') }}">
+                    <label class="block text-xs font-medium text-gray-700 mb-1">Ngày bán <span class="text-red-500">*</span></label>
+                    <input type="date" name="sale_date" required class="w-full px-3 py-1.5 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500" value="{{ date('Y-m-d') }}">
                 </div>
             </div>
         </div>
 
         <!-- BƯỚC 2: THÔNG TIN KHÁCH HÀNG -->
-        <div class="bg-blue-50 border-l-4 border-blue-500 p-6 rounded-lg mb-6">
-            <h3 class="text-xl font-bold text-green-900 mb-4 flex items-center">
-                <span class="bg-green-500 text-white w-8 h-8 rounded-full flex items-center justify-center mr-3">2</span>
+        <div class="bg-blue-50 border-l-4 border-blue-500 p-4 rounded-lg mb-4">
+            <h3 class="text-base font-bold text-green-900 mb-3 flex items-center">
+                <span class="bg-green-500 text-white w-7 h-7 rounded-full flex items-center justify-center mr-2 text-sm">2</span>
                 Thông tin khách hàng
             </h3>
-            <div class="grid grid-cols-2 gap-4 mb-4">
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-3 mb-3">
                 <div class="relative">
-                    <label class="block text-sm font-medium text-gray-700 mb-2">Tên khách hàng <span class="text-red-500">*</span></label>
+                    <label class="block text-xs font-medium text-gray-700 mb-1">Tên khách hàng <span class="text-red-500">*</span></label>
                     <input type="text" 
                            name="customer_name" 
                            id="customer_name" 
                            required 
-                           class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500"
+                           class="w-full px-3 py-1.5 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500"
                            placeholder="Nhập tên khách hàng..."
                            autocomplete="off"
                            onkeyup="filterCustomers(this.value)">
@@ -71,47 +71,47 @@
                     <div id="customer-suggestions" class="absolute z-10 w-full bg-white border border-gray-300 rounded-lg mt-1 max-h-60 overflow-y-auto hidden shadow-lg"></div>
                 </div>
                 <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-2">Số điện thoại <span class="text-red-500">*</span></label>
-                    <input type="tel" name="customer_phone" id="customer_phone" required class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500" placeholder="Nhập số điện thoại...">
+                    <label class="block text-xs font-medium text-gray-700 mb-1">Số điện thoại <span class="text-red-500">*</span></label>
+                    <input type="tel" name="customer_phone" id="customer_phone" required class="w-full px-3 py-1.5 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500" placeholder="Nhập số điện thoại...">
                 </div>
             </div>
-            <div class="grid grid-cols-2 gap-4">
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
                 <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-2">Email</label>
-                    <input type="email" name="customer_email" id="customer_email" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500" placeholder="Nhập email (không bắt buộc)">
+                    <label class="block text-xs font-medium text-gray-700 mb-1">Email</label>
+                    <input type="email" name="customer_email" id="customer_email" class="w-full px-3 py-1.5 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500" placeholder="Nhập email (không bắt buộc)">
                 </div>
                 <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-2">Địa chỉ</label>
-                    <input type="text" name="customer_address" id="customer_address" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500" placeholder="Nhập địa chỉ (không bắt buộc)">
+                    <label class="block text-xs font-medium text-gray-700 mb-1">Địa chỉ</label>
+                    <input type="text" name="customer_address" id="customer_address" class="w-full px-3 py-1.5 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500" placeholder="Nhập địa chỉ (không bắt buộc)">
                 </div>
             </div>
         </div>
 
         <!-- BƯỚC 3: DANH SÁCH SẢN PHẨM -->
-        <div class="bg-blue-50 border-l-4 border-blue-500 p-6 rounded-lg mb-6">
-            <div class="flex justify-between items-center mb-4">
-                <h3 class="text-xl font-bold text-purple-900 flex items-center">
-                    <span class="bg-purple-500 text-white w-8 h-8 rounded-full flex items-center justify-center mr-3">3</span>
+        <div class="bg-blue-50 border-l-4 border-blue-500 p-4 rounded-lg mb-4">
+            <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-3 gap-2">
+                <h3 class="text-base font-bold text-purple-900 flex items-center">
+                    <span class="bg-purple-500 text-white w-7 h-7 rounded-full flex items-center justify-center mr-2 text-sm">3</span>
                     Danh sách sản phẩm
                 </h3>
-                <button type="button" onclick="addItem()" class="bg-purple-500 hover:bg-purple-600 text-white px-6 py-2 rounded-lg transition-colors font-medium">
-                    <i class="fas fa-plus mr-2"></i>Thêm sản phẩm
+                <button type="button" onclick="addItem()" class="bg-purple-500 hover:bg-purple-600 text-white px-4 py-1.5 rounded-lg transition-colors font-medium text-sm whitespace-nowrap">
+                    <i class="fas fa-plus mr-1"></i>Thêm sản phẩm
                 </button>
             </div>
             <div class="#">
-                <table class="w-full border-collapse">
+                <table class="w-full border-collapse text-sm">
                     <thead>
                         <tr class="bg-purple-100">
-                            <th class="px-3 py-3 text-left text-sm font-medium text-gray-700 border">Hình ảnh</th>
-                            <th class="px-3 py-3 text-left text-sm font-medium text-gray-700 border">Mô tả(Mã tranh/Khung)</th>
-                            <th class="px-3 py-3 text-left text-sm font-medium text-gray-700 border">Vật tư(Khung)</th>
-                            <th class="px-3 py-3 text-left text-sm font-medium text-gray-700 border">Số mét/Cây</th>
-                            <th class="px-3 py-3 text-center text-sm font-medium text-gray-700 border">Số lượng</th>
-                            <th class="px-3 py-3 text-center text-sm font-medium text-gray-700 border">Loại tiền</th>
-                            <th class="px-3 py-3 text-right text-sm font-medium text-gray-700 border">Giá USD</th>
-                            <th class="px-3 py-3 text-right text-sm font-medium text-gray-700 border">Giá VND</th>
-                            <th class="px-3 py-3 text-center text-sm font-medium text-gray-700 border">Giảm giá (%)</th>
-                            <th class="px-3 py-3 text-center text-sm font-medium text-gray-700 border">Xóa</th>
+                            <th class="px-2 py-2 text-left text-xs font-medium text-gray-700 border">Hình</th>
+                            <th class="px-2 py-2 text-left text-xs font-medium text-gray-700 border">Mô tả(Mã tranh/Khung)</th>
+                            <th class="px-2 py-2 text-left text-xs font-medium text-gray-700 border">Vật tư(Khung)</th>
+                            <th class="px-2 py-2 text-left text-xs font-medium text-gray-700 border">Số mét/Cây</th>
+                            <th class="px-2 py-2 text-center text-xs font-medium text-gray-700 border">SL</th>
+                            <th class="px-2 py-2 text-center text-xs font-medium text-gray-700 border">Loại tiền</th>
+                            <th class="px-2 py-2 text-right text-xs font-medium text-gray-700 border">Giá USD</th>
+                            <th class="px-2 py-2 text-right text-xs font-medium text-gray-700 border">Giá VND</th>
+                            <th class="px-2 py-2 text-center text-xs font-medium text-gray-700 border">Giảm(%)</th>
+                            <th class="px-2 py-2 text-center text-xs font-medium text-gray-700 border">Xóa</th>
                         </tr>
                     </thead>
                     <tbody id="items-body" class="bg-white"></tbody>
@@ -120,49 +120,49 @@
         </div>
 
         <!-- BƯỚC 4: TÍNH TOÁN & THANH TOÁN -->
-        <div class="bg-blue-50 border-l-4 border-blue-500 p-6 rounded-lg mb-6">
-            <h3 class="text-xl font-bold text-orange-900 mb-4 flex items-center">
-                <span class="bg-orange-500 text-white w-8 h-8 rounded-full flex items-center justify-center mr-3">4</span>
+        <div class="bg-blue-50 border-l-4 border-blue-500 p-4 rounded-lg mb-4">
+            <h3 class="text-base font-bold text-orange-900 mb-3 flex items-center">
+                <span class="bg-orange-500 text-white w-7 h-7 rounded-full flex items-center justify-center mr-2 text-sm">4</span>
                 Tính toán & Thanh toán
             </h3>
             
             <!-- Tỷ giá và Giảm giá -->
-            <div class="grid grid-cols-2 gap-4 mb-4">
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-3 mb-3">
                 <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-2">Tỷ giá (VND/USD) <span class="text-red-500">*</span></label>
-                    <input type="text" name="exchange_rate" id="rate" required class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500" value="{{ number_format(round($currentRate->rate ?? 25000)) }}" oninput="formatVND(this)" onblur="formatVND(this)" onchange="calc()">
+                    <label class="block text-xs font-medium text-gray-700 mb-1">Tỷ giá (VND/USD) <span class="text-red-500">*</span></label>
+                    <input type="text" name="exchange_rate" id="rate" required class="w-full px-3 py-1.5 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500" value="{{ number_format(round($currentRate->rate ?? 25000)) }}" oninput="formatVND(this)" onblur="formatVND(this)" onchange="calc()">
                 </div>
                 <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-2">Giảm giá (%)</label>
-                    <input type="number" name="discount_percent" id="discount" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500" value="0" min="0" max="100" step="1" onchange="calc()">
+                    <label class="block text-xs font-medium text-gray-700 mb-1">Giảm giá (%)</label>
+                    <input type="number" name="discount_percent" id="discount" class="w-full px-3 py-1.5 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500" value="0" min="0" max="100" step="1" onchange="calc()">
                 </div>
             </div>
 
             <!-- Tổng tiền -->
-            <div class="grid grid-cols-2 gap-4 mb-4">
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-3 mb-3">
                 <div>
-                    <label class="block text-sm font-medium text-blue-900 mb-2">Tổng tiền USD</label>
-                    <input type="text" id="total_usd" readonly class="w-full px-4 py-2 border-2 border-blue-300 rounded-lg bg-white font-bold text-blue-600">
+                    <label class="block text-xs font-medium text-blue-900 mb-1">Tổng tiền USD</label>
+                    <input type="text" id="total_usd" readonly class="w-full px-3 py-1.5 text-sm border-2 border-blue-300 rounded-lg bg-white font-bold text-blue-600">
                 </div>
                 <div>
-                    <label class="block text-sm font-medium text-green-900 mb-2">Tổng tiền VND</label>
-                    <input type="text" id="total_vnd" readonly class="w-full px-4 py-2 border-2 border-green-300 rounded-lg bg-white font-bold text-green-600">
+                    <label class="block text-xs font-medium text-green-900 mb-1">Tổng tiền VND</label>
+                    <input type="text" id="total_vnd" readonly class="w-full px-3 py-1.5 text-sm border-2 border-green-300 rounded-lg bg-white font-bold text-green-600">
                 </div>
             </div>
 
             <!-- Thanh toán -->
-            <div class="grid grid-cols-3 gap-4">
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
                 <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-2">Khách trả (VND)</label>
-                    <input type="text" name="payment_amount" id="paid" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500" value="0" oninput="formatVND(this)" onblur="formatVND(this)" onchange="calcDebt()" placeholder="Nhập số tiền...">
+                    <label class="block text-xs font-medium text-gray-700 mb-1">Khách trả (VND)</label>
+                    <input type="text" name="payment_amount" id="paid" class="w-full px-3 py-1.5 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500" value="0" oninput="formatVND(this)" onblur="formatVND(this)" onchange="calcDebt()" placeholder="Nhập số tiền...">
                 </div>
                 <div>
-                    <label class="block text-sm font-medium text-yellow-900 mb-2">Nợ cũ</label>
-                    <input type="text" id="current_debt" readonly class="w-full px-4 py-2 border border-yellow-300 rounded-lg bg-white font-bold text-orange-600">
+                    <label class="block text-xs font-medium text-yellow-900 mb-1">Nợ cũ</label>
+                    <input type="text" id="current_debt" readonly class="w-full px-3 py-1.5 text-sm border border-yellow-300 rounded-lg bg-white font-bold text-orange-600">
                 </div>
                 <div>
-                    <label class="block text-sm font-medium text-red-900 mb-2">Còn nợ</label>
-                    <input type="text" id="debt" readonly class="w-full px-4 py-2 border border-red-300 rounded-lg bg-white font-bold text-red-600">
+                    <label class="block text-xs font-medium text-red-900 mb-1">Còn nợ</label>
+                    <input type="text" id="debt" readonly class="w-full px-3 py-1.5 text-sm border border-red-300 rounded-lg bg-white font-bold text-red-600">
                 </div>
             </div>
         </div>
@@ -171,21 +171,21 @@
         <input type="hidden" name="payment_method" value="cash">
 
         <!-- Ghi chú -->
-        <div class="mb-6">
-            <label class="block text-sm font-medium text-gray-700 mb-2">Ghi chú</label>
-            <textarea name="notes" rows="3" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500" placeholder="Nhập ghi chú (không bắt buộc)..."></textarea>
+        <div class="mb-4">
+            <label class="block text-xs font-medium text-gray-700 mb-1">Ghi chú</label>
+            <textarea name="notes" rows="2" class="w-full px-3 py-1.5 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500" placeholder="Nhập ghi chú (không bắt buộc)..."></textarea>
         </div>
 
         <!-- Buttons -->
-        <div class="flex gap-4 pt-6 border-t-2 border-gray-200">
-            <button type="submit" name="action" value="save" class="flex-1 bg-green-600 hover:bg-green-700 text-white py-3 rounded-lg transition-colors font-medium shadow-lg">
-                <i class="fas fa-save mr-2"></i>Lưu hóa đơn
+        <div class="flex flex-col sm:flex-row gap-2 pt-4 border-t-2 border-gray-200">
+            <button type="submit" name="action" value="save" class="flex-1 bg-green-600 hover:bg-green-700 text-white py-2 rounded-lg transition-colors font-medium shadow-lg text-sm">
+                <i class="fas fa-save mr-1"></i>Lưu hóa đơn
             </button>
-            <button type="submit" name="action" value="save_and_print" class="flex-1 bg-blue-600 hover:bg-blue-700 text-white py-3 rounded-lg transition-colors font-medium shadow-lg">
-                <i class="fas fa-print mr-2"></i>Lưu & In
+            <button type="submit" name="action" value="save_and_print" class="flex-1 bg-blue-600 hover:bg-blue-700 text-white py-2 rounded-lg transition-colors font-medium shadow-lg text-sm">
+                <i class="fas fa-print mr-1"></i>Lưu & In
             </button>
-            <a href="{{ route('sales.index') }}" class="flex-1 bg-gray-500 hover:bg-gray-600 text-white py-3 rounded-lg transition-colors font-medium text-center shadow-lg">
-                <i class="fas fa-times mr-2"></i>Hủy bỏ
+            <a href="{{ route('sales.index') }}" class="flex-1 bg-gray-500 hover:bg-gray-600 text-white py-2 rounded-lg transition-colors font-medium text-center shadow-lg text-sm">
+                <i class="fas fa-times mr-1"></i>Hủy bỏ
             </a>
         </div>
     </form>

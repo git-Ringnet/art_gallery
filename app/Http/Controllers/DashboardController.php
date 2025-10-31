@@ -57,8 +57,11 @@ class DashboardController extends Controller
             ->where('payment_status', '!=', 'cancelled')
             ->sum('total_vnd');
 
-        // Calculate remaining debt (unpaid and partial debts)
-        $totalDebt = Debt::whereIn('status', ['unpaid', 'partial'])
+        // Calculate remaining debt from Sales table (more accurate)
+        // Only count debt from completed sales that are not cancelled
+        $totalDebt = Sale::where('sale_status', 'completed')
+            ->where('payment_status', '!=', 'cancelled')
+            ->where('debt_amount', '>', 0)
             ->sum('debt_amount');
 
         // Count stock

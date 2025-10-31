@@ -10,10 +10,19 @@
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
         .sidebar-transition {
-            transition: all 0.3s ease-in-out;
+            transition: width 0.3s cubic-bezier(0.4, 0, 0.2, 1);
         }
         .content-transition {
-            transition: margin-left 0.3s ease-in-out;
+            transition: margin-left 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        .sidebar-text {
+            transition: opacity 0.2s ease-in-out;
+        }
+        #sidebar.collapsed .sidebar-text {
+            opacity: 0;
+        }
+        #sidebar:not(.collapsed) .sidebar-text {
+            opacity: 1;
         }
         .fade-in {
             animation: fadeIn 0.5s ease-in;
@@ -41,13 +50,67 @@
             position: fixed;
             height: 100vh;
             min-height: 100%;
+            z-index: 50;
+        }
+        #sidebar.collapsed {
+            width: 70px;
+            overflow: hidden;
+        }
+        #sidebar.collapsed .sidebar-text {
+            display: none;
+            opacity: 0;
+        }
+        #sidebar.collapsed .sidebar-logo-text {
+            display: none;
+            opacity: 0;
+        }
+        #sidebar.collapsed .sidebar-logo-box {
+            display: none;
+            opacity: 0;
+        }
+        #sidebar.collapsed .sidebar-header {
+            justify-content: center;
+        }
+        #sidebar.collapsed .nav-item {
+            justify-content: center;
+            padding-left: 0;
+            padding-right: 0;
+        }
+        #sidebar.collapsed .toggle-btn-icon {
+            transform: rotate(0deg);
+        }
+        #sidebar:not(.collapsed) .toggle-btn-icon {
+            transform: rotate(0deg);
+        }
+        
+        /* Smooth icon centering */
+        .nav-item i {
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
         }
         #main-content {
             min-height: 100vh;
         }
+        #main-content.sidebar-collapsed {
+            margin-left: 70px !important;
+        }
+
+        /* Overlay for mobile */
+        #overlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.5);
+            z-index: 40;
+        }
+        #overlay.show {
+            display: block;
+        }
 
         /* Responsive styles */
-        @media (max-width: 768px) {
+        @media (max-width: 1024px) {
             #sidebar {
                 transform: translateX(-100%);
             }
@@ -57,22 +120,39 @@
             #main-content {
                 margin-left: 0 !important;
             }
-            #overlay {
+        }
+        
+        /* Desktop toggle button */
+        @media (min-width: 1025px) {
+            .mobile-toggle {
                 display: none;
-                position: fixed;
-                top: 0;
-                left: 0;
-                right: 0;
-                bottom: 0;
-                background: rgba(0, 0, 0, 0.5);
-                z-index: 40;
-            }
-            #overlay.show {
-                display: block;
             }
         }
     </style>
     @stack('styles')
+    
+    <!-- Inline script to prevent sidebar flash - runs BEFORE page renders -->
+    <script>
+        (function() {
+            // Check localStorage immediately
+            const isCollapsed = localStorage.getItem('sidebarCollapsed') === 'true';
+            if (isCollapsed && window.innerWidth >= 1025) {
+                // Add temporary style to prevent flash - will be removed after DOMContentLoaded
+                const style = document.createElement('style');
+                style.id = 'sidebar-preload-style';
+                style.innerHTML = `
+                    #sidebar { width: 70px; overflow: hidden; }
+                    #main-content { margin-left: 70px; }
+                    #sidebar .sidebar-text,
+                    #sidebar .sidebar-logo-text,
+                    #sidebar .sidebar-logo-box { display: none; opacity: 0; }
+                    #sidebar .sidebar-header { justify-content: center; }
+                    #sidebar .nav-item { justify-content: center; padding-left: 0; padding-right: 0; }
+                `;
+                document.head.appendChild(style);
+            }
+        })();
+    </script>
 </head>
 <body class="bg-gradient-to-br from-blue-50 to-cyan-100 min-h-screen">
     @php
@@ -96,83 +176,88 @@
     <div id="overlay" onclick="toggleSidebar()"></div>
 
     <!-- Sidebar -->
-    <div id="sidebar" class="fixed left-0 top-0 h-full w-64 bg-gradient-to-b from-blue-600 to-cyan-700 text-white sidebar-transition z-50 shadow-2xl no-print">
-        <div class="p-6">
-            <div class="flex items-center space-x-3 mb-8">
-                <div class="w-10 h-10 bg-white rounded-lg flex items-center justify-center">
-                    <i class="fas fa-palette text-blue-600 text-xl"></i>
+    <div id="sidebar" class="fixed left-0 top-0 h-full w-64 bg-gradient-to-b from-blue-600 to-cyan-700 text-white sidebar-transition shadow-2xl no-print">
+        <div class="p-4">
+            <div class="sidebar-header flex items-center justify-between mb-6">
+                <div class="flex items-center space-x-3">
+                    <div class="sidebar-logo-box w-10 h-10 bg-white rounded-lg flex items-center justify-center flex-shrink-0">
+                        <i class="fas fa-palette text-blue-600 text-xl"></i>
+                    </div>
+                    <h1 class="text-lg font-bold sidebar-text sidebar-logo-text">Quản lý Tranh</h1>
                 </div>
-                <h1 class="text-xl font-bold">Quản lý Tranh</h1>
+                <button onclick="toggleSidebarCollapse()" class="hidden lg:block p-2 hover:bg-white hover:bg-opacity-20 rounded-lg transition-colors">
+                    <i class="fas fa-bars text-white toggle-btn-icon"></i>
+                </button>
             </div>
             
-            <nav class="space-y-2">
+            <nav class="space-y-1">
                 @canAccess('dashboard')
-                <a href="{{ route('dashboard.index') }}" class="nav-item flex items-center space-x-3 p-3 rounded-lg hover:bg-white hover:bg-opacity-20 transition-all duration-200 {{ request()->routeIs('dashboard.*') ? 'bg-white bg-opacity-20' : '' }}">
-                    <i class="fas fa-tachometer-alt w-5"></i>
-                    <span>Báo cáo thống kê</span>
+                <a href="{{ route('dashboard.index') }}" class="nav-item flex items-center space-x-3 p-2.5 rounded-lg hover:bg-white hover:bg-opacity-20 transition-all duration-200 {{ request()->routeIs('dashboard.*') ? 'bg-white bg-opacity-20' : '' }}" title="Báo cáo thống kê">
+                    <i class="fas fa-tachometer-alt w-5 flex-shrink-0"></i>
+                    <span class="sidebar-text text-sm">Báo cáo thống kê</span>
                 </a>
                 @endcanAccess
                 
                 @canAccess('sales')
-                <a href="{{ route('sales.index') }}" class="nav-item flex items-center space-x-3 p-3 rounded-lg hover:bg-white hover:bg-opacity-20 transition-all duration-200 {{ request()->routeIs('sales.*') ? 'bg-white bg-opacity-20' : '' }}">
-                    <i class="fas fa-shopping-cart w-5"></i>
-                    <span>Bán hàng</span>
+                <a href="{{ route('sales.index') }}" class="nav-item flex items-center space-x-3 p-2.5 rounded-lg hover:bg-white hover:bg-opacity-20 transition-all duration-200 {{ request()->routeIs('sales.*') ? 'bg-white bg-opacity-20' : '' }}" title="Bán hàng">
+                    <i class="fas fa-shopping-cart w-5 flex-shrink-0"></i>
+                    <span class="sidebar-text text-sm">Bán hàng</span>
                 </a>
                 @endcanAccess
                 
                 @canAccess('debt')
-                <a href="{{ route('debt.index') }}" class="nav-item flex items-center space-x-3 p-3 rounded-lg hover:bg-white hover:bg-opacity-20 transition-all duration-200 {{ request()->routeIs('debt.*') ? 'bg-white bg-opacity-20' : '' }}">
-                    <i class="fas fa-credit-card w-5"></i>
-                    <span>Lịch sử công nợ</span>
+                <a href="{{ route('debt.index') }}" class="nav-item flex items-center space-x-3 p-2.5 rounded-lg hover:bg-white hover:bg-opacity-20 transition-all duration-200 {{ request()->routeIs('debt.*') ? 'bg-white bg-opacity-20' : '' }}" title="Lịch sử công nợ">
+                    <i class="fas fa-credit-card w-5 flex-shrink-0"></i>
+                    <span class="sidebar-text text-sm">Lịch sử công nợ</span>
                 </a>
                 @endcanAccess
                 
                 @canAccess('returns')
-                <a href="{{ route('returns.index') }}" class="nav-item flex items-center space-x-3 p-3 rounded-lg hover:bg-white hover:bg-opacity-20 transition-all duration-200 {{ request()->routeIs('returns.*') ? 'bg-white bg-opacity-20' : '' }}">
-                    <i class="fas fa-undo w-5"></i>
-                    <span>Đổi/Trả hàng</span>
+                <a href="{{ route('returns.index') }}" class="nav-item flex items-center space-x-3 p-2.5 rounded-lg hover:bg-white hover:bg-opacity-20 transition-all duration-200 {{ request()->routeIs('returns.*') ? 'bg-white bg-opacity-20' : '' }}" title="Đổi/Trả hàng">
+                    <i class="fas fa-undo w-5 flex-shrink-0"></i>
+                    <span class="sidebar-text text-sm">Đổi/Trả hàng</span>
                 </a>
                 @endcanAccess
                 
                 @canAccess('inventory')
-                <a href="{{ route('inventory.index') }}" class="nav-item flex items-center space-x-3 p-3 rounded-lg hover:bg-white hover:bg-opacity-20 transition-all duration-200 {{ request()->routeIs('inventory.*') ? 'bg-white bg-opacity-20' : '' }}">
-                    <i class="fas fa-warehouse w-5"></i>
-                    <span>Quản lý kho</span>
+                <a href="{{ route('inventory.index') }}" class="nav-item flex items-center space-x-3 p-2.5 rounded-lg hover:bg-white hover:bg-opacity-20 transition-all duration-200 {{ request()->routeIs('inventory.*') ? 'bg-white bg-opacity-20' : '' }}" title="Quản lý kho">
+                    <i class="fas fa-warehouse w-5 flex-shrink-0"></i>
+                    <span class="sidebar-text text-sm">Quản lý kho</span>
                 </a>
                 @endcanAccess
                 
                 @canAccess('showrooms')
-                <a href="{{ route('showrooms.index') }}" class="nav-item flex items-center space-x-3 p-3 rounded-lg hover:bg-white hover:bg-opacity-20 transition-all duration-200 {{ request()->routeIs('showrooms.*') ? 'bg-white bg-opacity-20' : '' }}">
-                    <i class="fas fa-store w-5"></i>
-                    <span>Phòng trưng bày</span>
+                <a href="{{ route('showrooms.index') }}" class="nav-item flex items-center space-x-3 p-2.5 rounded-lg hover:bg-white hover:bg-opacity-20 transition-all duration-200 {{ request()->routeIs('showrooms.*') ? 'bg-white bg-opacity-20' : '' }}" title="Phòng trưng bày">
+                    <i class="fas fa-store w-5 flex-shrink-0"></i>
+                    <span class="sidebar-text text-sm">Phòng trưng bày</span>
                 </a>
                 @endcanAccess
                 
                 @canAccess('customers')
-                <a href="{{ route('customers.index') }}" class="nav-item flex items-center space-x-3 p-3 rounded-lg hover:bg-white hover:bg-opacity-20 transition-all duration-200 {{ request()->routeIs('customers.*') ? 'bg-white bg-opacity-20' : '' }}">
-                    <i class="fas fa-users w-5"></i>
-                    <span>Khách hàng</span>
+                <a href="{{ route('customers.index') }}" class="nav-item flex items-center space-x-3 p-2.5 rounded-lg hover:bg-white hover:bg-opacity-20 transition-all duration-200 {{ request()->routeIs('customers.*') ? 'bg-white bg-opacity-20' : '' }}" title="Khách hàng">
+                    <i class="fas fa-users w-5 flex-shrink-0"></i>
+                    <span class="sidebar-text text-sm">Khách hàng</span>
                 </a>
                 @endcanAccess
                 
                 @canAccess('employees')
-                <a href="{{ route('employees.index') }}" class="nav-item flex items-center space-x-3 p-3 rounded-lg hover:bg-white hover:bg-opacity-20 transition-all duration-200 {{ request()->routeIs('employees.*') ? 'bg-white bg-opacity-20' : '' }}">
-                    <i class="fas fa-user-tie w-5"></i>
-                    <span>Nhân viên</span>
+                <a href="{{ route('employees.index') }}" class="nav-item flex items-center space-x-3 p-2.5 rounded-lg hover:bg-white hover:bg-opacity-20 transition-all duration-200 {{ request()->routeIs('employees.*') ? 'bg-white bg-opacity-20' : '' }}" title="Nhân viên">
+                    <i class="fas fa-user-tie w-5 flex-shrink-0"></i>
+                    <span class="sidebar-text text-sm">Nhân viên</span>
                 </a>
                 @endcanAccess
                 
                 @canAccess('permissions')
-                <a href="{{ route('permissions.index') }}" class="nav-item flex items-center space-x-3 p-3 rounded-lg hover:bg-white hover:bg-opacity-20 transition-all duration-200 {{ request()->routeIs('permissions.*') ? 'bg-white bg-opacity-20' : '' }}">
-                    <i class="fas fa-user-shield w-5"></i>
-                    <span>Phân quyền</span>
+                <a href="{{ route('permissions.index') }}" class="nav-item flex items-center space-x-3 p-2.5 rounded-lg hover:bg-white hover:bg-opacity-20 transition-all duration-200 {{ request()->routeIs('permissions.*') ? 'bg-white bg-opacity-20' : '' }}" title="Phân quyền">
+                    <i class="fas fa-user-shield w-5 flex-shrink-0"></i>
+                    <span class="sidebar-text text-sm">Phân quyền</span>
                 </a>
                 @endcanAccess
                 
                 @canAccess('year_database')
-                <a href="{{ route('year.index') }}" class="nav-item flex items-center space-x-3 p-3 rounded-lg hover:bg-white hover:bg-opacity-20 transition-all duration-200 {{ request()->routeIs('year.*') ? 'bg-white bg-opacity-20' : '' }}">
-                    <i class="fas fa-database w-5"></i>
-                    <span>Database</span>
+                <a href="{{ route('year.index') }}" class="nav-item flex items-center space-x-3 p-2.5 rounded-lg hover:bg-white hover:bg-opacity-20 transition-all duration-200 {{ request()->routeIs('year.*') ? 'bg-white bg-opacity-20' : '' }}" title="Database">
+                    <i class="fas fa-database w-5 flex-shrink-0"></i>
+                    <span class="sidebar-text text-sm">Database</span>
                 </a>
                 @endcanAccess
             </nav>
@@ -183,12 +268,12 @@
     <!-- Main Content -->
     <div id="main-content" class="content-transition {{ $hasAnyAccess ? 'ml-64' : '' }}">
         <!-- Admin Header (Logo + User Info) -->
-        <div class="bg-white shadow-md p-4 mb-0 relative z-40 no-print">
+        <div class="bg-white shadow-md p-3 mb-0 relative z-40 no-print">
             <div class="flex justify-between items-center">
                 <!-- Menu Toggle Button (Mobile) + Logo -->
                 <div class="flex items-center space-x-3">
                     @if($hasAnyAccess)
-                    <button id="menu-toggle" onclick="toggleSidebar()" class="md:hidden p-2 rounded-lg hover:bg-gray-100 transition-colors">
+                    <button id="menu-toggle" onclick="toggleSidebar()" class="lg:hidden p-2 rounded-lg hover:bg-gray-100 transition-colors">
                         <i class="fas fa-bars text-gray-700 text-xl"></i>
                     </button>
                     @endif
@@ -196,7 +281,7 @@
                         <div class="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center">
                             <i class="fas fa-palette text-white text-lg"></i>
                         </div>
-                        <h1 class="text-lg font-bold text-gray-800 hidden md:block">Quản lý Tranh</h1>
+                        <h1 class="text-base font-bold text-gray-800 hidden sm:block">Quản lý Tranh</h1>
                     </div>
                 </div>
                 
@@ -210,19 +295,20 @@
                     @endphp
                     
                     @if($isViewingArchive)
-                    <div>
-                        <span class="px-3 py-1 bg-orange-100 text-orange-700 text-xs font-semibold rounded-full">
+                    <div class="hidden sm:block">
+                        <span class="px-2 py-1 bg-orange-100 text-orange-700 text-xs font-semibold rounded-full whitespace-nowrap">
                             <i class="fas fa-exclamation-triangle mr-1"></i>
-                            Đang xem năm {{ $selectedYear }} (Chỉ đọc)
+                            <span class="hidden md:inline">Đang xem năm {{ $selectedYear }} (Chỉ đọc)</span>
+                            <span class="md:hidden">Năm {{ $selectedYear }}</span>
                         </span>
                     </div>
                     @endif
 
                     <!-- User Profile Dropdown -->
                 <div class="relative z-50">
-                    <button onclick="toggleUserDropdown()" class="flex items-center space-x-2 bg-white border border-gray-300 rounded-lg px-3 py-2 hover:bg-gray-50 transition-colors">
-                        <img src="https://ui-avatars.com/api/?name={{ urlencode(Auth::user()->name) }}&background=4F46E5&color=fff" alt="User" class="w-8 h-8 rounded-full">
-                        <span class="text-sm font-medium text-gray-700">{{ Auth::user()->name }}</span>
+                    <button onclick="toggleUserDropdown()" class="flex items-center space-x-2 bg-white border border-gray-300 rounded-lg px-2 py-1.5 hover:bg-gray-50 transition-colors">
+                        <img src="https://ui-avatars.com/api/?name={{ urlencode(Auth::user()->name) }}&background=4F46E5&color=fff" alt="User" class="w-7 h-7 rounded-full">
+                        <span class="text-sm font-medium text-gray-700 hidden sm:inline max-w-[120px] truncate">{{ Auth::user()->name }}</span>
                         <i class="fas fa-chevron-down text-gray-500 text-xs"></i>
                     </button>
                     
@@ -256,20 +342,20 @@
         </div>
 
         <!-- Page Header (Title + Actions) -->
-        <div class="bg-white rounded-xl shadow-lg p-6 m-6 mb-6 relative z-30 no-print">
-            <div class="flex justify-between items-center">
+        <div class="bg-white rounded-xl shadow-lg p-4 m-4 mb-4 relative z-30 no-print">
+            <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
                 <div>
-                    <h2 class="text-2xl font-bold text-gray-800">@yield('page-title', 'Báo cáo thống kê')</h2>
-                    <p class="text-gray-600">@yield('page-description', 'Tổng quan hệ thống quản lý tranh')</p>
+                    <h2 class="text-xl font-bold text-gray-800">@yield('page-title', 'Báo cáo thống kê')</h2>
+                    <p class="text-sm text-gray-600">@yield('page-description', 'Tổng quan hệ thống quản lý tranh')</p>
                 </div>
-                <div class="flex items-center space-x-4">
+                <div class="flex items-center gap-2 w-full sm:w-auto">
                     @yield('header-actions')
                 </div>
             </div>
         </div>
 
         <!-- Page Content -->
-        <div class="px-6 pb-6">
+        <div class="px-4 pb-4">
             @if(!$hasAnyAccess)
             <!-- Thông báo không có quyền -->
             <div class="max-w-2xl mx-auto mt-12">
@@ -289,6 +375,7 @@
     </div>
 
     <script>
+        // Toggle sidebar for mobile
         function toggleSidebar() {
             const sidebar = document.getElementById('sidebar');
             const overlay = document.getElementById('overlay');
@@ -296,6 +383,38 @@
             sidebar.classList.toggle('open');
             overlay.classList.toggle('show');
         }
+
+        // Toggle sidebar collapse for desktop
+        function toggleSidebarCollapse() {
+            const sidebar = document.getElementById('sidebar');
+            const mainContent = document.getElementById('main-content');
+            
+            sidebar.classList.toggle('collapsed');
+            mainContent.classList.toggle('sidebar-collapsed');
+            
+            // Save state to localStorage
+            const isCollapsed = sidebar.classList.contains('collapsed');
+            localStorage.setItem('sidebarCollapsed', isCollapsed);
+        }
+
+        // Restore sidebar state on page load - Apply classes for proper state management
+        document.addEventListener('DOMContentLoaded', function() {
+            const isCollapsed = localStorage.getItem('sidebarCollapsed') === 'true';
+            const sidebar = document.getElementById('sidebar');
+            const mainContent = document.getElementById('main-content');
+            
+            if (isCollapsed && window.innerWidth >= 1025) {
+                // Add the classes for proper state management
+                sidebar.classList.add('collapsed');
+                mainContent.classList.add('sidebar-collapsed');
+            }
+            
+            // Remove the preload style so CSS classes can work normally
+            const preloadStyle = document.getElementById('sidebar-preload-style');
+            if (preloadStyle) {
+                preloadStyle.remove();
+            }
+        });
 
         function toggleUserDropdown() {
             const dropdown = document.getElementById('user-dropdown');
@@ -460,15 +579,30 @@
             }, 3000);
         }
 
-        // Close sidebar when clicking on nav items on mobile
+        // Handle nav item clicks
         document.addEventListener('DOMContentLoaded', function() {
             const navItems = document.querySelectorAll('#sidebar .nav-item');
+            const sidebar = document.getElementById('sidebar');
+            
             navItems.forEach(item => {
-                item.addEventListener('click', function() {
-                    if (window.innerWidth < 768) {
+                item.addEventListener('click', function(e) {
+                    // Only close sidebar on mobile (when it's in overlay mode)
+                    if (window.innerWidth < 1025) {
                         toggleSidebar();
                     }
+                    // On desktop: do nothing, just let the link navigate
+                    // Sidebar state (collapsed or expanded) remains unchanged
                 });
+            });
+            
+            // Prevent any unwanted sidebar state changes during page transitions
+            window.addEventListener('beforeunload', function() {
+                const sidebar = document.getElementById('sidebar');
+                const mainContent = document.getElementById('main-content');
+                if (sidebar && mainContent) {
+                    sidebar.style.transition = 'none';
+                    mainContent.style.transition = 'none';
+                }
             });
         });
     </script>
