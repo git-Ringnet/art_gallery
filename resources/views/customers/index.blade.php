@@ -6,7 +6,7 @@
 
 @section('header-actions')
 @hasPermission('customers', 'can_create')
-<a href="{{ route('customers.create') }}" class="bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded-lg transition-colors flex items-center space-x-2">
+<a href="{{ route('customers.create') }}" class="bg-green-500 hover:bg-green-600 text-white px-3 py-1.5 text-sm rounded-lg transition-colors flex items-center space-x-1">
     <i class="fas fa-plus"></i>
     <span>Thêm khách hàng</span>
 </a>
@@ -16,25 +16,25 @@
 @section('content')
 <x-alert />
 
-<div class="bg-white rounded-xl shadow-lg p-6 fade-in">
+<div class="bg-white rounded-xl shadow-lg p-4 fade-in">
     <!-- Search & Filter -->
-    <form method="GET" class="mb-6">
-        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+    <form method="GET" class="mb-4">
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
             <div>
-                <label class="block text-sm font-medium text-gray-700 mb-2">
-                    <i class="fas fa-search mr-2"></i>Tìm kiếm
+                <label class="block text-xs font-medium text-gray-700 mb-1">
+                    <i class="fas fa-search mr-1"></i>Tìm kiếm
                 </label>
                 <input type="text" name="search" value="{{ request('search') }}" 
                     placeholder="Tên, SĐT, Email..." 
-                    class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                    class="w-full px-3 py-1.5 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
             </div>
             
             <div class="flex items-end space-x-2">
-                <button type="submit" class="bg-blue-500 hover:bg-blue-600 text-white px-6 py-2 rounded-lg transition-colors">
-                    <i class="fas fa-search mr-2"></i>Tìm kiếm
+                <button type="submit" class="bg-blue-500 hover:bg-blue-600 text-white px-4 py-1.5 text-sm rounded-lg transition-colors">
+                    <i class="fas fa-search mr-1"></i>Tìm kiếm
                 </button>
-                <a href="{{ route('customers.index') }}" class="bg-gray-500 hover:bg-gray-600 text-white px-6 py-2 rounded-lg transition-colors">
-                    <i class="fas fa-redo mr-2"></i>Làm mới
+                <a href="{{ route('customers.index') }}" class="bg-gray-500 hover:bg-gray-600 text-white px-4 py-1.5 text-sm rounded-lg transition-colors">
+                    <i class="fas fa-redo mr-1"></i>Làm mới
                 </a>
             </div>
         </div>
@@ -42,100 +42,100 @@
 
     <!-- Customers Table -->
     <div class="overflow-x-auto">
-        <table class="w-full">
+        <table class="w-full text-sm">
             <thead class="bg-gradient-to-r from-blue-500 to-cyan-600 text-white">
                 <tr>
-                    <th class="px-4 py-3 text-center">STT</th>
-                    <th class="px-4 py-3 text-left">Tên khách hàng</th>
-                    <th class="px-4 py-3 text-left">Số điện thoại</th>
-                    <th class="px-4 py-3 text-left">Email</th>
-                    <th class="px-4 py-3 text-left">Địa chỉ</th>
-                    <th class="px-4 py-3 text-right">Tổng mua</th>
-                    <th class="px-4 py-3 text-right">Công nợ</th>
-                    <th class="px-4 py-3 text-center">Thao tác</th>
+                    <th class="px-2 py-2 text-center text-xs">STT</th>
+                    <th class="px-2 py-2 text-left text-xs">Tên khách hàng</th>
+                    <th class="px-2 py-2 text-left text-xs">Số điện thoại</th>
+                    <th class="px-2 py-2 text-left text-xs">Email</th>
+                    <th class="px-2 py-2 text-left text-xs">Địa chỉ</th>
+                    <th class="px-2 py-2 text-right text-xs">Tổng mua</th>
+                    <th class="px-2 py-2 text-right text-xs">Công nợ</th>
+                    <th class="px-2 py-2 text-center text-xs">Thao tác</th>
                 </tr>
             </thead>
             <tbody class="divide-y divide-gray-200">
                 @forelse($customers as $index => $customer)
                 <tr class="hover:bg-gray-50 transition-colors">
-                    <td class="px-4 py-3 text-center text-gray-600 font-medium">
+                    <td class="px-2 py-2 text-center text-xs text-gray-600">
                         {{ ($customers->currentPage() - 1) * $customers->perPage() + $index + 1 }}
                     </td>
-                    <td class="px-4 py-3">
-                        <div class="font-medium text-gray-900">{{ $customer->name }}</div>
+                    <td class="px-2 py-2">
+                        <div class="font-medium text-xs text-gray-900">{{ $customer->name }}</div>
                     </td>
-                    <td class="px-4 py-3">
+                    <td class="px-2 py-2 text-xs">
                        {{ $customer->phone }}
                     </td>
-                    <td class="px-4 py-3">
+                    <td class="px-2 py-2 text-xs">
                         @if($customer->email)
                             {{ $customer->email }}
                         @else
                             <span class="text-gray-400">-</span>
                         @endif
                     </td>
-                    <td class="px-4 py-3 text-sm text-gray-600">
+                    <td class="px-2 py-2 text-xs text-gray-600 truncate max-w-[150px]">
                         {{ Str::limit($customer->address, 30) ?: '-' }}
                     </td>
-                    <td class="px-4 py-3 text-right font-medium text-green-600">
+                    <td class="px-2 py-2 text-right text-xs font-medium text-green-600">
                         @php
                             // Tính tổng mua từ sales không bị hủy
                             $totalPurchased = $customer->sales()->where('payment_status', '!=', 'cancelled')->sum('total_vnd');
                         @endphp
                         {{ number_format($totalPurchased, 0, ',', '.') }}đ
                     </td>
-                    <td class="px-4 py-3 text-right">
+                    <td class="px-2 py-2 text-right">
                         @php
                             // Tính công nợ từ sales không bị hủy
                             $totalDebt = $customer->sales()->where('payment_status', '!=', 'cancelled')->sum('debt_amount');
                         @endphp
                         @if($totalDebt > 0)
-                            <span class="text-red-600 font-medium">{{ number_format($totalDebt, 0, ',', '.') }}đ</span>
+                            <span class="text-red-600 text-xs font-medium">{{ number_format($totalDebt, 0, ',', '.') }}đ</span>
                         @else
-                            <span class="text-gray-400">0đ</span>
+                            <span class="text-gray-400 text-xs">0đ</span>
                         @endif
                     </td>
-                    <td class="px-4 py-3">
-                        <div class="flex items-center justify-center space-x-2">
+                    <td class="px-2 py-2">
+                        <div class="flex items-center justify-center space-x-1">
                             <!-- Xem chi tiết -->
                             @hasPermission('customers', 'can_view')
                             <a href="{{ route('customers.show', $customer->id) }}" 
-                                class="w-8 h-8 flex items-center justify-center bg-blue-100 text-blue-600 rounded-lg hover:bg-blue-200 transition-colors" 
+                                class="w-7 h-7 flex items-center justify-center bg-blue-100 text-blue-600 rounded hover:bg-blue-200 transition-colors" 
                                 title="Xem chi tiết">
-                                <i class="fas fa-eye"></i>
+                                <i class="fas fa-eye text-xs"></i>
                             </a>
                             @endhasPermission
                             
                             <!-- Sửa -->
                             @hasPermission('customers', 'can_edit')
                             <a href="{{ route('customers.edit', $customer->id) }}" 
-                                class="w-8 h-8 flex items-center justify-center bg-yellow-100 text-yellow-600 rounded-lg hover:bg-yellow-200 transition-colors" 
+                                class="w-7 h-7 flex items-center justify-center bg-yellow-100 text-yellow-600 rounded hover:bg-yellow-200 transition-colors" 
                                 title="Sửa">
-                                <i class="fas fa-edit"></i>
+                                <i class="fas fa-edit text-xs"></i>
                             </a>
                             @endhasPermission
                             
                             <!-- Icon trạng thái công nợ hoặc nút xóa -->
                             @if($customer->total_debt > 0)
                                 <!-- Có công nợ - hiển thị icon cảnh báo -->
-                                <span class="w-8 h-8 flex items-center justify-center bg-red-100 text-red-600 rounded-lg" 
+                                <span class="w-7 h-7 flex items-center justify-center bg-red-100 text-red-600 rounded" 
                                     title="Có công nợ: {{ number_format($customer->total_debt, 0, ',', '.') }}đ">
-                                    <i class="fas fa-exclamation-circle"></i>
+                                    <i class="fas fa-exclamation-circle text-xs"></i>
                                 </span>
                             @elseif($customer->total_purchased > 0)
                                 <!-- Đã có giao dịch và thanh toán đầy đủ - hiển thị icon check -->
-                                <span class="w-8 h-8 flex items-center justify-center bg-green-100 text-green-600 rounded-lg" 
+                                <span class="w-7 h-7 flex items-center justify-center bg-green-100 text-green-600 rounded" 
                                     title="Đã thanh toán đầy đủ - Tổng mua: {{ number_format($customer->total_purchased, 0, ',', '.') }}đ">
-                                    <i class="fas fa-check-circle"></i>
+                                    <i class="fas fa-check-circle text-xs"></i>
                                 </span>
                             @else
                                 <!-- Chưa có giao dịch - cho phép xóa -->
                                 @hasPermission('customers', 'can_delete')
                                 <button type="button"
                                     onclick="showDeleteModal('{{ route('customers.destroy', $customer->id) }}', 'Bạn có chắc chắn muốn xóa khách hàng {{ $customer->name }}?')"
-                                    class="w-8 h-8 flex items-center justify-center bg-red-100 text-red-600 rounded-lg hover:bg-red-200 transition-colors" 
+                                    class="w-7 h-7 flex items-center justify-center bg-red-100 text-red-600 rounded hover:bg-red-200 transition-colors" 
                                     title="Xóa khách hàng">
-                                    <i class="fas fa-trash"></i>
+                                    <i class="fas fa-trash text-xs"></i>
                                 </button>
                                 @endhasPermission
                             @endif
@@ -144,9 +144,9 @@
                 </tr>
                 @empty
                 <tr>
-                    <td colspan="7" class="px-4 py-8 text-center text-gray-500">
-                        <i class="fas fa-users text-4xl mb-2"></i>
-                        <p>Chưa có khách hàng nào</p>
+                    <td colspan="8" class="px-2 py-6 text-center text-gray-500">
+                        <i class="fas fa-users text-3xl mb-2"></i>
+                        <p class="text-sm">Chưa có khách hàng nào</p>
                     </td>
                 </tr>
                 @endforelse
@@ -155,7 +155,7 @@
     </div>
 
     <!-- Pagination -->
-    <div class="mt-6">
+    <div class="mt-4">
         {{ $customers->links() }}
     </div>
 </div>
