@@ -6,48 +6,48 @@
 
 @section('header-actions')
 <div class="flex space-x-2">
-    <a href="{{ route('inventory.paintings.edit', $painting->id) }}" class="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 transition-colors">
-        <i class="fas fa-edit mr-2"></i>Chỉnh sửa
+    <a href="{{ route('inventory.paintings.edit', $painting->id) }}" class="bg-green-600 text-white px-3 py-1.5 text-sm rounded-lg hover:bg-green-700 transition-colors">
+        <i class="fas fa-edit mr-1"></i>Chỉnh sửa
     </a>
     <form action="{{ route('inventory.paintings.destroy', $painting->id) }}" method="POST" onsubmit="return confirm('Bạn có chắc chắn muốn xóa tranh này?')">
         @csrf
         @method('DELETE')
-        <button type="submit" class="w-full bg-red-600 text-white py-2 px-4 rounded-lg hover:bg-red-700 transition-colors flex items-center justify-center">
-            <i class="fas fa-trash mr-2"></i>Xóa tranh
+        <button type="submit" class="w-full bg-red-600 text-white py-1.5 px-3 text-sm rounded-lg hover:bg-red-700 transition-colors flex items-center justify-center">
+            <i class="fas fa-trash mr-1"></i>Xóa tranh
         </button>
     </form>
-    <a href="{{ route('inventory.index') }}" class="bg-gray-600 text-white px-4 py-2 rounded-lg hover:bg-gray-700 transition-colors">
-        <i class="fas fa-arrow-left mr-2"></i>Quay lại
+    <a href="{{ route('inventory.index') }}" class="bg-gray-600 text-white px-3 py-1.5 text-sm rounded-lg hover:bg-gray-700 transition-colors">
+        <i class="fas fa-arrow-left mr-1"></i>Quay lại
     </a>
 </div>
 @endsection
 
 @section('content')
-<div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+<div class="grid grid-cols-1 lg:grid-cols-3 gap-4">
     <!-- Main Information -->
     <div class="lg:col-span-2">
-        <div class="bg-white rounded-xl shadow-lg p-6 glass-effect">
-            <h3 class="text-lg font-semibold text-gray-900 mb-4">Thông tin cơ bản</h3>
+        <div class="bg-white rounded-xl shadow-lg p-4 glass-effect">
+            <h3 class="text-base font-semibold text-gray-900 mb-3">Thông tin cơ bản</h3>
             
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-1">Mã tranh</label>
-                    <p class="text-lg font-semibold text-indigo-600">{{ $painting->code }}</p>
+                    <label class="block text-xs font-medium text-gray-700 mb-1">Mã tranh</label>
+                    <p class="text-sm font-semibold text-indigo-600">{{ $painting->code }}</p>
                 </div>
                 
                 <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-1">Tên tranh</label>
-                    <p class="text-lg font-semibold text-gray-900">{{ $painting->name }}</p>
+                    <label class="block text-xs font-medium text-gray-700 mb-1">Tên tranh</label>
+                    <p class="text-sm font-semibold text-gray-900">{{ $painting->name }}</p>
                 </div>
                 
                 <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-1">Họa sĩ</label>
-                    <p class="text-gray-900">{{ $painting->artist }}</p>
+                    <label class="block text-xs font-medium text-gray-700 mb-1">Họa sĩ</label>
+                    <p class="text-sm text-gray-900">{{ $painting->artist }}</p>
                 </div>
                 
                 <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-1">Chất liệu</label>
-                    <p class="text-gray-900">
+                    <label class="block text-xs font-medium text-gray-700 mb-1">Chất liệu</label>
+                    <p class="text-sm text-gray-900">
                         @switch($painting->material)
                             @case('son_dau')
                                 Sơn dầu
@@ -68,8 +68,8 @@
                 </div>
                 
                 <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-1">Kích thước</label>
-                    <p class="text-gray-900">
+                    <label class="block text-xs font-medium text-gray-700 mb-1">Kích thước</label>
+                    <p class="text-sm text-gray-900">
                         @if($painting->width && $painting->height)
                             {{ $painting->width }}cm x {{ $painting->height }}cm
                         @else
@@ -79,23 +79,23 @@
                 </div>
                 
                 <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-1">Năm sản xuất</label>
-                    <p class="text-gray-900">{{ $painting->paint_year ?? 'Chưa có thông tin' }}</p>
+                    <label class="block text-xs font-medium text-gray-700 mb-1">Năm sản xuất</label>
+                    <p class="text-sm text-gray-900">{{ $painting->paint_year ?? 'Chưa có thông tin' }}</p>
                 </div>
                 
                 <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-1">Giá (USD)</label>
-                    <p class="text-lg font-semibold text-green-600">${{ number_format($painting->price_usd, 2) }}</p>
+                    <label class="block text-xs font-medium text-gray-700 mb-1">Giá (USD)</label>
+                    <p class="text-sm font-semibold text-green-600">${{ number_format($painting->price_usd, 2) }}</p>
                 </div>
                 
                 <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-1">Số lượng</label>
-                    <p class="text-lg font-semibold text-gray-900">{{ $painting->quantity }}</p>
+                    <label class="block text-xs font-medium text-gray-700 mb-1">Số lượng</label>
+                    <p class="text-sm font-semibold text-gray-900">{{ $painting->quantity }}</p>
                 </div>
                 
                 <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-1">Ngày nhập kho</label>
-                    <p class="text-gray-900">{{ $painting->import_date ? $painting->import_date->format('d/m/Y') : 'Chưa có thông tin' }}</p>
+                    <label class="block text-xs font-medium text-gray-700 mb-1">Ngày nhập kho</label>
+                    <p class="text-sm text-gray-900">{{ $painting->import_date ? $painting->import_date->format('d/m/Y') : 'Chưa có thông tin' }}</p>
                 </div>
                 
                 <div>
