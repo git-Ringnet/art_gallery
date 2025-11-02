@@ -10,33 +10,33 @@
 <form action="{{ route('returns.store') }}" method="POST" id="return-form" onsubmit="return validateForm(event)">
     @csrf
     
-    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-4">
         <!-- Left Column - Search Invoice -->
         <div class="lg:col-span-2">
-            <div class="bg-white rounded-xl shadow-lg p-6  mb-6">
-                <h3 class="text-lg font-semibold mb-4">Tìm hóa đơn gốc</h3>
+            <div class="bg-white rounded-xl shadow-lg p-4 mb-4">
+                <h3 class="text-base font-semibold mb-3">Tìm hóa đơn gốc</h3>
                 
-                <div class="flex gap-3">
+                <div class="flex gap-2">
                     <div class="flex-1">
-                        <input type="text" id="invoice-search" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500" placeholder="Nhập mã hóa đơn...">
+                        <input type="text" id="invoice-search" class="w-full px-3 py-1.5 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500" placeholder="Nhập mã hóa đơn...">
                     </div>
-                    <button type="button" onclick="searchInvoice()" class="bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700">
-                        <i class="fas fa-search mr-2"></i>Tìm
+                    <button type="button" onclick="searchInvoice()" class="bg-blue-600 text-white px-4 py-1.5 text-sm rounded-lg hover:bg-blue-700">
+                        <i class="fas fa-search mr-1"></i>Tìm
                     </button>
                 </div>
                 
-                <div id="invoice-info" class="hidden mt-4 p-4 bg-gray-50 rounded-lg">
-                    <div class="grid grid-cols-2 gap-3 text-sm">
+                <div id="invoice-info" class="hidden mt-3 p-3 bg-gray-50 rounded-lg">
+                    <div class="grid grid-cols-2 gap-2 text-xs">
                         <div><span class="text-gray-600">Mã HD:</span> <span id="inv-code" class="font-medium"></span></div>
                         <div><span class="text-gray-600">Ngày:</span> <span id="inv-date"></span></div>
                         <div><span class="text-gray-600">Khách hàng:</span> <span id="inv-customer" class="font-medium"></span></div>
-                        <div class="border-t pt-2 mt-2">
+                        <div class="border-t pt-1.5 mt-1.5">
                             <div class="flex justify-between mb-1">
-                                <span class="text-gray-600">Tổng hóa đơn:</span>
+                                <span class="text-gray-600">Tổng HD:</span>
                                 <span id="inv-total" class="font-medium"></span>
                             </div>
                             <div class="flex justify-between mb-1">
-                                <span class="text-gray-600">Đã thanh toán:</span>
+                                <span class="text-gray-600">Đã Thanh toán:</span>
                                 <span id="inv-paid" class="font-medium text-green-600"></span>
                             </div>
                             <div class="flex justify-between">
@@ -45,9 +45,9 @@
                             </div>
                         </div>
                     </div>
-                    <div class="mt-3 p-2 bg-yellow-50 border border-yellow-200 rounded text-sm text-yellow-800">
+                    <div class="mt-2 p-1.5 bg-yellow-50 border border-yellow-200 rounded text-xs text-yellow-800">
                         <i class="fas fa-info-circle mr-1"></i>
-                        <span>Chỉ hoàn tối đa số tiền khách đã thanh toán</span>
+                        <span>Chỉ hoàn tối đa số tiền Khách hàng đã Thanh toán</span>
                     </div>
                 </div>
                 
@@ -56,27 +56,27 @@
             </div>
             
             <!-- Products List - Return Items -->
-            <div class="bg-white rounded-xl shadow-lg p-6  mb-6">
-                <h3 class="text-lg font-semibold mb-4">Sản phẩm trả lại</h3>
+            <div class="bg-white rounded-xl shadow-lg p-4 mb-4">
+                <h3 class="text-base font-semibold mb-3">Sản phẩm trả lại</h3>
                 
                 <div id="products-container">
-                    <div class="text-center text-gray-500 py-8">
-                        <i class="fas fa-box-open text-4xl mb-2"></i>
-                        <p>Vui lòng tìm hóa đơn trước</p>
+                    <div class="text-center text-gray-500 py-6">
+                        <i class="fas fa-box-open text-3xl mb-2"></i>
+                        <p class="text-sm">Vui lòng tìm hóa đơn trước</p>
                     </div>
                 </div>
             </div>
             
             <!-- Exchange Products - Only show when type is exchange -->
-            <div id="exchange-section" class="bg-white rounded-xl shadow-lg p-6  hidden">
-                <h3 class="text-lg font-semibold mb-4">Sản phẩm đổi mới</h3>
+            <div id="exchange-section" class="bg-white rounded-xl shadow-lg p-4 hidden">
+                <h3 class="text-base font-semibold mb-3">Sản phẩm đổi mới</h3>
                 
-                <div class="mb-4">
-                    <label class="block text-sm font-medium text-gray-700 mb-2">Tìm sản phẩm</label>
+                <div class="mb-3">
+                    <label class="block text-xs font-medium text-gray-700 mb-1">Tìm sản phẩm</label>
                     <div class="relative">
                         <input type="text" 
                                id="product-search" 
-                               class="w-full px-3 py-2 border border-gray-300 rounded-lg" 
+                               class="w-full px-2 py-1.5 text-sm border border-gray-300 rounded-lg" 
                                placeholder="Nhập tên sản phẩm..."
                                autocomplete="off"
                                oninput="searchProductsAuto()">
@@ -84,18 +84,18 @@
                     </div>
                 </div>
                 
-                <div class="#">
-                    <table class="w-full text-sm border-collapse">
+                <div class="overflow-x-auto">
+                    <table class="w-full text-xs border-collapse">
                         <thead>
                             <tr class="bg-gradient-to-r from-blue-50 to-indigo-50 border-b-2 border-blue-200">
-                                <th class="px-3 py-3 text-left font-semibold text-gray-700">Hình ảnh</th>
-                                <th class="px-3 py-3 text-left font-semibold text-gray-700">Mã (Tranh/Khung)</th>
-                                <th class="px-3 py-3 text-left font-semibold text-gray-700">Vật tư(Khung)</th>
-                                <th class="px-3 py-3 text-center font-semibold text-gray-700">Số mét/Cây</th>
-                                <th class="px-3 py-3 text-center font-semibold text-gray-700">Số lượng</th>
-                                <th class="px-3 py-3 text-right font-semibold text-gray-700">Giá bán (đ)</th>
-                                <th class="px-3 py-3 text-center font-semibold text-gray-700">Giảm giá (%)</th>
-                                <th class="px-3 py-3 text-center font-semibold text-gray-700">Xóa</th>
+                                <th class="px-2 py-2 text-left text-xs font-semibold text-gray-700">Ảnh</th>
+                                <th class="px-2 py-2 text-left text-xs font-semibold text-gray-700">Mã SP</th>
+                                <th class="px-2 py-2 text-left text-xs font-semibold text-gray-700">VT</th>
+                                <th class="px-2 py-2 text-center text-xs font-semibold text-gray-700">Mét</th>
+                                <th class="px-2 py-2 text-center text-xs font-semibold text-gray-700">SL</th>
+                                <th class="px-2 py-2 text-right text-xs font-semibold text-gray-700">Giá</th>
+                                <th class="px-2 py-2 text-center text-xs font-semibold text-gray-700">GG%</th>
+                                <th class="px-2 py-2 text-center text-xs font-semibold text-gray-700">Xóa</th>
                             </tr>
                         </thead>
                         <tbody id="exchange-products-container">
@@ -113,53 +113,53 @@
         
         <!-- Right Column - Return Info -->
         <div>
-            <div class="bg-white rounded-xl shadow-lg p-6  sticky top-6">
-                <h3 class="text-lg font-semibold mb-4">Thông tin đổi/trả</h3>
+            <div class="bg-white rounded-xl shadow-lg p-4 sticky top-6">
+                <h3 class="text-base font-semibold mb-3">Thông tin đổi/trả</h3>
                 
-                <div class="space-y-4">
+                <div class="space-y-3">
                     <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-2">Loại giao dịch *</label>
-                        <select name="type" id="return-type" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500" required onchange="updateReturnType()">
+                        <label class="block text-xs font-medium text-gray-700 mb-1">Loại *</label>
+                        <select name="type" id="return-type" class="w-full px-2 py-1.5 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500" required onchange="updateReturnType()">
                             <option value="return">Trả hàng</option>
                             <option value="exchange">Đổi hàng</option>
                         </select>
                     </div>
                     
                     <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-2">Ngày đổi/trả *</label>
-                        <input type="date" name="return_date" value="{{ date('Y-m-d') }}" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500" required>
+                        <label class="block text-xs font-medium text-gray-700 mb-1">Ngày *</label>
+                        <input type="date" name="return_date" value="{{ date('Y-m-d') }}" class="w-full px-2 py-1.5 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500" required>
                     </div>
                     
                     <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-2">Lý do</label>
-                        <textarea name="reason" rows="3" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500" placeholder="Nhập lý do đổi/trả..."></textarea>
+                        <label class="block text-xs font-medium text-gray-700 mb-1">Lý do</label>
+                        <textarea name="reason" rows="2" class="w-full px-2 py-1.5 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500" placeholder="Lý do..."></textarea>
                     </div>
                     
                     <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-2">Ghi chú</label>
-                        <textarea name="notes" rows="2" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500" placeholder="Ghi chú thêm..."></textarea>
+                        <label class="block text-xs font-medium text-gray-700 mb-1">Ghi chú</label>
+                        <textarea name="notes" rows="2" class="w-full px-2 py-1.5 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500" placeholder="Ghi chú..."></textarea>
                     </div>
                     
-                    <div class="border-t pt-4">
-                        <div class="space-y-2 text-sm">
+                    <div class="border-t pt-3">
+                        <div class="space-y-1.5 text-xs">
                             <div class="flex justify-between">
                                 <span class="text-gray-600">SL trả:</span>
                                 <span id="summary-return-qty" class="font-medium">0</span>
                             </div>
                             <div class="flex justify-between">
-                                <span class="text-gray-600">Giá trị hàng trả:</span>
+                                <span class="text-gray-600">Giá trị:</span>
                                 <span id="summary-return-value" class="font-medium">0đ</span>
                             </div>
-                            <div class="flex justify-between border-t pt-2">
-                                <span class="text-gray-700 font-semibold">Tiền hoàn thực tế:</span>
-                                <span id="summary-return-amount" class="font-bold text-red-600 text-lg">0đ</span>
+                            <div class="flex justify-between border-t pt-1.5">
+                                <span class="text-gray-700 font-semibold text-xs">Tiền hoàn:</span>
+                                <span id="summary-return-amount" class="font-bold text-red-600 text-sm">0đ</span>
                             </div>
                             <div class="text-xs text-gray-500 italic">
                                 <i class="fas fa-info-circle mr-1"></i>
-                                <span id="refund-note">Tối đa bằng số tiền đã thanh toán</span>
+                                <span id="refund-note">Tối đa = đã Thanh toán</span>
                             </div>
                             <div id="exchange-summary" class="hidden">
-                                <div class="flex justify-between border-t pt-2 mt-2">
+                                <div class="flex justify-between border-t pt-1.5 mt-1.5">
                                     <span class="text-gray-600">SL đổi:</span>
                                     <span id="summary-exchange-qty" class="font-medium">0</span>
                                 </div>
@@ -167,20 +167,20 @@
                                     <span class="text-gray-600">Tiền đổi:</span>
                                     <span id="summary-exchange-amount" class="font-semibold text-blue-600">0đ</span>
                                 </div>
-                                <div class="flex justify-between border-t pt-2 mt-2">
+                                <div class="flex justify-between border-t pt-1.5 mt-1.5">
                                     <span class="text-gray-700 font-medium">Chênh lệch:</span>
-                                    <span id="summary-difference" class="font-bold text-lg">0đ</span>
+                                    <span id="summary-difference" class="font-bold text-sm">0đ</span>
                                 </div>
                             </div>
                         </div>
                     </div>
                     
-                    <div class="flex gap-3 pt-4">
-                        <button type="submit" class="flex-1 bg-blue-600 text-white py-2 px-4 rounded-lg hover:bg-blue-700">
-                            <i class="fas fa-save mr-2"></i>Lưu
+                    <div class="flex gap-2 pt-3">
+                        <button type="submit" class="flex-1 bg-blue-600 text-white py-1.5 px-3 text-sm rounded-lg hover:bg-blue-700">
+                            <i class="fas fa-save mr-1"></i>Lưu
                         </button>
-                        <a href="{{ route('returns.index') }}" class="flex-1 bg-gray-500 text-white py-2 px-4 rounded-lg hover:bg-gray-600 text-center">
-                            <i class="fas fa-times mr-2"></i>Hủy
+                        <a href="{{ route('returns.index') }}" class="flex-1 bg-gray-500 text-white py-1.5 px-3 text-sm rounded-lg hover:bg-gray-600 text-center">
+                            <i class="fas fa-times mr-1"></i>Hủy
                         </a>
                     </div>
                 </div>
@@ -244,26 +244,26 @@ function displayProducts(items, returnedQty) {
         
         hasItems = true;
         const div = document.createElement('div');
-        div.className = 'border rounded-lg p-4 mb-3';
+        div.className = 'border rounded-lg p-3 mb-2';
         
         // Build image HTML
         const imageHtml = item.painting_image ? 
-            `<img src="/storage/${item.painting_image}" alt="${item.item_name}" class="w-20 h-20 object-cover rounded-lg cursor-pointer hover:opacity-80 transition-opacity flex-shrink-0" onclick="showImageModal('/storage/${item.painting_image}', '${item.item_name.replace(/'/g, "\\'")}')">` :
-            '<div class="w-20 h-20 bg-gray-200 rounded-lg flex items-center justify-center flex-shrink-0"><i class="fas fa-image text-gray-400"></i></div>';
+            `<img src="/storage/${item.painting_image}" alt="${item.item_name}" class="w-16 h-16 object-cover rounded cursor-pointer hover:opacity-80 transition-opacity flex-shrink-0" onclick="showImageModal('/storage/${item.painting_image}', '${item.item_name.replace(/'/g, "\\'")}')">` :
+            '<div class="w-16 h-16 bg-gray-200 rounded flex items-center justify-center flex-shrink-0"><i class="fas fa-image text-gray-400 text-sm"></i></div>';
         
         div.innerHTML = `
-            <div class="flex items-start gap-4 mb-2">
+            <div class="flex items-start gap-3 mb-1.5">
                 ${imageHtml}
                 <div class="flex-1">
-                    <h4 class="font-medium">${item.item_name}</h4>
-                    <p class="text-sm text-gray-600">Đã mua: ${item.quantity} | Đã trả: ${returnedQty[item.id] || 0} | Còn lại: ${available}</p>
-                    <p class="text-sm text-green-600">Đơn giá: ${parseFloat(item.unit_price).toLocaleString('vi-VN')}đ</p>
+                    <h4 class="font-medium text-sm">${item.item_name}</h4>
+                    <p class="text-xs text-gray-600">Đã mua: ${item.quantity} | Đã trả: ${returnedQty[item.id] || 0} | Còn lại: ${available}</p>
+                    <p class="text-xs text-green-600">Đơn giá: ${parseFloat(item.unit_price).toLocaleString('vi-VN')}đ</p>
                 </div>
                 <div class="text-right flex-shrink-0">
-                    <label class="text-sm text-gray-600">Số lượng trả:</label>
+                    <label class="text-xs text-gray-600">Số lượng trả:</label>
                     <input type="number" 
                            name="items[${item.id}][quantity]" 
-                           class="w-20 px-2 py-1 border rounded text-center return-qty"
+                           class="w-20 px-2 py-1 text-sm border rounded text-center return-qty"
                            min="0" 
                            max="${available}" 
                            value="0"
@@ -277,7 +277,7 @@ function displayProducts(items, returnedQty) {
     });
     
     if (!hasItems) {
-        container.innerHTML = '<div class="text-center text-gray-500 py-8"><i class="fas fa-info-circle text-4xl mb-2"></i><p>Tất cả sản phẩm đã được trả</p></div>';
+        container.innerHTML = '<div class="text-center text-gray-500 py-6"><i class="fas fa-info-circle text-3xl mb-2"></i><p class="text-sm">Tất cả sản phẩm đã được trả</p></div>';
     }
 }
 
@@ -395,83 +395,83 @@ function removeExchangeProduct(index) {
 function renderExchangeProducts() {
     const container = document.getElementById('exchange-products-container');
     if (exchangeProducts.length === 0) {
-        container.innerHTML = '<tr><td colspan="8" class="text-center text-gray-500 py-8"><i class="fas fa-box-open text-3xl mb-2 text-gray-400 block"></i><p class="text-sm">Chưa có sản phẩm đổi</p></td></tr>';
+        container.innerHTML = '<tr><td colspan="8" class="text-center text-gray-500 py-6"><i class="fas fa-box-open text-2xl mb-2 text-gray-400 block"></i><p class="text-xs">Chưa có sản phẩm đổi</p></td></tr>';
         return;
     }
     
     container.innerHTML = exchangeProducts.map((product, index) => {
         const finalPrice = product.price * (1 - (product.discount || 0) / 100);
         const stockWarning = product.quantity > product.maxQty;
-        const rowClass = stockWarning ? 'bg-red-50 border-l-4 border-red-500' : 'hover:bg-blue-50 border-l-4 border-transparent';
+        const rowClass = stockWarning ? 'bg-red-50 border-l-2 border-red-500' : 'hover:bg-blue-50 border-l-2 border-transparent';
         
         return `
         <tr class="${rowClass} border-b transition-colors">
-            <td class="px-3 py-3">
+            <td class="px-2 py-2">
                 ${product.image ? 
-                    `<img src="/storage/${product.image}" class="w-14 h-14 object-cover rounded-lg shadow-sm border-2 border-gray-200 cursor-pointer hover:opacity-80 transition-opacity" alt="${product.name}" onclick="showImageModal('/storage/${product.image}', '${product.name.replace(/'/g, "\\'")}')">` : 
-                    '<div class="w-14 h-14 bg-gradient-to-br from-gray-200 to-gray-300 rounded-lg flex items-center justify-center shadow-sm"><i class="fas fa-image text-gray-400 text-xl"></i></div>'}
+                    `<img src="/storage/${product.image}" class="w-12 h-12 object-cover rounded shadow-sm border border-gray-200 cursor-pointer hover:opacity-80 transition-opacity" alt="${product.name}" onclick="showImageModal('/storage/${product.image}', '${product.name.replace(/'/g, "\\'")}')">` : 
+                    '<div class="w-12 h-12 bg-gradient-to-br from-gray-200 to-gray-300 rounded flex items-center justify-center shadow-sm"><i class="fas fa-image text-gray-400 text-sm"></i></div>'}
             </td>
-            <td class="px-3 py-3">
-                <div class="text-sm font-semibold text-gray-800">${product.name}</div>
-                ${product.code ? `<div class="text-xs text-gray-500 mt-1"><i class="fas fa-barcode mr-1"></i>${product.code}</div>` : ''}
-                <div class="mt-1">
-                    <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${product.maxQty > 0 ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}">
+            <td class="px-2 py-2">
+                <div class="text-xs font-semibold text-gray-800">${product.name}</div>
+                ${product.code ? `<div class="text-xs text-gray-500 mt-0.5"><i class="fas fa-barcode mr-1"></i>${product.code}</div>` : ''}
+                <div class="mt-0.5">
+                    <span class="inline-flex items-center px-1.5 py-0.5 rounded-full text-xs font-medium ${product.maxQty > 0 ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}">
                         <i class="fas fa-box mr-1"></i>Tồn: ${product.maxQty}
                     </span>
                 </div>
             </td>
-            <td class="px-3 py-3">
+            <td class="px-2 py-2">
                 <div class="relative">
                     <input type="text" 
                            id="supply-search-${index}"
-                           class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500" 
+                           class="w-full px-2 py-1.5 border border-gray-300 rounded text-xs focus:ring-2 focus:ring-blue-500 focus:border-blue-500" 
                            placeholder="Tìm vật tư..."
                            value="${product.supplyName || ''}"
                            oninput="searchSupplyForExchange(${index}, this.value)"
                            autocomplete="off">
-                    <div id="supply-suggestions-${index}" class="absolute z-20 w-full bg-white border border-gray-300 rounded-lg shadow-lg mt-1 max-h-48 overflow-y-auto hidden"></div>
+                    <div id="supply-suggestions-${index}" class="absolute z-20 w-full bg-white border border-gray-300 rounded shadow-lg mt-1 max-h-48 overflow-y-auto hidden"></div>
                 </div>
             </td>
-            <td class="px-3 py-3 text-center">
+            <td class="px-2 py-2 text-center">
                 <input type="number" 
-                       class="w-20 px-3 py-2 border border-gray-300 rounded-lg text-center text-sm font-medium focus:ring-2 focus:ring-blue-500"
+                       class="w-16 px-2 py-1.5 border border-gray-300 rounded text-center text-xs font-medium focus:ring-2 focus:ring-blue-500"
                        min="0" 
                        step="0.1"
                        value="${product.supplyLength || 0}"
                        onchange="updateExchangeSupplyLength(${index}, this.value)"
                        placeholder="0">
             </td>
-            <td class="px-3 py-3 text-center">
+            <td class="px-2 py-2 text-center">
                 <input type="number" 
-                       class="w-20 px-3 py-2 border ${stockWarning ? 'border-red-500 bg-red-50' : 'border-gray-300'} rounded-lg text-center text-sm font-medium focus:ring-2 focus:ring-blue-500"
+                       class="w-16 px-2 py-1.5 border ${stockWarning ? 'border-red-500 bg-red-50' : 'border-gray-300'} rounded text-center text-xs font-medium focus:ring-2 focus:ring-blue-500"
                        min="1" 
                        max="${product.maxQty}" 
                        value="${product.quantity}"
                        onchange="updateExchangeQty(${index}, this.value)">
-                ${stockWarning ? '<div class="text-xs text-red-600 font-medium mt-1"><i class="fas fa-exclamation-triangle mr-1"></i>Vượt tồn!</div>' : ''}
+                ${stockWarning ? '<div class="text-xs text-red-600 font-medium mt-0.5"><i class="fas fa-exclamation-triangle mr-1"></i>Vượt tồn!</div>' : ''}
             </td>
-            <td class="px-3 py-3 text-right">
+            <td class="px-2 py-2 text-right">
                 <input type="number" 
-                       class="w-32 px-3 py-2 border border-gray-300 rounded-lg text-right text-sm font-medium focus:ring-2 focus:ring-blue-500"
+                       class="w-28 px-2 py-1.5 border border-gray-300 rounded text-right text-xs font-medium focus:ring-2 focus:ring-blue-500"
                        min="0" 
                        step="1000"
                        value="${product.price}"
                        onchange="updateExchangePrice(${index}, this.value)">
-                <div class="text-xs text-gray-500 mt-1">${finalPrice.toLocaleString('vi-VN')}đ</div>
+                <div class="text-xs text-gray-500 mt-0.5">${finalPrice.toLocaleString('vi-VN')}đ</div>
             </td>
-            <td class="px-3 py-3 text-center">
+            <td class="px-2 py-2 text-center">
                 <input type="number" 
-                       class="w-20 px-3 py-2 border border-gray-300 rounded-lg text-center text-sm font-medium focus:ring-2 focus:ring-blue-500"
+                       class="w-16 px-2 py-1.5 border border-gray-300 rounded text-center text-xs font-medium focus:ring-2 focus:ring-blue-500"
                        min="0" 
                        max="100"
                        value="${product.discount || 0}"
                        onchange="updateExchangeDiscount(${index}, this.value)">
             </td>
-            <td class="px-3 py-3 text-center">
+            <td class="px-2 py-2 text-center">
                 <button type="button" 
                         onclick="removeExchangeProduct(${index})" 
-                        class="text-red-600 hover:text-red-800 hover:bg-red-100 p-2 rounded-lg transition-colors">
-                    <i class="fas fa-trash-alt"></i>
+                        class="text-red-600 hover:text-red-800 hover:bg-red-100 p-1.5 rounded transition-colors">
+                    <i class="fas fa-trash-alt text-xs"></i>
                 </button>
             </td>
         </tr>
