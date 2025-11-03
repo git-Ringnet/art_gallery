@@ -5,18 +5,18 @@
 @section('page-description', 'Tạo tài khoản nhân viên mới')
 
 @section('content')
-    <div class="bg-white rounded-xl shadow-lg p-6 glass-effect">
+    <div class="bg-white rounded-xl shadow-lg p-4 glass-effect">
         <form action="{{ route('employees.store') }}" method="POST" enctype="multipart/form-data">
             @csrf
             
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
                 <!-- Tên nhân viên -->
                 <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-2">
+                    <label class="block text-xs font-medium text-gray-700 mb-1">
                         Tên nhân viên <span class="text-red-500">*</span>
                     </label>
                     <input type="text" name="name" value="{{ old('name') }}" required
-                        class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent @error('name') border-red-500 @enderror">
+                        class="w-full px-2 py-1.5 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent @error('name') border-red-500 @enderror">
                     @error('name')
                         <p class="text-red-500 text-xs mt-1">{{ $message }}</p>
                     @enderror
@@ -24,11 +24,11 @@
 
                 <!-- Email -->
                 <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-2">
+                    <label class="block text-xs font-medium text-gray-700 mb-1">
                         Email <span class="text-red-500">*</span>
                     </label>
                     <input type="email" name="email" value="{{ old('email') }}" required
-                        class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent @error('email') border-red-500 @enderror">
+                        class="w-full px-2 py-1.5 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent @error('email') border-red-500 @enderror">
                     @error('email')
                         <p class="text-red-500 text-xs mt-1">{{ $message }}</p>
                     @enderror
@@ -36,11 +36,11 @@
 
                 <!-- Mật khẩu -->
                 <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-2">
+                    <label class="block text-xs font-medium text-gray-700 mb-1">
                         Mật khẩu <span class="text-red-500">*</span>
                     </label>
                     <input type="password" name="password" required
-                        class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent @error('password') border-red-500 @enderror">
+                        class="w-full px-2 py-1.5 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent @error('password') border-red-500 @enderror">
                     @error('password')
                         <p class="text-red-500 text-xs mt-1">{{ $message }}</p>
                     @enderror
@@ -48,31 +48,31 @@
 
                 <!-- Xác nhận mật khẩu -->
                 <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-2">
+                    <label class="block text-xs font-medium text-gray-700 mb-1">
                         Xác nhận mật khẩu <span class="text-red-500">*</span>
                     </label>
                     <input type="password" name="password_confirmation" required
-                        class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                        class="w-full px-2 py-1.5 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
                 </div>
 
                 <!-- Ảnh đại diện -->
                 <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-2">Ảnh đại diện</label>
+                    <label class="block text-xs font-medium text-gray-700 mb-1">Ảnh đại diện</label>
                     <input type="file" name="avatar" accept="image/*" onchange="previewImage(event)"
-                        class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent @error('avatar') border-red-500 @enderror">
+                        class="w-full px-2 py-1.5 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent @error('avatar') border-red-500 @enderror">
                     @error('avatar')
                         <p class="text-red-500 text-xs mt-1">{{ $message }}</p>
                     @enderror
                     <div id="imagePreview" class="mt-2 hidden">
-                        <img id="preview" src="" alt="Preview" class="w-32 h-32 object-cover rounded-lg">
+                        <img id="preview" src="" alt="Preview" class="w-24 h-24 object-cover rounded-lg">
                     </div>
                 </div>
 
                 <!-- Số điện thoại -->
                 <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-2">Số điện thoại</label>
+                    <label class="block text-xs font-medium text-gray-700 mb-1">Số điện thoại</label>
                     <input type="text" name="phone" value="{{ old('phone') }}"
-                        class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent @error('phone') border-red-500 @enderror">
+                        class="w-full px-2 py-1.5 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent @error('phone') border-red-500 @enderror">
                     @error('phone')
                         <p class="text-red-500 text-xs mt-1">{{ $message }}</p>
                     @enderror
@@ -82,21 +82,21 @@
                 <div class="flex items-center">
                     <label class="flex items-center cursor-pointer">
                         <input type="checkbox" name="is_active" value="1" {{ old('is_active', true) ? 'checked' : '' }}
-                            class="w-5 h-5 text-blue-600 border-gray-300 rounded focus:ring-blue-500">
-                        <span class="ml-2 text-sm font-medium text-gray-700">Kích hoạt tài khoản</span>
+                            class="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500">
+                        <span class="ml-2 text-xs font-medium text-gray-700">Kích hoạt tài khoản</span>
                     </label>
                 </div>
             </div>
 
             <!-- Buttons -->
-            <div class="flex justify-end gap-3 mt-6">
+            <div class="flex justify-end gap-2 mt-3">
                 <a href="{{ route('employees.index') }}"
-                    class="bg-gray-500 text-white px-6 py-2 rounded-lg hover:bg-gray-600 transition-colors">
-                    <i class="fas fa-times mr-2"></i>Hủy
+                    class="bg-gray-500 text-white px-4 py-1.5 text-sm rounded-lg hover:bg-gray-600 transition-colors">
+                    <i class="fas fa-times mr-1"></i>Hủy
                 </a>
                 <button type="submit"
-                    class="bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700 transition-colors">
-                    <i class="fas fa-save mr-2"></i>Lưu
+                    class="bg-blue-600 text-white px-4 py-1.5 text-sm rounded-lg hover:bg-blue-700 transition-colors">
+                    <i class="fas fa-save mr-1"></i>Lưu
                 </button>
             </div>
         </form>

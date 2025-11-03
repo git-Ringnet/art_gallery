@@ -5,87 +5,87 @@
 @section('page-description', 'Cập nhật thông tin phòng trưng bày')
 
 @section('content')
-    <div class="bg-white rounded-xl shadow-lg p-6 glass-effect">
+    <div class="bg-white rounded-xl shadow-lg p-4 glass-effect">
         <form action="{{ route('showrooms.update', $showroom->id) }}" method="POST" enctype="multipart/form-data">
             @csrf
             @method('PUT')
-            <div id="logo_preview_container" class="mb-3 relative inline-block group {{ $showroom->logo ? '' : 'hidden' }}">
+            <div id="logo_preview_container" class="mb-2 relative inline-block group {{ $showroom->logo ? '' : 'hidden' }}">
                 <img id="logo_preview" src="{{ $showroom->logo ? asset('storage/' . $showroom->logo) : '' }}"
-                    class="w-32 h-32 rounded-lg object-cover border-2 border-gray-300" alt="Preview">
+                    class="w-24 h-24 rounded-lg object-cover border-2 border-gray-300" alt="Preview">
                 <button type="button" onclick="removeLogo()"
-                    class="absolute top-2 right-2 bg-red-500 text-white rounded-full w-8 h-8 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity shadow-lg hover:bg-red-600">
-                    <i class="fas fa-times"></i>
+                    class="absolute top-1 right-1 bg-red-500 text-white rounded-full w-6 h-6 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity shadow-lg hover:bg-red-600">
+                    <i class="fas fa-times text-xs"></i>
                 </button>
             </div>
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
                 <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-2">Logo</label>
+                    <label class="block text-xs font-medium text-gray-700 mb-1">Logo</label>
                     <input type="file" id="logo_input" name="logo" accept="image/*" onchange="previewLogo(event)"
-                        class="w-full px-3 py-2 border border-gray-300 rounded-lg">
+                        class="w-full px-2 py-1.5 text-sm border border-gray-300 rounded-lg">
                     <input type="hidden" id="remove_logo" name="remove_logo" value="0">
                 </div>
                 <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-2">Mã phòng <span
+                    <label class="block text-xs font-medium text-gray-700 mb-1">Mã phòng <span
                             class="text-red-500">*</span></label>
                     <input type="text" name="code" value="{{ $showroom->code }}" required
-                        class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                        class="w-full px-2 py-1.5 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                         placeholder="VD: SR01">
                 </div>
                 <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-2">Tên phòng <span
+                    <label class="block text-xs font-medium text-gray-700 mb-1">Tên phòng <span
                             class="text-red-500">*</span></label>
                     <input type="text" name="name" value="{{ $showroom->name }}" required
-                        class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                        class="w-full px-2 py-1.5 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                         placeholder="Tên phòng trưng bày">
                 </div>
                 <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-2">Số điện thoại <span
+                    <label class="block text-xs font-medium text-gray-700 mb-1">Số điện thoại <span
                             class="text-red-500">*</span></label>
                     <input type="text" name="phone" value="{{ $showroom->phone }}" required
-                        class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                        class="w-full px-2 py-1.5 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                         placeholder="VD: 0123 456 789">
                 </div>
                 <div class="md:col-span-2">
-                    <label class="block text-sm font-medium text-gray-700 mb-2">Địa chỉ <span
+                    <label class="block text-xs font-medium text-gray-700 mb-1">Địa chỉ <span
                             class="text-red-500">*</span></label>
                     <input type="text" name="address" value="{{ $showroom->address }}" required
-                        class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                        class="w-full px-2 py-1.5 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                         placeholder="Địa chỉ">
                 </div>
                 <div class="relative">
-                    <label class="block text-sm font-medium text-gray-700 mb-2">Ngân hàng</label>
+                    <label class="block text-xs font-medium text-gray-700 mb-1">Ngân hàng</label>
                     <input type="text" id="bank_name" name="bank_name" value="{{ $showroom->bank_name }}" autocomplete="off"
-                        class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                        class="w-full px-2 py-1.5 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                         placeholder="Tìm kiếm ngân hàng...">
                     <div id="bank_dropdown"
                         class="hidden absolute z-50 w-full mt-1 bg-white border border-gray-300 rounded-lg shadow-lg max-h-60 overflow-y-auto">
                     </div>
                 </div>
                 <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-2">Số tài khoản</label>
+                    <label class="block text-xs font-medium text-gray-700 mb-1">Số tài khoản</label>
                     <input type="text" name="bank_account" value="{{ $showroom->bank_account }}"
-                        class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                        class="w-full px-2 py-1.5 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                         placeholder="0123456789">
                 </div>
                 <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-2">Chủ tài khoản</label>
+                    <label class="block text-xs font-medium text-gray-700 mb-1">Chủ tài khoản</label>
                     <input type="text" name="bank_holder" value="{{ $showroom->bank_holder }}"
-                        class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                        class="w-full px-2 py-1.5 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                         placeholder="Nguyễn Văn A">
                 </div>
                 <div class="md:col-span-2">
-                    <label class="block text-sm font-medium text-gray-700 mb-2">Ghi chú</label>
-                    <textarea name="notes" rows="3"
-                        class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    <label class="block text-xs font-medium text-gray-700 mb-1">Ghi chú</label>
+                    <textarea name="notes" rows="2"
+                        class="w-full px-2 py-1.5 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                         placeholder="Ghi chú...">{{ $showroom->notes }}</textarea>
                 </div>
             </div>
-            <div class="mt-4 flex justify-end space-x-3">
-                <button type="submit" class="px-4 py-2 rounded bg-green-600 text-white hover:bg-green-700">
-                    <i class="fas fa-save mr-2"></i>Cập nhật
+            <div class="mt-3 flex justify-end space-x-2">
+                <button type="submit" class="px-3 py-1.5 text-sm rounded bg-green-600 text-white hover:bg-green-700">
+                    <i class="fas fa-save mr-1"></i>Cập nhật
                 </button>
-                <a href="{{ route('showrooms.index') }}" class="px-4 py-2 rounded bg-gray-600 text-white hover:bg-gray-700">
-                    <i class="fas fa-times mr-2"></i>Hủy
+                <a href="{{ route('showrooms.index') }}" class="px-3 py-1.5 text-sm rounded bg-gray-600 text-white hover:bg-gray-700">
+                    <i class="fas fa-times mr-1"></i>Hủy
                 </a>
             </div>
         </form>
@@ -131,12 +131,12 @@
             }
 
             bankDropdown.innerHTML = filtered.map(bank => `
-                                    <div class="px-4 py-2 hover:bg-blue-50 cursor-pointer border-b border-gray-100 last:border-b-0" 
+                                    <div class="px-2 py-1.5 hover:bg-blue-50 cursor-pointer border-b border-gray-100 last:border-b-0" 
                                          onclick="selectBank('${bank.shortName}', '${bank.name}')">
-                                        <div class="flex items-center space-x-3">
-                                            <img src="${bank.logo}" class="w-8 h-8 object-contain" alt="${bank.shortName}">
+                                        <div class="flex items-center space-x-2">
+                                            <img src="${bank.logo}" class="w-6 h-6 object-contain" alt="${bank.shortName}">
                                             <div>
-                                                <div class="font-medium text-sm">${bank.shortName}</div>
+                                                <div class="font-medium text-xs">${bank.shortName}</div>
                                                 <div class="text-xs text-gray-500">${bank.name}</div>
                                             </div>
                                         </div>
