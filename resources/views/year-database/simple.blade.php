@@ -13,76 +13,76 @@
 @endpush
 
 @section('content')
-    <div class="p-6 fade-in">
+    <div class="p-4 fade-in">
         <!-- Header -->
-        <div class="mb-6">
-            <h2 class="text-2xl font-bold text-gray-800 mb-2">
-                <i class="fas fa-database mr-2"></i>Backup & Restore Database
+        <div class="mb-4">
+            <h2 class="text-lg font-bold text-gray-800 mb-1">
+                <i class="fas fa-database mr-1"></i>Backup & Restore Database
             </h2>
-            <p class="text-gray-600">Export database để backup và Import để khôi phục dữ liệu</p>
+            <p class="text-xs text-gray-600">Export database để backup và Import để khôi phục dữ liệu</p>
         </div>
 
         <!-- Thông tin database hiện tại -->
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
-            <div class="bg-white rounded-lg shadow-md p-6 border-l-4 border-blue-500">
-                <div class="flex items-center justify-between mb-2">
-                    <h5 class="text-gray-700 font-semibold">
-                        <i class="fas fa-calendar-check mr-2"></i>Database Hiện Tại
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-3 mb-4">
+            <div class="bg-white rounded-lg shadow-md p-4 border-l-4 border-blue-500">
+                <div class="flex items-center justify-between mb-1">
+                    <h5 class="text-gray-700 text-xs font-semibold">
+                        <i class="fas fa-calendar-check mr-1"></i>Database Hiện Tại
                     </h5>
                 </div>
-                <h2 class="text-3xl font-bold text-blue-600 mb-2">{{ $currentYear->year ?? date('Y') }}</h2>
-                <p class="text-sm text-gray-600">Database: <code
-                        class="bg-gray-100 px-2 py-1 rounded">{{ $currentYear->database_name ?? env('DB_DATABASE') }}</code>
+                <h2 class="text-2xl font-bold text-blue-600 mb-1">{{ $currentYear->year ?? date('Y') }}</h2>
+                <p class="text-xs text-gray-600">Database: <code
+                        class="bg-gray-100 px-1.5 py-0.5 rounded text-xs">{{ $currentYear->database_name ?? env('DB_DATABASE') }}</code>
                 </p>
             </div>
 
-            <div class="bg-white rounded-lg shadow-md p-6 border-l-4 border-green-500">
-                <div class="flex items-center justify-between mb-2">
-                    <h5 class="text-gray-700 font-semibold">
-                        <i class="fas fa-file-archive mr-2"></i>File Backup
+            <div class="bg-white rounded-lg shadow-md p-4 border-l-4 border-green-500">
+                <div class="flex items-center justify-between mb-1">
+                    <h5 class="text-gray-700 text-xs font-semibold">
+                        <i class="fas fa-file-archive mr-1"></i>File Backup
                     </h5>
                 </div>
-                <h2 class="text-3xl font-bold text-green-600 mb-2">{{ $exportsCount }}</h2>
-                <p class="text-sm text-gray-600">file backup đã tạo</p>
+                <h2 class="text-2xl font-bold text-green-600 mb-1">{{ $exportsCount }}</h2>
+                <p class="text-xs text-gray-600">file backup đã tạo</p>
             </div>
         </div>
 
         <!-- Actions -->
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-3 mb-4">
             <!-- Export Card -->
             @hasPermission('year_database', 'can_export')
-                <div class="bg-white rounded-lg shadow-md p-6">
-                    <div class="flex items-center mb-4">
-                        <div class="bg-green-100 p-3 rounded-lg mr-4">
-                            <i class="fas fa-download text-2xl text-green-600"></i>
+                <div class="bg-white rounded-lg shadow-md p-4">
+                    <div class="flex items-center mb-3">
+                        <div class="bg-green-100 p-2 rounded-lg mr-3">
+                            <i class="fas fa-download text-lg text-green-600"></i>
                         </div>
                         <div>
-                            <h3 class="text-lg font-semibold text-gray-800">Export Database</h3>
-                            <p class="text-sm text-gray-600">Tạo file backup của database hiện tại</p>
+                            <h3 class="text-sm font-semibold text-gray-800">Export Database</h3>
+                            <p class="text-xs text-gray-600">Tạo file backup của database hiện tại</p>
                         </div>
                     </div>
                     <button onclick="openExportModal()"
-                        class="w-full px-4 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors font-semibold">
-                        <i class="fas fa-download mr-2"></i> Export Database
+                        class="w-full px-3 py-2 text-sm bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors font-semibold">
+                        <i class="fas fa-download mr-1"></i> Export Database
                     </button>
                 </div>
             @endhasPermission
 
             <!-- Import Card -->
             @hasPermission('year_database', 'can_import')
-                <div class="bg-white rounded-lg shadow-md p-6">
-                    <div class="flex items-center mb-4">
-                        <div class="bg-yellow-100 p-3 rounded-lg mr-4">
-                            <i class="fas fa-upload text-2xl text-yellow-600"></i>
+                <div class="bg-white rounded-lg shadow-md p-4">
+                    <div class="flex items-center mb-3">
+                        <div class="bg-yellow-100 p-2 rounded-lg mr-3">
+                            <i class="fas fa-upload text-lg text-yellow-600"></i>
                         </div>
                         <div>
-                            <h3 class="text-lg font-semibold text-gray-800">Import Database</h3>
-                            <p class="text-sm text-gray-600">Khôi phục database từ file backup</p>
+                            <h3 class="text-sm font-semibold text-gray-800">Import Database</h3>
+                            <p class="text-xs text-gray-600">Khôi phục database từ file backup</p>
                         </div>
                     </div>
                     <button onclick="openImportModal()"
-                        class="w-full px-4 py-3 bg-yellow-600 text-white rounded-lg hover:bg-yellow-700 transition-colors font-semibold">
-                        <i class="fas fa-upload mr-2"></i> Import Database
+                        class="w-full px-3 py-2 text-sm bg-yellow-600 text-white rounded-lg hover:bg-yellow-700 transition-colors font-semibold">
+                        <i class="fas fa-upload mr-1"></i> Import Database
                     </button>
                 </div>
             @endhasPermission
@@ -90,51 +90,51 @@
 
         <!-- Danh sách file backup -->
         <div class="bg-white rounded-lg shadow-md overflow-hidden">
-            <div class="bg-gradient-to-r from-blue-500 to-cyan-600 px-6 py-4">
-                <h5 class="text-white font-semibold text-lg">
-                    <i class="fas fa-list mr-2"></i>Danh Sách File Backup
+            <div class="bg-gradient-to-r from-blue-500 to-cyan-600 px-4 py-3">
+                <h5 class="text-white font-semibold text-sm">
+                    <i class="fas fa-list mr-1"></i>Danh Sách File Backup
                 </h5>
             </div>
             <div class="overflow-x-auto">
                 <table class="min-w-full divide-y divide-gray-200">
                     <thead class="bg-gray-50">
                         <tr>
-                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Tên
+                            <th class="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Tên
                                 File</th>
-                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Kích
+                            <th class="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Kích
                                 Thước</th>
-                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Mô Tả
+                            <th class="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Mô Tả
                             </th>
-                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Ngày
+                            <th class="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Ngày
                                 Tạo</th>
-                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Thao
+                            <th class="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Thao
                                 Tác</th>
                         </tr>
                     </thead>
                     <tbody class="bg-white divide-y divide-gray-200">
                         @forelse($exports as $export)
                             <tr class="hover:bg-gray-50">
-                                <td class="px-6 py-4">
-                                    <code class="bg-gray-100 px-2 py-1 rounded text-sm">{{ $export->filename }}</code>
+                                <td class="px-3 py-2">
+                                    <code class="bg-gray-100 px-1.5 py-0.5 rounded text-xs">{{ $export->filename }}</code>
                                 </td>
-                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
+                                <td class="px-3 py-2 whitespace-nowrap text-xs text-gray-600">
                                     {{ $export->file_size_formatted }}
                                 </td>
-                                <td class="px-6 py-4 text-sm text-gray-600">
+                                <td class="px-3 py-2 text-xs text-gray-600">
                                     {{ $export->description ?: '-' }}
                                 </td>
-                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                                <td class="px-3 py-2 whitespace-nowrap text-xs text-gray-500">
                                     {{ $export->exported_at->format('d/m/Y H:i') }}
                                 </td>
-                                <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                                    <div class="flex space-x-2">
+                                <td class="px-3 py-2 whitespace-nowrap text-xs font-medium">
+                                    <div class="flex space-x-1.5">
                                         <a href="{{ route('year.export.download', $export->id) }}"
-                                            class="inline-flex items-center px-3 py-1.5 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors">
+                                            class="inline-flex items-center px-2 py-1 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors">
                                             <i class="fas fa-download mr-1"></i> Tải
                                         </a>
                                         @hasPermission('year_database', 'can_delete')
                                             <button onclick="deleteExport({{ $export->id }})"
-                                                class="inline-flex items-center px-3 py-1.5 bg-red-600 text-white rounded-md hover:bg-red-700 transition-colors">
+                                                class="inline-flex items-center px-2 py-1 bg-red-600 text-white rounded-md hover:bg-red-700 transition-colors">
                                                 <i class="fas fa-trash mr-1"></i> Xóa
                                             </button>
                                         @endhasPermission
@@ -143,9 +143,9 @@
                             </tr>
                         @empty
                             <tr>
-                                <td colspan="5" class="px-6 py-8 text-center text-gray-500">
-                                    <i class="fas fa-inbox text-4xl mb-2"></i>
-                                    <p>Chưa có file backup nào</p>
+                                <td colspan="5" class="px-3 py-6 text-center text-gray-500">
+                                    <i class="fas fa-inbox text-3xl mb-2"></i>
+                                    <p class="text-sm">Chưa có file backup nào</p>
                                 </td>
                             </tr>
                         @endforelse
@@ -155,29 +155,29 @@
         </div>
 
         <!-- Hướng dẫn -->
-        <div class="mt-6 bg-white rounded-lg shadow-md overflow-hidden">
-            <div class="bg-gradient-to-r from-cyan-500 to-blue-600 px-6 py-4">
-                <h5 class="text-white font-semibold text-lg">
-                    <i class="fas fa-info-circle mr-2"></i>Hướng Dẫn Sử Dụng
+        <div class="mt-4 bg-white rounded-lg shadow-md overflow-hidden">
+            <div class="bg-gradient-to-r from-cyan-500 to-blue-600 px-4 py-3">
+                <h5 class="text-white font-semibold text-sm">
+                    <i class="fas fa-info-circle mr-1"></i>Hướng Dẫn Sử Dụng
                 </h5>
             </div>
-            <div class="p-6 space-y-4">
+            <div class="p-4 space-y-3">
                 <div>
-                    <h6 class="font-semibold text-gray-800 mb-2">1. Export Database (Backup):</h6>
-                    <p class="text-gray-600 text-sm">Click "Export Database" → Nhập mô tả (tùy chọn) → File sẽ được tạo
+                    <h6 class="font-semibold text-gray-800 text-xs mb-1">1. Export Database (Backup):</h6>
+                    <p class="text-gray-600 text-xs">Click "Export Database" → Nhập mô tả (tùy chọn) → File sẽ được tạo
                         và lưu vào hệ thống</p>
                 </div>
                 <div>
-                    <h6 class="font-semibold text-gray-800 mb-2">2. Import Database (Restore):</h6>
-                    <p class="text-gray-600 text-sm">Click "Import Database" → Chọn file SQL → Xác nhận → Dữ liệu hiện tại
+                    <h6 class="font-semibold text-gray-800 text-xs mb-1">2. Import Database (Restore):</h6>
+                    <p class="text-gray-600 text-xs">Click "Import Database" → Chọn file SQL → Xác nhận → Dữ liệu hiện tại
                         sẽ bị ghi đè</p>
                 </div>
                 <div>
-                    <h6 class="font-semibold text-gray-800 mb-2">3. Tải File Backup:</h6>
-                    <p class="text-gray-600 text-sm">Click nút "Tải" để download file backup về máy</p>
+                    <h6 class="font-semibold text-gray-800 text-xs mb-1">3. Tải File Backup:</h6>
+                    <p class="text-gray-600 text-xs">Click nút "Tải" để download file backup về máy</p>
                 </div>
-                <div class="p-3 bg-yellow-50 border border-yellow-200 rounded-md">
-                    <p class="text-sm text-yellow-800">
+                <div class="p-2 bg-yellow-50 border border-yellow-200 rounded-md">
+                    <p class="text-xs text-yellow-800">
                         <i class="fas fa-exclamation-triangle mr-1"></i>
                         <strong>Lưu ý:</strong> Import sẽ ghi đè toàn bộ dữ liệu hiện tại. Hãy export backup trước khi
                         import!
@@ -189,25 +189,25 @@
 
     <!-- Modal Export -->
     <div id="exportModal" class="hidden fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50">
-        <div class="relative top-20 mx-auto p-5 border w-96 shadow-lg rounded-md bg-white">
-            <div class="flex justify-between items-center mb-4">
-                <h3 class="text-lg font-semibold text-gray-900">Export Database</h3>
+        <div class="relative top-20 mx-auto p-4 border w-96 shadow-lg rounded-md bg-white">
+            <div class="flex justify-between items-center mb-3">
+                <h3 class="text-sm font-semibold text-gray-900">Export Database</h3>
                 <button onclick="closeModal('exportModal')" class="text-gray-400 hover:text-gray-600">
                     <i class="fas fa-times"></i>
                 </button>
             </div>
             <form id="exportForm">
-                <div class="mb-4">
-                    <label class="block text-sm font-medium text-gray-700 mb-2">Mô tả (tùy chọn)</label>
-                    <textarea name="description" rows="3"
-                        class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
+                <div class="mb-3">
+                    <label class="block text-xs font-medium text-gray-700 mb-1">Mô tả (tùy chọn)</label>
+                    <textarea name="description" rows="2"
+                        class="w-full px-2 py-1.5 text-sm border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
                         placeholder="VD: Backup trước khi cập nhật hệ thống"></textarea>
                 </div>
                 <div class="flex justify-end space-x-2">
                     <button type="button" onclick="closeModal('exportModal')"
-                        class="px-4 py-2 bg-gray-300 text-gray-700 rounded-md hover:bg-gray-400">Hủy</button>
+                        class="px-3 py-1.5 text-xs bg-gray-300 text-gray-700 rounded-md hover:bg-gray-400">Hủy</button>
                     <button type="button" onclick="handleExport()"
-                        class="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700">
+                        class="px-3 py-1.5 text-xs bg-green-600 text-white rounded-md hover:bg-green-700">
                         <i class="fas fa-download mr-1"></i> Export
                     </button>
                 </div>
@@ -217,22 +217,22 @@
 
     <!-- Modal Import -->
     <div id="importModal" class="hidden fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50">
-        <div class="relative top-20 mx-auto p-5 border w-96 shadow-lg rounded-md bg-white">
-            <div class="flex justify-between items-center mb-4">
-                <h3 class="text-lg font-semibold text-gray-900">Import Database</h3>
+        <div class="relative top-20 mx-auto p-4 border w-96 shadow-lg rounded-md bg-white">
+            <div class="flex justify-between items-center mb-3">
+                <h3 class="text-sm font-semibold text-gray-900">Import Database</h3>
                 <button onclick="closeModal('importModal')" class="text-gray-400 hover:text-gray-600">
                     <i class="fas fa-times"></i>
                 </button>
             </div>
             <form id="importForm" enctype="multipart/form-data">
-                <div class="mb-4">
-                    <label class="block text-sm font-medium text-gray-700 mb-2">File SQL</label>
+                <div class="mb-3">
+                    <label class="block text-xs font-medium text-gray-700 mb-1">File SQL</label>
                     <input type="file" name="file" id="import_file" accept=".sql,.gz" required
-                        class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500">
+                        class="w-full px-2 py-1.5 text-sm border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500">
                     <p class="mt-1 text-xs text-gray-500">Chấp nhận file .sql hoặc .sql.gz (Max 500MB)</p>
-                    <div id="file_info" class="mt-2 hidden p-2 bg-blue-50 border border-blue-200 rounded text-sm">
+                    <div id="file_info" class="mt-2 hidden p-2 bg-blue-50 border border-blue-200 rounded text-xs">
                         <div class="flex items-center text-blue-800">
-                            <i class="fas fa-file-alt mr-2"></i>
+                            <i class="fas fa-file-alt mr-1"></i>
                             <span id="file_name"></span>
                         </div>
                         <div class="text-blue-600 text-xs mt-1">
@@ -240,17 +240,17 @@
                         </div>
                     </div>
                 </div>
-                <div class="mb-4 p-3 bg-red-50 border border-red-200 rounded-md">
-                    <p class="text-sm text-red-800">
+                <div class="mb-3 p-2 bg-red-50 border border-red-200 rounded-md">
+                    <p class="text-xs text-red-800">
                         <i class="fas fa-exclamation-triangle mr-1"></i>
                         <strong>CẢNH BÁO:</strong> Import sẽ ghi đè TOÀN BỘ dữ liệu hiện tại!
                     </p>
                 </div>
                 <div class="flex justify-end space-x-2">
                     <button type="button" onclick="closeModal('importModal')"
-                        class="px-4 py-2 bg-gray-300 text-gray-700 rounded-md hover:bg-gray-400">Hủy</button>
+                        class="px-3 py-1.5 text-xs bg-gray-300 text-gray-700 rounded-md hover:bg-gray-400">Hủy</button>
                     <button type="button" onclick="handleImport()"
-                        class="px-4 py-2 bg-yellow-600 text-white rounded-md hover:bg-yellow-700">
+                        class="px-3 py-1.5 text-xs bg-yellow-600 text-white rounded-md hover:bg-yellow-700">
                         <i class="fas fa-upload mr-1"></i> Import
                     </button>
                 </div>
