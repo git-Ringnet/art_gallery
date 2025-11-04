@@ -155,7 +155,7 @@
             <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
                 <div>
                     <label class="block text-xs font-medium text-gray-700 mb-1">Khách trả (VND)</label>
-                    <input type="text" name="payment_amount" id="paid" class="w-full px-3 py-1.5 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500" value="0" oninput="formatVND(this)" onblur="formatVND(this)" onchange="calcDebt()" placeholder="Nhập số tiền...">
+                    <input type="text" name="payment_amount" id="paid" class="w-full px-3 py-1.5 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500" value="0" oninput="formatPaymentVND(this)" onblur="validateSalesPayment(this)" onchange="calcDebt()" placeholder="Nhập số tiền...">
                 </div>
                 <div>
                     <label class="block text-xs font-medium text-yellow-900 mb-1">Nợ cũ</label>
@@ -311,8 +311,7 @@ function addItem() {
          <td class="px-3 py-3 border">
             <select name="items[${idx}][currency]" class="w-full px-3 py-2 border border-gray-300 rounded-lg" onchange="togCur(this, ${idx})">
                 <option value="USD">USD</option>
-                <option value="VND">VND</option>
-                <option value="BOTH" selected>Cả 2</option>
+                <option value="VND" selected>VND</option>
             </select>
         </td>
         <td class="px-3 py-3 border">
@@ -533,12 +532,23 @@ function filterItems(query, idx) {
         // Add paintings section
         if (paintings.length > 0) {
             html += '<div class="px-3 py-1 bg-gray-100 text-xs font-bold text-gray-600">TRANH</div>';
-            html += paintings.map(p => `
-                <div class="px-3 py-2 hover:bg-blue-50 cursor-pointer border-b" onclick="selectPainting(${p.id}, ${idx})">
-                    <div class="font-medium text-sm">${p.code} - ${p.name}</div>
-                    <div class="text-xs text-gray-500">USD: ${p.price_usd || 0} | VND: ${(p.price_vnd || 0).toLocaleString()}đ</div>
-                </div>
-            `).join('');
+            html += paintings.map(p => {
+                const stock = p.quantity || 0;
+                const isOutOfStock = stock <= 0;
+                const bgClass = isOutOfStock ? 'bg-red-50 hover:bg-red-100' : 'hover:bg-blue-50';
+                const stockColor = isOutOfStock ? 'text-red-600 font-bold' : (stock < 5 ? 'text-orange-600' : 'text-green-600');
+                const stockText = isOutOfStock ? '❌ HẾT HÀNG' : `Tồn: ${stock}`;
+                
+                return `
+                    <div class="px-3 py-2 ${bgClass} cursor-pointer border-b" onclick="selectPainting(${p.id}, ${idx})">
+                        <div class="flex justify-between items-start">
+                            <div class="font-medium text-sm">${p.code} - ${p.name}</div>
+                            <span class="text-xs ${stockColor} ml-2 whitespace-nowrap">${stockText}</span>
+                        </div>
+                        <div class="text-xs text-gray-500">USD: ${p.price_usd || 0} | VND: ${(p.price_vnd || 0).toLocaleString()}đ</div>
+                    </div>
+                `;
+            }).join('');
         }
         
         // Add frames section
@@ -597,11 +607,47 @@ function selectPainting(paintingId, idx) {
                 vndInput.value = vndValue.toLocaleString('en-US');
             }
             
+            // Set currency dropdown to VND and hide USD input
+            const currencySelect = document.querySelector(`select[name="items[${idx}][currency]"]`);
+            if (currencySelect) {
+                currencySelect.value = 'VND';
+                // Trigger the togCur function to hide/show appropriate inputs
+                togCur(currencySelect, idx);
+            }
+            
             const imgUrl = painting.image ? `/storage/${painting.image}` : 'https://via.placeholder.com/80x60?text=No+Image';
             const imgElement = document.getElementById(`img-${idx}`);
             imgElement.src = imgUrl;
             imgElement.onclick = () => showImageModal(imgUrl, painting.name);
             imgElement.classList.add('cursor-pointer', 'hover:opacity-80', 'transition-opacity');
+            
+            // Kiểm tra tồn kho
+            const stock = painting.quantity || 0;
+            const itemSearchInput = document.getElementById(`item-search-${idx}`);
+            
+            if (stock <= 0) {
+                // Tranh hết hàng - cảnh báo
+                itemSearchInput.classList.add('border-red-500', 'bg-red-50');
+                itemSearchInput.title = '⚠️ Tranh này đã hết hàng!';
+                
+                if (typeof showWarning === 'function') {
+                    showWarning(itemSearchInput, '❌ Tranh "' + painting.name + '" đã HẾT HÀNG! Tồn kho: 0');
+                }
+                
+                // Thêm badge hết hàng vào input
+                itemSearchInput.value = `${painting.code} - ${painting.name} [HẾT HÀNG]`;
+            } else if (stock < 5) {
+                // Sắp hết hàng - cảnh báo nhẹ
+                itemSearchInput.classList.add('border-orange-400', 'bg-orange-50');
+                itemSearchInput.title = ' Tranh này  Còn: ' + stock;
+                
+                if (typeof showWarning === 'function') {
+                    showWarning(itemSearchInput, ' Tranh "' + painting.name + '"  Còn: ' + stock);
+                }
+            } else {
+                itemSearchInput.classList.remove('border-red-500', 'bg-red-50', 'border-orange-400', 'bg-orange-50');
+                itemSearchInput.title = '';
+            }
             
             document.getElementById(`item-suggestions-${idx}`).classList.add('hidden');
             calc();
@@ -628,6 +674,14 @@ function selectFrame(frameId, idx) {
             if (vndInput) {
                 const vndValue = parseInt(frame.cost_price) || 0;
                 vndInput.value = vndValue.toLocaleString('en-US');
+            }
+            
+            // Set currency dropdown to VND and hide USD input
+            const currencySelect = document.querySelector(`select[name="items[${idx}][currency]"]`);
+            if (currencySelect) {
+                currencySelect.value = 'VND';
+                // Trigger the togCur function to hide/show appropriate inputs
+                togCur(currencySelect, idx);
             }
             
             // Clear image for frame
@@ -739,9 +793,32 @@ function calcDebt() {
     const totTxt = document.getElementById('total_vnd').value.replace(/[^\d]/g, '');
     const tot = parseFloat(totTxt) || 0;
     const paidVal = unformatNumber(document.getElementById('paid').value);
-    const paid = parseFloat(paidVal) || 0;
-    const debt = Math.max(0, tot - paid);
+    let paid = parseFloat(paidVal) || 0;
     
+    const paidInput = document.getElementById('paid');
+    
+    // Nếu số tiền trả vượt quá tổng tiền, tự động cắt về tổng tiền
+    if (paid > tot) {
+        paid = tot;
+        if (paidInput) {
+            paidInput.value = tot.toLocaleString('en-US');
+            paidInput.classList.add('border-orange-500', 'bg-orange-50');
+            paidInput.title = 'Số tiền đã được tự động điều chỉnh về tổng tiền hóa đơn';
+            if (typeof showWarning === 'function') {
+                showWarning(paidInput, 'Số tiền trả đã được tự động điều chỉnh về tổng tiền: ' + tot.toLocaleString('en-US') + 'đ');
+            }
+            // Xóa màu cảnh báo sau 2 giây
+            setTimeout(() => {
+                paidInput.classList.remove('border-orange-500', 'bg-orange-50');
+                paidInput.title = '';
+            }, 2000);
+        }
+    } else if (paidInput) {
+        paidInput.classList.remove('border-red-500', 'bg-red-50', 'border-orange-500', 'bg-orange-50');
+        paidInput.title = '';
+    }
+    
+    const debt = Math.max(0, tot - paid);
     document.getElementById('debt').value = debt.toLocaleString('vi-VN') + 'đ';
 }
 
@@ -813,6 +890,8 @@ document.addEventListener('keydown', function(event) {
         closeImageModal();
     }
 });
+
+// Form validation không cần thiết nữa vì số tiền đã tự động điều chỉnh
 </script>
 
 
