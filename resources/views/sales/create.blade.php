@@ -56,7 +56,7 @@
                 <span class="bg-green-500 text-white w-7 h-7 rounded-full flex items-center justify-center mr-2 text-sm">2</span>
                 Thông tin khách hàng
             </h3>
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-3 mb-3">
+            <div class="grid grid-cols-1 gap-3 mb-3">
                 <div class="relative">
                     <label class="block text-xs font-medium text-gray-700 mb-1">Tên khách hàng <span class="text-red-500">*</span></label>
                     <input type="text" 
@@ -66,23 +66,26 @@
                            class="w-full px-3 py-1.5 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500"
                            placeholder="Nhập tên khách hàng..."
                            autocomplete="off"
-                           onkeyup="filterCustomers(this.value)">
+                           onkeyup="filterCustomers(this.value)"
+                           onfocus="showAllCustomers()"
+                           onclick="showAllCustomers()">
                     <input type="hidden" name="customer_id" id="customer_id">
                     <div id="customer-suggestions" class="absolute z-10 w-full bg-white border border-gray-300 rounded-lg mt-1 max-h-60 overflow-y-auto hidden shadow-lg"></div>
                 </div>
+            </div>
+            <!-- Các trường ẩn sẽ hiển thị khi chọn khách hàng -->
+            <div id="customer-details" class="grid grid-cols-1 md:grid-cols-3 gap-3 hidden">
                 <div>
                     <label class="block text-xs font-medium text-gray-700 mb-1">Số điện thoại <span class="text-red-500">*</span></label>
-                    <input type="tel" name="customer_phone" id="customer_phone" required class="w-full px-3 py-1.5 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500" placeholder="Nhập số điện thoại...">
+                    <input type="tel" name="customer_phone" id="customer_phone" required readonly class="w-full px-3 py-1.5 text-sm border border-gray-300 rounded-lg bg-gray-50 focus:ring-2 focus:ring-green-500" placeholder="Tự động điền...">
                 </div>
-            </div>
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
                 <div>
                     <label class="block text-xs font-medium text-gray-700 mb-1">Email</label>
-                    <input type="email" name="customer_email" id="customer_email" class="w-full px-3 py-1.5 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500" placeholder="Nhập email (không bắt buộc)">
+                    <input type="email" name="customer_email" id="customer_email" readonly class="w-full px-3 py-1.5 text-sm border border-gray-300 rounded-lg bg-gray-50 focus:ring-2 focus:ring-green-500" placeholder="Tự động điền...">
                 </div>
                 <div>
                     <label class="block text-xs font-medium text-gray-700 mb-1">Địa chỉ</label>
-                    <input type="text" name="customer_address" id="customer_address" class="w-full px-3 py-1.5 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500" placeholder="Nhập địa chỉ (không bắt buộc)">
+                    <input type="text" name="customer_address" id="customer_address" readonly class="w-full px-3 py-1.5 text-sm border border-gray-300 rounded-lg bg-gray-50 focus:ring-2 focus:ring-green-500" placeholder="Tự động điền...">
                 </div>
             </div>
         </div>
@@ -226,6 +229,27 @@ function filterCustomers(query) {
     }
 }
 
+// Hiển thị tất cả khách hàng khi hover/focus
+function showAllCustomers() {
+    const suggestions = document.getElementById('customer-suggestions');
+    const input = document.getElementById('customer_name');
+    
+    // Nếu đã có khách hàng được chọn, không hiển thị dropdown
+    if (document.getElementById('customer_id').value) {
+        return;
+    }
+    
+    if (customers.length > 0) {
+        suggestions.innerHTML = customers.map(c => `
+            <div class="px-3 py-2 hover:bg-blue-50 cursor-pointer border-b" onclick="selectCustomer(${c.id})">
+                <div class="font-medium">${c.name}</div>
+                <div class="text-xs text-gray-500">${c.phone}</div>
+            </div>
+        `).join('');
+        suggestions.classList.remove('hidden');
+    }
+}
+
 function selectCustomer(id) {
     const customer = customers.find(c => c.id == id);
     if (customer) {
@@ -235,6 +259,9 @@ function selectCustomer(id) {
         document.getElementById('customer_email').value = customer.email || '';
         document.getElementById('customer_address').value = customer.address || '';
         document.getElementById('customer-suggestions').classList.add('hidden');
+        
+        // Hiển thị các trường thông tin khách hàng
+        document.getElementById('customer-details').classList.remove('hidden');
         
         // Load công nợ hiện tại
         loadCurrentDebt(customer.id);
