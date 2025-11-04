@@ -213,6 +213,25 @@
                         </div>
                     </div>
                     
+                    <!-- Payment Section (chỉ hiện khi đổi hàng và khách phải trả thêm) -->
+                    <div id="payment-section" class="hidden border-t pt-3">
+                        <label class="block text-xs font-medium text-gray-700 mb-1">Khách trả thêm (VND)</label>
+                        <input type="text" name="payment_amount" id="payment-amount" class="w-full px-3 py-1.5 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500" value="0" oninput="formatPaymentVND(this)" onblur="formatPaymentVND(this)" onchange="updatePaymentSummary()" placeholder="Nhập số tiền khách trả...">
+                        
+                        <div class="mt-2 p-2 bg-blue-50 rounded-lg border border-blue-200">
+                            <div class="flex justify-between text-xs">
+                                <span class="text-gray-600">Tổng phải trả:</span>
+                                <span id="payment-total" class="font-semibold text-blue-600">0đ</span>
+                            </div>
+                            <div class="flex justify-between text-xs mt-1">
+                                <span class="text-gray-600">Còn nợ:</span>
+                                <span id="payment-debt" class="font-semibold text-red-600">0đ</span>
+                            </div>
+                        </div>
+                        
+                        <input type="hidden" name="payment_method" value="cash">
+                    </div>
+                    
                     <div class="flex gap-2 pt-3">
                         <button type="submit" class="flex-1 bg-blue-600 text-white py-1.5 px-3 text-sm rounded-lg hover:bg-blue-700">
                             <i class="fas fa-save mr-1"></i>Lưu
@@ -641,6 +660,38 @@ function updateSummary() {
             document.getElementById('refund-note').className = 'text-xs text-gray-500 italic';
         }
     }
+    
+    // Hiển thị payment section nếu đổi hàng và khách phải trả thêm
+    const paymentSection = document.getElementById('payment-section');
+    if (type === 'exchange' && exchangeAmount > 0) {
+        paymentSection.classList.remove('hidden');
+        document.getElementById('payment-total').textContent = exchangeAmount.toLocaleString('vi-VN') + 'đ';
+        updatePaymentSummary();
+    } else {
+        paymentSection.classList.add('hidden');
+    }
+}
+
+// Format VND for payment input
+function formatPaymentVND(input) {
+    let value = input.value.replace(/[^\d]/g, '');
+    if (value) {
+        input.value = parseInt(value).toLocaleString('vi-VN');
+    } else {
+        input.value = '0';
+    }
+}
+
+// Update payment summary
+function updatePaymentSummary() {
+    const paymentInput = document.getElementById('payment-amount');
+    const paymentAmount = parseInt(paymentInput.value.replace(/[^\d]/g, '')) || 0;
+    
+    const totalText = document.getElementById('payment-total').textContent;
+    const totalAmount = parseInt(totalText.replace(/[^\d]/g, '')) || 0;
+    
+    const debt = Math.max(0, totalAmount - paymentAmount);
+    document.getElementById('payment-debt').textContent = debt.toLocaleString('vi-VN') + 'đ';
 }
 
 function updateReturnType() {

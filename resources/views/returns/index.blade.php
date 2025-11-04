@@ -87,6 +87,7 @@
                     <th class="px-2 py-2 text-left text-xs">Sản phẩm</th>
                     <th class="px-2 py-2 text-right text-xs">SL</th>
                     <th class="px-2 py-2 text-right text-xs whitespace-nowrap">Tiền hoàn</th>
+                    <th class="px-2 py-2 text-right text-xs whitespace-nowrap">Đã trả</th>
                     <th class="px-2 py-2 text-left text-xs">TT</th>
                     <th class="px-2 py-2 text-center text-xs">Thao tác</th>
                 </tr>
@@ -153,6 +154,23 @@
                             @endif
                         @else
                             <span class="font-semibold text-red-600">{{ number_format($return->total_refund, 0, ',', '.') }}đ</span>
+                        @endif
+                    </td>
+                    <td class="px-2 py-2 whitespace-nowrap text-xs text-right">
+                        @if($return->type == 'exchange' && $return->exchange_amount > 0)
+                            @php
+                                $exchangePayments = $return->sale->payments()
+                                    ->where('transaction_type', 'exchange_payment')
+                                    ->where('notes', 'like', "%{$return->return_code}%")
+                                    ->sum('amount');
+                            @endphp
+                            @if($exchangePayments > 0)
+                                <span class="font-semibold text-green-600">{{ number_format($exchangePayments, 0, ',', '.') }}đ</span>
+                            @else
+                                <span class="text-gray-400">-</span>
+                            @endif
+                        @else
+                            <span class="text-gray-400">-</span>
                         @endif
                     </td>
                     <td class="px-2 py-2 whitespace-nowrap">

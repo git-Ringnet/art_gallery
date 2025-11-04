@@ -196,7 +196,7 @@
                                     <span class="px-1.5 py-0.5 bg-orange-100 text-orange-700 text-xs rounded-full font-semibold whitespace-nowrap">
                                         Trả Hàng
                                     </span>
-                                @elseif($transactionType === 'exchange')
+                                @elseif($transactionType === 'exchange' || $transactionType === 'exchange_payment')
                                     <span class="px-1.5 py-0.5 bg-purple-100 text-purple-700 text-xs rounded-full font-semibold whitespace-nowrap">
                                         Đổi Hàng
                                     </span>

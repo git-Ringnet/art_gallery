@@ -267,7 +267,7 @@
                             <span class="px-3 py-1 bg-orange-100 text-orange-700 text-xs font-semibold rounded-full">
                                 Trả hàng
                             </span>
-                        @elseif($transactionType === 'exchange')
+                        @elseif($transactionType === 'exchange' || $transactionType === 'exchange_payment')
                             <span class="px-3 py-1 bg-purple-100 text-purple-700 text-xs font-semibold rounded-full">
                                 Đổi hàng
                             </span>

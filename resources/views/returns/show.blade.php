@@ -50,6 +50,60 @@
         </div>
     </div>
 
+    <!-- Payment Status Alert for Exchange -->
+    @if($return->type == 'exchange' && $return->exchange_amount > 0)
+        @php
+            // Kiểm tra xem có thông tin payment trong notes không
+            $hasPendingPayment = strpos($return->notes, '[PAYMENT_INFO]') !== false;
+            
+            // Tính số tiền đã trả cho phiếu đổi hàng này
+            $exchangePayments = $return->sale->payments()
+                ->where('transaction_type', 'exchange_payment')
+                ->where('notes', 'like', "%{$return->return_code}%")
+                ->sum('amount');
+        @endphp
+        
+        @if($return->status == 'pending' && $hasPendingPayment)
+        <div class="mb-4 p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
+            <div class="flex items-center">
+                <i class="fas fa-info-circle text-yellow-600 mr-2"></i>
+                <div>
+                    <h4 class="font-semibold text-sm text-yellow-800">Thông báo về thanh toán</h4>
+                    <p class="text-xs text-yellow-700 mt-1">
+                        Khách hàng cần trả thêm <strong>{{ number_format($return->exchange_amount, 0, ',', '.') }}đ</strong> cho đơn đổi hàng này.
+                        <br>Số tiền sẽ được cập nhật vào phiếu bán hàng khi phiếu đổi hàng được <strong>duyệt và hoàn thành</strong>.
+                    </p>
+                </div>
+            </div>
+        </div>
+        @elseif($return->status == 'approved' && $exchangePayments == 0)
+        <div class="mb-4 p-3 bg-blue-50 border border-blue-200 rounded-lg">
+            <div class="flex items-center">
+                <i class="fas fa-check-circle text-blue-600 mr-2"></i>
+                <div>
+                    <h4 class="font-semibold text-sm text-blue-800">Phiếu đã được duyệt</h4>
+                    <p class="text-xs text-blue-700 mt-1">
+                        Phiếu đổi hàng đã được duyệt. Khi hoàn thành, số tiền <strong>{{ number_format($return->exchange_amount, 0, ',', '.') }}đ</strong> 
+                        sẽ được cập nhật vào phiếu bán hàng.
+                    </p>
+                </div>
+            </div>
+        </div>
+        @elseif($return->status == 'completed' && $exchangePayments > 0)
+        <div class="mb-4 p-3 bg-green-50 border border-green-200 rounded-lg">
+            <div class="flex items-center">
+                <i class="fas fa-check-double text-green-600 mr-2"></i>
+                <div>
+                    <h4 class="font-semibold text-sm text-green-800">Đã hoàn thành thanh toán</h4>
+                    <p class="text-xs text-green-700 mt-1">
+                        Số tiền <strong>{{ number_format($exchangePayments, 0, ',', '.') }}đ</strong> đã được cập nhật vào phiếu bán hàng.
+                    </p>
+                </div>
+            </div>
+        </div>
+        @endif
+    @endif
+
     <!-- Return Info -->
     <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
         <!-- Left Column -->
@@ -145,14 +199,14 @@
             <!-- Returned Items -->
             <div class="border rounded-lg p-3 bg-red-50">
                 <h4 class="font-medium mb-2 text-sm text-red-800">
-                    <i class="fas fa-arrow-left mr-1"></i>SP trả lại
+                    <i class="fas fa-arrow-left mr-1"></i>Sản phẩm trả lại
                 </h4>
                 <div class="overflow-x-auto">
                     <table class="w-full text-xs">
                         <thead class="bg-white border-b">
                             <tr>
                                 <th class="px-1 py-1.5 text-left text-xs">Hình ảnh</th>
-                                <th class="px-1 py-1.5 text-left text-xs">Sán phẩm</th>
+                                <th class="px-1 py-1.5 text-left text-xs">Sản phẩm</th>
                                 <th class="px-1 py-1.5 text-left text-xs">Vật tư</th>
                                 <th class="px-1 py-1.5 text-center text-xs">Mét</th>
                                 <th class="px-1 py-1.5 text-center text-xs">Số lượng</th>
@@ -185,9 +239,9 @@
                                     </p>
                                     <p class="text-xs text-gray-600">
                                         @if($item->item_type === 'painting')
-                                            <span class="px-1 py-0.5 rounded-full bg-purple-100 text-purple-800">T</span>
+                                            <span class="px-1 py-0.5 rounded-full bg-purple-100 text-purple-800">Tranh</span>
                                         @else
-                                            <span class="px-1 py-0.5 rounded-full bg-blue-100 text-blue-800">VT</span>
+                                            <span class="px-1 py-0.5 rounded-full bg-blue-100 text-blue-800">Vật tư</span>
                                         @endif
                                     </p>
                                 </td>
@@ -229,20 +283,36 @@
                         <span>Tổng trả:</span>
                         <span class="text-red-600">{{ number_format($return->total_refund, 0, ',', '.') }}đ</span>
                     </div>
+                    @if($return->type == 'exchange')
+                    @php
+                        // Lấy tổng số tiền đã trả ban đầu cho hóa đơn gốc (trước khi đổi hàng)
+                        $sale = $return->sale;
+                        $initialPayments = $sale->payments()
+                            ->where('transaction_type', '!=', 'exchange_payment')
+                            ->where('created_at', '<', $return->created_at)
+                            ->sum('amount');
+                    @endphp
+                    @if($initialPayments > 0)
+                    <div class="flex justify-between text-xs mt-1">
+                        <span class="text-gray-600">Đã trả (ban đầu):</span>
+                        <span class="font-semibold text-green-600">{{ number_format($initialPayments, 0, ',', '.') }}đ</span>
+                    </div>
+                    @endif
+                    @endif
                 </div>
             </div>
             
             <!-- Exchange Arrow -->
             <div class="hidden lg:flex items-center justify-center absolute left-1/2 transform -translate-x-1/2 z-10">
                 <div class="bg-blue-600 text-white rounded-full p-4 shadow-lg">
-                    <i class="fas fa-exchange-alt text-2xl"></i>
+                    <i class="fas fa-exchange-alt text-sm"></i>
                 </div>
             </div>
             
             <!-- Exchange Items -->
             <div class="border rounded-lg p-3 bg-green-50">
                 <h4 class="font-medium mb-2 text-sm text-green-800">
-                    <i class="fas fa-arrow-right mr-1"></i>SP đổi mới
+                    <i class="fas fa-arrow-right mr-1"></i>Sản phẩm đổi mới
                 </h4>
                 @if($return->exchangeItems->count() > 0)
                 <div class="overflow-x-auto">
@@ -283,9 +353,9 @@
                                     </p>
                                     <p class="text-xs text-gray-600">
                                         @if($item->item_type === 'painting')
-                                            <span class="px-1 py-0.5 rounded-full bg-purple-100 text-purple-800">T</span>
+                                            <span class="px-1 py-0.5 rounded-full bg-purple-100 text-purple-800">Tranh</span>
                                         @else
-                                            <span class="px-1 py-0.5 rounded-full bg-blue-100 text-blue-800">VT</span>
+                                            <span class="px-1 py-0.5 rounded-full bg-blue-100 text-blue-800">Vật tư</span>
                                         @endif
                                     </p>
                                 </td>
@@ -323,6 +393,19 @@
                         <span>Tổng đổi:</span>
                         <span class="text-green-600">{{ number_format($return->exchangeItems->sum('subtotal'), 0, ',', '.') }}đ</span>
                     </div>
+                    @php
+                        // Tính số tiền đã trả cho phiếu đổi hàng này
+                        $exchangePayments = $return->sale->payments()
+                            ->where('transaction_type', 'exchange_payment')
+                            ->where('notes', 'like', "%{$return->return_code}%")
+                            ->sum('amount');
+                    @endphp
+                    @if($exchangePayments > 0)
+                    <div class="flex justify-between text-xs mt-1">
+                        <span class="text-gray-600">Đã trả:</span>
+                        <span class="font-semibold text-green-600">{{ number_format($exchangePayments, 0, ',', '.') }}đ</span>
+                    </div>
+                    @endif
                 </div>
                 @else
                 <div class="text-center text-gray-500 py-3">
@@ -345,6 +428,30 @@
                     @endif
                 </span>
             </div>
+            
+            @if($return->exchange_amount > 0)
+            @php
+                // Tính số tiền đã trả cho phiếu đổi hàng này
+                $exchangePayments = $return->sale->payments()
+                    ->where('transaction_type', 'exchange_payment')
+                    ->where('notes', 'like', "%{$return->return_code}%")
+                    ->sum('amount');
+                $remainingDebt = $return->exchange_amount - $exchangePayments;
+            @endphp
+            
+            @if($exchangePayments > 0)
+            <div class="mt-2 pt-2 border-t border-blue-300">
+                <div class="flex justify-between text-xs">
+                    <span class="text-gray-600">Đã trả:</span>
+                    <span class="font-semibold text-green-600">{{ number_format($exchangePayments, 0, ',', '.') }}đ</span>
+                </div>
+                <div class="flex justify-between text-xs mt-1">
+                    <span class="text-gray-600">Còn nợ:</span>
+                    <span class="font-semibold text-red-600">{{ number_format($remainingDebt, 0, ',', '.') }}đ</span>
+                </div>
+            </div>
+            @endif
+            @endif
         </div>
         @endif
         
