@@ -95,7 +95,7 @@
                         class="w-full px-2 py-1.5 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
                 </div>
                 <div>
-                    <label class="block text-xs font-medium text-gray-700 mb-1">Ảnh tranh</label>
+                    <label class="block text-xs font-medium text-gray-700 mb-1">Ảnh tranh (2Mb)</label>
                     <input id="painting-image-input" type="file" name="image" accept="image/*"
                         class="w-full px-2 py-1.5 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white">
                     <div id="painting-image-preview-wrap" class="mt-2 hidden">

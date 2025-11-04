@@ -15,11 +15,13 @@ class DatabaseExport extends Model
         'description',
         'exported_by',
         'exported_at',
+        'is_encrypted',
     ];
 
     protected $casts = [
         'exported_at' => 'datetime',
         'file_size' => 'integer',
+        'is_encrypted' => 'boolean',
     ];
 
     /**

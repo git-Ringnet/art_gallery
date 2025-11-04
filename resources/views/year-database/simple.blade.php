@@ -103,6 +103,7 @@
                                 File</th>
                             <th class="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Kích
                                 Thước</th>
+                            <th class="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Bảo Mật</th>
                             <th class="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Mô Tả
                             </th>
                             <th class="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Ngày
@@ -119,6 +120,17 @@
                                 </td>
                                 <td class="px-3 py-2 whitespace-nowrap text-xs text-gray-600">
                                     {{ $export->file_size_formatted }}
+                                </td>
+                                <td class="px-3 py-2 whitespace-nowrap text-xs">
+                                    @if($export->is_encrypted)
+                                        <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                                            <i class="fas fa-lock mr-1"></i> Mã hóa
+                                        </span>
+                                    @else
+                                        <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-600">
+                                            <i class="fas fa-unlock mr-1"></i> Thường
+                                        </span>
+                                    @endif
                                 </td>
                                 <td class="px-3 py-2 text-xs text-gray-600">
                                     {{ $export->description ?: '-' }}
@@ -143,7 +155,7 @@
                             </tr>
                         @empty
                             <tr>
-                                <td colspan="5" class="px-3 py-6 text-center text-gray-500">
+                                <td colspan="6" class="px-3 py-6 text-center text-gray-500">
                                     <i class="fas fa-inbox text-3xl mb-2"></i>
                                     <p class="text-sm">Chưa có file backup nào</p>
                                 </td>
@@ -164,16 +176,20 @@
             <div class="p-4 space-y-3">
                 <div>
                     <h6 class="font-semibold text-gray-800 text-xs mb-1">1. Export Database (Backup):</h6>
-                    <p class="text-gray-600 text-xs">Click "Export Database" → Nhập mô tả (tùy chọn) → File sẽ được tạo
+                    <p class="text-gray-600 text-xs">Click "Export Database" → Nhập mô tả (tùy chọn) → Chọn mã hóa nếu cần → File sẽ được tạo
                         và lưu vào hệ thống</p>
                 </div>
                 <div>
-                    <h6 class="font-semibold text-gray-800 text-xs mb-1">2. Import Database (Restore):</h6>
-                    <p class="text-gray-600 text-xs">Click "Import Database" → Chọn file SQL → Xác nhận → Dữ liệu hiện tại
+                    <h6 class="font-semibold text-gray-800 text-xs mb-1">2. Mã Hóa File Backup:</h6>
+                    <p class="text-gray-600 text-xs">Tick vào "Mã hóa file backup" khi export để bảo vệ dữ liệu bằng AES-256. File chỉ import được với cùng APP_KEY</p>
+                </div>
+                <div>
+                    <h6 class="font-semibold text-gray-800 text-xs mb-1">3. Import Database (Restore):</h6>
+                    <p class="text-gray-600 text-xs">Click "Import Database" → Chọn file SQL (tự động giải mã nếu bị mã hóa) → Xác nhận → Dữ liệu hiện tại
                         sẽ bị ghi đè</p>
                 </div>
                 <div>
-                    <h6 class="font-semibold text-gray-800 text-xs mb-1">3. Tải File Backup:</h6>
+                    <h6 class="font-semibold text-gray-800 text-xs mb-1">4. Tải File Backup:</h6>
                     <p class="text-gray-600 text-xs">Click nút "Tải" để download file backup về máy</p>
                 </div>
                 <div class="p-2 bg-yellow-50 border border-yellow-200 rounded-md">
@@ -202,6 +218,15 @@
                     <textarea name="description" rows="2"
                         class="w-full px-2 py-1.5 text-sm border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
                         placeholder="VD: Backup trước khi cập nhật hệ thống"></textarea>
+                </div>
+                <div class="mb-3">
+                    <label class="flex items-center cursor-pointer">
+                        <input type="checkbox" name="encrypt" id="encrypt_checkbox" value="1"
+                            class="w-4 h-4 text-green-600 border-gray-300 rounded focus:ring-green-500">
+                        <span class="ml-2 text-xs text-gray-700">
+                            <i class="fas fa-lock mr-1"></i>Mã hóa file backup (bảo mật cao)
+                        </span>
+                    </label>
                 </div>
                 <div class="flex justify-end space-x-2">
                     <button type="button" onclick="closeModal('exportModal')"
@@ -301,8 +326,15 @@
             const form = document.getElementById('exportForm');
             const formData = new FormData(form);
             formData.append('year', {{ $currentYear->year ?? date('Y') }});
+            
+            const encryptCheckbox = document.getElementById('encrypt_checkbox');
+            formData.append('encrypt', encryptCheckbox.checked ? '1' : '0');
 
-            if (!confirm('Xác nhận export database hiện tại?')) {
+            const confirmMsg = encryptCheckbox.checked 
+                ? 'Xác nhận export database hiện tại?\n\n File sẽ được MÃ HÓA'
+                : 'Xác nhận export database hiện tại?';
+
+            if (!confirm(confirmMsg)) {
                 return;
             }
 

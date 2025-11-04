@@ -7,7 +7,6 @@ use App\Models\YearDatabase;
 use App\Models\DatabaseExport;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
-use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 
 class YearDatabaseController extends Controller
@@ -96,6 +95,7 @@ class YearDatabaseController extends Controller
         $request->validate([
             'year' => 'required|integer',
             'description' => 'nullable|string|max:500',
+            'encrypt' => 'nullable|boolean', // Có mã hóa không
         ]);
 
         $year = $request->year;
@@ -167,21 +167,42 @@ class YearDatabaseController extends Controller
                 ], 500);
             }
 
+            // Mã hóa file nếu được yêu cầu
+            $isEncrypted = $request->input('encrypt', false);
+            if ($isEncrypted) {
+                try {
+                    $encryptedPath = \App\Services\DatabaseEncryptionService::encrypt($fullPath);
+                    
+                    // Xóa file SQL gốc, chỉ giữ file encrypted
+                    unlink($fullPath);
+                    
+                    // Đổi tên file encrypted thành tên gốc
+                    rename($encryptedPath, $fullPath);
+                    
+                    Log::info("File đã được mã hóa: {$fullPath}");
+                } catch (\Exception $e) {
+                    Log::error("Lỗi mã hóa file: " . $e->getMessage());
+                    // Tiếp tục với file không mã hóa
+                }
+            }
+
             // Cập nhật kích thước file
             $fileSize = filesize($fullPath);
             $export->update([
                 'file_size' => $fileSize,
                 'status' => 'completed',
+                'is_encrypted' => $isEncrypted,
             ]);
 
             return response()->json([
                 'success' => true,
-                'message' => "Export database năm {$year} thành công",
+                'message' => "Export database năm {$year} thành công" . ($isEncrypted ? ' (đã mã hóa)' : ''),
                 'export' => [
                     'id' => $export->id,
                     'filename' => $export->filename,
                     'file_size' => $export->file_size_formatted,
                     'exported_at' => $export->exported_at->format('d/m/Y H:i:s'),
+                    'is_encrypted' => $isEncrypted,
                 ],
             ]);
         } catch (\Exception $e) {
@@ -254,7 +275,6 @@ class YearDatabaseController extends Controller
             ], 400);
         }
 
-        $tempPath = null;
         $fullPath = null;
         $unzippedPath = null;
 
@@ -284,6 +304,24 @@ class YearDatabaseController extends Controller
             }
 
             Log::info("File đã được lưu tại: {$fullPath}");
+
+            // Kiểm tra và giải mã nếu file bị mã hóa
+            if (\App\Services\DatabaseEncryptionService::isEncrypted($fullPath)) {
+                Log::info("File bị mã hóa, đang giải mã...");
+                try {
+                    $decryptedPath = $fullPath . '.decrypted';
+                    \App\Services\DatabaseEncryptionService::decrypt($fullPath, $decryptedPath);
+                    
+                    // Xóa file encrypted, dùng file decrypted
+                    unlink($fullPath);
+                    rename($decryptedPath, $fullPath);
+                    
+                    Log::info("File đã được giải mã thành công");
+                } catch (\Exception $e) {
+                    Log::error("Lỗi giải mã file: " . $e->getMessage());
+                    throw new \Exception('File bị mã hóa nhưng không thể giải mã. Key có thể không đúng.');
+                }
+            }
 
             // Giải nén nếu là .gz
             if (str_ends_with(strtolower($filename), '.gz')) {
