@@ -226,22 +226,18 @@ class ReturnController extends Controller
                 ];
             }
 
-            // LOGIC MỚI: Chỉ hoàn nếu đã trả > tổng mới
+            // LOGIC ĐÚNG: Tính theo tỷ lệ đã trả
             $paidAmount = $sale->paid_amount;
             $currentTotal = $sale->total_vnd;
-            
-            // Tính tổng mới sau khi trừ hàng trả
-            $newTotal = $currentTotal - $totalReturnValue;
-            
-            // Chỉ hoàn nếu đã trả > tổng mới
-            if ($paidAmount > $newTotal) {
-                $totalRefund = $paidAmount - $newTotal;
-            } else {
-                $totalRefund = 0;
-            }
-
-            // Calculate exchange amount if type is exchange
             $type = $request->input('type', 'return');
+            
+            // Tính tỷ lệ đã trả của hóa đơn
+            $paidRatio = $currentTotal > 0 ? ($paidAmount / $currentTotal) : 0;
+            
+            // Tính số tiền đã trả cho các sản phẩm đang trả
+            $paidForReturnedItems = $totalReturnValue * $paidRatio;
+            
+            $totalRefund = 0;
             $exchangeAmount = null;
             $exchangeItemsData = [];
             
@@ -283,7 +279,22 @@ class ReturnController extends Controller
                         'subtotal' => $subtotal,
                     ];
                 }
-                $exchangeAmount = $totalExchange - $totalRefund;
+                
+                // Tính chênh lệch giữa giá SP mới và số tiền đã trả cho SP cũ
+                $difference = $totalExchange - $paidForReturnedItems;
+                
+                if ($difference > 0) {
+                    // Khách trả thêm
+                    $exchangeAmount = $difference;
+                    $totalRefund = 0;
+                } else {
+                    // Hoàn lại khách
+                    $exchangeAmount = 0;
+                    $totalRefund = abs($difference);
+                }
+            } else {
+                // Trả hàng thuần túy: Hoàn số tiền đã trả cho SP này
+                $totalRefund = $paidForReturnedItems;
             }
 
             // Create return record
@@ -437,12 +448,18 @@ class ReturnController extends Controller
                 ]);
             }
 
-            // Calculate actual refund (limited by paid amount)
+            // LOGIC ĐÚNG: Tính theo tỷ lệ đã trả
             $paidAmount = $sale->paid_amount;
-            $totalRefund = min($totalReturnValue, $paidAmount);
-
-            // Handle exchange items if type is exchange
+            $currentTotal = $sale->total_vnd;
             $type = $request->input('type', 'return');
+            
+            // Tính tỷ lệ đã trả của hóa đơn
+            $paidRatio = $currentTotal > 0 ? ($paidAmount / $currentTotal) : 0;
+            
+            // Tính số tiền đã trả cho các sản phẩm đang trả
+            $paidForReturnedItems = $totalReturnValue * $paidRatio;
+            
+            $totalRefund = 0;
             $exchangeAmount = null;
             
             if ($type === 'exchange' && $request->has('exchange_items')) {
@@ -477,7 +494,22 @@ class ReturnController extends Controller
                         'subtotal' => $subtotal,
                     ]);
                 }
-                $exchangeAmount = $totalExchange - $totalRefund;
+                
+                // Tính chênh lệch giữa giá SP mới và số tiền đã trả cho SP cũ
+                $difference = $totalExchange - $paidForReturnedItems;
+                
+                if ($difference > 0) {
+                    // Khách trả thêm
+                    $exchangeAmount = $difference;
+                    $totalRefund = 0;
+                } else {
+                    // Hoàn lại khách
+                    $exchangeAmount = 0;
+                    $totalRefund = abs($difference);
+                }
+            } else {
+                // Trả hàng thuần túy: Hoàn số tiền đã trả cho SP này
+                $totalRefund = $paidForReturnedItems;
             }
 
             // Update return

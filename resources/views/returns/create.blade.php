@@ -581,17 +581,62 @@ function updateSummary() {
         returnValue += qty * price;
     });
     
-    // LOGIC MỚI: Chỉ hoàn tiền nếu đã trả > tổng mới
+    // LOGIC ĐÚNG: Tính theo tỷ lệ đã trả
     const paidAmount = saleData ? parseFloat(saleData.paid_amount) : 0;
     const currentTotal = saleData ? parseFloat(saleData.total_vnd) : 0;
     
-    // Tính tổng mới sau khi trừ hàng trả
-    const newTotal = currentTotal - returnValue;
+    // Tính tỷ lệ đã trả của hóa đơn
+    const paidRatio = currentTotal > 0 ? (paidAmount / currentTotal) : 0;
     
-    // Chỉ hoàn nếu đã trả > tổng mới
+    // Tính số tiền đã trả cho các sản phẩm đang trả
+    const paidForReturnedItems = returnValue * paidRatio;
+    
     let actualRefund = 0;
-    if (paidAmount > newTotal) {
-        actualRefund = paidAmount - newTotal;
+    let exchangeAmount = 0;
+    
+    const type = document.getElementById('return-type').value;
+    if (type === 'exchange') {
+        let exchangeQty = 0;
+        let totalExchange = 0;
+        
+        exchangeProducts.forEach(product => {
+            exchangeQty += product.quantity;
+            const finalPrice = product.price * (1 - (product.discount || 0) / 100);
+            totalExchange += product.quantity * finalPrice;
+        });
+        
+        // Tính chênh lệch giữa giá SP mới và số tiền đã trả cho SP cũ
+        const difference = totalExchange - paidForReturnedItems;
+        
+        if (difference > 0) {
+            // Khách trả thêm
+            exchangeAmount = difference;
+            actualRefund = 0;
+        } else {
+            // Hoàn lại khách
+            exchangeAmount = 0;
+            actualRefund = Math.abs(difference);
+        }
+        
+        document.getElementById('exchange-summary').classList.remove('hidden');
+        document.getElementById('summary-exchange-qty').textContent = exchangeQty;
+        document.getElementById('summary-exchange-amount').textContent = totalExchange.toLocaleString('vi-VN') + 'đ';
+        
+        const diffEl = document.getElementById('summary-difference');
+        if (actualRefund > 0) {
+            diffEl.className = 'font-bold text-lg text-green-600';
+            diffEl.textContent = actualRefund.toLocaleString('vi-VN') + 'đ (Hoàn lại)';
+        } else if (exchangeAmount > 0) {
+            diffEl.className = 'font-bold text-lg text-red-600';
+            diffEl.textContent = '+' + exchangeAmount.toLocaleString('vi-VN') + 'đ (Khách trả thêm)';
+        } else {
+            diffEl.className = 'font-bold text-lg text-gray-600';
+            diffEl.textContent = '0đ (Ngang giá)';
+        }
+    } else {
+        // Trả hàng thuần túy: Hoàn số tiền đã trả cho SP này
+        actualRefund = paidForReturnedItems;
+        document.getElementById('exchange-summary').classList.add('hidden');
     }
     
     document.getElementById('summary-return-qty').textContent = returnQty;
@@ -599,50 +644,26 @@ function updateSummary() {
     document.getElementById('summary-return-amount').textContent = actualRefund.toLocaleString('vi-VN') + 'đ';
     
     // Update refund note
-    if (actualRefund > 0) {
-        document.getElementById('refund-note').textContent = 'Hoàn vì đã trả (' + paidAmount.toLocaleString('vi-VN') + 'đ) > tổng mới (' + newTotal.toLocaleString('vi-VN') + 'đ)';
-        document.getElementById('refund-note').className = 'text-xs text-red-600 italic font-medium';
-    } else if (paidAmount > 0) {
-        document.getElementById('refund-note').textContent = 'Không hoàn vì số đã trả (' + paidAmount.toLocaleString('vi-VN') + 'đ) có thể bù vào tổng mới (' + newTotal.toLocaleString('vi-VN') + 'đ)';
-        document.getElementById('refund-note').className = 'text-xs text-green-600 italic font-medium';
-    } else {
-        document.getElementById('refund-note').textContent = 'Chưa thanh toán trước đó';
-        document.getElementById('refund-note').className = 'text-xs text-gray-500 italic';
-    }
-    
-    // Calculate exchange amount if type is exchange
-    const type = document.getElementById('return-type').value;
+    const paidPercent = (paidRatio * 100).toFixed(1);
     if (type === 'exchange') {
-        let exchangeQty = 0;
-        let exchangeAmount = 0;
-        
-        exchangeProducts.forEach(product => {
-            exchangeQty += product.quantity;
-            const finalPrice = product.price * (1 - (product.discount || 0) / 100);
-            exchangeAmount += product.quantity * finalPrice;
-        });
-        
-        document.getElementById('exchange-summary').classList.remove('hidden');
-        document.getElementById('summary-exchange-qty').textContent = exchangeQty;
-        document.getElementById('summary-exchange-amount').textContent = exchangeAmount.toLocaleString('vi-VN') + 'đ';
-        
-        // Calculate difference based on actual credit (what customer paid)
-        const difference = exchangeAmount - actualRefund;
-        const diffEl = document.getElementById('summary-difference');
-        diffEl.textContent = Math.abs(difference).toLocaleString('vi-VN') + 'đ';
-        
-        if (difference > 0) {
-            diffEl.className = 'font-bold text-lg text-red-600';
-            diffEl.textContent = '+' + diffEl.textContent + ' (Khách trả thêm)';
-        } else if (difference < 0) {
-            diffEl.className = 'font-bold text-lg text-green-600';
-            diffEl.textContent = '-' + diffEl.textContent + ' (Hoàn lại)';
+        if (actualRefund > 0) {
+            document.getElementById('refund-note').textContent = `Hoàn ${actualRefund.toLocaleString('vi-VN')}đ (Đã trả ${paidPercent}% × ${returnValue.toLocaleString('vi-VN')}đ = ${paidForReturnedItems.toLocaleString('vi-VN')}đ > SP mới)`;
+            document.getElementById('refund-note').className = 'text-xs text-red-600 italic font-medium';
+        } else if (exchangeAmount > 0) {
+            document.getElementById('refund-note').textContent = `Khách trả thêm ${exchangeAmount.toLocaleString('vi-VN')}đ (Đã trả ${paidPercent}% × ${returnValue.toLocaleString('vi-VN')}đ = ${paidForReturnedItems.toLocaleString('vi-VN')}đ bù vào SP mới)`;
+            document.getElementById('refund-note').className = 'text-xs text-blue-600 italic font-medium';
         } else {
-            diffEl.className = 'font-bold text-lg text-gray-600';
-            diffEl.textContent = '0đ (Ngang giá)';
+            document.getElementById('refund-note').textContent = 'Ngang giá';
+            document.getElementById('refund-note').className = 'text-xs text-green-600 italic font-medium';
         }
     } else {
-        document.getElementById('exchange-summary').classList.add('hidden');
+        if (actualRefund > 0) {
+            document.getElementById('refund-note').textContent = `Hoàn ${actualRefund.toLocaleString('vi-VN')}đ (Đã trả ${paidPercent}% × ${returnValue.toLocaleString('vi-VN')}đ)`;
+            document.getElementById('refund-note').className = 'text-xs text-red-600 italic font-medium';
+        } else {
+            document.getElementById('refund-note').textContent = 'Chưa thanh toán trước đó';
+            document.getElementById('refund-note').className = 'text-xs text-gray-500 italic';
+        }
     }
 }
 
