@@ -31,16 +31,8 @@
                         class="w-full px-2 py-1.5 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                         placeholder="Tên vật tư">
                 </div>
-                <div>
-                    <label class="block text-xs font-medium text-gray-700 mb-1">Loại <span class="text-red-500">*</span></label>
-                    <select name="type" required
-                        class="w-full px-2 py-1.5 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
-                        <option value="">Chọn loại...</option>
-                        <option value="frame" {{ old('type') == 'frame' ? 'selected' : '' }}>Khung tranh</option>
-                        <option value="canvas" {{ old('type') == 'canvas' ? 'selected' : '' }}>Canvas</option>
-                        <option value="other" {{ old('type') == 'other' ? 'selected' : '' }}>Khác</option>
-                    </select>
-                </div>
+                <!-- Hidden field: Loại mặc định là frame (cây gỗ) -->
+                <input type="hidden" name="type" value="frame">
                 <div>
                     <label class="block text-xs font-medium text-gray-700 mb-1">Đơn vị tính <span class="text-red-500">*</span></label>
                     <input type="text" name="unit" value="{{ old('unit') }}" required
@@ -54,12 +46,12 @@
                         placeholder="100" min="0" step="0.01">
                     <p class="text-xs text-gray-500 mt-1">Tổng chiều dài của vật tư (VD: 500 cm)</p>
                 </div>
-                <div id="tree_count_field" style="display: none;">
+                <div id="tree_count_field">
                     <label class="block text-sm font-medium text-gray-700 mb-2">Số lượng cây</label>
                     <input type="number" name="tree_count" value="{{ old('tree_count', 0) }}"
                         class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                         placeholder="0" min="0" step="1">
-                    <p class="text-xs text-gray-500 mt-1">Số cây gỗ (chỉ áp dụng cho loại khung tranh)</p>
+                    <p class="text-xs text-gray-500 mt-1">Số cây gỗ (chỉ áp dụng cho loại khung tranh, để 0 nếu không phải)</p>
                 </div>
                 <div class="md:col-span-2">
                     <label class="block text-xs font-medium text-gray-700 mb-1">Ghi chú</label>
@@ -82,22 +74,4 @@
     </div>
 @endsection
 
-@push('scripts')
-<script>
-    document.addEventListener('DOMContentLoaded', function() {
-        const typeSelect = document.querySelector('select[name="type"]');
-        const treeCountField = document.getElementById('tree_count_field');
 
-        function toggleTreeCountField() {
-            if (typeSelect.value === 'frame') {
-                treeCountField.style.display = 'block';
-            } else {
-                treeCountField.style.display = 'none';
-            }
-        }
-
-        typeSelect.addEventListener('change', toggleTreeCountField);
-        toggleTreeCountField(); // Initial check
-    });
-</script>
-@endpush

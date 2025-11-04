@@ -44,18 +44,8 @@
                 @enderror
             </div>
             
-            <div>
-                <label class="block text-xs font-medium text-gray-700 mb-1">Loại <span class="text-red-500">*</span></label>
-                <select name="type" required class="w-full px-2 py-1.5 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent @error('type') border-red-500 @enderror">
-                    <option value="">Chọn loại...</option>
-                    <option value="frame" {{ old('type', $supply->type) == 'frame' ? 'selected' : '' }}>Khung tranh</option>
-                    <option value="canvas" {{ old('type', $supply->type) == 'canvas' ? 'selected' : '' }}>Canvas</option>
-                    <option value="other" {{ old('type', $supply->type) == 'other' ? 'selected' : '' }}>Khác</option>
-                </select>
-                @error('type')
-                    <p class="mt-1 text-xs text-red-600">{{ $message }}</p>
-                @enderror
-            </div>
+            <!-- Hidden field: Loại mặc định là frame (cây gỗ) -->
+            <input type="hidden" name="type" value="frame">
             
             <div>
                 <label class="block text-xs font-medium text-gray-700 mb-1">Đơn vị tính <span class="text-red-500">*</span></label>
@@ -77,7 +67,7 @@
                 @enderror
             </div>
             
-            <div id="tree_count_field" style="display: {{ $supply->type == 'frame' ? 'block' : 'none' }};">
+            <div id="tree_count_field">
                 <label class="block text-sm font-medium text-gray-700 mb-2">Số lượng cây</label>
                 <input type="number" name="tree_count" value="{{ old('tree_count', $supply->tree_count) }}" 
                        class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent" 
@@ -119,21 +109,4 @@
 </div>
 @endsection
 
-@push('scripts')
-<script>
-    document.addEventListener('DOMContentLoaded', function() {
-        const typeSelect = document.querySelector('select[name="type"]');
-        const treeCountField = document.getElementById('tree_count_field');
 
-        function toggleTreeCountField() {
-            if (typeSelect.value === 'frame') {
-                treeCountField.style.display = 'block';
-            } else {
-                treeCountField.style.display = 'none';
-            }
-        }
-
-        typeSelect.addEventListener('change', toggleTreeCountField);
-    });
-</script>
-@endpush
