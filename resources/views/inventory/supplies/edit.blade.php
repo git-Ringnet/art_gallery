@@ -68,13 +68,21 @@
             </div>
             
             <div>
-                <label class="block text-xs font-medium text-gray-700 mb-1">Số lượng <span class="text-red-500">*</span></label>
+                <label class="block text-sm font-medium text-gray-700 mb-2">Số lượng (chiều dài) <span class="text-red-500">*</span></label>
                 <input type="number" name="quantity" value="{{ old('quantity', $supply->quantity) }}" required 
                        class="w-full px-2 py-1.5 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent @error('quantity') border-red-500 @enderror" 
                        placeholder="100" min="0" step="0.01">
                 @error('quantity')
                     <p class="mt-1 text-xs text-red-600">{{ $message }}</p>
                 @enderror
+            </div>
+            
+            <div id="tree_count_field" style="display: {{ $supply->type == 'frame' ? 'block' : 'none' }};">
+                <label class="block text-sm font-medium text-gray-700 mb-2">Số lượng cây</label>
+                <input type="number" name="tree_count" value="{{ old('tree_count', $supply->tree_count) }}" 
+                       class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent" 
+                       placeholder="0" min="0" step="1">
+                <p class="text-xs text-gray-500 mt-1">Số cây gỗ (chỉ áp dụng cho loại khung tranh)</p>
             </div>
             
             <div>
@@ -110,3 +118,22 @@
     </form>
 </div>
 @endsection
+
+@push('scripts')
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const typeSelect = document.querySelector('select[name="type"]');
+        const treeCountField = document.getElementById('tree_count_field');
+
+        function toggleTreeCountField() {
+            if (typeSelect.value === 'frame') {
+                treeCountField.style.display = 'block';
+            } else {
+                treeCountField.style.display = 'none';
+            }
+        }
+
+        typeSelect.addEventListener('change', toggleTreeCountField);
+    });
+</script>
+@endpush

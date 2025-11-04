@@ -161,4 +161,16 @@ Route::middleware(['auth'])->group(function () {
         Route::get('/export/{id}/download', [App\Http\Controllers\YearDatabaseController::class, 'downloadExport'])->middleware('permission:year_database,can_view')->name('export.download');
         Route::delete('/export/{id}', [App\Http\Controllers\YearDatabaseController::class, 'deleteExport'])->middleware('permission:year_database,can_delete')->name('export.delete');
     });
+
+    // Frames routes
+    Route::prefix('frames')->name('frames.')->group(function () {
+        Route::get('/', [App\Http\Controllers\FrameController::class, 'index'])->middleware('permission:inventory,can_view')->name('index');
+        Route::get('/create', [App\Http\Controllers\FrameController::class, 'create'])->middleware('permission:inventory,can_create')->name('create');
+        Route::post('/', [App\Http\Controllers\FrameController::class, 'store'])->middleware('permission:inventory,can_create')->name('store');
+        Route::get('/{frame}', [App\Http\Controllers\FrameController::class, 'show'])->middleware('permission:inventory,can_view')->name('show');
+        Route::get('/{frame}/edit', [App\Http\Controllers\FrameController::class, 'edit'])->middleware('permission:inventory,can_edit')->name('edit');
+        Route::put('/{frame}', [App\Http\Controllers\FrameController::class, 'update'])->middleware('permission:inventory,can_edit')->name('update');
+        Route::delete('/{frame}', [App\Http\Controllers\FrameController::class, 'destroy'])->middleware('permission:inventory,can_delete')->name('destroy');
+        Route::get('/api/supply/{id}', [App\Http\Controllers\FrameController::class, 'getSupplyInfo'])->name('api.supply');
+    });
 });

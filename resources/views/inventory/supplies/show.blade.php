@@ -58,9 +58,16 @@
                 </div>
                 
                 <div>
-                    <label class="block text-xs font-medium text-gray-700 mb-1">Số lượng</label>
-                    <p class="text-sm font-semibold text-gray-900">{{ $supply->quantity }} {{ $supply->unit }}</p>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Số lượng (chiều dài)</label>
+                    <p class="text-lg font-semibold text-gray-900">{{ $supply->quantity }} {{ $supply->unit }}</p>
                 </div>
+                
+                @if($supply->type == 'frame')
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Số lượng cây</label>
+                    <p class="text-lg font-semibold text-blue-600">{{ $supply->tree_count }} cây</p>
+                </div>
+                @endif
                 
                 <div>
                     <label class="block text-xs font-medium text-gray-700 mb-1">Ngày nhập kho</label>

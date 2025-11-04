@@ -187,6 +187,7 @@ class InventoryController extends Controller
             'type' => 'required|string',
             'unit' => 'required|string|max:20',
             'quantity' => 'required|numeric|min:0',
+            'tree_count' => 'nullable|integer|min:0',
             'notes' => 'nullable|string'
         ], [
             'code.unique' => 'Mã vật tư đã tồn tại trong hệ thống.',
@@ -199,6 +200,7 @@ class InventoryController extends Controller
             'type' => $validated['type'],
             'unit' => $validated['unit'],
             'quantity' => $validated['quantity'],
+            'tree_count' => $validated['tree_count'] ?? 0,
             'notes' => $validated['notes'] ?? null,
         ]);
 
@@ -334,6 +336,7 @@ class InventoryController extends Controller
             'type' => 'required|in:frame,canvas,other',
             'unit' => 'required|string|max:20',
             'quantity' => 'required|numeric|min:0',
+            'tree_count' => 'nullable|integer|min:0',
             'min_quantity' => 'nullable|numeric|min:0',
             'notes' => 'nullable|string',
         ], [

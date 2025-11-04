@@ -15,6 +15,7 @@ class Supply extends Model
         'type',
         'unit',
         'quantity',
+        'tree_count',
         'min_quantity',
         'notes',
     ];
@@ -23,6 +24,7 @@ class Supply extends Model
     {
         return [
             'quantity' => 'decimal:2',
+            'tree_count' => 'integer',
             'min_quantity' => 'decimal:2',
         ];
     }
@@ -30,6 +32,11 @@ class Supply extends Model
     public function saleItems()
     {
         return $this->hasMany(SaleItem::class);
+    }
+
+    public function frameItems()
+    {
+        return $this->hasMany(FrameItem::class);
     }
 
     public function inventoryTransactions()

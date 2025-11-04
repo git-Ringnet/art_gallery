@@ -220,9 +220,14 @@
                 @endcanAccess
                 
                 @canAccess('inventory')
-                <a href="{{ route('inventory.index') }}" class="nav-item flex items-center space-x-3 p-2.5 rounded-lg hover:bg-white hover:bg-opacity-20 transition-all duration-200 {{ request()->routeIs('inventory.*') ? 'bg-white bg-opacity-20' : '' }}" title="Quản lý kho">
+                <a href="{{ route('inventory.index') }}" class="nav-item flex items-center space-x-3 p-2.5 rounded-lg hover:bg-white hover:bg-opacity-20 transition-all duration-200 {{ request()->routeIs('inventory.*') && !request()->routeIs('frames.*') ? 'bg-white bg-opacity-20' : '' }}" title="Quản lý kho">
                     <i class="fas fa-warehouse w-5 flex-shrink-0"></i>
                     <span class="sidebar-text text-sm">Quản lý kho</span>
+                </a>
+                
+                <a href="{{ route('frames.index') }}" class="nav-item flex items-center space-x-3 p-2.5 rounded-lg hover:bg-white hover:bg-opacity-20 transition-all duration-200 {{ request()->routeIs('frames.*') ? 'bg-white bg-opacity-20' : '' }}" title="Quản lý khung tranh">
+                    <i class="fas fa-border-style w-5 flex-shrink-0"></i>
+                    <span class="sidebar-text text-sm">Khung tranh</span>
                 </a>
                 @endcanAccess
                 

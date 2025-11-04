@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html>
+
 <head>
     <meta charset="utf-8">
     <title>Lịch sử Công nợ</title>
@@ -8,16 +9,19 @@
             font-family: DejaVu Sans, sans-serif;
             font-size: 11px;
         }
+
         h2 {
             text-align: center;
             margin-bottom: 20px;
             color: #333;
         }
+
         table {
             width: 100%;
             border-collapse: collapse;
             margin-top: 10px;
         }
+
         th {
             background-color: #3b82f6;
             color: white;
@@ -25,19 +29,24 @@
             text-align: left;
             font-weight: bold;
         }
+
         td {
             padding: 6px 8px;
             border-bottom: 1px solid #ddd;
         }
+
         tr:nth-child(even) {
             background-color: #f9fafb;
         }
+
         .text-right {
             text-align: right;
         }
+
         .text-center {
             text-align: center;
         }
+
         .status-paid {
             background-color: #d1fae5;
             color: #065f46;
@@ -45,6 +54,7 @@
             border-radius: 4px;
             font-weight: bold;
         }
+
         .status-partial {
             background-color: #fef3c7;
             color: #92400e;
@@ -52,6 +62,7 @@
             border-radius: 4px;
             font-weight: bold;
         }
+
         .status-unpaid {
             background-color: #fee2e2;
             color: #991b1b;
@@ -59,6 +70,7 @@
             border-radius: 4px;
             font-weight: bold;
         }
+
         .footer {
             margin-top: 20px;
             text-align: center;
@@ -67,10 +79,11 @@
         }
     </style>
 </head>
+
 <body>
     <h2>LỊCH SỬ CÔNG NỢ</h2>
     <p style="text-align: center; margin-bottom: 20px;">Ngày xuất: {{ date('d/m/Y H:i:s') }}</p>
-    
+
     <table>
         <thead>
             <tr>
@@ -89,69 +102,69 @@
         </thead>
         <tbody>
             @foreach($payments as $payment)
-            @php
-                $paymentDateTime = $payment->payment_date->timezone('Asia/Ho_Chi_Minh');
-                $timeStr = $paymentDateTime->format('H:i:s');
-                // Chỉ hiển thị giờ nếu không phải 00:00:00 hoặc 07:00:00 (data cũ từ UTC)
-                $hasTime = $timeStr !== '00:00:00' && $timeStr !== '07:00:00';
-            @endphp
-            <tr>
-                <td>{{ $paymentDateTime->format('d/m/Y') }}</td>
-                <td>{{ $hasTime ? $paymentDateTime->format('H:i') : '-' }}</td>
-                <td>{{ $payment->sale->invoice_code }}</td>
-                <td>{{ $payment->sale->customer->name }}</td>
-                <td>{{ $payment->sale->customer->phone ?? '-' }}</td>
-                <td class="text-right">{{ number_format($payment->sale->total_vnd, 0, ',', '.') }}đ</td>
-                <td class="text-right">{{ number_format($payment->amount, 0, ',', '.') }}đ</td>
-                <td class="text-center">
-                    @if($payment->payment_method === 'cash')
-                        TM
-                    @elseif($payment->payment_method === 'bank_transfer')
-                        CK
-                    @else
-                        Thẻ
-                    @endif
-                </td>
-                <td class="text-center">
-                    @php
-                        $transactionType = $payment->transaction_type ?? 'sale_payment';
-                    @endphp
-                    @if($transactionType === 'sale_payment')
-                        TT Bán
-                    @elseif($transactionType === 'return')
-                        Trả hàng
-                    @elseif($transactionType === 'exchange')
-                        Đổi hàng
-                    @endif
-                </td>
-                <td class="text-right">
-                    @php
-                        $isCancelled = $payment->sale->sale_status === 'cancelled';
-                        
-                        if ($isCancelled) {
-                            $remainingDebt = 0;
-                        } else {
-                            $paidUpToNow = $payment->sale->payments()
-                                ->where('id', '<=', $payment->id)
-                                ->sum('amount');
-                            $remainingDebt = $payment->sale->total_vnd - $paidUpToNow;
-                        }
-                    @endphp
-                    @if($isCancelled)
-                        (Đã hủy)
-                    @else
-                        {{ number_format($remainingDebt, 0, ',', '.') }}đ
-                    @endif
-                </td>
-                <td class="text-center">
-                    @php
-                        if ($isCancelled) {
-                            $statusClass = 'status-unpaid';
-                            $statusText = 'Đã hủy';
-                        } else {
-                            $paidAtThisTime = $paidUpToNow;
-                            $totalAmount = $payment->sale->total_vnd;
-                            
+                @php
+                    $paymentDateTime = $payment->payment_date->timezone('Asia/Ho_Chi_Minh');
+                    $timeStr = $paymentDateTime->format('H:i:s');
+                    // Chỉ hiển thị giờ nếu không phải 00:00:00 hoặc 07:00:00 (data cũ từ UTC)
+                    $hasTime = $timeStr !== '00:00:00' && $timeStr !== '07:00:00';
+                @endphp
+                <tr>
+                    <td>{{ $paymentDateTime->format('d/m/Y') }}</td>
+                    <td>{{ $hasTime ? $paymentDateTime->format('H:i') : '-' }}</td>
+                    <td>{{ $payment->sale->invoice_code }}</td>
+                    <td>{{ $payment->sale->customer->name }}</td>
+                    <td>{{ $payment->sale->customer->phone ?? '-' }}</td>
+                    <td class="text-right">{{ number_format($payment->sale->total_vnd, 0, ',', '.') }}đ</td>
+                    <td class="text-right">{{ number_format($payment->amount, 0, ',', '.') }}đ</td>
+                    <td class="text-center">
+                        @if($payment->payment_method === 'cash')
+                            TM
+                        @elseif($payment->payment_method === 'bank_transfer')
+                            CK
+                        @else
+                            Thẻ
+                        @endif
+                    </td>
+                    <td class="text-center">
+                        @php
+                            $transactionType = $payment->transaction_type ?? 'sale_payment';
+                        @endphp
+                        @if($transactionType === 'sale_payment')
+                            TT Bán
+                        @elseif($transactionType === 'return')
+                            Trả hàng
+                        @elseif($transactionType === 'exchange')
+                            Đổi hàng
+                        @endif
+                    </td>
+                    <td class="text-right">
+                        @php
+                            $isCancelled = $payment->sale->sale_status === 'cancelled';
+
+                            if ($isCancelled) {
+                                $remainingDebt = 0;
+                            } else {
+                                $paidUpToNow = $payment->sale->payments()
+                                    ->where('id', '<=', $payment->id)
+                                    ->sum('amount');
+                                $remainingDebt = $payment->sale->total_vnd - $paidUpToNow;
+                            }
+                        @endphp
+                        @if($isCancelled)
+                            (Đã hủy)
+                        @else
+                            {{ number_format($remainingDebt, 0, ',', '.') }}đ
+                        @endif
+                    </td>
+                    <td class="text-center">
+                        @php
+                            if ($isCancelled) {
+                                $statusClass = 'status-unpaid';
+                                $statusText = 'Đã hủy';
+                            } else {
+                                $paidAtThisTime = $paidUpToNow;
+                                $totalAmount = $payment->sale->total_vnd;
+
                                 if ($paidAtThisTime >= $totalAmount) {
                                     $statusClass = 'status-paid';
                                     $statusText = 'Đã TT';
@@ -163,17 +176,17 @@
                                     $statusText = 'Chưa TT';
                                 }
                             }
-                        }
-                    @endphp
-                    <span class="{{ $statusClass }}">{{ $statusText }}</span>
-                </td>
-            </tr>
+                        @endphp
+                        <span class="{{ $statusClass }}">{{ $statusText }}</span>
+                    </td>
+                </tr>
             @endforeach
         </tbody>
     </table>
-    
+
     <div class="footer">
         <p>Tổng số giao dịch: {{ $payments->count() }}</p>
     </div>
 </body>
+
 </html>
