@@ -75,7 +75,9 @@ class InventoryController extends Controller
                     'code' => $supply->code,
                     'name' => $supply->name,
                     'type' => 'supply',
+                    'supply_type' => $supply->type,
                     'quantity' => $supply->quantity,
+                    'tree_count' => $supply->tree_count,
                     'unit' => $supply->unit,
                     'import_date' => $supply->import_date?->format('d/m/Y'),
                     'import_date_raw' => $supply->import_date,
@@ -415,11 +417,16 @@ class InventoryController extends Controller
         }
         if (!$type || $type === 'supply') {
             $inventory = $inventory->merge($supplies->map(function ($supply) {
+                $quantityDisplay = $supply->quantity . ' ' . $supply->unit;
+                if ($supply->type == 'frame' && $supply->tree_count > 0) {
+                    $quantityDisplay .= ' (' . $supply->tree_count . ' cây)';
+                }
+                
                 return [
                     'code' => $supply->code,
                     'name' => $supply->name,
                     'type' => 'Vật tư',
-                    'quantity' => $supply->quantity,
+                    'quantity' => $quantityDisplay,
                     'unit' => $supply->unit,
                     'import_date' => $supply->import_date?->format('d/m/Y'),
                     'status' => $supply->quantity > 0 ? 'Còn hàng' : 'Hết hàng',
@@ -499,11 +506,16 @@ class InventoryController extends Controller
         }
         if (!$type || $type === 'supply') {
             $inventory = $inventory->merge($supplies->map(function ($supply) {
+                $quantityDisplay = $supply->quantity . ' ' . $supply->unit;
+                if ($supply->type == 'frame' && $supply->tree_count > 0) {
+                    $quantityDisplay .= ' (' . $supply->tree_count . ' cây)';
+                }
+                
                 return [
                     'code' => $supply->code,
                     'name' => $supply->name,
                     'type' => 'Vật tư',
-                    'quantity' => $supply->quantity,
+                    'quantity' => $quantityDisplay,
                     'unit' => $supply->unit,
                     'import_date' => $supply->import_date?->format('d/m/Y'),
                     'status' => $supply->quantity > 0 ? 'Còn hàng' : 'Hết hàng',

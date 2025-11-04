@@ -20,6 +20,7 @@ class DatabaseSeeder extends Seeder
             PaintingSeeder::class,
             CustomerSeeder::class,
             UserSeeder::class,  // Tạo users sau khi có roles
+            FrameSeeder::class,  // Tạo khung tranh sau khi có supplies
             // SaleSeeder::class,
             // ReturnSeeder::class,
         ]);

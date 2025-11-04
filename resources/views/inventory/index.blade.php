@@ -132,6 +132,9 @@
                             </td>
                             <td class="px-2 py-2 whitespace-nowrap text-xs font-semibold text-gray-900">
                                 {{ $item['quantity'] }}{{ isset($item['unit']) ? ' ' . $item['unit'] : '' }}
+                                @if($item['type'] == 'supply' && isset($item['supply_type']) && $item['supply_type'] == 'frame' && isset($item['tree_count']))
+                                    <span class="text-blue-600 ml-1">({{ $item['tree_count'] }} cây)</span>
+                                @endif
                             </td>
                             <td class="px-2 py-2 whitespace-nowrap text-xs text-gray-900">{{ $item['import_date'] }}</td>
                             <td class="px-2 py-2 whitespace-nowrap">
