@@ -211,6 +211,7 @@
             auth()->user()->canAccess('debt') ||
             auth()->user()->canAccess('returns') ||
             auth()->user()->canAccess('inventory') ||
+            auth()->user()->canAccess('frames') ||
             auth()->user()->canAccess('showrooms') ||
             auth()->user()->canAccess('customers') ||
             auth()->user()->canAccess('employees') ||
@@ -255,6 +256,7 @@
                     @php
                         $hasSettingsAccess = auth()->check() && auth()->user()->role && (
                             auth()->user()->canAccess('inventory') ||
+                            auth()->user()->canAccess('frames') ||
                             auth()->user()->canAccess('showrooms') ||
                             auth()->user()->canAccess('customers') ||
                             auth()->user()->canAccess('employees')
@@ -279,7 +281,7 @@
                                     id="settings-chevron"></i>
                             </button>
 
-                            <div id="settings-dropdown" class="hidden mt-1 ml-2 space-y-1">
+                            <div id="settings-dropdown" class="mt-1 ml-2 space-y-1">
                                 @canAccess('inventory')
                                 <a href="{{ route('inventory.index') }}"
                                     class="nav-item flex items-center space-x-3 p-2 rounded-lg hover:bg-white hover:bg-opacity-20 transition-all duration-200 {{ request()->routeIs('inventory.*') && !request()->routeIs('frames.*') ? 'bg-white bg-opacity-20' : '' }}"
@@ -287,7 +289,9 @@
                                     <i class="fas fa-warehouse w-4 flex-shrink-0 text-sm"></i>
                                     <span class="sidebar-text text-xs">Quản lý kho</span>
                                 </a>
+                                @endcanAccess
 
+                                @canAccess('frames')
                                 <a href="{{ route('frames.index') }}"
                                     class="nav-item flex items-center space-x-3 p-2 rounded-lg hover:bg-white hover:bg-opacity-20 transition-all duration-200 {{ request()->routeIs('frames.*') ? 'bg-white bg-opacity-20' : '' }}"
                                     title="Khung tranh">
@@ -710,7 +714,7 @@
 
         // Auto-open settings dropdown if on a settings page
         document.addEventListener('DOMContentLoaded', function () {
-            const isSettingsPage = {{ $isSettingsActive ? 'true' : 'false' }};
+            const isSettingsPage = {{ isset($isSettingsActive) && $isSettingsActive ? 'true' : 'false' }};
             if (isSettingsPage) {
                 const dropdown = document.getElementById('settings-dropdown');
                 const chevron = document.getElementById('settings-chevron');

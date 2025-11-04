@@ -2,18 +2,30 @@
 
 @section('title', 'Chi tiết khung tranh')
 @section('page-title', 'Chi tiết khung tranh')
+@section('page-description', 'Xem chi tiết khung tranh')
+
+@section('header-actions')
+<div class="flex flex-wrap gap-2">
+    <a href="{{ route('sales.index') }}" class="bg-gray-600 text-white px-3 py-1.5 rounded-lg hover:bg-gray-700 text-sm whitespace-nowrap">
+        <i class="fas fa-arrow-left mr-1"></i>Quay lại
+    </a>
+</div>
+@endsection
 
 @section('content')
     <div class="bg-white rounded-xl shadow-lg p-6 glass-effect">
         <div class="flex items-center justify-between mb-6">
-            <h4 class="font-medium text-lg">Thông tin khung tranh</h4>
-            <div class="flex gap-2">
-                <a href="{{ route('frames.edit', $frame) }}" class="bg-yellow-500 hover:bg-yellow-600 text-white px-4 py-2 rounded-lg">
-                    <i class="fas fa-edit mr-2"></i>Sửa
-                </a>
-                <a href="{{ route('frames.index') }}" class="border border-gray-300 hover:bg-gray-50 px-4 py-2 rounded-lg">
-                    <i class="fas fa-arrow-left mr-2"></i>Quay lại
-                </a>
+            <div>
+                <h4 class="font-medium text-lg">Thông tin khung tranh</h4>
+                @if($frame->status == 'sold')
+                    <span class="inline-block mt-1 px-2 py-1 text-xs font-semibold rounded bg-gray-200 text-gray-800">
+                        <i class="fas fa-check-circle mr-1"></i>Đã bán
+                    </span>
+                @else
+                    <span class="inline-block mt-1 px-2 py-1 text-xs font-semibold rounded bg-green-100 text-green-800">
+                        <i class="fas fa-box mr-1"></i>Còn hàng
+                    </span>
+                @endif
             </div>
         </div>
 
@@ -49,6 +61,19 @@
                 <p class="text-lg">{{ $frame->created_at->format('d/m/Y H:i') }}</p>
             </div>
 
+            <div>
+                <label class="block text-sm font-medium text-gray-500 mb-1">Trạng thái</label>
+                @if($frame->status == 'available')
+                    <span class="inline-block px-3 py-1 text-sm font-semibold rounded bg-green-100 text-green-800">
+                        <i class="fas fa-box mr-1"></i>Còn hàng
+                    </span>
+                @else
+                    <span class="inline-block px-3 py-1 text-sm font-semibold rounded bg-gray-200 text-gray-800">
+                        <i class="fas fa-check-circle mr-1"></i>Đã bán
+                    </span>
+                @endif
+            </div>
+
             @if($frame->notes)
             <div class="md:col-span-2">
                 <label class="block text-sm font-medium text-gray-500 mb-1">Ghi chú</label>
@@ -64,7 +89,7 @@
                 <table class="min-w-full divide-y divide-gray-200">
                     <thead class="bg-gray-50">
                         <tr>
-                            <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">#</th>
+                            <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">STT</th>
                             <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Tên cây</th>
                             <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Số lượng cây</th>
                             <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Chiều dài/cây</th>
@@ -94,6 +119,7 @@
             </div>
         </div>
 
+        @if($frame->status == 'available')
         <div class="mt-6 pt-6 border-t">
             <form action="{{ route('frames.destroy', $frame) }}" method="POST" onsubmit="return confirm('Bạn có chắc muốn xóa khung này? Vật tư sẽ được hoàn trả về kho.')">
                 @csrf
@@ -103,5 +129,12 @@
                 </button>
             </form>
         </div>
+        @else
+        <div class="mt-6 pt-6 border-t">
+            <div class="bg-gray-100 border border-gray-300 text-gray-600 px-4 py-3 rounded-lg">
+                <i class="fas fa-info-circle mr-2"></i>Khung đã bán không thể xóa
+            </div>
+        </div>
+        @endif
     </div>
 @endsection

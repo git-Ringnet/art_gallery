@@ -165,14 +165,14 @@ Route::middleware(['auth'])->group(function () {
 
     // Frames routes
     Route::prefix('frames')->name('frames.')->group(function () {
-        Route::get('/', [App\Http\Controllers\FrameController::class, 'index'])->middleware('permission:inventory,can_view')->name('index');
-        Route::get('/create', [App\Http\Controllers\FrameController::class, 'create'])->middleware('permission:inventory,can_create')->name('create');
-        Route::post('/', [App\Http\Controllers\FrameController::class, 'store'])->middleware('permission:inventory,can_create')->name('store');
+        Route::get('/', [App\Http\Controllers\FrameController::class, 'index'])->middleware('permission:frames,can_view')->name('index');
+        Route::get('/create', [App\Http\Controllers\FrameController::class, 'create'])->middleware('permission:frames,can_create')->name('create');
+        Route::post('/', [App\Http\Controllers\FrameController::class, 'store'])->middleware('permission:frames,can_create')->name('store');
         Route::get('/api/frame/{id}', [App\Http\Controllers\FrameController::class, 'getFrameJson'])->name('api.frame');
         Route::get('/api/supply/{id}', [App\Http\Controllers\FrameController::class, 'getSupplyInfo'])->name('api.supply');
-        Route::get('/{frame}', [App\Http\Controllers\FrameController::class, 'show'])->middleware('permission:inventory,can_view')->name('show');
-        Route::get('/{frame}/edit', [App\Http\Controllers\FrameController::class, 'edit'])->middleware('permission:inventory,can_edit')->name('edit');
-        Route::put('/{frame}', [App\Http\Controllers\FrameController::class, 'update'])->middleware('permission:inventory,can_edit')->name('update');
-        Route::delete('/{frame}', [App\Http\Controllers\FrameController::class, 'destroy'])->middleware('permission:inventory,can_delete')->name('destroy');
+        Route::get('/{frame}', [App\Http\Controllers\FrameController::class, 'show'])->middleware('permission:frames,can_view')->name('show');
+        Route::get('/{frame}/edit', [App\Http\Controllers\FrameController::class, 'edit'])->middleware('permission:frames,can_edit')->name('edit');
+        Route::put('/{frame}', [App\Http\Controllers\FrameController::class, 'update'])->middleware('permission:frames,can_edit')->name('update');
+        Route::delete('/{frame}', [App\Http\Controllers\FrameController::class, 'destroy'])->middleware('permission:frames,can_delete')->name('destroy');
     });
 });

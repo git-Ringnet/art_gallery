@@ -253,6 +253,12 @@ class FrameController extends Controller
 
     public function destroy(Frame $frame)
     {
+        // Không cho xóa khung đã bán
+        if ($frame->status === 'sold') {
+            return redirect()->route('frames.index')
+                ->with('error', 'Không thể xóa khung đã bán');
+        }
+        
         DB::beginTransaction();
         try {
             // Hoàn trả vật tư về kho

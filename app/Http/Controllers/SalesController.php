@@ -512,6 +512,14 @@ class SalesController extends Controller
                                 $supply->increaseQuantity($totalUsed);
                             }
                         }
+                        
+                        // Hoàn trả status khung về available
+                        if ($oldItem->frame_id) {
+                            $frame = \App\Models\Frame::find($oldItem->frame_id);
+                            if ($frame) {
+                                $frame->markAsAvailable();
+                            }
+                        }
                     }
                 }
                 
@@ -551,6 +559,17 @@ class SalesController extends Controller
                             $totalRequired = $saleItem->supply_length * $saleItem->quantity;
                             if ($supply && !$supply->reduceQuantity($totalRequired)) {
                                 throw new \Exception("Không đủ số lượng vật tư {$supply->name} trong kho");
+                            }
+                        }
+                        
+                        // Đánh dấu khung mới là đã bán
+                        if ($saleItem->frame_id) {
+                            $frame = \App\Models\Frame::find($saleItem->frame_id);
+                            if ($frame) {
+                                if (!$frame->isAvailable()) {
+                                    throw new \Exception("Khung {$frame->name} đã được bán");
+                                }
+                                $frame->markAsSold();
                             }
                         }
                     }
@@ -660,6 +679,14 @@ class SalesController extends Controller
                         $totalUsed = $item->supply_length * $item->quantity;
                         $supply->increaseQuantity($totalUsed);
                     }
+                    
+                    // Hoàn trả status khung về available
+                    if ($item->frame_id) {
+                        $frame = \App\Models\Frame::find($item->frame_id);
+                        if ($frame) {
+                            $frame->markAsAvailable();
+                        }
+                    }
                 }
             }
 
@@ -767,6 +794,7 @@ class SalesController extends Controller
         }
 
         $frames = \App\Models\Frame::where('name', 'like', "%{$query}%")
+            ->where('status', 'available')
             ->limit(10)
             ->get(['id', 'name', 'cost_price']);
 
@@ -882,6 +910,17 @@ class SalesController extends Controller
                             'notes' => "Sử dụng cho hóa đơn {$sale->invoice_code}",
                             'created_by' => $user->id,
                         ]);
+                    }
+                }
+
+                // Process frame status
+                if ($saleItem->frame_id) {
+                    $frame = \App\Models\Frame::find($saleItem->frame_id);
+                    if ($frame) {
+                        if (!$frame->isAvailable()) {
+                            throw new \Exception("Khung {$frame->name} đã được bán");
+                        }
+                        $frame->markAsSold();
                     }
                 }
             }

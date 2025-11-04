@@ -10,6 +10,7 @@ class Frame extends Model
         'name',
         'cost_price',
         'notes',
+        'status',
     ];
 
     protected function casts(): array
@@ -32,5 +33,30 @@ class Frame extends Model
     public function getTotalTreesAttribute()
     {
         return $this->items->sum('tree_quantity');
+    }
+
+    public function saleItems()
+    {
+        return $this->hasMany(SaleItem::class);
+    }
+
+    public function markAsSold()
+    {
+        $this->update(['status' => 'sold']);
+    }
+
+    public function markAsAvailable()
+    {
+        $this->update(['status' => 'available']);
+    }
+
+    public function isAvailable()
+    {
+        return $this->status === 'available';
+    }
+
+    public function isSold()
+    {
+        return $this->status === 'sold';
     }
 }

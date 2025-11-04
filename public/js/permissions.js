@@ -85,6 +85,9 @@ async function renderPermissions() {
         // Inventory - CÓ export (can_create = thêm/nhập tranh vào kho)
         'inventory': ['can_view', 'can_create', 'can_edit', 'can_delete', 'can_export'],
         
+        // Frames - Khung tranh (chỉ xem, thêm, xóa)
+        'frames': ['can_view', 'can_create', 'can_delete'],
+        
         // Showrooms - KHÔNG có export/import
         'showrooms': ['can_view', 'can_create', 'can_edit', 'can_delete'],
         
@@ -232,6 +235,10 @@ async function loadAllFieldPermissions() {
     let html = '';
     
     for (const [moduleKey, moduleName] of Object.entries(modules)) {
+        // Bỏ qua module "debt" (Lịch sử công nợ) - không cần phân quyền trường
+        if (moduleKey === 'debt') {
+            continue;
+        }
         try {
             const response = await fetch('/permissions/modules/' + moduleKey + '/fields');
             const data = await response.json();

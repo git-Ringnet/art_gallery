@@ -38,6 +38,7 @@ class Permission extends Model
             'debt' => 'Lịch sử công nợ',
             'returns' => 'Đổi/Trả hàng',
             'inventory' => 'Quản lý kho',
+            'frames' => 'Khung tranh',
             'showrooms' => 'Phòng trưng bày',
             'customers' => 'Khách hàng',
             'employees' => 'Nhân viên',

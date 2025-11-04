@@ -140,12 +140,12 @@ class YearDatabaseController extends Controller
                 'exported_at' => now(),
             ]);
 
-            // Chạy backup
+            // Chạy backup - Dùng config từ database.php (hoạt động trên cả local và server)
             $dbName = $yearDb->database_name;
-            $host = env('DB_HOST', '127.0.0.1');
-            $port = env('DB_PORT', '3306');
-            $username = env('DB_USERNAME', 'root');
-            $password = env('DB_PASSWORD', '');
+            $host = config('database.connections.mysql.host');
+            $port = config('database.connections.mysql.port', '3306');
+            $username = config('database.connections.mysql.username');
+            $password = config('database.connections.mysql.password');
 
             $command = sprintf(
                 'mysqldump --host=%s --port=%s --user=%s %s %s > %s',
@@ -329,14 +329,14 @@ class YearDatabaseController extends Controller
             Log::info("File SQL hợp lệ, bắt đầu import");
 
             // Import vào database hiện tại (ghi đè)
-            $dbName = env('DB_DATABASE', 'art_gallery');
-            Log::info("Import SQL vào database hiện tại: {$dbName}");
-
-            // Import SQL
-            $host = env('DB_HOST', '127.0.0.1');
-            $port = env('DB_PORT', '3306');
-            $username = env('DB_USERNAME', 'root');
-            $password = env('DB_PASSWORD', '');
+            // Dùng config từ database.php (hoạt động trên cả local và server)
+            $dbName = config('database.connections.mysql.database');
+            $host = config('database.connections.mysql.host');
+            $port = config('database.connections.mysql.port', '3306');
+            $username = config('database.connections.mysql.username');
+            $password = config('database.connections.mysql.password');
+            
+            Log::info("Import SQL vào database hiện tại: {$dbName} @ {$host}");
 
             $command = sprintf(
                 'mysql --host=%s --port=%s --user=%s %s %s < "%s" 2>&1',
