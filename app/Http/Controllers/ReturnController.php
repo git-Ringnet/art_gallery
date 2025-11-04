@@ -70,7 +70,7 @@ class ReturnController extends Controller
             'invoice_code' => 'required|string',
         ]);
 
-        $sale = Sale::with(['items.painting', 'items.supply', 'customer'])
+        $sale = Sale::with(['items.painting', 'items.frame', 'items.supply', 'customer'])
             ->where('invoice_code', $request->invoice_code)
             ->first();
 
@@ -89,6 +89,18 @@ class ReturnController extends Controller
             ], 400);
         }
 
+        // CHẶN: Không cho phép trả/đổi hàng nếu hóa đơn có bán khung
+        $hasFrame = $sale->items->contains(function($item) {
+            return !empty($item->frame_id);
+        });
+
+        if ($hasFrame) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Không thể tạo phiếu trả/đổi hàng cho hóa đơn có bán khung. Vui lòng liên hệ quản lý để xử lý.'
+            ], 400);
+        }
+
         // Get returned quantities for each item (only approved/completed returns)
         $returnedQuantities = [];
         foreach ($sale->items as $item) {
@@ -103,6 +115,9 @@ class ReturnController extends Controller
             if ($item->painting_id) {
                 $item->item_name = $item->painting->name ?? 'N/A';
                 $item->painting_image = $item->painting->image ?? null;
+            } elseif ($item->frame_id) {
+                $item->item_name = $item->frame->name ?? 'N/A';
+                $item->painting_image = null;
             } else {
                 $item->item_name = $item->supply->name ?? 'N/A';
                 $item->painting_image = null;
@@ -203,8 +218,16 @@ class ReturnController extends Controller
                 }
 
                 // Determine item type and id
-                $itemType = $saleItem->painting_id ? 'painting' : 'supply';
-                $itemId = $saleItem->painting_id ?: $saleItem->supply_id;
+                if ($saleItem->painting_id) {
+                    $itemType = 'painting';
+                    $itemId = $saleItem->painting_id;
+                } elseif ($saleItem->frame_id) {
+                    $itemType = 'frame';
+                    $itemId = $saleItem->frame_id;
+                } else {
+                    $itemType = 'supply';
+                    $itemId = $saleItem->supply_id;
+                }
                 
                 // Calculate unit price after applying discounts
                 $unitPrice = $saleItem->price_vnd;
@@ -227,8 +250,8 @@ class ReturnController extends Controller
                     'item_type' => $itemType,
                     'item_id' => $itemId,
                     'quantity' => $itemData['quantity'],
-                    'supply_id' => $saleItem->supply_id,
-                    'supply_length' => $saleItem->supply_length,
+                    'supply_id' => $saleItem->supply_id ?? null,
+                    'supply_length' => $saleItem->supply_length ?? 0,
                     'unit_price' => $unitPrice,
                     'subtotal' => $subtotal,
                     'reason' => $itemData['reason'] ?? null,
@@ -456,8 +479,18 @@ class ReturnController extends Controller
                 }
                 
                 $saleItem = SaleItem::findOrFail($itemData['sale_item_id']);
-                $itemType = $saleItem->painting_id ? 'painting' : 'supply';
-                $itemId = $saleItem->painting_id ?: $saleItem->supply_id;
+                
+                // Determine item type and id
+                if ($saleItem->painting_id) {
+                    $itemType = 'painting';
+                    $itemId = $saleItem->painting_id;
+                } elseif ($saleItem->frame_id) {
+                    $itemType = 'frame';
+                    $itemId = $saleItem->frame_id;
+                } else {
+                    $itemType = 'supply';
+                    $itemId = $saleItem->supply_id;
+                }
                 
                 // Calculate unit price after applying discounts
                 $unitPrice = $saleItem->price_vnd;

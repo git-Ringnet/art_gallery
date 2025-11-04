@@ -56,9 +56,8 @@
             // Kiểm tra xem có thông tin payment trong notes không
             $hasPendingPayment = strpos($return->notes, '[PAYMENT_INFO]') !== false;
             
-            // Tính số tiền đã trả cho phiếu đổi hàng này
+            // Tính số tiền đã trả cho phiếu đổi hàng này (dựa vào notes chứa return_code)
             $exchangePayments = $return->sale->payments()
-                ->where('transaction_type', 'exchange_payment')
                 ->where('notes', 'like', "%{$return->return_code}%")
                 ->sum('amount');
         @endphp
@@ -71,20 +70,28 @@
                     <h4 class="font-semibold text-sm text-yellow-800">Thông báo về thanh toán</h4>
                     <p class="text-xs text-yellow-700 mt-1">
                         Khách hàng cần trả thêm <strong>{{ number_format($return->exchange_amount, 0, ',', '.') }}đ</strong> cho đơn đổi hàng này.
+                        @if($exchangePayments > 0)
+                        <br><strong>Đã trả:</strong> {{ number_format($exchangePayments, 0, ',', '.') }}đ cho sản phẩm mới.
+                        <br>Còn lại: <strong>{{ number_format($return->exchange_amount - $exchangePayments, 0, ',', '.') }}đ</strong>
+                        @endif
                         <br>Số tiền sẽ được cập nhật vào phiếu bán hàng khi phiếu đổi hàng được <strong>duyệt và hoàn thành</strong>.
                     </p>
                 </div>
             </div>
         </div>
-        @elseif($return->status == 'approved' && $exchangePayments == 0)
+        @elseif($return->status == 'approved')
         <div class="mb-4 p-3 bg-blue-50 border border-blue-200 rounded-lg">
             <div class="flex items-center">
                 <i class="fas fa-check-circle text-blue-600 mr-2"></i>
                 <div>
                     <h4 class="font-semibold text-sm text-blue-800">Phiếu đã được duyệt</h4>
                     <p class="text-xs text-blue-700 mt-1">
-                        Phiếu đổi hàng đã được duyệt. Khi hoàn thành, số tiền <strong>{{ number_format($return->exchange_amount, 0, ',', '.') }}đ</strong> 
-                        sẽ được cập nhật vào phiếu bán hàng.
+                        Khách hàng cần trả thêm <strong>{{ number_format($return->exchange_amount, 0, ',', '.') }}đ</strong> cho đơn đổi hàng này.
+                        @if($exchangePayments > 0)
+                        <br><strong>Đã trả:</strong> {{ number_format($exchangePayments, 0, ',', '.') }}đ cho sản phẩm mới.
+                        <br>Còn lại: <strong>{{ number_format($return->exchange_amount - $exchangePayments, 0, ',', '.') }}đ</strong>
+                        @endif
+                        <br>Số tiền sẽ được cập nhật vào phiếu bán hàng khi phiếu đổi hàng được <strong>hoàn thành</strong>.
                     </p>
                 </div>
             </div>
@@ -534,7 +541,27 @@
         @if($return->notes)
         <div class="bg-blue-50 p-3 rounded-lg border border-blue-200">
             <h4 class="font-semibold text-sm mb-1">Ghi chú:</h4>
-            <p class="text-gray-700 text-xs">{{ $return->notes }}</p>
+            @php
+                // Parse payment info nếu có
+                $notes = $return->notes;
+                $displayNotes = $notes;
+                
+                if (strpos($notes, '[PAYMENT_INFO]') !== false) {
+                    // Tách phần JSON ra
+                    $parts = explode('[PAYMENT_INFO]', $notes);
+                    $jsonPart = $parts[1] ?? '';
+                    
+                    if ($jsonPart) {
+                        $paymentInfo = json_decode($jsonPart, true);
+                        if ($paymentInfo) {
+                            $displayNotes = 'Khách hàng đã trả ' . number_format($paymentInfo['payment_amount'], 0, ',', '.') . 'đ';
+                            $displayNotes .= ' bằng ' . ($paymentInfo['payment_method'] == 'cash' ? 'tiền mặt' : 'chuyển khoản');
+                            $displayNotes .= ' vào ngày ' . date('d/m/Y', strtotime($paymentInfo['payment_date']));
+                        }
+                    }
+                }
+            @endphp
+            <p class="text-gray-700 text-xs">{{ $displayNotes }}</p>
         </div>
         @endif
     </div>

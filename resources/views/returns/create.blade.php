@@ -90,8 +90,6 @@
                             <tr class="bg-gradient-to-r from-blue-50 to-indigo-50 border-b-2 border-blue-200">
                                 <th class="px-2 py-2 text-left text-xs font-semibold text-gray-700">Ảnh</th>
                                 <th class="px-2 py-2 text-left text-xs font-semibold text-gray-700">Mã SP</th>
-                                <th class="px-2 py-2 text-left text-xs font-semibold text-gray-700">VT</th>
-                                <th class="px-2 py-2 text-center text-xs font-semibold text-gray-700">Mét</th>
                                 <th class="px-2 py-2 text-center text-xs font-semibold text-gray-700">SL</th>
                                 <th class="px-2 py-2 text-right text-xs font-semibold text-gray-700">Giá</th>
                                 <th class="px-2 py-2 text-center text-xs font-semibold text-gray-700">GG%</th>
@@ -396,10 +394,7 @@ function addExchangeProduct(id, type, name, price, maxQty, code = '', image = ''
         defaultPrice: price,
         maxQty: availableQty, 
         quantity: 1,
-        discount: 0,
-        supplyId: null,
-        supplyName: '',
-        supplyLength: 0
+        discount: 0
     });
     renderExchangeProducts();
     updateSummary();
@@ -414,7 +409,7 @@ function removeExchangeProduct(index) {
 function renderExchangeProducts() {
     const container = document.getElementById('exchange-products-container');
     if (exchangeProducts.length === 0) {
-        container.innerHTML = '<tr><td colspan="8" class="text-center text-gray-500 py-6"><i class="fas fa-box-open text-2xl mb-2 text-gray-400 block"></i><p class="text-xs">Chưa có sản phẩm đổi</p></td></tr>';
+        container.innerHTML = '<tr><td colspan="6" class="text-center text-gray-500 py-6"><i class="fas fa-box-open text-2xl mb-2 text-gray-400 block"></i><p class="text-xs">Chưa có sản phẩm đổi</p></td></tr>';
         return;
     }
     
@@ -438,27 +433,6 @@ function renderExchangeProducts() {
                         <i class="fas fa-box mr-1"></i>Tồn: ${product.maxQty}
                     </span>
                 </div>
-            </td>
-            <td class="px-2 py-2">
-                <div class="relative">
-                    <input type="text" 
-                           id="supply-search-${index}"
-                           class="w-full px-2 py-1.5 border border-gray-300 rounded text-xs focus:ring-2 focus:ring-blue-500 focus:border-blue-500" 
-                           placeholder="Tìm vật tư..."
-                           value="${product.supplyName || ''}"
-                           oninput="searchSupplyForExchange(${index}, this.value)"
-                           autocomplete="off">
-                    <div id="supply-suggestions-${index}" class="absolute z-20 w-full bg-white border border-gray-300 rounded shadow-lg mt-1 max-h-48 overflow-y-auto hidden"></div>
-                </div>
-            </td>
-            <td class="px-2 py-2 text-center">
-                <input type="number" 
-                       class="w-16 px-2 py-1.5 border border-gray-300 rounded text-center text-xs font-medium focus:ring-2 focus:ring-blue-500"
-                       min="0" 
-                       step="0.1"
-                       value="${product.supplyLength || 0}"
-                       onchange="updateExchangeSupplyLength(${index}, this.value)"
-                       placeholder="0">
             </td>
             <td class="px-2 py-2 text-center">
                 <input type="number" 
@@ -499,8 +473,6 @@ function renderExchangeProducts() {
         <input type="hidden" name="exchange_items[${index}][quantity]" value="${product.quantity}">
         <input type="hidden" name="exchange_items[${index}][unit_price]" value="${finalPrice}">
         <input type="hidden" name="exchange_items[${index}][discount_percent]" value="${product.discount || 0}">
-        ${product.supplyId ? `<input type="hidden" name="exchange_items[${index}][supply_id]" value="${product.supplyId}">` : ''}
-        ${product.supplyLength ? `<input type="hidden" name="exchange_items[${index}][supply_length]" value="${product.supplyLength}">` : ''}
         `;
     }).join('');
 }
@@ -528,64 +500,7 @@ function updateExchangeFrameQty(index, frameQty) {
     renderExchangeProducts();
 }
 
-function updateExchangeSupplyLength(index, length) {
-    exchangeProducts[index].supplyLength = parseFloat(length) || 0;
-    renderExchangeProducts();
-}
 
-let supplySearchTimeout;
-function searchSupplyForExchange(index, query) {
-    clearTimeout(supplySearchTimeout);
-    const container = document.getElementById(`supply-suggestions-${index}`);
-    
-    if (query.length < 1) {
-        container.classList.add('hidden');
-        return;
-    }
-    
-    supplySearchTimeout = setTimeout(() => {
-        fetch(`{{ route('sales.api.search.supplies') }}?q=${encodeURIComponent(query)}`)
-            .then(r => r.json())
-            .then(supplies => {
-                if (supplies.length === 0) {
-                    container.classList.add('hidden');
-                    return;
-                }
-                
-                container.innerHTML = supplies.map(supply => `
-                    <div class="px-3 py-2 hover:bg-blue-50 cursor-pointer border-b last:border-b-0 transition-colors" 
-                         onclick="selectSupplyForExchange(${index}, ${supply.id}, '${supply.name.replace(/'/g, "\\'")}')">
-                        <div class="text-sm font-medium text-gray-800">${supply.name}</div>
-                        <div class="text-xs text-gray-500">
-                            <span class="inline-flex items-center px-2 py-0.5 rounded-full bg-blue-100 text-blue-800">
-                                <i class="fas fa-box mr-1"></i>Tồn: ${supply.quantity} ${supply.unit || 'm'}
-                            </span>
-                        </div>
-                    </div>
-                `).join('');
-                
-                container.classList.remove('hidden');
-            })
-            .catch(err => console.error(err));
-    }, 300);
-}
-
-function selectSupplyForExchange(index, supplyId, supplyName) {
-    exchangeProducts[index].supplyId = supplyId;
-    exchangeProducts[index].supplyName = supplyName;
-    exchangeProducts[index].supplyLength = 1; // Default length
-    renderExchangeProducts();
-    document.getElementById(`supply-suggestions-${index}`).classList.add('hidden');
-}
-
-// Hide supply suggestions when clicking outside
-document.addEventListener('click', function(e) {
-    if (!e.target.closest('[id^="supply-search-"]') && !e.target.closest('[id^="supply-suggestions-"]')) {
-        document.querySelectorAll('[id^="supply-suggestions-"]').forEach(el => {
-            el.classList.add('hidden');
-        });
-    }
-});
 
 function updateSummary() {
     // Calculate return amount

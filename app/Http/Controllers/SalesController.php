@@ -164,6 +164,7 @@ class SalesController extends Controller
             'sale_date' => 'required|date',
             'items' => 'required|array|min:1',
             'items.*.painting_id' => 'nullable|exists:paintings,id',
+            'items.*.frame_id' => 'nullable|exists:frames,id',
             'items.*.description' => 'required|string',
             'items.*.quantity' => 'required|numeric|min:1',
             'items.*.supply_id' => 'nullable|exists:supplies,id',
@@ -270,6 +271,7 @@ class SalesController extends Controller
                 $saleItem = SaleItem::create([
                     'sale_id' => $sale->id,
                     'painting_id' => $item['painting_id'] ?? null,
+                    'frame_id' => $item['frame_id'] ?? null,
                     'description' => $item['description'],
                     'quantity' => $item['quantity'],
                     'supply_id' => $item['supply_id'] ?? null,
@@ -334,7 +336,7 @@ class SalesController extends Controller
 
     public function show($id)
     {
-        $sale = Sale::with(['customer', 'showroom', 'user', 'saleItems.painting', 'saleItems.supply', 'payments', 'debt'])
+        $sale = Sale::with(['customer', 'showroom', 'user', 'saleItems.painting', 'saleItems.frame', 'saleItems.supply', 'payments', 'debt'])
             ->findOrFail($id);
 
         return view('sales.show', compact('sale'));
@@ -342,7 +344,7 @@ class SalesController extends Controller
 
     public function edit($id)
     {
-        $sale = Sale::with(['saleItems.painting', 'saleItems.supply', 'customer', 'payments'])->findOrFail($id);
+        $sale = Sale::with(['saleItems.painting', 'saleItems.frame', 'saleItems.supply', 'customer', 'payments'])->findOrFail($id);
         
         // Cho phép edit cả khi đã duyệt (để thêm thanh toán)
         if (!$sale->canEdit()) {
@@ -404,6 +406,7 @@ class SalesController extends Controller
             $rules = array_merge($rules, [
                 'items' => 'required|array|min:1',
                 'items.*.painting_id' => 'nullable|exists:paintings,id',
+                'items.*.frame_id' => 'nullable|exists:frames,id',
                 'items.*.description' => 'required|string',
                 'items.*.quantity' => 'required|numeric|min:1',
                 'items.*.supply_id' => 'nullable|exists:supplies,id',
@@ -520,6 +523,7 @@ class SalesController extends Controller
                     $saleItem = SaleItem::create([
                         'sale_id' => $sale->id,
                         'painting_id' => $item['painting_id'] ?? null,
+                        'frame_id' => $item['frame_id'] ?? null,
                         'description' => $item['description'],
                         'quantity' => $item['quantity'],
                         'supply_id' => $item['supply_id'] ?? null,
@@ -679,7 +683,7 @@ class SalesController extends Controller
 
     public function print($id)
     {
-        $sale = Sale::with(['customer', 'showroom', 'saleItems.painting', 'saleItems.supply'])
+        $sale = Sale::with(['customer', 'showroom', 'saleItems.painting', 'saleItems.frame', 'saleItems.supply'])
             ->findOrFail($id);
 
         return view('sales.print', compact('sale'));
@@ -752,6 +756,21 @@ class SalesController extends Controller
             ->get(['id', 'name', 'unit', 'quantity']);
 
         return response()->json($supplies);
+    }
+
+    public function searchFrames(Request $request)
+    {
+        $query = $request->get('q', '');
+        
+        if (empty($query)) {
+            return response()->json([]);
+        }
+
+        $frames = \App\Models\Frame::where('name', 'like', "%{$query}%")
+            ->limit(10)
+            ->get(['id', 'name', 'cost_price']);
+
+        return response()->json($frames);
     }
 
     // API: Search suggestions cho trang index

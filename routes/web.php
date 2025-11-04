@@ -40,6 +40,7 @@ Route::middleware(['auth'])->group(function () {
         Route::get('/api/customers/{id}/debt', [SalesController::class, 'getCustomerDebt'])->name('api.customer.debt');
         Route::get('/api/search/paintings', [SalesController::class, 'searchPaintings'])->name('api.search.paintings');
         Route::get('/api/search/supplies', [SalesController::class, 'searchSupplies'])->name('api.search.supplies');
+        Route::get('/api/search/frames', [SalesController::class, 'searchFrames'])->name('api.search.frames');
         Route::get('/api/search/suggestions', [SalesController::class, 'searchSuggestions'])->name('api.search.suggestions');
     });
 
@@ -167,10 +168,11 @@ Route::middleware(['auth'])->group(function () {
         Route::get('/', [App\Http\Controllers\FrameController::class, 'index'])->middleware('permission:inventory,can_view')->name('index');
         Route::get('/create', [App\Http\Controllers\FrameController::class, 'create'])->middleware('permission:inventory,can_create')->name('create');
         Route::post('/', [App\Http\Controllers\FrameController::class, 'store'])->middleware('permission:inventory,can_create')->name('store');
+        Route::get('/api/frame/{id}', [App\Http\Controllers\FrameController::class, 'getFrameJson'])->name('api.frame');
+        Route::get('/api/supply/{id}', [App\Http\Controllers\FrameController::class, 'getSupplyInfo'])->name('api.supply');
         Route::get('/{frame}', [App\Http\Controllers\FrameController::class, 'show'])->middleware('permission:inventory,can_view')->name('show');
         Route::get('/{frame}/edit', [App\Http\Controllers\FrameController::class, 'edit'])->middleware('permission:inventory,can_edit')->name('edit');
         Route::put('/{frame}', [App\Http\Controllers\FrameController::class, 'update'])->middleware('permission:inventory,can_edit')->name('update');
         Route::delete('/{frame}', [App\Http\Controllers\FrameController::class, 'destroy'])->middleware('permission:inventory,can_delete')->name('destroy');
-        Route::get('/api/supply/{id}', [App\Http\Controllers\FrameController::class, 'getSupplyInfo'])->name('api.supply');
     });
 });

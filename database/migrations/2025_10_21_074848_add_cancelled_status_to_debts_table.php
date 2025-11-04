@@ -20,6 +20,9 @@ return new class extends Migration
      */
     public function down(): void
     {
+        // Update any 'cancelled' status to 'unpaid' before removing it from ENUM
+        DB::table('debts')->where('status', 'cancelled')->update(['status' => 'unpaid']);
+        
         DB::statement("ALTER TABLE debts MODIFY COLUMN status ENUM('unpaid', 'partial', 'paid') DEFAULT 'unpaid' COMMENT 'Trạng thái'");
     }
 };

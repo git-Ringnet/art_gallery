@@ -303,4 +303,14 @@ class FrameController extends Controller
             'name' => $supply->name,
         ]);
     }
+    public function getFrameJson($id)
+    {
+        $frame = Frame::findOrFail($id);
+        return response()->json([
+            'id' => $frame->id,
+            'name' => $frame->name,
+            'cost_price' => $frame->cost_price,
+            'notes' => $frame->notes,
+        ]);
+    }
 }

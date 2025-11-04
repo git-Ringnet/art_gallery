@@ -115,6 +115,10 @@
                                             <img src="{{ asset('storage/' . $item->painting->image) }}" alt="{{ $item->painting->name }}" 
                                                 class="w-12 h-12 object-cover rounded {{ $isReturned ? 'opacity-40' : 'cursor-pointer hover:opacity-80' }} transition-opacity"
                                                 @if(!$isReturned) onclick="showImageModal('{{ asset('storage/' . $item->painting->image) }}', '{{ $item->painting->name }}')" @endif>
+                                        @elseif($item->frame)
+                                            <div class="w-12 h-12 bg-blue-100 rounded flex items-center justify-center {{ $isReturned ? 'opacity-40' : '' }}">
+                                                <i class="fas fa-border-style text-blue-600 text-lg"></i>
+                                            </div>
                                         @else
                                             <div class="w-12 h-12 bg-gray-200 rounded flex items-center justify-center {{ $isReturned ? 'opacity-40' : '' }}">
                                                 <i class="fas fa-image text-gray-400 text-xs"></i>
@@ -131,8 +135,10 @@
                                         @if($item->painting)
                                             <div class="text-xs text-gray-500 {{ $textClass }}">{{ $item->painting->code }}</div>
                                         @endif
-                                        @if($item->supply)
-                                            <div class="text-xs text-gray-500 {{ $textClass }}">{{ $item->supply->name }} ({{ $item->supply_length }}m)</div>
+                                        @if($item->frame)
+                                            <div class="text-xs text-blue-600 {{ $textClass }}">
+                                                <i class="fas fa-border-style"></i> Khung: {{ $item->frame->name }}
+                                            </div>
                                         @endif
                                         @if($isReturned && $item->returned_quantity > 0)
                                             <div class="text-xs text-red-600">Trả: {{ $item->returned_quantity }}/{{ $item->quantity }}</div>

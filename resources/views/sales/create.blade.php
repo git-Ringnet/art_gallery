@@ -107,8 +107,6 @@
                         <tr class="bg-purple-100">
                             <th class="px-2 py-2 text-left text-xs font-medium text-gray-700 border">Hình</th>
                             <th class="px-2 py-2 text-left text-xs font-medium text-gray-700 border">Mô tả(Mã tranh/Khung)</th>
-                            <th class="px-2 py-2 text-left text-xs font-medium text-gray-700 border">Vật tư(Khung)</th>
-                            <th class="px-2 py-2 text-left text-xs font-medium text-gray-700 border">Số mét/Cây</th>
                             <th class="px-2 py-2 text-center text-xs font-medium text-gray-700 border">SL</th>
                             <th class="px-2 py-2 text-center text-xs font-medium text-gray-700 border">Loại tiền</th>
                             <th class="px-2 py-2 text-right text-xs font-medium text-gray-700 border">Giá USD</th>
@@ -275,18 +273,10 @@ document.addEventListener('click', function(e) {
         document.getElementById('customer-suggestions').classList.add('hidden');
     }
     
-    // Hide painting suggestions for all rows
-    document.querySelectorAll('[id^="painting-suggestions-"]').forEach(suggestion => {
-        const idx = suggestion.id.replace('painting-suggestions-', '');
-        if (!e.target.closest(`#painting-search-${idx}`) && !e.target.closest(`#painting-suggestions-${idx}`)) {
-            suggestion.classList.add('hidden');
-        }
-    });
-    
-    // Hide supply suggestions for all rows
-    document.querySelectorAll('[id^="supply-suggestions-"]').forEach(suggestion => {
-        const idx = suggestion.id.replace('supply-suggestions-', '');
-        if (!e.target.closest(`#supply-search-${idx}`) && !e.target.closest(`#supply-suggestions-${idx}`)) {
+    // Hide item suggestions for all rows
+    document.querySelectorAll('[id^="item-suggestions-"]').forEach(suggestion => {
+        const idx = suggestion.id.replace('item-suggestions-', '');
+        if (!e.target.closest(`#item-search-${idx}`) && !e.target.closest(`#item-suggestions-${idx}`)) {
             suggestion.classList.add('hidden');
         }
     });
@@ -303,32 +293,17 @@ function addItem() {
         <td class="px-3 py-3 border">
             <div class="relative">
                 <input type="text" 
-                       id="painting-search-${idx}"
+                       id="item-search-${idx}"
                        class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500" 
-                       placeholder="Tìm tranh..."
+                       placeholder="Tìm tranh hoặc khung..."
                        autocomplete="off"
-                       onkeyup="filterPaintings(this.value, ${idx})"
-                       onfocus="showPaintingSuggestions(${idx})">
+                       onkeyup="filterItems(this.value, ${idx})"
+                       onfocus="showItemSuggestions(${idx})">
                 <input type="hidden" name="items[${idx}][painting_id]" id="painting-id-${idx}">
+                <input type="hidden" name="items[${idx}][frame_id]" id="frame-id-${idx}">
                 <input type="hidden" name="items[${idx}][description]" id="desc-${idx}">
-                <div id="painting-suggestions-${idx}" class="absolute z-20 w-full bg-white border border-gray-300 rounded-lg mt-1 max-h-40 overflow-y-auto hidden shadow-lg"></div>
+                <div id="item-suggestions-${idx}" class="absolute z-20 w-full bg-white border border-gray-300 rounded-lg mt-1 max-h-60 overflow-y-auto hidden shadow-lg"></div>
             </div>
-        </td>
-        <td class="px-3 py-3 border">
-            <div class="relative">
-                <input type="text" 
-                       id="supply-search-${idx}"
-                       class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500" 
-                       placeholder="Tìm vật tư..."
-                       autocomplete="off"
-                       onkeyup="filterSupplies(this.value, ${idx})"
-                       onfocus="showSupplySuggestions(${idx})">
-                <input type="hidden" name="items[${idx}][supply_id]" id="supply-id-${idx}">
-                <div id="supply-suggestions-${idx}" class="absolute z-20 w-full bg-white border border-gray-300 rounded-lg mt-1 max-h-40 overflow-y-auto hidden shadow-lg"></div>
-            </div>
-        </td>
-        <td class="px-3 py-3 border">
-            <input type="number" name="items[${idx}][supply_length]" class="w-full px-3 py-2 border border-gray-300 rounded-lg text-center" value="0" step="1">
         </td>
         <td class="px-3 py-3 border">
             <input type="number" name="items[${idx}][quantity]" required class="w-full px-3 py-2 border border-gray-300 rounded-lg text-center font-medium" value="1" min="1" onchange="calc()">
@@ -482,6 +457,188 @@ function selectSupply(supplyId, idx) {
         })
         .catch(error => {
             console.error('Error fetching supply:', error);
+        });
+}
+
+// Search functions for frames
+function filterFrames(query, idx) {
+    const suggestions = document.getElementById(`frame-suggestions-${idx}`);
+    
+    if (!query || query.length < 1) {
+        suggestions.classList.add('hidden');
+        return;
+    }
+    
+    fetch(`{{ route('sales.api.search.frames') }}?q=${encodeURIComponent(query)}`)
+        .then(response => response.json())
+        .then(frames => {
+            if (frames.length > 0) {
+                suggestions.innerHTML = frames.map(f => `
+                    <div class="px-3 py-2 hover:bg-blue-50 cursor-pointer border-b" onclick="selectFrame(${f.id}, ${idx})">
+                        <div class="font-medium text-sm">${f.name}</div>
+                        <div class="text-xs text-gray-500">Giá: ${(f.cost_price || 0).toLocaleString()}đ</div>
+                    </div>
+                `).join('');
+                suggestions.classList.remove('hidden');
+            } else {
+                suggestions.classList.add('hidden');
+            }
+        })
+        .catch(error => {
+            console.error('Error searching frames:', error);
+            suggestions.classList.add('hidden');
+        });
+}
+
+function showFrameSuggestions(idx) {
+    const input = document.getElementById(`frame-search-${idx}`);
+    const suggestions = document.getElementById(`frame-suggestions-${idx}`);
+    
+    if (input && input.value.length >= 1) {
+        filterFrames(input.value, idx);
+    }
+}
+
+function selectFrame(frameId, idx) {
+    fetch(`{{ route('frames.show', '') }}/${frameId}`)
+        .then(response => response.json())
+        .then(frame => {
+            document.getElementById(`frame-id-${idx}`).value = frame.id;
+            document.getElementById(`frame-search-${idx}`).value = frame.name;
+            
+            document.getElementById(`frame-suggestions-${idx}`).classList.add('hidden');
+        })
+        .catch(error => {
+            console.error('Error fetching frame:', error);
+        });
+}
+
+// NEW: Search function for both paintings and frames
+function filterItems(query, idx) {
+    const suggestions = document.getElementById(`item-suggestions-${idx}`);
+    
+    if (!query || query.length < 1) {
+        suggestions.classList.add('hidden');
+        return;
+    }
+    
+    // Fetch both paintings and frames
+    Promise.all([
+        fetch(`{{ route('sales.api.search.paintings') }}?q=${encodeURIComponent(query)}`).then(r => r.json()),
+        fetch(`{{ route('sales.api.search.frames') }}?q=${encodeURIComponent(query)}`).then(r => r.json())
+    ])
+    .then(([paintings, frames]) => {
+        let html = '';
+        
+        // Add paintings section
+        if (paintings.length > 0) {
+            html += '<div class="px-3 py-1 bg-gray-100 text-xs font-bold text-gray-600">TRANH</div>';
+            html += paintings.map(p => `
+                <div class="px-3 py-2 hover:bg-blue-50 cursor-pointer border-b" onclick="selectPainting(${p.id}, ${idx})">
+                    <div class="font-medium text-sm">${p.code} - ${p.name}</div>
+                    <div class="text-xs text-gray-500">USD: ${p.price_usd || 0} | VND: ${(p.price_vnd || 0).toLocaleString()}đ</div>
+                </div>
+            `).join('');
+        }
+        
+        // Add frames section
+        if (frames.length > 0) {
+            html += '<div class="px-3 py-1 bg-gray-100 text-xs font-bold text-gray-600">KHUNG</div>';
+            html += frames.map(f => `
+                <div class="px-3 py-2 hover:bg-green-50 cursor-pointer border-b" onclick="selectFrame(${f.id}, ${idx})">
+                    <div class="font-medium text-sm">${f.name}</div>
+                    <div class="text-xs text-gray-500">Giá: ${(f.cost_price || 0).toLocaleString()}đ</div>
+                </div>
+            `).join('');
+        }
+        
+        if (html) {
+            suggestions.innerHTML = html;
+            suggestions.classList.remove('hidden');
+        } else {
+            suggestions.classList.add('hidden');
+        }
+    })
+    .catch(error => {
+        console.error('Error searching items:', error);
+        suggestions.classList.add('hidden');
+    });
+}
+
+function showItemSuggestions(idx) {
+    const input = document.getElementById(`item-search-${idx}`);
+    
+    if (input && input.value.length >= 1) {
+        filterItems(input.value, idx);
+    }
+}
+
+function selectPainting(paintingId, idx) {
+    fetch(`{{ route('sales.api.painting', '') }}/${paintingId}`)
+        .then(response => response.json())
+        .then(painting => {
+            // Clear frame selection
+            document.getElementById(`frame-id-${idx}`).value = '';
+            
+            // Set painting data
+            document.getElementById(`painting-id-${idx}`).value = painting.id;
+            document.getElementById(`item-search-${idx}`).value = `${painting.code} - ${painting.name}`;
+            document.getElementById(`desc-${idx}`).value = painting.name;
+            
+            const usdInput = document.querySelector(`.usd-${idx}`);
+            const vndInput = document.querySelector(`.vnd-${idx}`);
+            
+            if (usdInput) {
+                const usdValue = parseFloat(painting.price_usd) || 0;
+                usdInput.value = usdValue.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2});
+            }
+            if (vndInput) {
+                const vndValue = parseInt(painting.price_vnd) || 0;
+                vndInput.value = vndValue.toLocaleString('en-US');
+            }
+            
+            const imgUrl = painting.image ? `/storage/${painting.image}` : 'https://via.placeholder.com/80x60?text=No+Image';
+            const imgElement = document.getElementById(`img-${idx}`);
+            imgElement.src = imgUrl;
+            imgElement.onclick = () => showImageModal(imgUrl, painting.name);
+            imgElement.classList.add('cursor-pointer', 'hover:opacity-80', 'transition-opacity');
+            
+            document.getElementById(`item-suggestions-${idx}`).classList.add('hidden');
+            calc();
+        })
+        .catch(error => {
+            console.error('Error fetching painting:', error);
+        });
+}
+
+function selectFrame(frameId, idx) {
+    fetch(`{{ route('frames.api.frame', '') }}/${frameId}`)
+        .then(response => response.json())
+        .then(frame => {
+            // Clear painting selection
+            document.getElementById(`painting-id-${idx}`).value = '';
+            
+            // Set frame data
+            document.getElementById(`frame-id-${idx}`).value = frame.id;
+            document.getElementById(`item-search-${idx}`).value = frame.name;
+            document.getElementById(`desc-${idx}`).value = frame.name;
+            
+            // Set price from frame cost_price
+            const vndInput = document.querySelector(`.vnd-${idx}`);
+            if (vndInput) {
+                const vndValue = parseInt(frame.cost_price) || 0;
+                vndInput.value = vndValue.toLocaleString('en-US');
+            }
+            
+            // Clear image for frame
+            const imgElement = document.getElementById(`img-${idx}`);
+            imgElement.src = 'https://via.placeholder.com/80x60?text=Khung';
+            
+            document.getElementById(`item-suggestions-${idx}`).classList.add('hidden');
+            calc();
+        })
+        .catch(error => {
+            console.error('Error fetching frame:', error);
         });
 }
 

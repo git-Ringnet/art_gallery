@@ -327,8 +327,8 @@
                                         @if($item->painting)
                                             <div class="text-xs text-gray-500">Tranh: {{ $item->painting->code }}</div>
                                         @endif
-                                        @if($item->supply)
-                                            <div class="text-xs text-gray-500">Vật tư: {{ $item->supply->name }} ({{ $item->supply_length }}m)</div>
+                                        @if($item->frame)
+                                            <div class="text-xs text-blue-600">Khung: {{ $item->frame->name }}</div>
                                         @endif
                                     </div>
                                 </td>

@@ -16,7 +16,7 @@ return new class extends Migration
             $table->foreignId('item_id')->comment('ID sản phẩm');
             $table->integer('quantity')->comment('Số lượng trả');
             $table->foreignId('supply_id')->nullable()->constrained('supplies')->onDelete('set null')->comment('ID vật tư (nếu có)');
-            $table->decimal('supply_length', 8, 2)->default(0)->comment('Số mét vật tư (nếu có)');
+            $table->decimal('supply_length', 8, 2)->nullable()->default(0)->comment('Số mét vật tư (nếu có)');
             $table->decimal('unit_price', 15, 2)->comment('Đơn giá (VND)');
             $table->decimal('subtotal', 15, 2)->comment('Thành tiền (VND)');
             $table->text('reason')->nullable()->comment('Lý do trả');

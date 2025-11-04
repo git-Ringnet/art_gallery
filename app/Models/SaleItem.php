@@ -12,6 +12,7 @@ class SaleItem extends Model
     protected $fillable = [
         'sale_id',
         'painting_id',
+        'frame_id',
         'description',
         'quantity',
         'supply_id',
@@ -47,6 +48,11 @@ class SaleItem extends Model
     public function painting()
     {
         return $this->belongsTo(Painting::class);
+    }
+
+    public function frame()
+    {
+        return $this->belongsTo(Frame::class);
     }
 
     public function supply()

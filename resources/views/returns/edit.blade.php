@@ -128,8 +128,6 @@
                             <tr class="bg-gradient-to-r from-blue-50 to-indigo-50 border-b-2 border-blue-200">
                                 <th class="px-2 py-2 text-left text-xs font-semibold text-gray-700">Ảnh</th>
                                 <th class="px-2 py-2 text-left text-xs font-semibold text-gray-700">Mã SP</th>
-                                <th class="px-2 py-2 text-left text-xs font-semibold text-gray-700">VT</th>
-                                <th class="px-2 py-2 text-center text-xs font-semibold text-gray-700">Mét</th>
                                 <th class="px-2 py-2 text-center text-xs font-semibold text-gray-700">SL</th>
                                 <th class="px-2 py-2 text-right text-xs font-semibold text-gray-700">Giá</th>
                                 <th class="px-2 py-2 text-center text-xs font-semibold text-gray-700">GG%</th>
@@ -138,7 +136,7 @@
                         </thead>
                         <tbody id="exchange-products-container">
                             <tr>
-                                <td colspan="8" class="text-center text-gray-500 py-8">
+                                <td colspan="6" class="text-center text-gray-500 py-8">
                                     <i class="fas fa-box-open text-3xl mb-2 text-gray-400"></i>
                                     <p class="text-sm">Tìm kiếm sản phẩm để đổi</p>
                                 </td>
@@ -175,7 +173,34 @@
                     
                     <div>
                         <label class="block text-xs font-medium text-gray-700 mb-1">Ghi chú</label>
-                        <textarea name="notes" rows="2" class="w-full px-2 py-1.5 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500" placeholder="Ghi chú...">{{ $return->notes }}</textarea>
+                        @php
+                            // Loại bỏ phần [PAYMENT_INFO] khỏi notes khi edit
+                            $editNotes = $return->notes;
+                            $paymentInfoText = '';
+                            
+                            if (strpos($editNotes, '[PAYMENT_INFO]') !== false) {
+                                $parts = explode('[PAYMENT_INFO]', $editNotes);
+                                $editNotes = trim($parts[0]);
+                                
+                                // Parse payment info để hiển thị
+                                $jsonPart = $parts[1] ?? '';
+                                if ($jsonPart) {
+                                    $paymentInfo = json_decode($jsonPart, true);
+                                    if ($paymentInfo) {
+                                        $paymentInfoText = 'Đã trả: ' . number_format($paymentInfo['payment_amount'], 0, ',', '.') . 'đ';
+                                        $paymentInfoText .= ' (' . ($paymentInfo['payment_method'] == 'cash' ? 'Tiền mặt' : 'Chuyển khoản');
+                                        $paymentInfoText .= ' - ' . date('d/m/Y', strtotime($paymentInfo['payment_date'])) . ')';
+                                    }
+                                }
+                            }
+                        @endphp
+                        <textarea name="notes" rows="2" class="w-full px-2 py-1.5 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500" placeholder="Ghi chú...">{{ $editNotes }}</textarea>
+                        
+                        @if($paymentInfoText)
+                        <div class="mt-1.5 p-2 bg-green-50 border border-green-200 rounded text-xs text-green-700">
+                            <i class="fas fa-info-circle mr-1"></i>{{ $paymentInfoText }}
+                        </div>
+                        @endif
                     </div>
                     
                     <div class="border-t pt-3">
@@ -214,9 +239,15 @@
                     </div>
                     
                     <!-- Payment Section (chỉ hiện khi đổi hàng và khách phải trả thêm) -->
+                    @php
+                        // Lấy số tiền đã trả từ database (dựa vào notes chứa return_code)
+                        $existingPayment = $return->sale->payments()
+                            ->where('notes', 'like', "%{$return->return_code}%")
+                            ->sum('amount');
+                    @endphp
                     <div id="payment-section" class="hidden border-t pt-3">
                         <label class="block text-xs font-medium text-gray-700 mb-1">Khách trả thêm (VND)</label>
-                        <input type="text" name="payment_amount" id="payment-amount" class="w-full px-3 py-1.5 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500" value="0" oninput="formatPaymentVND(this)" onblur="formatPaymentVND(this)" onchange="updatePaymentSummary()" placeholder="Nhập số tiền khách trả...">
+                        <input type="text" name="payment_amount" id="payment-amount" class="w-full px-3 py-1.5 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500" value="{{ $existingPayment > 0 ? number_format($existingPayment, 0, ',', '.') : '0' }}" oninput="formatPaymentVND(this)" onblur="formatPaymentVND(this)" onchange="updatePaymentSummary()" placeholder="Nhập số tiền khách trả...">
                         
                         <div class="mt-2 p-2 bg-blue-50 rounded-lg border border-blue-200">
                             <div class="flex justify-between text-xs">
@@ -379,10 +410,7 @@ function addExchangeProduct(id, type, name, price, maxQty, code = '', image = ''
         defaultPrice: price,
         maxQty: availableQty, 
         quantity: 1,
-        discount: 0,
-        supplyId: null,
-        supplyName: '',
-        supplyLength: 0
+        discount: 0
     });
     renderExchangeProducts();
     updateSummary();
@@ -397,7 +425,7 @@ function removeExchangeProduct(index) {
 function renderExchangeProducts() {
     const container = document.getElementById('exchange-products-container');
     if (exchangeProducts.length === 0) {
-        container.innerHTML = '<tr><td colspan="8" class="text-center text-gray-500 py-6"><i class="fas fa-box-open text-2xl mb-2 text-gray-400 block"></i><p class="text-xs">Chưa có sản phẩm đổi</p></td></tr>';
+        container.innerHTML = '<tr><td colspan="6" class="text-center text-gray-500 py-6"><i class="fas fa-box-open text-2xl mb-2 text-gray-400 block"></i><p class="text-xs">Chưa có sản phẩm đổi</p></td></tr>';
         return;
     }
     
@@ -421,27 +449,6 @@ function renderExchangeProducts() {
                         <i class="fas fa-box mr-1"></i>Tồn: ${product.maxQty}
                     </span>
                 </div>
-            </td>
-            <td class="px-2 py-2">
-                <div class="relative">
-                    <input type="text" 
-                           id="supply-search-${index}"
-                           class="w-full px-2 py-1.5 border border-gray-300 rounded text-xs focus:ring-2 focus:ring-blue-500 focus:border-blue-500" 
-                           placeholder="Tìm vật tư..."
-                           value="${product.supplyName || ''}"
-                           oninput="searchSupplyForExchange(${index}, this.value)"
-                           autocomplete="off">
-                    <div id="supply-suggestions-${index}" class="absolute z-20 w-full bg-white border border-gray-300 rounded shadow-lg mt-1 max-h-48 overflow-y-auto hidden"></div>
-                </div>
-            </td>
-            <td class="px-2 py-2 text-center">
-                <input type="number" 
-                       class="w-16 px-2 py-1.5 border border-gray-300 rounded text-center text-xs font-medium focus:ring-2 focus:ring-blue-500"
-                       min="0" 
-                       step="0.1"
-                       value="${product.supplyLength || 0}"
-                       onchange="updateExchangeSupplyLength(${index}, this.value)"
-                       placeholder="0">
             </td>
             <td class="px-2 py-2 text-center">
                 <input type="number" 
@@ -482,8 +489,6 @@ function renderExchangeProducts() {
         <input type="hidden" name="exchange_items[${index}][quantity]" value="${product.quantity}">
         <input type="hidden" name="exchange_items[${index}][unit_price]" value="${finalPrice}">
         <input type="hidden" name="exchange_items[${index}][discount_percent]" value="${product.discount || 0}">
-        ${product.supplyId ? `<input type="hidden" name="exchange_items[${index}][supply_id]" value="${product.supplyId}">` : ''}
-        ${product.supplyLength ? `<input type="hidden" name="exchange_items[${index}][supply_length]" value="${product.supplyLength}">` : ''}
         `;
     }).join('');
 }
@@ -506,63 +511,7 @@ function updateExchangeDiscount(index, discount) {
     updateSummary();
 }
 
-function updateExchangeSupplyLength(index, length) {
-    exchangeProducts[index].supplyLength = parseFloat(length) || 0;
-    renderExchangeProducts();
-}
 
-let supplySearchTimeout;
-function searchSupplyForExchange(index, query) {
-    clearTimeout(supplySearchTimeout);
-    const container = document.getElementById(`supply-suggestions-${index}`);
-    
-    if (query.length < 1) {
-        container.classList.add('hidden');
-        return;
-    }
-    
-    supplySearchTimeout = setTimeout(() => {
-        fetch(`{{ route('sales.api.search.supplies') }}?q=${encodeURIComponent(query)}`)
-            .then(r => r.json())
-            .then(supplies => {
-                if (supplies.length === 0) {
-                    container.classList.add('hidden');
-                    return;
-                }
-                
-                container.innerHTML = supplies.map(supply => `
-                    <div class="px-3 py-2 hover:bg-blue-50 cursor-pointer border-b last:border-b-0 transition-colors" 
-                         onclick="selectSupplyForExchange(${index}, ${supply.id}, '${supply.name.replace(/'/g, "\\'")}')">
-                        <div class="text-sm font-medium text-gray-800">${supply.name}</div>
-                        <div class="text-xs text-gray-500">
-                            <span class="inline-flex items-center px-2 py-0.5 rounded-full bg-blue-100 text-blue-800">
-                                <i class="fas fa-box mr-1"></i>Tồn: ${supply.quantity} ${supply.unit || 'm'}
-                            </span>
-                        </div>
-                    </div>
-                `).join('');
-                
-                container.classList.remove('hidden');
-            })
-            .catch(err => console.error(err));
-    }, 300);
-}
-
-function selectSupplyForExchange(index, supplyId, supplyName) {
-    exchangeProducts[index].supplyId = supplyId;
-    exchangeProducts[index].supplyName = supplyName;
-    exchangeProducts[index].supplyLength = 1;
-    renderExchangeProducts();
-    document.getElementById(`supply-suggestions-${index}`).classList.add('hidden');
-}
-
-document.addEventListener('click', function(e) {
-    if (!e.target.closest('[id^="supply-search-"]') && !e.target.closest('[id^="supply-suggestions-"]')) {
-        document.querySelectorAll('[id^="supply-suggestions-"]').forEach(el => {
-            el.classList.add('hidden');
-        });
-    }
-});
 
 function updateSummary() {
     const returnInputs = document.querySelectorAll('.return-qty');
