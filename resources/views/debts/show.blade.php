@@ -68,18 +68,24 @@
             </div>
 
             <!-- Amount Summary -->
+            @php
+                // Tính toán real-time từ bảng sales và payments (giống như trang index)
+                $totalAmount = $debt->sale->total_vnd;
+                $paidAmount = $debt->sale->payments()->sum('amount');
+                $remainingDebt = $totalAmount - $paidAmount;
+            @endphp
             <div class="mt-4 pt-4 border-t-2 space-y-3">
                 <div class="flex justify-between items-center">
                     <span class="text-gray-700 font-medium text-sm">Tổng tiền HĐ:</span>
-                    <span class="font-bold text-gray-900 text-base">{{ number_format($debt->total_amount, 0, ',', '.') }}đ</span>
+                    <span class="font-bold text-gray-900 text-base">{{ number_format($totalAmount, 0, ',', '.') }}đ</span>
                 </div>
                 <div class="flex justify-between items-center bg-green-50 p-2 rounded-lg">
                     <span class="text-green-700 font-medium text-sm">Đã trả:</span>
-                    <span class="font-bold text-green-700 text-base">{{ number_format($debt->paid_amount, 0, ',', '.') }}đ</span>
+                    <span class="font-bold text-green-700 text-base">{{ number_format($paidAmount, 0, ',', '.') }}đ</span>
                 </div>
                 <div class="flex justify-between items-center pt-2 border-t-2 bg-red-50 p-3 rounded-lg border-2 border-red-200">
                     <span class="text-red-700 font-bold text-base">Còn nợ:</span>
-                    <span class="font-bold text-red-600 text-xl">{{ number_format($debt->debt_amount, 0, ',', '.') }}đ</span>
+                    <span class="font-bold text-red-600 text-xl">{{ number_format($remainingDebt, 0, ',', '.') }}đ</span>
                 </div>
             </div>
 
@@ -249,7 +255,7 @@
                     <!-- Số tiền còn nợ hiển thị rõ -->
                     <div class="bg-red-50 border border-red-200 rounded-lg p-3">
                         <p class="text-sm text-gray-700 mb-1 font-medium">Số tiền còn thanh toán:</p>
-                        <p class="text-2xl font-bold text-red-600">{{ number_format($debt->sale->debt_amount, 0, ',', '.') }}đ</p>
+                        <p class="text-2xl font-bold text-red-600">{{ number_format($remainingDebt, 0, ',', '.') }}đ</p>
                     </div>
 
                     <div>
@@ -263,7 +269,7 @@
                             onblur="formatVND(this)">
                         <p class="text-xs text-gray-600 mt-2 flex items-center">
                             <i class="fas fa-info-circle mr-1 text-blue-500"></i>
-                            Tối đa: <span class="font-bold ml-1">{{ number_format($debt->sale->debt_amount, 0, ',', '.') }}đ</span>
+                            Tối đa: <span class="font-bold ml-1">{{ number_format($remainingDebt, 0, ',', '.') }}đ</span>
                         </p>
                     </div>
 
@@ -298,7 +304,7 @@
 </div>
 
 <script>
-const maxDebt = {{ $debt->sale->debt_amount }};
+const maxDebt = {{ $remainingDebt }};
 
 function showCollectModal() {
     document.getElementById('collectModal').classList.remove('hidden');
