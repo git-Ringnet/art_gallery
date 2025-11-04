@@ -19,7 +19,7 @@
             </div>
 
             <h2 class="text-3xl font-bold text-center text-gray-800 mb-2">Đăng nhập</h2>
-            <p class="text-center text-gray-600 mb-8">Hệ thống Quản lý Tranh & Khung</p>
+            <p class="text-center text-gray-600 mb-8">Hệ thống Quản lý Tranh</p>
 
             <!-- Session Status -->
             @if (session('status'))
@@ -63,7 +63,7 @@
                 </div>
 
                 <!-- Remember Me -->
-                <div class="flex items-center justify-between mb-6">
+                {{-- <div class="flex items-center justify-between mb-6">
                     <label class="flex items-center">
                         <input type="checkbox" name="remember" class="rounded border-gray-300 text-blue-600 focus:ring-blue-500">
                         <span class="ml-2 text-sm text-gray-600">Ghi nhớ đăng nhập</span>
@@ -74,7 +74,7 @@
                             Quên mật khẩu?
                         </a>
                     @endif
-                </div>
+                </div> --}}
 
                 <!-- Submit Button -->
                 <button type="submit" class="w-full bg-gradient-to-r from-blue-600 to-cyan-700 text-white py-3 rounded-lg font-semibold hover:from-blue-700 hover:to-cyan-800 transition-all duration-200 shadow-lg">
@@ -82,12 +82,12 @@
                 </button>
             </form>
 
-            @if (Route::has('register'))
+            {{-- @if (Route::has('register'))
                 <p class="mt-6 text-center text-sm text-gray-600">
                     Chưa có tài khoản? 
                     <a href="{{ route('register') }}" class="text-blue-600 hover:text-blue-800 font-semibold">Đăng ký ngay</a>
                 </p>
-            @endif
+            @endif --}}
         </div>
 
         <p class="text-center text-gray-600 text-sm mt-6">

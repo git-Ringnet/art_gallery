@@ -16,6 +16,7 @@ return new class extends Migration
             $table->string('name')->comment('Tên khung');
             $table->decimal('cost_price', 15, 2)->comment('Giá nhập khung');
             $table->text('notes')->nullable()->comment('Ghi chú');
+            $table->string('status')->default('available'); // available, sold
             $table->timestamps();
             
             $table->index('created_at');

@@ -97,12 +97,25 @@ class EmployeeController extends Controller
     public function edit($id)
     {
         $employee = User::findOrFail($id);
+        
+        // Không cho phép chỉnh sửa tài khoản admin
+        if ($employee->email === 'admin@example.com') {
+            return redirect()->route('employees.index')
+                ->with('error', 'Không thể chỉnh sửa tài khoản admin');
+        }
+        
         return view('employees.edit', compact('employee'));
     }
 
     public function update(Request $request, $id)
     {
         $employee = User::findOrFail($id);
+        
+        // Không cho phép cập nhật tài khoản admin
+        if ($employee->email === 'admin@example.com') {
+            return redirect()->route('employees.index')
+                ->with('error', 'Không thể cập nhật tài khoản admin');
+        }
 
         $validated = $request->validate([
             'name' => 'required|string|max:255',
@@ -154,6 +167,12 @@ class EmployeeController extends Controller
     {
         $employee = User::findOrFail($id);
         
+        // Không cho phép xóa tài khoản admin
+        if ($employee->email === 'admin@example.com') {
+            return redirect()->route('employees.index')
+                ->with('error', 'Không thể xóa tài khoản admin');
+        }
+        
         if ($employee->avatar) {
             Storage::disk('public')->delete($employee->avatar);
         }
@@ -167,6 +186,12 @@ class EmployeeController extends Controller
     public function toggleStatus($id)
     {
         $employee = User::findOrFail($id);
+        
+        // Không cho phép vô hiệu hóa tài khoản admin
+        if ($employee->email === 'admin@example.com') {
+            return redirect()->route('employees.index')
+                ->with('error', 'Không thể thay đổi trạng thái tài khoản admin');
+        }
         
         // Không cho phép vô hiệu hóa chính mình
         if (Auth::check() && $employee->id === Auth::id()) {

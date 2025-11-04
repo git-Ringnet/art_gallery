@@ -114,7 +114,7 @@
                             `).join('')}
                         </select>
                         <p class="text-xs text-gray-500 mt-1">
-                            Còn lại: <span class="remaining-info font-medium">Chọn cây để xem</span>
+                            <span class="remaining-info font-medium">Chọn cây để xem</span>
                         </p>
                     </div>
                     
@@ -130,9 +130,10 @@
                         <div class="flex items-center gap-2">
                             <input type="number" name="items[${index}][length_per_tree]" value="${data.length_per_tree || ''}" 
                                 class="length-per-tree flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
-                                min="0" step="0.01" required placeholder="VD: 240">
+                                min="0" step="0.01" max="" required placeholder="VD: 240">
                             <span class="unit-display text-gray-600">cm</span>
                         </div>
+                        <p class="text-xs text-gray-500 mt-1">Tối đa: <span class="max-length-info">-</span></p>
                     </div>
                     
                     <div>
@@ -167,9 +168,26 @@
             const useWholeTrees = item.querySelector('.use-whole-trees');
             const removeBtn = item.querySelector('.remove-item-btn');
 
-            supplySelect.addEventListener('change', () => updateItemCalculations(item));
+            supplySelect.addEventListener('change', () => {
+                // Clear input chiều dài khi chọn cây mới
+                lengthPerTree.value = '';
+                updateItemCalculations(item);
+            });
+            
             treeQuantity.addEventListener('input', () => updateItemCalculations(item));
-            lengthPerTree.addEventListener('input', () => updateItemCalculations(item));
+            
+            lengthPerTree.addEventListener('input', () => {
+                // Kiểm tra giá trị nhập không vượt quá max
+                const maxValue = parseFloat(lengthPerTree.getAttribute('max'));
+                const currentValue = parseFloat(lengthPerTree.value);
+                
+                if (maxValue && currentValue > maxValue) {
+                    lengthPerTree.value = maxValue;
+                    alert(`Chiều dài mỗi cây không được vượt quá ${maxValue} cm`);
+                }
+                
+                updateItemCalculations(item);
+            });
             
             removeBtn.addEventListener('click', () => {
                 if (document.querySelectorAll('#itemsContainer > div').length > 1) {
@@ -188,6 +206,7 @@
             const remainingInfo = item.querySelector('.remaining-info');
             const unitDisplay = item.querySelector('.unit-display');
             const useWholeTrees = item.querySelector('.use-whole-trees');
+            const maxLengthInfo = item.querySelector('.max-length-info');
 
             const selectedOption = supplySelect.options[supplySelect.selectedIndex];
             
@@ -199,19 +218,39 @@
                 const length = parseFloat(lengthPerTree.value) || 0;
                 const totalLength = qty * length;
 
+                // Set max cho input chiều dài = chiều dài mỗi cây trong kho
+                lengthPerTree.setAttribute('max', availableQuantity);
+                maxLengthInfo.textContent = `${availableQuantity.toFixed(2)} ${unit}`;
+
                 totalLengthInput.value = `${totalLength.toFixed(2)} ${unit}`;
                 unitDisplay.textContent = unit;
 
-                const remaining = availableQuantity - totalLength;
-                remainingInfo.innerHTML = `${availableQuantity.toFixed(2)} ${unit} (${availableTreeCount} cây) → Còn: <strong>${remaining.toFixed(2)} ${unit}</strong>`;
+                // Tính số cây còn lại và chiều dài còn lại mỗi cây
+                const remainingTrees = availableTreeCount - qty;
+                const remainingLengthPerTree = availableQuantity - length;
+                
+                let remainingText = `${availableQuantity.toFixed(2)} ${unit}/cây (${availableTreeCount} cây)`;
+                
+                if (qty > 0 && length > 0) {
+                    remainingText += ` → Còn: <strong>${remainingTrees} cây × ${availableQuantity.toFixed(2)} ${unit}/cây`;
+                    if (remainingLengthPerTree > 0) {
+                        remainingText += ` + ${qty} cây × ${remainingLengthPerTree.toFixed(2)} ${unit}/cây (phần dư)</strong>`;
+                    } else {
+                        remainingText += `</strong>`;
+                    }
+                }
+                
+                remainingInfo.innerHTML = remainingText;
 
-                // Tự động check "use whole trees" nếu còn lại < 50cm
-                if (remaining > 0 && remaining < 50) {
+                // Tự động check "use whole trees" nếu phần dư < 50cm
+                if (remainingLengthPerTree > 0 && remainingLengthPerTree < 50) {
                     useWholeTrees.checked = true;
                 }
             } else {
                 totalLengthInput.value = '0 cm';
                 remainingInfo.textContent = 'Chọn cây để xem';
+                lengthPerTree.removeAttribute('max');
+                maxLengthInfo.textContent = '-';
             }
         }
 

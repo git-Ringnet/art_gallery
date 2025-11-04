@@ -63,7 +63,7 @@
                         <div class="relative">
                             <input type="text" name="search" value="{{ request('search') }}"
                                 class="w-full pl-8 pr-2 py-1.5 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                                placeholder="Tìm theo mã, tên sản phẩm...">
+                                placeholder="Tìm theo mã, tên, số hóa đơn...">
                             <i class="fas fa-search absolute left-2 top-2 text-xs text-gray-400"></i>
                         </div>
                     </div>
@@ -108,6 +108,8 @@
                         </th>
                         <th class="px-2 py-2 text-left text-xs font-medium uppercase tracking-wider">Ngày nhập
                         </th>
+                        <th class="px-2 py-2 text-left text-xs font-medium uppercase tracking-wider">Số hóa đơn
+                        </th>
                         <th class="px-2 py-2 text-left text-xs font-medium uppercase tracking-wider">Trạng
                             thái</th>
                         <th class="px-2 py-2 text-left text-xs font-medium uppercase tracking-wider">Thao tác
@@ -131,12 +133,28 @@
                                 @endif
                             </td>
                             <td class="px-2 py-2 whitespace-nowrap text-xs font-semibold text-gray-900">
-                                {{ $item['quantity'] }}{{ isset($item['unit']) ? ' ' . $item['unit'] : '' }}
-                                @if($item['type'] == 'supply' && isset($item['supply_type']) && $item['supply_type'] == 'frame' && isset($item['tree_count']))
-                                    <span class="text-blue-600 ml-1">({{ $item['tree_count'] }} cây)</span>
+                                @if($item['type'] == 'supply' && isset($item['supply_type']) && $item['supply_type'] == 'frame' && isset($item['tree_count']) && $item['tree_count'] > 0)
+                                    <span class="text-blue-600">{{ $item['tree_count'] }} cây</span>
+                                    <span class="text-gray-500 text-xs"> × {{ $item['quantity'] }}{{ isset($item['unit']) ? $item['unit'] : '' }}/cây</span>
+                                @else
+                                    {{ $item['quantity'] }}{{ isset($item['unit']) ? ' ' . $item['unit'] : '' }}
                                 @endif
                             </td>
                             <td class="px-2 py-2 whitespace-nowrap text-xs text-gray-900">{{ $item['import_date'] }}</td>
+                            <td class="px-2 py-2 text-xs text-gray-900">
+                                @if(isset($item['sales']) && $item['sales']->isNotEmpty())
+                                    @foreach($item['sales'] as $sale)
+                                        <a href="{{ route('sales.show', $sale->id) }}" 
+                                           class="text-blue-600 hover:text-blue-800 hover:underline font-medium"
+                                           title="Xem chi tiết hóa đơn">
+                                            {{ $sale->invoice_code }}
+                                        </a>
+                                        @if(!$loop->last), @endif
+                                    @endforeach
+                                @else
+                                    <span class="text-gray-400">-</span>
+                                @endif
+                            </td>
                             <td class="px-2 py-2 whitespace-nowrap">
                                 @if ($item['type'] == 'painting')
                                     @if ($item['status'] == 'in_stock')
@@ -174,13 +192,20 @@
                                     @endhasPermission
 
                                     @hasPermission('inventory', 'can_edit')
+                                    @if($item['status'] == 'in_stock')
                                     <a href="{{ route('inventory.paintings.edit', ['id' => $item['id'], 'return_url' => request()->fullUrl()]) }}"
                                         class="text-yellow-600 hover:text-yellow-900 mr-2" title="Chỉnh sửa">
                                         <i class="fas fa-edit px-2 py-1.5 rounded bg-yellow-100 text-yellow-600 text-xs"></i>
                                     </a>
+                                    @else
+                                    <span class="text-gray-400 mr-2" title="Không thể sửa tranh đã bán">
+                                        <i class="fas fa-edit px-2 py-1.5 rounded bg-gray-100 text-gray-400 text-xs cursor-not-allowed"></i>
+                                    </span>
+                                    @endif
                                     @endhasPermission
 
                                     @hasPermission('inventory', 'can_delete')
+                                    @if($item['status'] == 'in_stock')
                                     <form action="{{ route('inventory.paintings.destroy', $item['id']) }}" method="POST"
                                         class="inline" onsubmit="return confirm('Xóa tranh này?');">
                                         @csrf
@@ -189,6 +214,11 @@
                                             <i class="fas fa-trash px-2 py-1.5 rounded bg-red-100 text-red-400 text-xs"></i>
                                         </button>
                                     </form>
+                                    @else
+                                    <span class="text-gray-400" title="Không thể xóa tranh đã bán">
+                                        <i class="fas fa-trash px-2 py-1.5 rounded bg-gray-100 text-gray-400 text-xs cursor-not-allowed"></i>
+                                    </span>
+                                    @endif
                                     @endhasPermission
                                 @endif
 
@@ -208,6 +238,7 @@
                                     @endhasPermission
 
                                     @hasPermission('inventory', 'can_delete')
+                                    @if($item['quantity'] > 0)
                                     <form action="{{ route('inventory.supplies.destroy', $item['id']) }}" method="POST"
                                         class="inline" onsubmit="return confirm('Xóa vật tư này?');">
                                         @csrf
@@ -216,13 +247,18 @@
                                             <i class="fas fa-trash px-2 py-1.5 rounded bg-red-100 text-red-400 text-xs"></i>
                                         </button>
                                     </form>
+                                    @else
+                                    <span class="text-gray-400" title="Không thể xóa vật tư đã sử dụng hết">
+                                        <i class="fas fa-trash px-2 py-1.5 rounded bg-gray-100 text-gray-400 text-xs cursor-not-allowed"></i>
+                                    </span>
+                                    @endif
                                     @endhasPermission
                                 @endif
                             </td>
                         </tr>
                     @empty
                         <tr>
-                            <td colspan="7" class="px-2 py-6 text-center text-gray-500">
+                            <td colspan="8" class="px-2 py-6 text-center text-gray-500">
                                 <i class="fas fa-inbox text-3xl mb-2"></i>
                                 <p class="text-sm">Không có dữ liệu</p>
                             </td>

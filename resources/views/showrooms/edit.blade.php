@@ -1,8 +1,8 @@
 @extends('layouts.app')
 
-@section('title', 'Sửa phòng trưng bày')
-@section('page-title', 'Sửa phòng trưng bày')
-@section('page-description', 'Cập nhật thông tin phòng trưng bày')
+@section('title', 'Sửa Showroom')
+@section('page-title', 'Sửa Showroom')
+@section('page-description', 'Cập nhật thông tin Showroom')
 
 @section('content')
     <div class="bg-white rounded-xl shadow-lg p-4 glass-effect">
@@ -36,7 +36,7 @@
                             class="text-red-500">*</span></label>
                     <input type="text" name="name" value="{{ $showroom->name }}" required
                         class="w-full px-2 py-1.5 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                        placeholder="Tên phòng trưng bày">
+                        placeholder="Tên Showroom">
                 </div>
                 <div>
                     <label class="block text-xs font-medium text-gray-700 mb-1">Số điện thoại <span

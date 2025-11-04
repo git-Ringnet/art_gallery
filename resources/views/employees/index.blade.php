@@ -166,6 +166,7 @@
                     @endhasPermission
                     
                     @hasPermission('employees', 'can_edit')
+                    @if($employee->email !== 'admin@example.com')
                     <a href="{{ route('employees.edit', $employee->id) }}" class="text-yellow-600 hover:text-yellow-900 mr-1" title="Chỉnh sửa">
                         <i class="fas fa-edit px-2 py-1.5 rounded-lg bg-yellow-100 text-yellow-600"></i>
                     </a>
@@ -184,9 +185,11 @@
                         @endif
                     </form>
                     @endif
+                    @endif
                     @endhasPermission
 
                     @hasPermission('employees', 'can_delete')
+                    @if($employee->email !== 'admin@example.com')
                     <form action="{{ route('employees.destroy', $employee->id) }}" method="POST" class="inline" onsubmit="return confirm('Xóa nhân viên này?');">
                         @csrf
                         @method('DELETE')
@@ -194,6 +197,7 @@
                             <i class="fas fa-trash px-2 py-1.5 rounded-lg bg-red-100 text-red-400"></i>
                         </button>
                     </form>
+                    @endif
                     @endhasPermission
                 </td>
             </tr>

@@ -58,7 +58,7 @@
             </div>
             
             <div>
-                <label class="block text-sm font-medium text-gray-700 mb-2">Số lượng (chiều dài) <span class="text-red-500">*</span></label>
+                <label class="block text-sm font-medium text-gray-700 mb-2">Chiều dài <span class="text-red-500">*</span></label>
                 <input type="number" name="quantity" value="{{ old('quantity', $supply->quantity) }}" required 
                        class="w-full px-2 py-1.5 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent @error('quantity') border-red-500 @enderror" 
                        placeholder="100" min="0" step="0.01">

@@ -58,7 +58,7 @@
                 </div>
                 
                 <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-1">Số lượng (chiều dài)</label>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Chiều dài</label>
                     <p class="text-lg font-semibold text-gray-900">{{ $supply->quantity }} {{ $supply->unit }}</p>
                 </div>
                 

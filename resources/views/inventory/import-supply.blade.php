@@ -40,18 +40,18 @@
                         placeholder="VD: m, cm, cái">
                 </div>
                 <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-2">Số lượng (chiều dài) <span class="text-red-500">*</span></label>
-                    <input type="number" name="quantity" value="{{ old('quantity') }}" required
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Chiều dài mỗi cây <span class="text-red-500">*</span></label>
+                    <input type="number" name="length_per_tree" value="{{ old('length_per_tree') }}" required
                         class="w-full px-2 py-1.5 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                        placeholder="100" min="0" step="0.01">
-                    <p class="text-xs text-gray-500 mt-1">Tổng chiều dài của vật tư (VD: 500 cm)</p>
+                        placeholder="50" min="0" step="0.01">
+                    <p class="text-xs text-gray-500 mt-1">Chiều dài của mỗi cây (VD: 50 cm)</p>
                 </div>
                 <div id="tree_count_field">
-                    <label class="block text-sm font-medium text-gray-700 mb-2">Số lượng cây</label>
-                    <input type="number" name="tree_count" value="{{ old('tree_count', 0) }}"
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Số lượng cây <span class="text-red-500">*</span></label>
+                    <input type="number" name="tree_count" value="{{ old('tree_count', 1) }}" required
                         class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                        placeholder="0" min="0" step="1">
-                    <p class="text-xs text-gray-500 mt-1">Số cây gỗ (chỉ áp dụng cho loại khung tranh, để 0 nếu không phải)</p>
+                        placeholder="5" min="1" step="1">
+                    <p class="text-xs text-gray-500 mt-1">Số lượng cây gỗ (VD: 5 cây × 50cm = 250cm tổng)</p>
                 </div>
                 <div class="md:col-span-2">
                     <label class="block text-xs font-medium text-gray-700 mb-1">Ghi chú</label>

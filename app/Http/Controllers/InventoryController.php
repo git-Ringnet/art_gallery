@@ -21,10 +21,18 @@ class InventoryController extends Controller
         $dateFrom = $request->get('date_from');
         $dateTo = $request->get('date_to');
 
-        // Get paintings
-        $paintingsQuery = Painting::query();
+        // Get paintings with sale information
+        $paintingsQuery = Painting::with(['saleItems.sale']);
         if ($search) {
-            $paintingsQuery->search($search);
+            $paintingsQuery->where(function($q) use ($search) {
+                $q->where('code', 'like', "%{$search}%")
+                  ->orWhere('name', 'like', "%{$search}%")
+                  ->orWhere('artist', 'like', "%{$search}%")
+                  ->orWhereHas('saleItems.sale', function($saleQuery) use ($search) {
+                      $saleQuery->where('invoice_code', 'like', "%{$search}%")
+                                ->where('sale_status', 'completed');
+                  });
+            });
         }
         if ($dateFrom) {
             $paintingsQuery->where('import_date', '>=', $dateFrom);
@@ -34,11 +42,13 @@ class InventoryController extends Controller
         }
         $paintings = $paintingsQuery->orderBy('created_at', 'desc')->get();
 
-        // Get supplies
-        $suppliesQuery = Supply::query();
+        // Get supplies (chỉ lấy những cây còn số lượng > 0)
+        $suppliesQuery = Supply::where('tree_count', '>', 0);
         if ($search) {
-            $suppliesQuery->where('code', 'like', "%{$search}%")
-                ->orWhere('name', 'like', "%{$search}%");
+            $suppliesQuery->where(function($q) use ($search) {
+                $q->where('code', 'like', "%{$search}%")
+                  ->orWhere('name', 'like', "%{$search}%");
+            });
         }
         if ($dateFrom) {
             $suppliesQuery->where('import_date', '>=', $dateFrom);
@@ -52,6 +62,17 @@ class InventoryController extends Controller
         $inventory = collect();
         if (!$type || $type === 'painting') {
             $inventory = $inventory->merge($paintings->map(function ($painting) {
+                // Get completed sales for this painting
+                $completedSales = $painting->saleItems()
+                    ->whereHas('sale', function($q) {
+                        $q->where('sale_status', 'completed');
+                    })
+                    ->with('sale')
+                    ->get()
+                    ->pluck('sale')
+                    ->filter()
+                    ->unique('id');
+                
                 return [
                     'id' => $painting->id,
                     'code' => $painting->code,
@@ -65,6 +86,7 @@ class InventoryController extends Controller
                     'artist' => $painting->artist,
                     'material' => $painting->material,
                     'price_usd' => $painting->price_usd,
+                    'sales' => $completedSales,
                 ];
             }));
         }
@@ -83,6 +105,7 @@ class InventoryController extends Controller
                     'import_date_raw' => $supply->import_date,
                     'created_at' => $supply->created_at,
                     'status' => $supply->status,
+                    'sales' => collect(),
                 ];
             }));
         }
@@ -184,30 +207,58 @@ class InventoryController extends Controller
     public function importSupply(Request $request)
     {
         $validated = $request->validate([
-            'code' => 'required|string|max:50|unique:supplies,code',
+            'code' => 'required|string|max:50',
             'name' => 'required|string|max:255',
             'type' => 'required|string',
             'unit' => 'required|string|max:20',
-            'quantity' => 'required|numeric|min:0',
-            'tree_count' => 'nullable|integer|min:0',
+            'length_per_tree' => 'required|numeric|min:0',
+            'tree_count' => 'required|integer|min:1',
             'notes' => 'nullable|string'
         ], [
-            'code.unique' => 'Mã vật tư đã tồn tại trong hệ thống.',
             'code.required' => 'Vui lòng nhập mã vật tư.',
+            'length_per_tree.required' => 'Vui lòng nhập chiều dài mỗi cây.',
+            'tree_count.required' => 'Vui lòng nhập số lượng cây.',
         ]);
 
+        // Tính tổng chiều dài = chiều dài mỗi cây × số cây
+        $totalQuantity = $validated['length_per_tree'] * $validated['tree_count'];
+
+        // Kiểm tra xem đã có vật tư cùng mã, cùng tên và cùng chiều dài mỗi cây chưa
+        $existingSupply = Supply::where('code', $validated['code'])
+            ->where('name', $validated['name'])
+            ->where('quantity', $validated['length_per_tree'])
+            ->first();
+
+        if ($existingSupply) {
+            // Cập nhật số lượng cây
+            $existingSupply->tree_count += $validated['tree_count'];
+            $existingSupply->save();
+
+            return redirect()->route('inventory.index')
+                ->with('success', 'Đã cập nhật số lượng cây cho vật tư: ' . $existingSupply->name . ' (' . $existingSupply->code . ') - Thêm ' . $validated['tree_count'] . ' cây');
+        }
+
+        // Kiểm tra mã vật tư có trùng không
+        if (Supply::where('code', $validated['code'])->exists()) {
+            return back()
+                ->withErrors(['code' => 'Mã vật tư đã tồn tại trong hệ thống.'])
+                ->withInput();
+        }
+
+        // Tạo mới vật tư
+        // Lưu chiều dài mỗi cây vào quantity (để dễ so sánh khi nhập lần sau)
         Supply::create([
             'code' => $validated['code'],
             'name' => $validated['name'],
             'type' => $validated['type'],
             'unit' => $validated['unit'],
-            'quantity' => $validated['quantity'],
-            'tree_count' => $validated['tree_count'] ?? 0,
+            'quantity' => $validated['length_per_tree'], // Chiều dài mỗi cây
+            'tree_count' => $validated['tree_count'], // Số lượng cây
             'notes' => $validated['notes'] ?? null,
         ]);
 
         return redirect()->route('inventory.index')
-            ->with('success', 'Đã nhập vật tư thành công');
+            ->with('success', 'Đã nhập vật tư thành công: ' . $validated['tree_count'] . ' cây × ' . $validated['length_per_tree'] . 'cm');
     }
 
     public function showPainting($id)
@@ -219,6 +270,12 @@ class InventoryController extends Controller
     public function editPainting(Request $request, $id)
     {
         $painting = Painting::findOrFail($id);
+        
+        // Không cho sửa tranh đã bán
+        if ($painting->status !== 'in_stock') {
+            return redirect()->route('inventory.index')
+                ->with('error', 'Không thể chỉnh sửa tranh đã bán');
+        }
         
         // Store the return URL in session
         if ($request->has('return_url')) {
@@ -232,6 +289,12 @@ class InventoryController extends Controller
     {
         try {
             $painting = Painting::findOrFail($id);
+            
+            // Không cho cập nhật tranh đã bán
+            if ($painting->status !== 'in_stock') {
+                return redirect()->route('inventory.index')
+                    ->with('error', 'Không thể cập nhật tranh đã bán');
+            }
 
             $validated = $request->validate([
                 'code' => 'required|string|max:50|unique:paintings,code,' . $id,
@@ -305,6 +368,13 @@ class InventoryController extends Controller
     public function destroyPainting($id)
     {
         $painting = Painting::findOrFail($id);
+        
+        // Không cho xóa tranh đã bán
+        if ($painting->status !== 'in_stock') {
+            return redirect()->route('inventory.index')
+                ->with('error', 'Không thể xóa tranh đã bán');
+        }
+        
         if ($painting->image) {
             Storage::disk('public')->delete($painting->image);
         }
@@ -355,6 +425,13 @@ class InventoryController extends Controller
     public function destroySupply($id)
     {
         $supply = Supply::findOrFail($id);
+        
+        // Không cho xóa vật tư đã sử dụng hết (quantity = 0)
+        if ($supply->quantity <= 0) {
+            return redirect()->route('inventory.index')
+                ->with('error', 'Không thể xóa vật tư đã sử dụng hết');
+        }
+        
         $supply->delete();
 
         return redirect()->route('inventory.index')

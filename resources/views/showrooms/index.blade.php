@@ -1,8 +1,8 @@
 @extends('layouts.app')
 
-@section('title', 'Phòng trưng bày')
-@section('page-title', 'Phòng trưng bày')
-@section('page-description', 'Quản lý các phòng trưng bày')
+@section('title', 'Showroom')
+@section('page-title', 'Showroom')
+@section('page-description', 'Quản lý các showroom')
 
 @section('header-actions')
     @hasPermission('showrooms', 'can_create')
@@ -74,7 +74,7 @@
                     
                     @hasPermission('showrooms', 'can_delete')
                     <form action="{{ route('showrooms.destroy', $showroom->id) }}" method="POST" class="inline"
-                        onsubmit="return confirm('Bạn có chắc chắn muốn xóa phòng trưng bày này?')">
+                        onsubmit="return confirm('Bạn có chắc chắn muốn xóa Showroom này?')">
                         @csrf
                         @method('DELETE')
                         <button type="submit" class="px-2 py-1 text-xs bg-red-600 text-white rounded hover:bg-red-700">
@@ -87,7 +87,7 @@
         @empty
             <div class="col-span-3 text-center py-6 text-gray-500">
                 <i class="fas fa-store text-3xl mb-2"></i>
-                <p class="text-sm">Chưa có phòng trưng bày nào</p>
+                <p class="text-sm">Chưa có Showroom nào</p>
             </div>
         @endforelse
     </div>

@@ -19,10 +19,7 @@ class FrameController extends Controller
     public function create()
     {
         $supplies = Supply::where('type', 'frame')
-            ->where(function($q) {
-                $q->where('quantity', '>', 0)
-                  ->orWhere('tree_count', '>', 0);
-            })
+            ->where('tree_count', '>', 0)
             ->orderBy('name')
             ->get();
         
@@ -56,16 +53,14 @@ class FrameController extends Controller
                 $supply = Supply::findOrFail($itemData['supply_id']);
                 $totalLength = $itemData['tree_quantity'] * $itemData['length_per_tree'];
                 
-                // Kiểm tra đủ chiều dài không
-                if ($totalLength > $supply->quantity) {
-                    throw new \Exception("Cây {$supply->name} không đủ chiều dài. Còn: {$supply->quantity} cm, cần: {$totalLength} cm");
+                // Kiểm tra đủ số cây không
+                if ($itemData['tree_quantity'] > $supply->tree_count) {
+                    throw new \Exception("Cây {$supply->name} không đủ số lượng. Còn: {$supply->tree_count} cây, cần: {$itemData['tree_quantity']} cây");
                 }
-
-                // Kiểm tra đủ số cây không (nếu chọn dùng nguyên cây)
-                if (isset($itemData['use_whole_trees']) && $itemData['use_whole_trees']) {
-                    if ($itemData['tree_quantity'] > $supply->tree_count) {
-                        throw new \Exception("Cây {$supply->name} không đủ số lượng. Còn: {$supply->tree_count} cây, cần: {$itemData['tree_quantity']} cây");
-                    }
+                
+                // Kiểm tra chiều dài mỗi cây
+                if ($itemData['length_per_tree'] > $supply->quantity) {
+                    throw new \Exception("Cây {$supply->name} không đủ dài. Chiều dài mỗi cây: {$supply->quantity} cm, cần: {$itemData['length_per_tree']} cm");
                 }
 
                 // Tạo frame item
@@ -78,10 +73,35 @@ class FrameController extends Controller
                     'use_whole_trees' => $itemData['use_whole_trees'] ?? false,
                 ]);
 
-                // Cập nhật kho
-                $supply->decrement('quantity', $totalLength);
-                if (isset($itemData['use_whole_trees']) && $itemData['use_whole_trees']) {
-                    $supply->decrement('tree_count', $itemData['tree_quantity']);
+                // Cập nhật kho: Trừ số cây đã dùng
+                $supply->decrement('tree_count', $itemData['tree_quantity']);
+                
+                // Nếu cắt cây (chiều dài cần < chiều dài mỗi cây trong kho)
+                // Tự động tạo record mới cho phần dư
+                if ($itemData['length_per_tree'] < $supply->quantity) {
+                    $remainingLength = $supply->quantity - $itemData['length_per_tree'];
+                    
+                    // Tìm hoặc tạo record cho phần dư
+                    $existingRemaining = Supply::where('name', $supply->name)
+                        ->where('type', $supply->type)
+                        ->where('quantity', $remainingLength)
+                        ->first();
+                    
+                    if ($existingRemaining) {
+                        // Đã có record với chiều dài này, cộng thêm số cây
+                        $existingRemaining->increment('tree_count', $itemData['tree_quantity']);
+                    } else {
+                        // Tạo record mới cho phần dư
+                        Supply::create([
+                            'code' => $supply->code . '-' . $remainingLength . 'cm',
+                            'name' => $supply->name,
+                            'type' => $supply->type,
+                            'unit' => $supply->unit,
+                            'quantity' => $remainingLength,
+                            'tree_count' => $itemData['tree_quantity'],
+                            'notes' => "Phần dư {$remainingLength}cm sau khi cắt từ {$supply->code} ({$supply->quantity}cm)",
+                        ]);
+                    }
                 }
             }
 
@@ -101,13 +121,18 @@ class FrameController extends Controller
 
     public function edit(Frame $frame)
     {
-        $frame->load('items.supply');
-        $supplies = Supply::where('type', 'frame')->orderBy('name')->get();
-        return view('frames.edit', compact('frame', 'supplies'));
+        // Không cho phép sửa khung vì logic phức tạp (đã tách cây, tạo phần dư)
+        return redirect()->route('frames.index')
+            ->with('error', 'Không thể sửa khung tranh. Vui lòng xóa và tạo lại nếu cần thay đổi.');
     }
 
     public function update(Request $request, Frame $frame)
     {
+        // Không cho phép cập nhật khung
+        return redirect()->route('frames.index')
+            ->with('error', 'Không thể cập nhật khung tranh. Vui lòng xóa và tạo lại nếu cần thay đổi.');
+        
+        /* Logic cũ - đã vô hiệu hóa
         $validated = $request->validate([
             'name' => 'required|string|max:255',
             'cost_price' => 'required|numeric|min:0',
@@ -124,10 +149,30 @@ class FrameController extends Controller
         try {
             // Hoàn trả vật tư cũ về kho
             foreach ($frame->items as $oldItem) {
-                $supply = $oldItem->supply;
-                $supply->increment('quantity', (float) $oldItem->total_length);
-                if ($oldItem->use_whole_trees) {
-                    $supply->increment('tree_count', $oldItem->tree_quantity);
+                $originalSupply = $oldItem->supply;
+                $lengthPerTree = $oldItem->length_per_tree;
+                $treeQuantity = $oldItem->tree_quantity;
+                
+                // Tìm record với chiều dài tương ứng
+                $existingSupply = Supply::where('name', $originalSupply->name)
+                    ->where('type', $originalSupply->type)
+                    ->where('quantity', $lengthPerTree)
+                    ->first();
+                
+                if ($existingSupply) {
+                    // Đã có record với chiều dài này, cộng thêm số cây
+                    $existingSupply->increment('tree_count', $treeQuantity);
+                } else {
+                    // Tạo record mới để hoàn trả
+                    Supply::create([
+                        'code' => $originalSupply->code . '-' . $lengthPerTree . 'cm-returned',
+                        'name' => $originalSupply->name,
+                        'type' => $originalSupply->type,
+                        'unit' => $originalSupply->unit,
+                        'quantity' => $lengthPerTree,
+                        'tree_count' => $treeQuantity,
+                        'notes' => "Hoàn trả từ cập nhật khung {$frame->name}",
+                    ]);
                 }
             }
 
@@ -165,9 +210,35 @@ class FrameController extends Controller
                     'use_whole_trees' => $itemData['use_whole_trees'] ?? false,
                 ]);
 
-                $supply->decrement('quantity', $totalLength);
-                if (isset($itemData['use_whole_trees']) && $itemData['use_whole_trees']) {
-                    $supply->decrement('tree_count', $itemData['tree_quantity']);
+                // Cập nhật kho: Chỉ trừ số cây đã dùng
+                $supply->decrement('tree_count', $itemData['tree_quantity']);
+                
+                // Nếu cắt cây (chiều dài cần < chiều dài mỗi cây trong kho)
+                // Tự động tạo record mới cho phần dư
+                if ($itemData['length_per_tree'] < $supply->quantity) {
+                    $remainingLength = $supply->quantity - $itemData['length_per_tree'];
+                    
+                    // Tìm hoặc tạo record cho phần dư
+                    $existingRemaining = Supply::where('name', $supply->name)
+                        ->where('type', $supply->type)
+                        ->where('quantity', $remainingLength)
+                        ->first();
+                    
+                    if ($existingRemaining) {
+                        // Đã có record với chiều dài này, cộng thêm số cây
+                        $existingRemaining->increment('tree_count', $itemData['tree_quantity']);
+                    } else {
+                        // Tạo record mới cho phần dư
+                        Supply::create([
+                            'code' => $supply->code . '-' . $remainingLength . 'cm',
+                            'name' => $supply->name,
+                            'type' => $supply->type,
+                            'unit' => $supply->unit,
+                            'quantity' => $remainingLength,
+                            'tree_count' => $itemData['tree_quantity'],
+                            'notes' => "Phần dư {$remainingLength}cm sau khi cắt từ {$supply->code} ({$supply->quantity}cm)",
+                        ]);
+                    }
                 }
             }
 
@@ -177,6 +248,7 @@ class FrameController extends Controller
             DB::rollBack();
             return back()->withErrors(['error' => $e->getMessage()])->withInput();
         }
+        */
     }
 
     public function destroy(Frame $frame)
@@ -185,10 +257,30 @@ class FrameController extends Controller
         try {
             // Hoàn trả vật tư về kho
             foreach ($frame->items as $item) {
-                $supply = $item->supply;
-                $supply->increment('quantity', (float) $item->total_length);
-                if ($item->use_whole_trees) {
-                    $supply->increment('tree_count', $item->tree_quantity);
+                $originalSupply = $item->supply;
+                $lengthPerTree = $item->length_per_tree;
+                $treeQuantity = $item->tree_quantity;
+                
+                // Tìm record với chiều dài tương ứng
+                $existingSupply = Supply::where('name', $originalSupply->name)
+                    ->where('type', $originalSupply->type)
+                    ->where('quantity', $lengthPerTree)
+                    ->first();
+                
+                if ($existingSupply) {
+                    // Đã có record với chiều dài này, cộng thêm số cây
+                    $existingSupply->increment('tree_count', $treeQuantity);
+                } else {
+                    // Tạo record mới để hoàn trả
+                    Supply::create([
+                        'code' => $originalSupply->code . '-' . $lengthPerTree . 'cm-returned',
+                        'name' => $originalSupply->name,
+                        'type' => $originalSupply->type,
+                        'unit' => $originalSupply->unit,
+                        'quantity' => $lengthPerTree,
+                        'tree_count' => $treeQuantity,
+                        'notes' => "Hoàn trả từ khung {$frame->name}",
+                    ]);
                 }
             }
 

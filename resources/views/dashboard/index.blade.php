@@ -198,7 +198,7 @@
 
         <div class="bg-white rounded-xl shadow-lg p-4">
             <h3 class="text-base font-semibold mb-2 flex flex-wrap items-center justify-between gap-2">
-                <span>Sản phẩm bán chạy</span>
+                <span>Sản phẩm đã bán</span>
                 <span class="text-xs font-normal px-2 py-0.5 bg-green-100 text-green-700 rounded-full whitespace-nowrap">Theo bộ lọc</span>
             </h3>
             <p class="text-xs text-gray-500 mb-3">Top sản phẩm trong khoảng thời gian đã chọn</p>
