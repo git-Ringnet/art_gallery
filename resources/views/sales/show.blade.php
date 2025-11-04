@@ -264,7 +264,7 @@
             </h3>
             <p class="text-sm text-gray-500 mb-3 italic">Danh sách các lần khách hàng đã thanh toán cho hóa đơn này</p>
             <div class="space-y-3">
-                @foreach($sale->payments as $payment)
+                @foreach($sale->payments->sortByDesc('payment_date')->sortByDesc('id') as $payment)
                 <div class="flex justify-between items-center p-3 bg-gray-50 rounded">
                     <div>
                         <p class="font-medium">{{ number_format($payment->amount) }}đ</p>
