@@ -53,10 +53,10 @@
                 </div>
                 <div>
                     <label class="block text-xs font-medium text-gray-700 mb-1">Showroom <span class="text-red-500">*</span></label>
-                    <select name="showroom_id" required class="w-full px-3 py-1.5 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500">
+                    <select name="showroom_id" id="showroom_id" required class="w-full px-3 py-1.5 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500">
                         <option value="">-- Chọn showroom --</option>
                         @foreach($showrooms as $showroom)
-                            <option value="{{ $showroom->id }}" {{ $sale->showroom_id == $showroom->id ? 'selected' : '' }}>{{ $showroom->name }}</option>
+                            <option value="{{ $showroom->id }}" data-code="{{ $showroom->code }}" {{ $sale->showroom_id == $showroom->id ? 'selected' : '' }}>{{ $showroom->name }}</option>
                         @endforeach
                     </select>
                 </div>
@@ -426,7 +426,7 @@ function addItem() {
             <div class="relative">
                 <input type="text" 
                        id="item-search-${idx}"
-                       class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500" 
+                       class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 mb-2" 
                        placeholder="Tìm tranh hoặc khung..."
                        autocomplete="off"
                        onkeyup="filterItems(this.value, ${idx})"
@@ -435,6 +435,7 @@ function addItem() {
                 <input type="hidden" name="items[${idx}][frame_id]" id="frame-id-${idx}">
                 <input type="hidden" name="items[${idx}][description]" id="desc-${idx}">
                 <div id="item-suggestions-${idx}" class="absolute z-20 w-full bg-white border border-gray-300 rounded-lg mt-1 max-h-60 overflow-y-auto hidden shadow-lg"></div>
+                <div id="item-details-${idx}" class="text-xs text-gray-600 space-y-0.5 hidden"></div>
             </div>
         </td>
         <td class="px-3 py-3 border">
@@ -525,7 +526,28 @@ function selectPainting(paintingId, idx) {
             }
             
             const imgUrl = painting.image ? `/storage/${painting.image}` : 'https://via.placeholder.com/80x60?text=No+Image';
-            document.getElementById(`img-${idx}`).src = imgUrl;
+            const imgElement = document.getElementById(`img-${idx}`);
+            imgElement.src = imgUrl;
+            imgElement.onclick = () => showImageModal(imgUrl, painting.name);
+            imgElement.classList.add('cursor-pointer', 'hover:opacity-80', 'transition-opacity');
+            
+            // Display painting details
+            const detailsDiv = document.getElementById(`item-details-${idx}`);
+            if (detailsDiv) {
+                let detailsHTML = '';
+                if (painting.code) detailsHTML += `<div><span class="font-semibold">Mã:</span> ${painting.code}</div>`;
+                if (painting.artist) detailsHTML += `<div><span class="font-semibold">Họa sĩ:</span> ${painting.artist}</div>`;
+                if (painting.material) detailsHTML += `<div><span class="font-semibold">Chất liệu:</span> ${painting.material}</div>`;
+                if (painting.width && painting.height) detailsHTML += `<div><span class="font-semibold">Kích thước:</span> ${painting.width} x ${painting.height} cm</div>`;
+                if (painting.paint_year) detailsHTML += `<div><span class="font-semibold">Năm:</span> ${painting.paint_year}</div>`;
+                
+                if (detailsHTML) {
+                    detailsDiv.innerHTML = detailsHTML;
+                    detailsDiv.classList.remove('hidden');
+                } else {
+                    detailsDiv.classList.add('hidden');
+                }
+            }
             
             document.getElementById(`painting-suggestions-${idx}`).classList.add('hidden');
             calc();
@@ -967,16 +989,41 @@ function loadCurrentDebt(customerId) {
     }
 }
 
-// Generate invoice code
+// Generate invoice code from API
 function generateInvoiceCode() {
-    const now = new Date();
-    const year = now.getFullYear();
-    const month = String(now.getMonth() + 1).padStart(2, '0');
-    const day = String(now.getDate()).padStart(2, '0');
-    const time = String(now.getHours()).padStart(2, '0') + String(now.getMinutes()).padStart(2, '0');
+    const showroomSelect = document.getElementById('showroom_id');
+    const showroomId = showroomSelect.value;
     
-    const invoiceCode = `HD${year}${month}${day}${time}`;
-    document.getElementById('invoice_code').value = invoiceCode;
+    if (!showroomId) {
+        alert('Vui lòng chọn showroom trước!');
+        showroomSelect.focus();
+        return;
+    }
+    
+    // Show loading
+    const invoiceInput = document.getElementById('invoice_code');
+    invoiceInput.value = 'Đang tạo...';
+    invoiceInput.disabled = true;
+    
+    // Call API to generate invoice code
+    fetch(`{{ route('sales.api.generate-invoice-code') }}?showroom_id=${showroomId}`)
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                invoiceInput.value = data.invoice_code;
+            } else {
+                alert('Lỗi: ' + data.message);
+                invoiceInput.value = '';
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            alert('Có lỗi xảy ra khi tạo mã hóa đơn');
+            invoiceInput.value = '';
+        })
+        .finally(() => {
+            invoiceInput.disabled = false;
+        });
 }
 
 // Load existing sale items
@@ -999,7 +1046,26 @@ function loadExistingItems() {
             document.getElementById(`desc-${index}`).value = item.description;
             
             if (item.painting?.image) {
-                document.getElementById(`img-${index}`).src = `/storage/${item.painting.image}`;
+                const imgElement = document.getElementById(`img-${index}`);
+                imgElement.src = `/storage/${item.painting.image}`;
+                imgElement.onclick = () => showImageModal(`/storage/${item.painting.image}`, item.description);
+                imgElement.classList.add('cursor-pointer', 'hover:opacity-80', 'transition-opacity');
+            }
+            
+            // Display painting details
+            const detailsDiv = document.getElementById(`item-details-${index}`);
+            if (detailsDiv && item.painting) {
+                let detailsHTML = '';
+                if (item.painting.code) detailsHTML += `<div><span class="font-semibold">Mã:</span> ${item.painting.code}</div>`;
+                if (item.painting.artist) detailsHTML += `<div><span class="font-semibold">Họa sĩ:</span> ${item.painting.artist}</div>`;
+                if (item.painting.material) detailsHTML += `<div><span class="font-semibold">Chất liệu:</span> ${item.painting.material}</div>`;
+                if (item.painting.width && item.painting.height) detailsHTML += `<div><span class="font-semibold">Kích thước:</span> ${item.painting.width} x ${item.painting.height} cm</div>`;
+                if (item.painting.paint_year) detailsHTML += `<div><span class="font-semibold">Năm:</span> ${item.painting.paint_year}</div>`;
+                
+                if (detailsHTML) {
+                    detailsDiv.innerHTML = detailsHTML;
+                    detailsDiv.classList.remove('hidden');
+                }
             }
         } else if (item.frame_id) {
             document.getElementById(`frame-id-${index}`).value = item.frame_id;
@@ -1067,6 +1133,16 @@ document.addEventListener('DOMContentLoaded', () => {
     const customerId = document.getElementById('customer_id').value;
     if (customerId) {
         loadCurrentDebt(customerId);
+    }
+    
+    // Auto-generate invoice code when showroom changes
+    const showroomSelect = document.getElementById('showroom_id');
+    if (showroomSelect) {
+        showroomSelect.addEventListener('change', function() {
+            if (this.value) {
+                generateInvoiceCode();
+            }
+        });
     }
     
     // Form validation không cần thiết nữa vì số tiền đã tự động điều chỉnh

@@ -36,10 +36,10 @@
                 </div>
                 <div>
                     <label class="block text-xs font-medium text-gray-700 mb-1">Showroom <span class="text-red-500">*</span></label>
-                    <select name="showroom_id" required class="w-full px-3 py-1.5 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500">
+                    <select name="showroom_id" id="showroom_id" required class="w-full px-3 py-1.5 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500">
                         <option value="">-- Chọn showroom --</option>
                         @foreach($showrooms as $showroom)
-                            <option value="{{ $showroom->id }}">{{ $showroom->name }}</option>
+                            <option value="{{ $showroom->id }}" data-code="{{ $showroom->code }}">{{ $showroom->name }}</option>
                         @endforeach
                     </select>
                 </div>
@@ -294,7 +294,7 @@ function addItem() {
             <div class="relative">
                 <input type="text" 
                        id="item-search-${idx}"
-                       class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500" 
+                       class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 mb-2" 
                        placeholder="Tìm tranh hoặc khung..."
                        autocomplete="off"
                        onkeyup="filterItems(this.value, ${idx})"
@@ -303,6 +303,7 @@ function addItem() {
                 <input type="hidden" name="items[${idx}][frame_id]" id="frame-id-${idx}">
                 <input type="hidden" name="items[${idx}][description]" id="desc-${idx}">
                 <div id="item-suggestions-${idx}" class="absolute z-20 w-full bg-white border border-gray-300 rounded-lg mt-1 max-h-60 overflow-y-auto hidden shadow-lg"></div>
+                <div id="item-details-${idx}" class="text-xs text-gray-600 space-y-0.5 hidden"></div>
             </div>
         </td>
         <td class="px-3 py-3 border">
@@ -371,40 +372,6 @@ function addItem() {
             filterPaintings(input.value, idx);
         }
     }
-
-function selectPainting(paintingId, idx) {
-    fetch(`{{ route('sales.api.painting', '') }}/${paintingId}`)
-        .then(response => response.json())
-        .then(painting => {
-            document.getElementById(`painting-id-${idx}`).value = painting.id;
-            document.getElementById(`painting-search-${idx}`).value = `${painting.code} - ${painting.name}`;
-            document.getElementById(`desc-${idx}`).value = painting.name;
-            
-            const usdInput = document.querySelector(`.usd-${idx}`);
-            const vndInput = document.querySelector(`.vnd-${idx}`);
-            
-            if (usdInput) {
-                const usdValue = parseFloat(painting.price_usd) || 0;
-                usdInput.value = usdValue.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2});
-            }
-            if (vndInput) {
-                const vndValue = parseInt(painting.price_vnd) || 0;
-                vndInput.value = vndValue.toLocaleString('en-US');
-            }
-            
-            const imgUrl = painting.image ? `/storage/${painting.image}` : 'https://via.placeholder.com/80x60?text=No+Image';
-            const imgElement = document.getElementById(`img-${idx}`);
-            imgElement.src = imgUrl;
-            imgElement.onclick = () => showImageModal(imgUrl, painting.name);
-            imgElement.classList.add('cursor-pointer', 'hover:opacity-80', 'transition-opacity');
-            
-            document.getElementById(`painting-suggestions-${idx}`).classList.add('hidden');
-            calc();
-        })
-        .catch(error => {
-            console.error('Error fetching painting:', error);
-        });
-}
 
 // Search functions for supplies
 function filterSupplies(query, idx) {
@@ -621,6 +588,24 @@ function selectPainting(paintingId, idx) {
             imgElement.onclick = () => showImageModal(imgUrl, painting.name);
             imgElement.classList.add('cursor-pointer', 'hover:opacity-80', 'transition-opacity');
             
+            // Display painting details
+            const detailsDiv = document.getElementById(`item-details-${idx}`);
+            if (detailsDiv) {
+                let detailsHTML = '';
+                if (painting.code) detailsHTML += `<div><span class="font-semibold">Mã:</span> ${painting.code}</div>`;
+                if (painting.artist) detailsHTML += `<div><span class="font-semibold">Họa sĩ:</span> ${painting.artist}</div>`;
+                if (painting.material) detailsHTML += `<div><span class="font-semibold">Chất liệu:</span> ${painting.material}</div>`;
+                if (painting.width && painting.height) detailsHTML += `<div><span class="font-semibold">Kích thước:</span> ${painting.width} x ${painting.height} cm</div>`;
+                if (painting.paint_year) detailsHTML += `<div><span class="font-semibold">Năm:</span> ${painting.paint_year}</div>`;
+                
+                if (detailsHTML) {
+                    detailsDiv.innerHTML = detailsHTML;
+                    detailsDiv.classList.remove('hidden');
+                } else {
+                    detailsDiv.classList.add('hidden');
+                }
+            }
+            
             // Kiểm tra tồn kho
             const stock = painting.quantity || 0;
             const itemSearchInput = document.getElementById(`item-search-${idx}`);
@@ -777,17 +762,59 @@ function calc() {
     calcDebt();
 }
 
-// Generate invoice code
+// Generate invoice code from API
 function generateInvoiceCode() {
-    const now = new Date();
-    const year = now.getFullYear();
-    const month = String(now.getMonth() + 1).padStart(2, '0');
-    const day = String(now.getDate()).padStart(2, '0');
-    const time = String(now.getHours()).padStart(2, '0') + String(now.getMinutes()).padStart(2, '0');
+    const showroomSelect = document.getElementById('showroom_id');
+    const showroomId = showroomSelect.value;
     
-    const invoiceCode = `HD${year}${month}${day}${time}`;
-    document.getElementById('invoice_code').value = invoiceCode;
+    if (!showroomId) {
+        alert('Vui lòng chọn showroom trước!');
+        showroomSelect.focus();
+        return;
+    }
+    
+    // Show loading
+    const invoiceInput = document.getElementById('invoice_code');
+    invoiceInput.value = 'Đang tạo...';
+    invoiceInput.disabled = true;
+    
+    // Call API to generate invoice code
+    fetch(`{{ route('sales.api.generate-invoice-code') }}?showroom_id=${showroomId}`)
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                invoiceInput.value = data.invoice_code;
+            } else {
+                alert('Lỗi: ' + data.message);
+                invoiceInput.value = '';
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            alert('Có lỗi xảy ra khi tạo mã hóa đơn');
+            invoiceInput.value = '';
+        })
+        .finally(() => {
+            invoiceInput.disabled = false;
+        });
 }
+
+// Auto-generate invoice code when showroom changes
+document.addEventListener('DOMContentLoaded', function() {
+    const showroomSelect = document.getElementById('showroom_id');
+    if (showroomSelect) {
+        showroomSelect.addEventListener('change', function() {
+            if (this.value) {
+                generateInvoiceCode();
+            }
+        });
+        
+        // Auto-generate on page load if showroom is already selected
+        if (showroomSelect.value) {
+            generateInvoiceCode();
+        }
+    }
+});
 
 function calcDebt() {
     const totTxt = document.getElementById('total_vnd').value.replace(/[^\d]/g, '');

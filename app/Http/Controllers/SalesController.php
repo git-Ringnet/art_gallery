@@ -249,7 +249,7 @@ class SalesController extends Controller
 
             // Create sale
             $sale = Sale::create([
-                'invoice_code' => $request->invoice_code ?: Sale::generateInvoiceCode(),
+                'invoice_code' => $request->invoice_code ?: Sale::generateInvoiceCode($request->showroom_id),
                 'customer_id' => $customer->id,
                 'showroom_id' => $request->showroom_id,
                 'user_id' => $user->id,
@@ -981,5 +981,33 @@ class SalesController extends Controller
             return back()->with('error', 'Có lỗi xảy ra: ' . $e->getMessage());
         }
     }
-}
 
+    /**
+     * API: Generate invoice code for given showroom
+     */
+    public function generateInvoiceCodeApi(Request $request)
+    {
+        $showroomId = $request->query('showroom_id');
+        
+        if (!$showroomId) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Showroom ID is required'
+            ], 400);
+        }
+        
+        try {
+            $invoiceCode = Sale::generateInvoiceCode($showroomId);
+            
+            return response()->json([
+                'success' => true,
+                'invoice_code' => $invoiceCode
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => $e->getMessage()
+            ], 500);
+        }
+    }
+}

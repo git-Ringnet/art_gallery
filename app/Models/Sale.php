@@ -97,26 +97,46 @@ class Sale extends Model
         return $this->hasManyThrough(ReturnItem::class, ReturnModel::class);
     }
 
-    public static function generateInvoiceCode()
+    public static function generateInvoiceCode($showroomId = null)
     {
-        return \DB::transaction(function () {
-            $prefix = 'HD';
-            $year = now()->format('y');
-            $month = now()->format('m');
+        return \DB::transaction(function () use ($showroomId) {
+            // Get showroom code
+            $showroomCode = 'HN'; // Default
+            if ($showroomId) {
+                $showroom = Showroom::find($showroomId);
+                if ($showroom && $showroom->code) {
+                    $showroomCode = strtoupper($showroom->code);
+                }
+            }
             
-            $lastInvoice = self::where('invoice_code', 'like', "{$prefix}{$year}{$month}%")
+            $year = now()->format('Y');
+            $month = now()->format('m');
+            $day = now()->format('d');
+            
+            // Pattern: SHOWROOMCODE + NUMBER + YEAR + MONTH + DAY
+            // Example: HN01202510 10 (HN + 01 + 2025 + 10 + 10)
+            $datePattern = $year . $month . $day;
+            $prefix = $showroomCode;
+            
+            // Find last invoice with same showroom code and date pattern
+            $lastInvoice = self::where('invoice_code', 'like', "{$prefix}%{$datePattern}")
                               ->lockForUpdate()
                               ->orderBy('invoice_code', 'desc')
                               ->first();
             
             if ($lastInvoice) {
-                $lastNumber = (int) substr($lastInvoice->invoice_code, -4);
+                // Extract number from invoice code (between showroom code and date)
+                // Example: HN01202510 10 -> extract "01"
+                $codeLength = strlen($prefix);
+                $numberPart = substr($lastInvoice->invoice_code, $codeLength, 2);
+                $lastNumber = (int) $numberPart;
                 $newNumber = $lastNumber + 1;
             } else {
                 $newNumber = 1;
             }
             
-            return $prefix . $year . $month . str_pad($newNumber, 4, '0', STR_PAD_LEFT);
+            // Format: SHOWROOMCODE + 2-digit-number + YYYYMMDD
+            return $prefix . str_pad($newNumber, 2, '0', STR_PAD_LEFT) . $datePattern;
         });
     }
 

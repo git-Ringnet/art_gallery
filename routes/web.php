@@ -42,6 +42,7 @@ Route::middleware(['auth'])->group(function () {
         Route::get('/api/search/supplies', [SalesController::class, 'searchSupplies'])->name('api.search.supplies');
         Route::get('/api/search/frames', [SalesController::class, 'searchFrames'])->name('api.search.frames');
         Route::get('/api/search/suggestions', [SalesController::class, 'searchSuggestions'])->name('api.search.suggestions');
+        Route::get('/api/generate-invoice-code', [SalesController::class, 'generateInvoiceCodeApi'])->name('api.generate-invoice-code');
     });
 
     // Debt routes
