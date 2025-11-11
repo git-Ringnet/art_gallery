@@ -23,6 +23,7 @@ Route::middleware(['auth'])->group(function () {
     // Sales routes
     Route::prefix('sales')->name('sales.')->group(function () {
         Route::get('/', [SalesController::class, 'index'])->middleware('permission:sales,can_view')->name('index');
+        Route::get('/export', [SalesController::class, 'export'])->middleware('permission:sales,can_view')->name('export');
         Route::get('/create', [SalesController::class, 'create'])->middleware('permission:sales,can_create')->name('create');
         Route::post('/', [SalesController::class, 'store'])->middleware('permission:sales,can_create')->name('store');
         Route::get('/{id}', [SalesController::class, 'show'])->middleware('permission:sales,can_view')->name('show');

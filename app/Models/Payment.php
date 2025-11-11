@@ -12,6 +12,8 @@ class Payment extends Model
     protected $fillable = [
         'sale_id',
         'amount',
+        'payment_usd',
+        'payment_vnd',
         'payment_method',
         'transaction_type',
         'payment_date',
@@ -23,6 +25,8 @@ class Payment extends Model
     {
         return [
             'amount' => 'decimal:2',
+            'payment_usd' => 'decimal:2',
+            'payment_vnd' => 'decimal:2',
             'payment_date' => 'datetime',
         ];
     }

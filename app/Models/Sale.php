@@ -27,6 +27,8 @@ class Sale extends Model
         'original_total_usd',
         'original_total_vnd',
         'paid_amount',
+        'payment_usd',
+        'payment_vnd',
         'debt_amount',
         'payment_status',
         'sale_status',

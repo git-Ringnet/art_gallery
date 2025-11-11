@@ -17,6 +17,8 @@ use App\Models\User;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Log;
+use Maatwebsite\Excel\Facades\Excel;
+use Barryvdh\DomPDF\Facade\Pdf;
 
 class SalesController extends Controller
 {
@@ -261,6 +263,8 @@ class SalesController extends Controller
                 'total_usd' => 0,
                 'total_vnd' => 0,
                 'paid_amount' => $paidAmount,
+                'payment_usd' => $request->payment_usd ?? 0,
+                'payment_vnd' => $request->payment_vnd ?? 0,
                 'debt_amount' => 0,
                 'payment_status' => 'unpaid',
                 'notes' => $request->notes,
@@ -595,6 +599,8 @@ class SalesController extends Controller
                     Payment::create([
                         'sale_id' => $sale->id,
                         'amount' => $request->payment_amount,
+                        'payment_usd' => $request->payment_usd ?? 0,
+                        'payment_vnd' => $request->payment_vnd ?? 0,
                         'payment_method' => $request->payment_method ?? 'cash',
                         'transaction_type' => 'sale_payment',
                         'payment_date' => now(),
@@ -604,6 +610,8 @@ class SalesController extends Controller
                 } else {
                     // Phiếu pending - cập nhật paid_amount trong sale (chưa tạo payment)
                     $sale->paid_amount = $request->payment_amount;
+                    $sale->payment_usd = $request->payment_usd ?? 0;
+                    $sale->payment_vnd = $request->payment_vnd ?? 0;
                     $sale->debt_amount = $sale->total_vnd - $sale->paid_amount;
                     $sale->save();
                 }
@@ -933,6 +941,8 @@ class SalesController extends Controller
                 Payment::create([
                     'sale_id' => $sale->id,
                     'amount' => $sale->paid_amount,
+                    'payment_usd' => $sale->payment_usd ?? 0,
+                    'payment_vnd' => $sale->payment_vnd ?? 0,
                     'payment_method' => 'cash', // Default
                     'transaction_type' => 'sale_payment',
                     'payment_date' => now(),
@@ -1009,5 +1019,164 @@ class SalesController extends Controller
                 'message' => $e->getMessage()
             ], 500);
         }
+    }
+
+    public function export(Request $request)
+    {
+        $user = auth()->user();
+        
+        // Get filter parameters (same as index)
+        $query = Sale::with(['customer', 'showroom', 'user']);
+        
+        // Apply filters
+        if ($request->filled('search')) {
+            $search = $request->search;
+            $query->where(function($q) use ($search) {
+                $q->where('invoice_code', 'like', "%{$search}%")
+                  ->orWhereHas('customer', function($q) use ($search) {
+                      $q->where('name', 'like', "%{$search}%")
+                        ->orWhere('phone', 'like', "%{$search}%");
+                  });
+            });
+        }
+        
+        if ($request->filled('showroom_id')) {
+            $query->where('showroom_id', $request->showroom_id);
+        }
+        
+        if ($request->filled('sale_status')) {
+            $query->where('sale_status', $request->sale_status);
+        }
+        
+        if ($request->filled('payment_status')) {
+            $query->where('payment_status', $request->payment_status);
+        }
+        
+        if ($request->filled('start_date')) {
+            $query->whereDate('sale_date', '>=', $request->start_date);
+        }
+        
+        if ($request->filled('end_date')) {
+            $query->whereDate('sale_date', '<=', $request->end_date);
+        }
+        
+        $format = $request->export; // 'excel' or 'pdf'
+        $exportType = $request->export_type; // 'all' or 'separate'
+        
+        if ($exportType === 'separate' && !$request->filled('showroom_id')) {
+            // Export each showroom separately
+            return $this->exportByShowroom($query, $format);
+        } else {
+            // Export all in one file
+            $sales = $query->orderBy('sale_date', 'desc')->get();
+            $filename = 'danh-sach-ban-hang-' . date('Y-m-d-His');
+            
+            if ($format === 'excel') {
+                return $this->exportExcel($sales, $filename);
+            } else {
+                return $this->exportPDF($sales, $filename);
+            }
+        }
+    }
+    
+    private function exportByShowroom($query, $format)
+    {
+        $showrooms = \App\Models\Showroom::all();
+        $zip = new \ZipArchive();
+        $zipFilename = storage_path('app/temp/sales-by-showroom-' . date('Y-m-d-His') . '.zip');
+        
+        // Create temp directory if not exists
+        if (!file_exists(storage_path('app/temp'))) {
+            mkdir(storage_path('app/temp'), 0755, true);
+        }
+        
+        $filesAdded = 0;
+        
+        if ($zip->open($zipFilename, \ZipArchive::CREATE) === TRUE) {
+            foreach ($showrooms as $showroom) {
+                $showroomSales = (clone $query)->where('showroom_id', $showroom->id)->orderBy('sale_date', 'desc')->get();
+                
+                if ($showroomSales->count() > 0) {
+                    $filename = 'ban-hang-' . \Str::slug($showroom->name) . '-' . date('Y-m-d');
+                    
+                    try {
+                        if ($format === 'excel') {
+                            $export = new \App\Exports\SalesExport($showroomSales, $showroom->name);
+                            $filepath = storage_path('app/temp/' . $filename . '.xlsx');
+                            
+                            // Tạo file Excel bằng cách lưu trực tiếp
+                            $writer = Excel::raw($export, \Maatwebsite\Excel\Excel::XLSX);
+                            file_put_contents($filepath, $writer);
+                            
+                            // Kiểm tra file có tồn tại không
+                            if (file_exists($filepath) && filesize($filepath) > 0) {
+                                $zip->addFile($filepath, $filename . '.xlsx');
+                                $filesAdded++;
+                            } else {
+                                Log::warning("Excel file not created or empty: " . $filepath);
+                            }
+                        } else {
+                            $pdf = Pdf::loadView('sales.export-pdf', [
+                                'sales' => $showroomSales,
+                                'title' => 'Danh sách bán hàng - ' . $showroom->name
+                            ]);
+                            $filepath = storage_path('app/temp/' . $filename . '.pdf');
+                            $pdf->save($filepath);
+                            
+                            if (file_exists($filepath)) {
+                                $zip->addFile($filepath, $filename . '.pdf');
+                                $filesAdded++;
+                            }
+                        }
+                    } catch (\Exception $e) {
+                        Log::error('Error exporting showroom ' . $showroom->name . ': ' . $e->getMessage());
+                        continue;
+                    }
+                }
+            }
+            $zip->close();
+            
+            // Kiểm tra có file nào được thêm không
+            if ($filesAdded === 0) {
+                // Xóa file zip rỗng
+                if (file_exists($zipFilename)) {
+                    unlink($zipFilename);
+                }
+                return back()->with('error', 'Không có dữ liệu để xuất!');
+            }
+            
+            // Kiểm tra file zip có tồn tại không
+            if (!file_exists($zipFilename)) {
+                return back()->with('error', 'Không thể tạo file zip!');
+            }
+            
+            // Xóa các file tạm trong thư mục temp (trừ file zip)
+            $tempFiles = glob(storage_path('app/temp/*'));
+            foreach ($tempFiles as $file) {
+                if (is_file($file) && $file !== $zipFilename) {
+                    unlink($file);
+                }
+            }
+            
+            return response()->download($zipFilename)->deleteFileAfterSend(true);
+        }
+        
+        return back()->with('error', 'Không thể tạo file zip');
+    }
+    
+    private function exportExcel($sales, $filename)
+    {
+        $export = new \App\Exports\SalesExport($sales);
+        return \Excel::download($export, $filename . '.xlsx');
+    }
+    
+    private function exportPDF($sales, $filename)
+    {
+        $pdf = \PDF::loadView('sales.export-pdf', [
+            'sales' => $sales,
+            'title' => 'Danh sách bán hàng'
+        ]);
+        
+        return $pdf->download($filename . '.pdf');
     }
 }

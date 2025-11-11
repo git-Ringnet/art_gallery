@@ -212,13 +212,52 @@
 
             <!-- Action Buttons -->
             <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center pt-2 border-t gap-2">
-                <div class="flex gap-2">
+                <div class="flex flex-wrap gap-2">
                     <button type="submit" class="bg-blue-500 hover:bg-blue-600 text-white px-4 py-1.5 rounded-lg transition-colors text-sm">
                         <i class="fas fa-search mr-1"></i>Tìm kiếm
                     </button>
                     <a href="{{ route('sales.index') }}" class="bg-gray-500 hover:bg-gray-600 text-white px-4 py-1.5 rounded-lg transition-colors text-sm">
                         <i class="fas fa-redo mr-1"></i>Làm mới
                     </a>
+                    
+                    <!-- Export Buttons -->
+                    <div class="relative inline-block">
+                        <button type="button" onclick="toggleExportMenu()" class="bg-green-500 hover:bg-green-600 text-white px-4 py-1.5 rounded-lg transition-colors text-sm">
+                            <i class="fas fa-file-export mr-1"></i>Xuất dữ liệu
+                            <i class="fas fa-chevron-down ml-1 text-xs"></i>
+                        </button>
+                        <div id="export-menu" class="hidden absolute left-0 mt-2 w-64 bg-white rounded-lg shadow-xl border border-gray-200 z-50">
+                            <div class="p-3">
+                                <p class="text-xs font-semibold text-gray-700 mb-2">Chọn định dạng và showroom:</p>
+                                <div class="space-y-2">
+                                    <!-- Excel -->
+                                    <div class="border-b pb-2">
+                                        <p class="text-xs font-medium text-gray-600 mb-1">
+                                            <i class="fas fa-file-excel text-green-600 mr-1"></i>Excel
+                                        </p>
+                                        <button type="button" onclick="exportData('excel', 'all')" class="w-full text-left px-3 py-1.5 text-xs hover:bg-gray-100 rounded">
+                                            Tất cả showroom
+                                        </button>
+                                        <button type="button" onclick="exportData('excel', 'separate')" class="w-full text-left px-3 py-1.5 text-xs hover:bg-gray-100 rounded">
+                                            Từng showroom riêng
+                                        </button>
+                                    </div>
+                                    <!-- PDF -->
+                                    <div>
+                                        <p class="text-xs font-medium text-gray-600 mb-1">
+                                            <i class="fas fa-file-pdf text-red-600 mr-1"></i>PDF
+                                        </p>
+                                        <button type="button" onclick="exportData('pdf', 'all')" class="w-full text-left px-3 py-1.5 text-xs hover:bg-gray-100 rounded">
+                                            Tất cả showroom
+                                        </button>
+                                        <button type="button" onclick="exportData('pdf', 'separate')" class="w-full text-left px-3 py-1.5 text-xs hover:bg-gray-100 rounded">
+                                            Từng showroom riêng
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
                 </div>
                 <div class="text-xs text-gray-700">
                     Tìm thấy: <span class="text-blue-600 font-medium">{{ $sales->total() }}</span> đơn hàng
@@ -798,5 +837,52 @@ document.getElementById('print-invoice-modal')?.addEventListener('click', functi
         closePrintModal();
     }
 });
+
+// Toggle export menu
+function toggleExportMenu() {
+    const menu = document.getElementById('export-menu');
+    menu.classList.toggle('hidden');
+}
+
+// Close export menu when clicking outside
+document.addEventListener('click', function(e) {
+    const menu = document.getElementById('export-menu');
+    const button = e.target.closest('button');
+    
+    if (menu && !menu.contains(e.target) && (!button || button.onclick?.toString().indexOf('toggleExportMenu') === -1)) {
+        menu.classList.add('hidden');
+    }
+});
+
+// Export data function
+function exportData(format, type) {
+    // Get current filter parameters
+    const form = document.getElementById('filter-form');
+    const formData = new FormData(form);
+    const params = new URLSearchParams(formData);
+    
+    // Add export parameters
+    params.append('export', format);
+    params.append('export_type', type);
+    
+    // Build URL
+    const url = '{{ route("sales.export") }}?' + params.toString();
+    
+    // Show loading
+    const button = event.target;
+    const originalText = button.innerHTML;
+    button.innerHTML = '<i class="fas fa-spinner fa-spin mr-1"></i>Đang xuất...';
+    button.disabled = true;
+    
+    // Download file
+    window.location.href = url;
+    
+    // Reset button after delay
+    setTimeout(() => {
+        button.innerHTML = originalText;
+        button.disabled = false;
+        document.getElementById('export-menu').classList.add('hidden');
+    }, 2000);
+}
 </script>
 @endpush

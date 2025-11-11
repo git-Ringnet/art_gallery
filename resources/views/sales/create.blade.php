@@ -152,24 +152,47 @@
             </div>
 
             <!-- Thanh toán -->
-            <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
-                <div>
-                    <label class="block text-xs font-medium text-gray-700 mb-1">Khách trả (VND)</label>
-                    <input type="text" name="payment_amount" id="paid" class="w-full px-3 py-1.5 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500" value="0" oninput="formatPaymentVND(this)" onblur="validateSalesPayment(this)" onchange="calcDebt()" placeholder="Nhập số tiền...">
+            <div class="bg-white p-3 rounded-lg border border-orange-200">
+                <h4 class="text-sm font-semibold text-gray-700 mb-2">Thanh toán</h4>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-3 mb-3">
+                    <div>
+                        <label class="block text-xs font-medium text-gray-700 mb-1">Trả bằng USD</label>
+                        <input type="text" id="paid_usd_display" class="w-full px-3 py-1.5 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500" value="0.00" oninput="formatPaymentUSD(this)" placeholder="0.00">
+                        <input type="hidden" name="payment_usd" id="paid_usd" value="0">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-medium text-gray-700 mb-1">Trả bằng VND</label>
+                        <input type="text" id="paid_vnd_display" class="w-full px-3 py-1.5 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500" value="0" oninput="formatPaymentVND(this)" placeholder="0">
+                        <input type="hidden" name="payment_vnd" id="paid_vnd" value="0">
+                    </div>
                 </div>
-                <div>
-                    <label class="block text-xs font-medium text-yellow-900 mb-1">Nợ cũ</label>
-                    <input type="text" id="current_debt" readonly class="w-full px-3 py-1.5 text-sm border border-yellow-300 rounded-lg bg-white font-bold text-orange-600">
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-3 mb-3">
+                    <div>
+                        <label class="block text-xs font-medium text-gray-700 mb-1">Phương thức</label>
+                        <select name="payment_method" id="payment_method" class="w-full px-3 py-1.5 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500">
+                            <option value="cash">Tiền mặt</option>
+                            <option value="bank_transfer">Chuyển khoản</option>
+                            <option value="card">Thẻ</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-xs font-medium text-blue-900 mb-1">Tổng đã trả (VND)</label>
+                        <input type="text" id="total_paid_display" readonly class="w-full px-3 py-1.5 text-sm border border-blue-300 rounded-lg bg-blue-50 font-bold text-blue-600">
+                        <input type="hidden" name="payment_amount" id="total_paid_value">
+                    </div>
                 </div>
-                <div>
-                    <label class="block text-xs font-medium text-red-900 mb-1">Còn nợ</label>
-                    <input type="text" id="debt" readonly class="w-full px-3 py-1.5 text-sm border border-red-300 rounded-lg bg-white font-bold text-red-600">
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+                    <div>
+                        <label class="block text-xs font-medium text-yellow-900 mb-1">Nợ cũ</label>
+                        <input type="text" id="current_debt" readonly class="w-full px-3 py-1.5 text-sm border border-yellow-300 rounded-lg bg-white font-bold text-orange-600">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-medium text-red-900 mb-1">Còn nợ</label>
+                        <input type="text" id="debt" readonly class="w-full px-3 py-1.5 text-sm border border-red-300 rounded-lg bg-white font-bold text-red-600">
+                    </div>
                 </div>
             </div>
         </div>
-
-        <!-- Hidden field for payment method -->
-        <input type="hidden" name="payment_method" value="cash">
 
         <!-- Ghi chú -->
         <div class="mb-4">
@@ -816,37 +839,124 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 });
 
-function calcDebt() {
-    const totTxt = document.getElementById('total_vnd').value.replace(/[^\d]/g, '');
-    const tot = parseFloat(totTxt) || 0;
-    const paidVal = unformatNumber(document.getElementById('paid').value);
-    let paid = parseFloat(paidVal) || 0;
+// Format payment USD (giống format giá USD)
+function formatPaymentUSD(input) {
+    let value = input.value.replace(/[^\d.]/g, '');
+    const parts = value.split('.');
     
-    const paidInput = document.getElementById('paid');
-    
-    // Nếu số tiền trả vượt quá tổng tiền, tự động cắt về tổng tiền
-    if (paid > tot) {
-        paid = tot;
-        if (paidInput) {
-            paidInput.value = tot.toLocaleString('en-US');
-            paidInput.classList.add('border-orange-500', 'bg-orange-50');
-            paidInput.title = 'Số tiền đã được tự động điều chỉnh về tổng tiền hóa đơn';
-            if (typeof showWarning === 'function') {
-                showWarning(paidInput, 'Số tiền trả đã được tự động điều chỉnh về tổng tiền: ' + tot.toLocaleString('en-US') + 'đ');
-            }
-            // Xóa màu cảnh báo sau 2 giây
-            setTimeout(() => {
-                paidInput.classList.remove('border-orange-500', 'bg-orange-50');
-                paidInput.title = '';
-            }, 2000);
-        }
-    } else if (paidInput) {
-        paidInput.classList.remove('border-red-500', 'bg-red-50', 'border-orange-500', 'bg-orange-50');
-        paidInput.title = '';
+    // Chỉ cho phép 1 dấu chấm
+    if (parts.length > 2) {
+        value = parts[0] + '.' + parts.slice(1).join('');
+        parts.length = 2;
+        parts[0] = value.split('.')[0];
+        parts[1] = value.split('.')[1];
     }
     
+    // Lưu giá trị số thuần vào hidden input
+    const rawValue = value;
+    const hiddenInput = document.getElementById('paid_usd');
+    if (hiddenInput) {
+        hiddenInput.value = rawValue || '0';
+    }
+    
+    // Format phần nguyên với dấu phẩy
+    if (parts[0]) {
+        parts[0] = parseInt(parts[0]).toLocaleString('en-US');
+    }
+    
+    // Giới hạn 2 chữ số thập phân
+    if (parts[1]) {
+        parts[1] = parts[1].substring(0, 2);
+    }
+    
+    // Ghép lại và hiển thị
+    input.value = parts.length > 1 ? parts[0] + '.' + (parts[1] || '') : parts[0];
+    
+    // Tính tổng đã trả
+    calcTotalPaid();
+}
+
+// Format payment VND
+function formatPaymentVND(input) {
+    let value = input.value.replace(/[^\d]/g, '');
+    
+    // Lưu giá trị số thuần vào hidden input
+    const hiddenInput = document.getElementById('paid_vnd');
+    if (hiddenInput) {
+        hiddenInput.value = value || '0';
+    }
+    
+    // Format và hiển thị
+    if (value) {
+        input.value = parseInt(value).toLocaleString('vi-VN');
+    }
+    
+    // Tính tổng đã trả
+    calcTotalPaid();
+}
+
+// Calculate total paid (USD + VND converted)
+function calcTotalPaid() {
+    // Kiểm tra các element tồn tại
+    const rateEl = document.getElementById('rate');
+    const paidUsdEl = document.getElementById('paid_usd'); // hidden input
+    const paidVndEl = document.getElementById('paid_vnd'); // hidden input
+    const totalPaidDisplayEl = document.getElementById('total_paid_display');
+    const totalPaidValueEl = document.getElementById('total_paid_value');
+    
+    if (!rateEl || !paidUsdEl || !paidVndEl || !totalPaidDisplayEl || !totalPaidValueEl) {
+        return; // Nếu thiếu element thì không tính
+    }
+    
+    const exchangeRate = parseFloat(unformatNumber(rateEl.value)) || 25000;
+    
+    // Get USD paid từ hidden input (đã là số thuần)
+    const paidUsd = parseFloat(paidUsdEl.value) || 0;
+    
+    // Get VND paid từ hidden input (đã là số thuần)
+    const paidVnd = parseFloat(paidVndEl.value) || 0;
+    
+    // Convert USD to VND and add
+    const totalPaidVnd = (paidUsd * exchangeRate) + paidVnd;
+    
+    // Display total paid
+    totalPaidDisplayEl.value = totalPaidVnd.toLocaleString('vi-VN') + 'đ';
+    totalPaidValueEl.value = Math.round(totalPaidVnd);
+    
+    // Calculate debt
+    calcDebt();
+}
+
+function calcDebt() {
+    const totalVndEl = document.getElementById('total_vnd');
+    const totalPaidValueEl = document.getElementById('total_paid_value');
+    const debtEl = document.getElementById('debt');
+    const totalPaidDisplayEl = document.getElementById('total_paid_display');
+    
+    if (!totalVndEl || !totalPaidValueEl || !debtEl) {
+        return; // Nếu thiếu element thì không tính
+    }
+    
+    const totTxt = totalVndEl.value.replace(/[^\d]/g, '');
+    const tot = parseFloat(totTxt) || 0;
+    
+    // Get total paid from hidden field
+    const totalPaidVal = totalPaidValueEl.value;
+    const paid = parseFloat(totalPaidVal) || 0;
+    
+    // Calculate debt
     const debt = Math.max(0, tot - paid);
-    document.getElementById('debt').value = debt.toLocaleString('vi-VN') + 'đ';
+    debtEl.value = debt.toLocaleString('vi-VN') + 'đ';
+    
+    // Warning if overpaid
+    if (paid > tot && paid > 0 && totalPaidDisplayEl) {
+        totalPaidDisplayEl.classList.add('border-orange-500', 'bg-orange-100');
+        totalPaidDisplayEl.title = 'Số tiền trả vượt quá tổng tiền hóa đơn';
+        setTimeout(() => {
+            totalPaidDisplayEl.classList.remove('border-orange-500', 'bg-orange-100');
+            totalPaidDisplayEl.title = '';
+        }, 3000);
+    }
 }
 
 // Load công nợ hiện tại khi chọn khách hàng
@@ -891,7 +1001,52 @@ document.getElementById('sales-form').addEventListener('submit', function(e) {
     });
 });
 
-document.addEventListener('DOMContentLoaded', () => addItem());
+document.addEventListener('DOMContentLoaded', () => {
+    addItem();
+    
+    // Form validation và unformat trước khi submit
+    const form = document.getElementById('sales-form');
+    if (form) {
+        form.addEventListener('submit', function(e) {
+            // Unformat tất cả giá USD và VND của items trước khi submit
+            const priceUsdInputs = document.querySelectorAll('input[name*="[price_usd]"]');
+            const priceVndInputs = document.querySelectorAll('input[name*="[price_vnd]"]');
+            
+            priceUsdInputs.forEach(input => {
+                input.value = unformatNumber(input.value);
+            });
+            
+            priceVndInputs.forEach(input => {
+                input.value = unformatNumber(input.value);
+            });
+            
+            // Validation - chặn submit nếu trả vượt quá
+            const totalVndEl = document.getElementById('total_vnd');
+            const totalPaidValueEl = document.getElementById('total_paid_value');
+            
+            if (!totalVndEl || !totalPaidValueEl) return;
+            
+            const totalVnd = parseFloat(totalVndEl.value.replace(/[^\d]/g, '')) || 0;
+            const paid = parseFloat(totalPaidValueEl.value) || 0;
+            
+            if (paid > totalVnd) {
+                e.preventDefault();
+                alert('⚠️ Cảnh báo!\n\nSố tiền trả vượt quá tổng hóa đơn!\n\n' +
+                      'Tổng hóa đơn: ' + totalVnd.toLocaleString('vi-VN') + 'đ\n' +
+                      'Tổng trả: ' + paid.toLocaleString('vi-VN') + 'đ\n\n' +
+                      'Vui lòng điều chỉnh số tiền!');
+                
+                // Highlight các ô nhập
+                const paidUsdEl = document.getElementById('paid_usd');
+                const paidVndEl = document.getElementById('paid_vnd');
+                if (paidUsdEl) paidUsdEl.classList.add('border-red-500', 'bg-red-50');
+                if (paidVndEl) paidVndEl.classList.add('border-red-500', 'bg-red-50');
+                
+                return false;
+            }
+        });
+    }
+});
 
 // Image modal functions
 function showImageModal(imageSrc, imageTitle) {

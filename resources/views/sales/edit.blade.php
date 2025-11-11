@@ -254,60 +254,157 @@
             </div>
 
             <!-- Thanh toán -->
-            <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
-                <div>
-                    @if($sale->sale_status === 'completed')
-                        <!-- Phiếu đã duyệt - cho phép trả thêm -->
-                        <label class="block text-xs font-medium text-gray-700 mb-1">Khách trả thêm (VND)</label>
-                        <input type="text" name="payment_amount" id="paid" class="w-full px-3 py-1.5 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500" value="0" oninput="formatPaymentVND(this)" onblur="validateSalesPayment(this)" onchange="calcDebt()" placeholder="Nhập số tiền trả thêm...">
-                        
-                        <!-- Lịch sử thanh toán -->
-                        @if($sale->payments->count() > 0)
-                        <div class="mt-2 p-2 bg-gray-50 rounded-lg border border-gray-200">
-                            <div class="text-xs font-semibold text-gray-600 mb-1 flex items-center">
-                                <i class="fas fa-history mr-1"></i> Lịch sử TT
-                            </div>
-                            <div class="space-y-1 max-h-24 overflow-y-auto">
-                                @foreach($sale->payments as $payment)
-                                <div class="flex justify-between items-center text-xs py-0.5">
-                                    <span class="text-gray-600">{{ $payment->payment_date->format('d/m/Y') }}</span>
-                                    <span class="font-semibold {{ $payment->amount < 0 ? 'text-red-600' : 'text-green-600' }}">
-                                        {{ $payment->amount < 0 ? '' : '+' }}{{ number_format($payment->amount) }}đ
-                                    </span>
+            <div class="bg-white p-3 rounded-lg border border-orange-200">
+                <h4 class="text-sm font-semibold text-gray-700 mb-2">Thanh toán</h4>
+                
+                @if($sale->sale_status === 'completed')
+                    <!-- Phiếu đã duyệt - cho phép trả thêm -->
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-3 mb-3">
+                        <!-- Cột USD -->
+                        <div>
+                            <label class="block text-xs font-medium text-gray-700 mb-1">Trả thêm USD</label>
+                            <input type="text" id="paid_usd_display" class="w-full px-3 py-1.5 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500" value="0.00" oninput="formatPaymentUSD(this)" placeholder="0.00">
+                            <input type="hidden" name="payment_usd" id="paid_usd" value="0">
+                            
+                            <!-- Lịch sử trả USD -->
+                            @if($sale->payments->where('payment_usd', '>', 0)->count() > 0)
+                            <div class="mt-2 p-2 bg-blue-50 rounded border border-blue-200">
+                                <div class="text-xs font-semibold text-blue-700 mb-1">
+                                    <i class="fas fa-history mr-1"></i> Lịch sử USD
                                 </div>
-                                @endforeach
+                                <div class="space-y-1 max-h-24 overflow-y-auto">
+                                    @foreach($sale->payments->where('payment_usd', '>', 0) as $payment)
+                                    <div class="flex justify-between items-center text-xs">
+                                        <span class="text-gray-600">{{ $payment->payment_date->format('d/m/Y') }}</span>
+                                        <span class="font-semibold text-blue-600">+${{ number_format($payment->payment_usd, 2) }}</span>
+                                    </div>
+                                    @endforeach
+                                </div>
+                                <div class="mt-1 pt-1 border-t border-blue-300 flex justify-between items-center">
+                                    <span class="text-xs font-semibold text-blue-700">Tổng USD:</span>
+                                    <span class="text-sm font-bold text-blue-600">${{ number_format($sale->payments->sum('payment_usd'), 2) }}</span>
+                                </div>
                             </div>
-                            <div class="mt-1 pt-1 border-t border-gray-300 flex justify-between items-center">
-                                <span class="text-xs font-semibold text-gray-700">Tổng đã trả:</span>
-                                <span class="text-sm font-bold text-blue-600">{{ number_format($sale->paid_amount) }}đ</span>
-                            </div>
+                            @endif
                         </div>
-                        @endif
-                    @else
-                        <!-- Phiếu pending - hiển thị số tiền đã trả (chưa tạo payment) -->
-                        <label class="block text-xs font-medium text-gray-700 mb-1">Đã trả (VND)</label>
-                        <input type="text" name="payment_amount" id="paid" class="w-full px-3 py-1.5 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 bg-blue-50" value="{{ number_format($sale->paid_amount) }}" oninput="formatPaymentVND(this)" onblur="validateSalesPayment(this)" onchange="calcDebt()" placeholder="Nhập số tiền đã trả...">
                         
-                        <div class="mt-2 p-2 bg-blue-50 rounded-lg border border-blue-200">
-                            <div class="text-xs text-blue-800 flex items-center">
-                                <i class="fas fa-info-circle mr-1"></i>
-                                <span>Số tiền này sẽ được ghi vào lịch sử thanh toán khi duyệt phiếu</span>
+                        <!-- Cột VND -->
+                        <div>
+                            <label class="block text-xs font-medium text-gray-700 mb-1">Trả thêm VND</label>
+                            <input type="text" id="paid_vnd_display" class="w-full px-3 py-1.5 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500" value="0" oninput="formatPaymentVND(this)" placeholder="0">
+                            <input type="hidden" name="payment_vnd" id="paid_vnd" value="0">
+                            
+                            <!-- Lịch sử trả VND -->
+                            @if($sale->payments->where('payment_vnd', '>', 0)->count() > 0)
+                            <div class="mt-2 p-2 bg-green-50 rounded border border-green-200">
+                                <div class="text-xs font-semibold text-green-700 mb-1">
+                                    <i class="fas fa-history mr-1"></i> Lịch sử VND
+                                </div>
+                                <div class="space-y-1 max-h-24 overflow-y-auto">
+                                    @foreach($sale->payments->where('payment_vnd', '>', 0) as $payment)
+                                    <div class="flex justify-between items-center text-xs">
+                                        <span class="text-gray-600">{{ $payment->payment_date->format('d/m/Y') }}</span>
+                                        <span class="font-semibold text-green-600">+{{ number_format($payment->payment_vnd) }}đ</span>
+                                    </div>
+                                    @endforeach
+                                </div>
+                                <div class="mt-1 pt-1 border-t border-green-300 flex justify-between items-center">
+                                    <span class="text-xs font-semibold text-green-700">Tổng VND:</span>
+                                    <span class="text-sm font-bold text-green-600">{{ number_format($sale->payments->sum('payment_vnd')) }}đ</span>
+                                </div>
                             </div>
+                            @endif
                         </div>
+                    </div>
+                    
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-3 mb-3">
+                        <div>
+                            <label class="block text-xs font-medium text-gray-700 mb-1">Phương thức</label>
+                            <select name="payment_method" id="payment_method" class="w-full px-3 py-1.5 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500">
+                                <option value="cash">Tiền mặt</option>
+                                <option value="bank_transfer">Chuyển khoản</option>
+                                <option value="card">Thẻ</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block text-xs font-medium text-blue-900 mb-1">Tổng trả thêm (VND)</label>
+                            <input type="text" id="total_paid_display" readonly class="w-full px-3 py-1.5 text-sm border border-blue-300 rounded-lg bg-blue-50 font-bold text-blue-600">
+                            <input type="hidden" name="payment_amount" id="total_paid_value">
+                        </div>
+                    </div>
+                    
+                    <!-- Tổng hợp lịch sử thanh toán -->
+                    @if($sale->payments->count() > 0)
+                    <div class="p-2 bg-gray-50 rounded-lg border border-gray-200">
+                        <div class="text-xs font-semibold text-gray-600 mb-1 flex items-center">
+                            <i class="fas fa-history mr-1"></i> Lịch sử TT (Tổng hợp)
+                        </div>
+                        <div class="space-y-1 max-h-24 overflow-y-auto">
+                            @foreach($sale->payments as $payment)
+                            <div class="flex justify-between items-center text-xs py-0.5 border-b border-gray-200 last:border-0">
+                                <span class="text-gray-600">{{ $payment->payment_date->format('d/m/Y H:i') }}</span>
+                                <span class="font-semibold {{ $payment->amount < 0 ? 'text-red-600' : 'text-green-600' }}">
+                                    {{ $payment->amount < 0 ? '' : '+' }}{{ number_format($payment->amount) }}đ
+                                </span>
+                            </div>
+                            @endforeach
+                        </div>
+                        <div class="mt-1 pt-1 border-t border-gray-300 flex justify-between items-center">
+                            <span class="text-xs font-semibold text-gray-700">Tổng đã trả:</span>
+                            <span class="text-sm font-bold text-blue-600">{{ number_format($sale->paid_amount) }}đ</span>
+                        </div>
+                    </div>
                     @endif
-                </div>
-                <div>
-                    <label class="block text-xs font-medium text-yellow-900 mb-1">Nợ cũ</label>
-                    <input type="text" id="current_debt" readonly class="w-full px-3 py-1.5 text-sm border border-yellow-300 rounded-lg bg-white font-bold text-orange-600" value="0đ">
-                </div>
-                <div>
-                    <label class="block text-xs font-medium text-red-900 mb-1">Còn nợ</label>
-                    <input type="text" id="debt" readonly class="w-full px-3 py-1.5 text-sm border border-red-300 rounded-lg bg-white font-bold text-red-600" value="{{ number_format($sale->debt_amount) }}đ">
+                @else
+                    <!-- Phiếu pending - cho phép sửa số tiền đã trả -->
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-3 mb-3">
+                        <div>
+                            <label class="block text-xs font-medium text-gray-700 mb-1">Đã trả USD</label>
+                            <input type="text" id="paid_usd_display" class="w-full px-3 py-1.5 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 bg-blue-50" value="{{ number_format($sale->payment_usd ?? 0, 2) }}" oninput="formatPaymentUSD(this)" placeholder="0.00">
+                            <input type="hidden" name="payment_usd" id="paid_usd" value="{{ $sale->payment_usd ?? 0 }}">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-medium text-gray-700 mb-1">Đã trả VND</label>
+                            <input type="text" id="paid_vnd_display" class="w-full px-3 py-1.5 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 bg-blue-50" value="{{ number_format($sale->payment_vnd ?? 0) }}" oninput="formatPaymentVND(this)" placeholder="0">
+                            <input type="hidden" name="payment_vnd" id="paid_vnd" value="{{ $sale->payment_vnd ?? 0 }}">
+                        </div>
+                    </div>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-3 mb-3">
+                        <div>
+                            <label class="block text-xs font-medium text-gray-700 mb-1">Phương thức</label>
+                            <select name="payment_method" id="payment_method" class="w-full px-3 py-1.5 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500">
+                                <option value="cash">Tiền mặt</option>
+                                <option value="bank_transfer">Chuyển khoản</option>
+                                <option value="card">Thẻ</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block text-xs font-medium text-blue-900 mb-1">Tổng đã trả (VND)</label>
+                            <input type="text" id="total_paid_display" readonly class="w-full px-3 py-1.5 text-sm border border-blue-300 rounded-lg bg-blue-50 font-bold text-blue-600">
+                            <input type="hidden" name="payment_amount" id="total_paid_value">
+                        </div>
+                    </div>
+                    
+                    <div class="p-2 bg-blue-50 rounded-lg border border-blue-200">
+                        <div class="text-xs text-blue-800 flex items-center">
+                            <i class="fas fa-info-circle mr-1"></i>
+                            <span>Số tiền này sẽ được ghi vào lịch sử thanh toán khi duyệt phiếu</span>
+                        </div>
+                    </div>
+                @endif
+                
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-3 mt-3">
+                    <div>
+                        <label class="block text-xs font-medium text-yellow-900 mb-1">Nợ cũ</label>
+                        <input type="text" id="current_debt" readonly class="w-full px-3 py-1.5 text-sm border border-yellow-300 rounded-lg bg-white font-bold text-orange-600" value="0đ">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-medium text-red-900 mb-1">Còn nợ</label>
+                        <input type="text" id="debt" readonly class="w-full px-3 py-1.5 text-sm border border-red-300 rounded-lg bg-white font-bold text-red-600" value="{{ number_format($sale->debt_amount) }}đ">
+                    </div>
                 </div>
             </div>
         </div>
-
-        <!-- Hidden field for payment method -->
         <input type="hidden" name="payment_method" value="cash">
 
         <!-- Ghi chú -->
@@ -873,6 +970,93 @@ function togCur(sel, i) {
     calc();
 }
 
+// Format payment USD (giống format giá USD)
+function formatPaymentUSD(input) {
+    let value = input.value.replace(/[^\d.]/g, '');
+    const parts = value.split('.');
+    
+    // Chỉ cho phép 1 dấu chấm
+    if (parts.length > 2) {
+        value = parts[0] + '.' + parts.slice(1).join('');
+        parts.length = 2;
+        parts[0] = value.split('.')[0];
+        parts[1] = value.split('.')[1];
+    }
+    
+    // Lưu giá trị số thuần vào hidden input
+    const rawValue = value;
+    const hiddenInput = document.getElementById('paid_usd');
+    if (hiddenInput) {
+        hiddenInput.value = rawValue || '0';
+    }
+    
+    // Format phần nguyên với dấu phẩy
+    if (parts[0]) {
+        parts[0] = parseInt(parts[0]).toLocaleString('en-US');
+    }
+    
+    // Giới hạn 2 chữ số thập phân
+    if (parts[1]) {
+        parts[1] = parts[1].substring(0, 2);
+    }
+    
+    // Ghép lại và hiển thị
+    input.value = parts.length > 1 ? parts[0] + '.' + (parts[1] || '') : parts[0];
+    
+    // Tính tổng đã trả
+    calcTotalPaid();
+}
+
+// Format payment VND
+function formatPaymentVND(input) {
+    let value = input.value.replace(/[^\d]/g, '');
+    
+    // Lưu giá trị số thuần vào hidden input
+    const hiddenInput = document.getElementById('paid_vnd');
+    if (hiddenInput) {
+        hiddenInput.value = value || '0';
+    }
+    
+    // Format và hiển thị
+    if (value) {
+        input.value = parseInt(value).toLocaleString('vi-VN');
+    }
+    
+    // Tính tổng đã trả
+    calcTotalPaid();
+}
+
+// Calculate total paid (USD + VND converted)
+function calcTotalPaid() {
+    const rateEl = document.getElementById('rate');
+    const paidUsdEl = document.getElementById('paid_usd'); // hidden input
+    const paidVndEl = document.getElementById('paid_vnd'); // hidden input
+    const totalPaidDisplayEl = document.getElementById('total_paid_display');
+    const totalPaidValueEl = document.getElementById('total_paid_value');
+    
+    if (!rateEl || !paidUsdEl || !paidVndEl || !totalPaidDisplayEl || !totalPaidValueEl) {
+        return;
+    }
+    
+    const exchangeRate = parseFloat(unformatNumber(rateEl.value)) || 25000;
+    
+    // Get USD paid từ hidden input (đã là số thuần)
+    const paidUsd = parseFloat(paidUsdEl.value) || 0;
+    
+    // Get VND paid từ hidden input (đã là số thuần)
+    const paidVnd = parseFloat(paidVndEl.value) || 0;
+    
+    // Convert USD to VND and add
+    const totalPaidVnd = (paidUsd * exchangeRate) + paidVnd;
+    
+    // Display total paid
+    totalPaidDisplayEl.value = totalPaidVnd.toLocaleString('vi-VN') + 'đ';
+    totalPaidValueEl.value = Math.round(totalPaidVnd);
+    
+    // Calculate debt
+    calcDebt();
+}
+
 function calc() {
     const rateVal = unformatNumber(document.getElementById('rate').value);
     const rate = parseFloat(rateVal) || 25000;
@@ -934,39 +1118,42 @@ function calcDebt() {
     const totTxt = document.getElementById('total_vnd').value.replace(/[^\d]/g, '');
     const tot = parseFloat(totTxt) || 0;
     
-    // Tổng đã trả (từ database) + số tiền trả thêm (từ input)
-    const currentPaid = {{ $sale->paid_amount }};
-    const paidVal = unformatNumber(document.getElementById('paid').value);
-    let additionalPaid = parseFloat(paidVal) || 0;
-    let totalPaid = currentPaid + additionalPaid;
-    
-    const paidInput = document.getElementById('paid');
-    
-    // Nếu tổng số tiền trả vượt quá tổng tiền, tự động cắt về số tiền còn lại
-    if (totalPaid > tot) {
-        const maxAdditional = Math.max(0, tot - currentPaid);
-        additionalPaid = maxAdditional;
-        totalPaid = currentPaid + additionalPaid;
+    @if($sale->sale_status === 'completed')
+        // Phiếu đã duyệt: Tính nợ = Tổng - (Đã trả cũ + Trả thêm)
+        const currentPaid = {{ $sale->paid_amount }};
+        const additionalPaidVal = document.getElementById('total_paid_value').value;
+        const additionalPaid = parseFloat(additionalPaidVal) || 0;
+        const totalPaid = currentPaid + additionalPaid;
+        const debt = Math.max(0, tot - totalPaid);
         
-        if (paidInput) {
-            paidInput.value = maxAdditional.toLocaleString('en-US');
-            paidInput.classList.add('border-orange-500', 'bg-orange-50');
-            paidInput.title = 'Số tiền đã được tự động điều chỉnh về số tiền còn lại';
-            if (typeof showWarning === 'function') {
-                showWarning(paidInput, 'Số tiền trả đã được tự động điều chỉnh về số tiền còn lại: ' + maxAdditional.toLocaleString('en-US') + 'đ');
-            }
-            // Xóa màu cảnh báo sau 2 giây
+        // Warning if overpaid
+        if (totalPaid > tot && additionalPaid > 0) {
+            const paidDisplay = document.getElementById('total_paid_display');
+            paidDisplay.classList.add('border-orange-500', 'bg-orange-100');
+            paidDisplay.title = 'Số tiền trả vượt quá tổng tiền hóa đơn';
             setTimeout(() => {
-                paidInput.classList.remove('border-orange-500', 'bg-orange-50');
-                paidInput.title = '';
-            }, 2000);
+                paidDisplay.classList.remove('border-orange-500', 'bg-orange-100');
+                paidDisplay.title = '';
+            }, 3000);
         }
-    } else if (paidInput) {
-        paidInput.classList.remove('border-red-500', 'bg-red-50', 'border-orange-500', 'bg-orange-50');
-        paidInput.title = '';
-    }
+    @else
+        // Phiếu pending: Tính nợ = Tổng - Tổng đã trả
+        const totalPaidVal = document.getElementById('total_paid_value').value;
+        const paid = parseFloat(totalPaidVal) || 0;
+        const debt = Math.max(0, tot - paid);
+        
+        // Warning if overpaid
+        if (paid > tot && paid > 0) {
+            const paidDisplay = document.getElementById('total_paid_display');
+            paidDisplay.classList.add('border-orange-500', 'bg-orange-100');
+            paidDisplay.title = 'Số tiền trả vượt quá tổng tiền hóa đơn';
+            setTimeout(() => {
+                paidDisplay.classList.remove('border-orange-500', 'bg-orange-100');
+                paidDisplay.title = '';
+            }, 3000);
+        }
+    @endif
     
-    const debt = Math.max(0, tot - totalPaid);
     document.getElementById('debt').value = debt.toLocaleString('vi-VN') + 'đ';
 }
 
@@ -1127,6 +1314,7 @@ document.getElementById('sales-form').addEventListener('submit', function(e) {
 document.addEventListener('DOMContentLoaded', () => {
     loadExistingItems();
     calc();
+    calcTotalPaid(); // Tính tổng đã trả
     calcDebt(); // Tính còn nợ ngay khi load trang
     
     // Load công nợ hiện tại của khách hàng
@@ -1145,7 +1333,75 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
     
-    // Form validation không cần thiết nữa vì số tiền đã tự động điều chỉnh
+    // Form validation và unformat trước khi submit
+    const form = document.getElementById('sales-form');
+    if (form) {
+        form.addEventListener('submit', function(e) {
+            // Unformat tất cả giá USD và VND của items trước khi submit
+            const priceUsdInputs = document.querySelectorAll('input[name*="[price_usd]"]');
+            const priceVndInputs = document.querySelectorAll('input[name*="[price_vnd]"]');
+            
+            priceUsdInputs.forEach(input => {
+                input.value = unformatNumber(input.value);
+            });
+            
+            priceVndInputs.forEach(input => {
+                input.value = unformatNumber(input.value);
+            });
+            
+            // Validation - chặn submit nếu trả vượt quá
+            const totalVndEl = document.getElementById('total_vnd');
+            const totalPaidValueEl = document.getElementById('total_paid_value');
+            
+            if (!totalVndEl || !totalPaidValueEl) return;
+            
+            const totalVnd = parseFloat(totalVndEl.value.replace(/[^\d]/g, '')) || 0;
+            
+            @if($sale->sale_status === 'completed')
+                // Phiếu đã duyệt: kiểm tra trả thêm
+                const currentPaid = {{ $sale->paid_amount }};
+                const additionalPaid = parseFloat(totalPaidValueEl.value) || 0;
+                const totalPaid = currentPaid + additionalPaid;
+                
+                if (totalPaid > totalVnd) {
+                    e.preventDefault();
+                    alert('⚠️ Cảnh báo!\n\nSố tiền trả vượt quá tổng hóa đơn!\n\n' +
+                          'Tổng hóa đơn: ' + totalVnd.toLocaleString('vi-VN') + 'đ\n' +
+                          'Đã trả trước: ' + currentPaid.toLocaleString('vi-VN') + 'đ\n' +
+                          'Trả thêm: ' + additionalPaid.toLocaleString('vi-VN') + 'đ\n' +
+                          'Tổng trả: ' + totalPaid.toLocaleString('vi-VN') + 'đ\n\n' +
+                          'Vui lòng điều chỉnh số tiền!');
+                    
+                    // Highlight các ô nhập
+                    const paidUsdEl = document.getElementById('paid_usd');
+                    const paidVndEl = document.getElementById('paid_vnd');
+                    if (paidUsdEl) paidUsdEl.classList.add('border-red-500', 'bg-red-50');
+                    if (paidVndEl) paidVndEl.classList.add('border-red-500', 'bg-red-50');
+                    
+                    return false;
+                }
+            @else
+                // Phiếu pending: kiểm tra tổng đã trả
+                const paid = parseFloat(totalPaidValueEl.value) || 0;
+                
+                if (paid > totalVnd) {
+                    e.preventDefault();
+                    alert('⚠️ Cảnh báo!\n\nSố tiền trả vượt quá tổng hóa đơn!\n\n' +
+                          'Tổng hóa đơn: ' + totalVnd.toLocaleString('vi-VN') + 'đ\n' +
+                          'Tổng trả: ' + paid.toLocaleString('vi-VN') + 'đ\n\n' +
+                          'Vui lòng điều chỉnh số tiền!');
+                    
+                    // Highlight các ô nhập
+                    const paidUsdEl = document.getElementById('paid_usd');
+                    const paidVndEl = document.getElementById('paid_vnd');
+                    if (paidUsdEl) paidUsdEl.classList.add('border-red-500', 'bg-red-50');
+                    if (paidVndEl) paidVndEl.classList.add('border-red-500', 'bg-red-50');
+                    
+                    return false;
+                }
+            @endif
+        });
+    }
 });
 </script>
 

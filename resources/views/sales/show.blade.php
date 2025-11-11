@@ -271,21 +271,36 @@
             <p class="text-sm text-gray-500 mb-3 italic">Danh sách các lần khách hàng đã thanh toán cho hóa đơn này</p>
             <div class="space-y-3">
                 @foreach($sale->payments->sortByDesc('payment_date')->sortByDesc('id') as $payment)
-                <div class="flex justify-between items-center p-3 bg-gray-50 rounded">
-                    <div>
-                        <p class="font-medium">{{ number_format($payment->amount) }}đ</p>
-                        <p class="text-sm text-gray-600">
-                            {{ $payment->payment_date->format('d/m/Y') }} - 
-                            @if($payment->payment_method == 'cash') Tiền mặt
-                            @elseif($payment->payment_method == 'bank_transfer') Chuyển khoản
-                            @elseif($payment->payment_method == 'card') Thẻ
-                            @else Khác
+                <div class="p-3 bg-gray-50 rounded">
+                    <div class="flex justify-between items-center">
+                        <div>
+                            <p class="font-medium">{{ number_format($payment->amount) }}đ</p>
+                            @if($payment->payment_usd > 0 || $payment->payment_vnd > 0)
+                            <p class="text-xs text-gray-500 mt-1">
+                                @if($payment->payment_usd > 0)
+                                    <span class="text-blue-600">${{ number_format($payment->payment_usd, 2) }}</span>
+                                @endif
+                                @if($payment->payment_usd > 0 && $payment->payment_vnd > 0)
+                                    <span class="mx-1">+</span>
+                                @endif
+                                @if($payment->payment_vnd > 0)
+                                    <span class="text-green-600">{{ number_format($payment->payment_vnd) }}đ</span>
+                                @endif
+                            </p>
                             @endif
-                        </p>
+                            <p class="text-sm text-gray-600 mt-1">
+                                {{ $payment->payment_date->format('d/m/Y H:i') }} - 
+                                @if($payment->payment_method == 'cash') Tiền mặt
+                                @elseif($payment->payment_method == 'bank_transfer') Chuyển khoản
+                                @elseif($payment->payment_method == 'card') Thẻ
+                                @else Khác
+                                @endif
+                            </p>
+                        </div>
+                        @if($payment->notes)
+                        <p class="text-sm text-gray-500">{{ $payment->notes }}</p>
+                        @endif
                     </div>
-                    @if($payment->notes)
-                    <p class="text-sm text-gray-500">{{ $payment->notes }}</p>
-                    @endif
                 </div>
                 @endforeach
             </div>
@@ -397,9 +412,30 @@
                         @endif
                     </div>
                 </div>
-                <div class="flex justify-between bg-blue-50 p-2 rounded text-sm">
-                    <span class="text-blue-700 font-medium">Đã trả:</span>
-                    <span class="font-bold text-blue-700">{{ number_format($sale->paid_amount) }}đ</span>
+                <div class="bg-blue-50 p-2 rounded text-sm">
+                    <div class="flex justify-between">
+                        <span class="text-blue-700 font-medium">Đã trả:</span>
+                        <span class="font-bold text-blue-700">{{ number_format($sale->paid_amount) }}đ</span>
+                    </div>
+                    @php
+                        $totalUsd = $sale->payments->sum('payment_usd');
+                        $totalVnd = $sale->payments->sum('payment_vnd');
+                    @endphp
+                    @if($totalUsd > 0 || $totalVnd > 0)
+                    <div class="flex justify-end mt-1 text-xs text-blue-600">
+                        <span class="italic">
+                            @if($totalUsd > 0)
+                                <span>${{ number_format($totalUsd, 2) }}</span>
+                            @endif
+                            @if($totalUsd > 0 && $totalVnd > 0)
+                                <span class="mx-1">+</span>
+                            @endif
+                            @if($totalVnd > 0)
+                                <span>{{ number_format($totalVnd) }}đ</span>
+                            @endif
+                        </span>
+                    </div>
+                    @endif
                 </div>
                 @if($sale->sale_status == 'cancelled')
                 <div class="flex justify-between text-gray-600 bg-gray-50 p-2 rounded border border-gray-200 text-sm">
