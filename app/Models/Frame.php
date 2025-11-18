@@ -8,6 +8,11 @@ class Frame extends Model
 {
     protected $fillable = [
         'name',
+        'frame_length',
+        'frame_width',
+        'perimeter',
+        'corner_deduction',
+        'total_wood_needed',
         'cost_price',
         'notes',
         'status',
@@ -16,6 +21,11 @@ class Frame extends Model
     protected function casts(): array
     {
         return [
+            'frame_length' => 'decimal:2',
+            'frame_width' => 'decimal:2',
+            'perimeter' => 'decimal:2',
+            'corner_deduction' => 'decimal:2',
+            'total_wood_needed' => 'decimal:2',
             'cost_price' => 'decimal:2',
         ];
     }

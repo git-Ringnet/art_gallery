@@ -41,6 +41,28 @@
                 <p class="text-lg font-semibold text-green-600">{{ number_format($frame->cost_price, 0) }} VNĐ</p>
             </div>
 
+            @if($frame->frame_length && $frame->frame_width)
+            <div>
+                <label class="block text-sm font-medium text-gray-500 mb-1">Kích thước khung</label>
+                <p class="text-lg font-semibold text-blue-600">{{ number_format($frame->frame_length, 2) }} × {{ number_format($frame->frame_width, 2) }} cm</p>
+            </div>
+
+            <div>
+                <label class="block text-sm font-medium text-gray-500 mb-1">Chu vi khung</label>
+                <p class="text-lg font-semibold text-blue-600">{{ number_format($frame->perimeter, 2) }} cm</p>
+            </div>
+
+            <div>
+                <label class="block text-sm font-medium text-gray-500 mb-1">Khấu trừ góc xéo</label>
+                <p class="text-lg font-semibold text-orange-600">{{ number_format($frame->corner_deduction, 2) }} cm</p>
+            </div>
+
+            <div>
+                <label class="block text-sm font-medium text-gray-500 mb-1">Tổng cây cần</label>
+                <p class="text-lg font-semibold text-green-600">{{ number_format($frame->total_wood_needed, 2) }} cm</p>
+            </div>
+            @endif
+
             <div>
                 <label class="block text-sm font-medium text-gray-500 mb-1">Tổng số loại cây</label>
                 <p class="text-lg font-semibold text-blue-600">{{ $frame->items->count() }} loại</p>
@@ -49,11 +71,6 @@
             <div>
                 <label class="block text-sm font-medium text-gray-500 mb-1">Tổng số cây sử dụng</label>
                 <p class="text-lg font-semibold text-blue-600">{{ $frame->total_trees }} cây</p>
-            </div>
-
-            <div>
-                <label class="block text-sm font-medium text-gray-500 mb-1">Tổng chiều dài</label>
-                <p class="text-lg font-semibold text-blue-600">{{ number_format($frame->total_length, 2) }} cm</p>
             </div>
 
             <div>
@@ -91,10 +108,10 @@
                         <tr>
                             <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">STT</th>
                             <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Tên cây</th>
+                            <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Chiều rộng cây</th>
                             <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Số lượng cây</th>
                             <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Chiều dài/cây</th>
                             <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Tổng chiều dài</th>
-                            <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Dùng nguyên cây</th>
                         </tr>
                     </thead>
                     <tbody class="bg-white divide-y divide-gray-200">
@@ -102,16 +119,10 @@
                             <tr>
                                 <td class="px-4 py-3 text-sm">{{ $index + 1 }}</td>
                                 <td class="px-4 py-3 text-sm font-medium">{{ $item->supply->name }}</td>
+                                <td class="px-4 py-3 text-sm">{{ $item->wood_width ? number_format($item->wood_width, 2) . ' cm' : 'N/A' }}</td>
                                 <td class="px-4 py-3 text-sm">{{ $item->tree_quantity }} cây</td>
                                 <td class="px-4 py-3 text-sm">{{ number_format($item->length_per_tree, 2) }} {{ $item->supply->unit }}</td>
                                 <td class="px-4 py-3 text-sm font-semibold">{{ number_format($item->total_length, 2) }} {{ $item->supply->unit }}</td>
-                                <td class="px-4 py-3 text-sm">
-                                    @if($item->use_whole_trees)
-                                        <span class="px-2 py-1 bg-green-100 text-green-800 rounded-full text-xs">Có</span>
-                                    @else
-                                        <span class="px-2 py-1 bg-gray-100 text-gray-800 rounded-full text-xs">Không</span>
-                                    @endif
-                                </td>
                             </tr>
                         @endforeach
                     </tbody>

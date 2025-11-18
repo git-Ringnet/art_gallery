@@ -31,9 +31,10 @@
                     <tr>
                         <th class="px-2 py-2 text-left text-xs font-medium uppercase tracking-wider">STT</th>
                         <th class="px-2 py-2 text-left text-xs font-medium uppercase tracking-wider">Tên khung</th>
+                        <th class="px-2 py-2 text-left text-xs font-medium uppercase tracking-wider">Kích thước</th>
+                        <th class="px-2 py-2 text-left text-xs font-medium uppercase tracking-wider">Chu vi</th>
                         <th class="px-2 py-2 text-left text-xs font-medium uppercase tracking-wider">Số loại cây</th>
                         <th class="px-2 py-2 text-left text-xs font-medium uppercase tracking-wider">Tổng số cây</th>
-                        <th class="px-2 py-2 text-left text-xs font-medium uppercase tracking-wider">Tổng chiều dài</th>
                         <th class="px-2 py-2 text-left text-xs font-medium uppercase tracking-wider">Giá nhập</th>
                         <th class="px-2 py-2 text-left text-xs font-medium uppercase tracking-wider">Ngày tạo</th>
                         <th class="px-2 py-2 text-left text-xs font-medium uppercase tracking-wider">Trạng thái</th>
@@ -47,9 +48,22 @@
                                 {{ ($frames->currentPage() - 1) * $frames->perPage() + $index + 1 }}
                             </td>
                             <td class="px-2 py-2 whitespace-nowrap text-xs font-medium text-gray-900">{{ $frame->name }}</td>
+                            <td class="px-2 py-2 whitespace-nowrap text-xs text-gray-900">
+                                @if($frame->frame_length && $frame->frame_width)
+                                    {{ number_format($frame->frame_length, 0) }}×{{ number_format($frame->frame_width, 0) }} cm
+                                @else
+                                    N/A
+                                @endif
+                            </td>
+                            <td class="px-2 py-2 whitespace-nowrap text-xs text-gray-900">
+                                @if($frame->perimeter)
+                                    {{ number_format($frame->perimeter, 2) }} cm
+                                @else
+                                    N/A
+                                @endif
+                            </td>
                             <td class="px-2 py-2 whitespace-nowrap text-xs text-gray-900">{{ $frame->items->count() }} loại</td>
                             <td class="px-2 py-2 whitespace-nowrap text-xs text-gray-900">{{ $frame->total_trees }} cây</td>
-                            <td class="px-2 py-2 whitespace-nowrap text-xs text-gray-900">{{ number_format($frame->total_length, 2) }} cm</td>
                             <td class="px-2 py-2 whitespace-nowrap text-xs text-gray-900">{{ number_format($frame->cost_price, 0) }} VNĐ</td>
                             <td class="px-2 py-2 whitespace-nowrap text-xs text-gray-900">{{ $frame->created_at->format('d/m/Y') }}</td>
                             <td class="px-2 py-2 whitespace-nowrap">
@@ -84,7 +98,7 @@
                         </tr>
                     @empty
                         <tr>
-                            <td colspan="9" class="px-2 py-6 text-center text-gray-500">
+                            <td colspan="10" class="px-2 py-6 text-center text-gray-500">
                                 <i class="fas fa-inbox text-3xl mb-2"></i>
                                 <p class="text-sm">Chưa có khung tranh nào</p>
                             </td>

@@ -45,6 +45,53 @@
                             placeholder="VD: 150000">
                     </div>
 
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Chiều dài khung (cm) <span class="text-red-500">*</span></label>
+                        <input type="number" name="frame_length" id="frame_length" value="{{ old('frame_length') }}" 
+                            step="0.01" min="0" required
+                            class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                            placeholder="VD: 60">
+                    </div>
+
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Chiều rộng khung (cm) <span class="text-red-500">*</span></label>
+                        <input type="number" name="frame_width" id="frame_width" value="{{ old('frame_width') }}" 
+                            step="0.01" min="0" required
+                            class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                            placeholder="VD: 40">
+                    </div>
+
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">
+                            Khấu trừ góc xéo (cm) <span class="text-red-500">*</span>
+                            <i class="fas fa-info-circle text-gray-400 ml-1" title="Tổng chiều dài 4 góc xéo cần khấu trừ"></i>
+                        </label>
+                        <input type="number" name="corner_deduction" id="corner_deduction" value="{{ old('corner_deduction', 0) }}" 
+                            step="0.01" min="0" required
+                            class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                            placeholder="VD: 17">
+                        <p class="text-xs text-gray-500 mt-1">Tổng chiều dài 4 góc xéo (phần thừa khi cắt góc 45°)</p>
+                    </div>
+
+                    <div class="md:col-span-2">
+                        <div class="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                            <div class="grid grid-cols-3 gap-4 text-sm">
+                                <div>
+                                    <span class="text-gray-600">Chu vi:</span>
+                                    <span class="font-semibold text-blue-700 ml-2" id="perimeter_display">0 cm</span>
+                                </div>
+                                <div>
+                                    <span class="text-gray-600">Khấu trừ góc:</span>
+                                    <span class="font-semibold text-orange-700 ml-2" id="corner_display">0 cm</span>
+                                </div>
+                                <div>
+                                    <span class="text-gray-600">Tổng cây cần:</span>
+                                    <span class="font-semibold text-green-700 ml-2" id="total_wood_display">0 cm</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
                     <div class="md:col-span-2">
                         <label class="block text-sm font-medium text-gray-700 mb-2">Ghi chú</label>
                         <textarea name="notes" rows="2"
@@ -57,10 +104,17 @@
             <!-- Danh sách cây gỗ sử dụng -->
             <div class="mb-6">
                 <div class="flex items-center justify-between mb-4">
-                    <h5 class="font-medium text-gray-700">Cây gỗ sử dụng <span class="text-red-500">*</span></h5>
+                    <h5 class="font-medium text-gray-700">Loại cây gỗ sử dụng <span class="text-red-500">*</span></h5>
                     <button type="button" id="addItemBtn" class="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg text-sm">
-                        <i class="fas fa-plus mr-2"></i>Thêm cây
+                        <i class="fas fa-plus mr-2"></i>Thêm loại cây
                     </button>
+                </div>
+
+                <div class="bg-yellow-50 border border-yellow-200 rounded-lg p-3 mb-4">
+                    <p class="text-sm text-yellow-800">
+                        <i class="fas fa-info-circle mr-2"></i>
+                        <strong>Lưu ý:</strong> Hệ thống sẽ tự động tính số cây cần dùng dựa trên chu vi khung và khấu trừ góc xéo bạn nhập ở trên
+                    </p>
                 </div>
 
                 <div id="itemsContainer" class="space-y-4">
@@ -84,6 +138,25 @@
         const supplies = @json($supplies);
         let itemIndex = 0;
 
+        function calculateFrameMetrics() {
+            const frameLength = parseFloat(document.getElementById('frame_length').value) || 0;
+            const frameWidth = parseFloat(document.getElementById('frame_width').value) || 0;
+            const cornerDeduction = parseFloat(document.getElementById('corner_deduction').value) || 0;
+            
+            // Tính chu vi
+            const perimeter = 2 * (frameLength + frameWidth);
+            
+            // Tổng cây cần
+            const totalWoodNeeded = perimeter + cornerDeduction;
+            
+            // Cập nhật hiển thị
+            document.getElementById('perimeter_display').textContent = perimeter.toFixed(2) + ' cm';
+            document.getElementById('corner_display').textContent = cornerDeduction.toFixed(2) + ' cm';
+            document.getElementById('total_wood_display').textContent = totalWoodNeeded.toFixed(2) + ' cm';
+            
+            return { perimeter, cornerDeduction, totalWoodNeeded };
+        }
+
         function addItem(data = {}) {
             const index = itemIndex++;
             const item = document.createElement('div');
@@ -92,66 +165,49 @@
             
             item.innerHTML = `
                 <div class="flex items-center justify-between mb-3">
-                    <h6 class="font-medium text-gray-700">Cây gỗ #${index + 1}</h6>
+                    <h6 class="font-medium text-gray-700">Loại cây #${index + 1}</h6>
                     <button type="button" class="text-red-600 hover:text-red-800 remove-item-btn">
                         <i class="fas fa-trash"></i> Xóa
                     </button>
                 </div>
                 
-                <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-                    <div class="md:col-span-3">
-                        <label class="block text-sm font-medium text-gray-700 mb-2">Chọn cây gỗ <span class="text-red-500">*</span></label>
+                <div class="grid grid-cols-1 gap-4">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Chọn loại cây gỗ <span class="text-red-500">*</span></label>
                         <select name="items[${index}][supply_id]" class="supply-select w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500" required>
-                            <option value="">-- Chọn cây gỗ --</option>
+                            <option value="">-- Chọn loại cây --</option>
                             ${supplies.map(s => `
                                 <option value="${s.id}" 
                                     data-quantity="${s.quantity}" 
                                     data-tree-count="${s.tree_count}"
                                     data-unit="${s.unit}"
                                     ${data.supply_id == s.id ? 'selected' : ''}>
-                                    ${s.name} - Còn: ${parseFloat(s.quantity).toFixed(2)} ${s.unit} (${s.tree_count} cây)
+                                    ${s.name} - Còn: ${parseFloat(s.quantity).toFixed(2)} ${s.unit}/cây (${s.tree_count} cây)
                                 </option>
                             `).join('')}
                         </select>
-                        <p class="text-xs text-gray-500 mt-1">
-                            <span class="remaining-info font-medium">Chọn cây để xem</span>
+                    </div>
+                    
+                    <div>
+                        <div class="bg-green-50 border border-green-200 rounded-lg p-3">
+                            <div class="grid grid-cols-2 gap-3 text-sm">
+                                <div>
+                                    <span class="text-gray-600">Số cây cần dùng:</span>
+                                    <span class="font-semibold text-blue-700 ml-2 tree-needed-display">0 cây</span>
+                                </div>
+                                <div>
+                                    <span class="text-gray-600">Chiều dài cắt mỗi cây:</span>
+                                    <span class="font-semibold text-green-700 ml-2 length-per-tree-display">0 cm</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div>
+                        <p class="text-xs text-gray-500 supply-info">
+                            <i class="fas fa-info-circle mr-1"></i>
+                            <span class="remaining-info">Chọn loại cây để xem thông tin kho</span>
                         </p>
-                    </div>
-                    
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-2">Số lượng cây <span class="text-red-500">*</span></label>
-                        <input type="number" name="items[${index}][tree_quantity]" value="${data.tree_quantity || 1}" 
-                            class="tree-quantity w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
-                            min="1" step="1" required>
-                    </div>
-                    
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-2">Chiều dài mỗi cây <span class="text-red-500">*</span></label>
-                        <div class="flex items-center gap-2">
-                            <input type="number" name="items[${index}][length_per_tree]" value="${data.length_per_tree || ''}" 
-                                class="length-per-tree flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
-                                min="0" step="0.01" max="" required placeholder="VD: 240">
-                            <span class="unit-display text-gray-600">cm</span>
-                        </div>
-                        <p class="text-xs text-gray-500 mt-1">Tối đa: <span class="max-length-info">-</span></p>
-                    </div>
-                    
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-2">Tổng chiều dài</label>
-                        <input type="text" class="total-length w-full px-3 py-2 border border-gray-300 rounded-lg bg-gray-100" 
-                            readonly value="0 cm">
-                    </div>
-                    
-                    <div class="md:col-span-3">
-                        <div class="flex items-center">
-                            <input type="checkbox" name="items[${index}][use_whole_trees]" value="1" 
-                                class="use-whole-trees w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
-                                ${data.use_whole_trees ? 'checked' : ''}>
-                            <label class="ml-2 text-sm text-gray-700">
-                                Sử dụng nguyên cây (phần còn lại quá ngắn không xài được)
-                            </label>
-                        </div>
-                        <p class="text-xs text-gray-500 mt-1">Nếu chọn, sẽ trừ số cây từ kho</p>
                     </div>
                 </div>
             `;
@@ -163,50 +219,30 @@
 
         function attachItemEvents(item) {
             const supplySelect = item.querySelector('.supply-select');
-            const treeQuantity = item.querySelector('.tree-quantity');
-            const lengthPerTree = item.querySelector('.length-per-tree');
-            const useWholeTrees = item.querySelector('.use-whole-trees');
             const removeBtn = item.querySelector('.remove-item-btn');
 
             supplySelect.addEventListener('change', () => {
-                // Clear input chiều dài khi chọn cây mới
-                lengthPerTree.value = '';
-                updateItemCalculations(item);
-            });
-            
-            treeQuantity.addEventListener('input', () => updateItemCalculations(item));
-            
-            lengthPerTree.addEventListener('input', () => {
-                // Kiểm tra giá trị nhập không vượt quá max
-                const maxValue = parseFloat(lengthPerTree.getAttribute('max'));
-                const currentValue = parseFloat(lengthPerTree.value);
-                
-                if (maxValue && currentValue > maxValue) {
-                    lengthPerTree.value = maxValue;
-                    alert(`Chiều dài mỗi cây không được vượt quá ${maxValue} cm`);
-                }
-                
                 updateItemCalculations(item);
             });
             
             removeBtn.addEventListener('click', () => {
                 if (document.querySelectorAll('#itemsContainer > div').length > 1) {
                     item.remove();
+                    // Cập nhật lại tất cả items sau khi xóa
+                    document.querySelectorAll('#itemsContainer > div').forEach(item => {
+                        updateItemCalculations(item);
+                    });
                 } else {
-                    alert('Phải có ít nhất 1 cây gỗ!');
+                    alert('Phải có ít nhất 1 loại cây gỗ!');
                 }
             });
         }
 
         function updateItemCalculations(item) {
             const supplySelect = item.querySelector('.supply-select');
-            const treeQuantity = item.querySelector('.tree-quantity');
-            const lengthPerTree = item.querySelector('.length-per-tree');
-            const totalLengthInput = item.querySelector('.total-length');
             const remainingInfo = item.querySelector('.remaining-info');
-            const unitDisplay = item.querySelector('.unit-display');
-            const useWholeTrees = item.querySelector('.use-whole-trees');
-            const maxLengthInfo = item.querySelector('.max-length-info');
+            const treeNeededDisplay = item.querySelector('.tree-needed-display');
+            const lengthPerTreeDisplay = item.querySelector('.length-per-tree-display');
 
             const selectedOption = supplySelect.options[supplySelect.selectedIndex];
             
@@ -214,51 +250,77 @@
                 const availableQuantity = parseFloat(selectedOption.dataset.quantity) || 0;
                 const availableTreeCount = parseInt(selectedOption.dataset.treeCount) || 0;
                 const unit = selectedOption.dataset.unit || 'cm';
-                const qty = parseInt(treeQuantity.value) || 0;
-                const length = parseFloat(lengthPerTree.value) || 0;
-                const totalLength = qty * length;
-
-                // Set max cho input chiều dài = chiều dài mỗi cây trong kho
-                lengthPerTree.setAttribute('max', availableQuantity);
-                maxLengthInfo.textContent = `${availableQuantity.toFixed(2)} ${unit}`;
-
-                totalLengthInput.value = `${totalLength.toFixed(2)} ${unit}`;
-                unitDisplay.textContent = unit;
-
-                // Tính số cây còn lại và chiều dài còn lại mỗi cây
-                const remainingTrees = availableTreeCount - qty;
-                const remainingLengthPerTree = availableQuantity - length;
                 
-                let remainingText = `${availableQuantity.toFixed(2)} ${unit}/cây (${availableTreeCount} cây)`;
+                // Lấy thông tin khung
+                const metrics = calculateFrameMetrics();
+                const itemCount = document.querySelectorAll('#itemsContainer > div').length;
                 
-                if (qty > 0 && length > 0) {
-                    remainingText += ` → Còn: <strong>${remainingTrees} cây × ${availableQuantity.toFixed(2)} ${unit}/cây`;
-                    if (remainingLengthPerTree > 0) {
-                        remainingText += ` + ${qty} cây × ${remainingLengthPerTree.toFixed(2)} ${unit}/cây (phần dư)</strong>`;
+                // Tính chiều dài cần cho loại cây này (chia đều tổng cây cần)
+                const woodNeededForThisSupply = metrics.totalWoodNeeded / itemCount;
+                
+                // Tính số cây cần
+                const treeQuantity = availableQuantity > 0 ? Math.ceil(woodNeededForThisSupply / availableQuantity) : 0;
+                treeNeededDisplay.textContent = treeQuantity + ' cây';
+                
+                // Chiều dài cắt mỗi cây
+                const lengthPerTree = treeQuantity > 0 ? woodNeededForThisSupply / treeQuantity : 0;
+                lengthPerTreeDisplay.textContent = lengthPerTree.toFixed(2) + ' cm';
+                
+                // Thông tin kho
+                const remainingTrees = availableTreeCount - treeQuantity;
+                const remainingLength = availableQuantity - lengthPerTree;
+                
+                let infoText = `Kho: ${availableQuantity.toFixed(2)} ${unit}/cây (${availableTreeCount} cây)`;
+                
+                if (treeQuantity > 0) {
+                    if (treeQuantity > availableTreeCount) {
+                        infoText += ` → <strong class="text-red-600">KHÔNG ĐỦ! Thiếu ${treeQuantity - availableTreeCount} cây</strong>`;
                     } else {
-                        remainingText += `</strong>`;
+                        infoText += ` → Còn: <strong>${remainingTrees} cây × ${availableQuantity.toFixed(2)} ${unit}/cây`;
+                        if (remainingLength > 0) {
+                            infoText += ` + ${treeQuantity} cây × ${remainingLength.toFixed(2)} ${unit}/cây (phần dư)</strong>`;
+                        } else {
+                            infoText += `</strong>`;
+                        }
                     }
                 }
                 
-                remainingInfo.innerHTML = remainingText;
-
-                // Tự động check "use whole trees" nếu phần dư < 50cm
-                if (remainingLengthPerTree > 0 && remainingLengthPerTree < 50) {
-                    useWholeTrees.checked = true;
-                }
+                remainingInfo.innerHTML = infoText;
             } else {
-                totalLengthInput.value = '0 cm';
-                remainingInfo.textContent = 'Chọn cây để xem';
-                lengthPerTree.removeAttribute('max');
-                maxLengthInfo.textContent = '-';
+                treeNeededDisplay.textContent = '0 cây';
+                lengthPerTreeDisplay.textContent = '0 cm';
+                remainingInfo.textContent = 'Chọn loại cây để xem thông tin kho';
             }
         }
 
         document.getElementById('addItemBtn').addEventListener('click', () => addItem());
 
+        // Lắng nghe thay đổi kích thước khung và khấu trừ góc
+        document.getElementById('frame_length').addEventListener('input', () => {
+            calculateFrameMetrics();
+            document.querySelectorAll('#itemsContainer > div').forEach(item => {
+                updateItemCalculations(item);
+            });
+        });
+
+        document.getElementById('frame_width').addEventListener('input', () => {
+            calculateFrameMetrics();
+            document.querySelectorAll('#itemsContainer > div').forEach(item => {
+                updateItemCalculations(item);
+            });
+        });
+
+        document.getElementById('corner_deduction').addEventListener('input', () => {
+            calculateFrameMetrics();
+            document.querySelectorAll('#itemsContainer > div').forEach(item => {
+                updateItemCalculations(item);
+            });
+        });
+
         // Thêm item đầu tiên
         document.addEventListener('DOMContentLoaded', () => {
             addItem();
+            calculateFrameMetrics();
         });
     </script>
     @endpush

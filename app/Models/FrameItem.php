@@ -9,6 +9,7 @@ class FrameItem extends Model
     protected $fillable = [
         'frame_id',
         'supply_id',
+        'wood_width',
         'tree_quantity',
         'length_per_tree',
         'total_length',
@@ -18,6 +19,7 @@ class FrameItem extends Model
     protected function casts(): array
     {
         return [
+            'wood_width' => 'decimal:2',
             'tree_quantity' => 'integer',
             'length_per_tree' => 'decimal:2',
             'total_length' => 'decimal:2',

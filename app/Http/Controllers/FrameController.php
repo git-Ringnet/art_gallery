@@ -30,20 +30,34 @@ class FrameController extends Controller
     {
         $validated = $request->validate([
             'name' => 'required|string|max:255',
+            'frame_length' => 'required|numeric|min:0',
+            'frame_width' => 'required|numeric|min:0',
+            'corner_deduction' => 'required|numeric|min:0',
             'cost_price' => 'required|numeric|min:0',
             'notes' => 'nullable|string',
             'items' => 'required|array|min:1',
             'items.*.supply_id' => 'required|exists:supplies,id',
-            'items.*.tree_quantity' => 'required|integer|min:1',
-            'items.*.length_per_tree' => 'required|numeric|min:0',
-            'items.*.use_whole_trees' => 'boolean',
         ]);
 
         DB::beginTransaction();
         try {
+            // Tính chu vi khung
+            $perimeter = 2 * ($validated['frame_length'] + $validated['frame_width']);
+            
+            // Lấy khấu trừ góc xéo từ input người dùng
+            $cornerDeduction = $validated['corner_deduction'];
+            
+            // Tổng chiều dài cây cần
+            $totalWoodNeeded = $perimeter + $cornerDeduction;
+
             // Tạo khung
             $frame = Frame::create([
                 'name' => $validated['name'],
+                'frame_length' => $validated['frame_length'],
+                'frame_width' => $validated['frame_width'],
+                'perimeter' => $perimeter,
+                'corner_deduction' => $cornerDeduction,
+                'total_wood_needed' => $totalWoodNeeded,
                 'cost_price' => $validated['cost_price'],
                 'notes' => $validated['notes'],
             ]);
@@ -51,35 +65,44 @@ class FrameController extends Controller
             // Thêm các items và cập nhật kho
             foreach ($validated['items'] as $itemData) {
                 $supply = Supply::findOrFail($itemData['supply_id']);
-                $totalLength = $itemData['tree_quantity'] * $itemData['length_per_tree'];
+                
+                // Tính chiều dài cần cho loại cây này (chia đều tổng cây cần cho các loại cây)
+                $woodNeededForThisSupply = $totalWoodNeeded / count($validated['items']);
+                
+                // Tính số cây cần dùng
+                $treeQuantity = ceil($woodNeededForThisSupply / $supply->quantity);
+                
+                // Chiều dài thực tế cắt từ mỗi cây
+                $lengthPerTree = $woodNeededForThisSupply / $treeQuantity;
                 
                 // Kiểm tra đủ số cây không
-                if ($itemData['tree_quantity'] > $supply->tree_count) {
-                    throw new \Exception("Cây {$supply->name} không đủ số lượng. Còn: {$supply->tree_count} cây, cần: {$itemData['tree_quantity']} cây");
+                if ($treeQuantity > $supply->tree_count) {
+                    throw new \Exception("Cây {$supply->name} không đủ số lượng. Còn: {$supply->tree_count} cây, cần: {$treeQuantity} cây");
                 }
                 
                 // Kiểm tra chiều dài mỗi cây
-                if ($itemData['length_per_tree'] > $supply->quantity) {
-                    throw new \Exception("Cây {$supply->name} không đủ dài. Chiều dài mỗi cây: {$supply->quantity} cm, cần: {$itemData['length_per_tree']} cm");
+                if ($lengthPerTree > $supply->quantity) {
+                    throw new \Exception("Cây {$supply->name} không đủ dài. Chiều dài mỗi cây: {$supply->quantity} cm, cần: " . round($lengthPerTree, 2) . " cm");
                 }
 
                 // Tạo frame item
                 FrameItem::create([
                     'frame_id' => $frame->id,
                     'supply_id' => $itemData['supply_id'],
-                    'tree_quantity' => $itemData['tree_quantity'],
-                    'length_per_tree' => $itemData['length_per_tree'],
-                    'total_length' => $totalLength,
-                    'use_whole_trees' => $itemData['use_whole_trees'] ?? false,
+                    'wood_width' => null,
+                    'tree_quantity' => $treeQuantity,
+                    'length_per_tree' => $lengthPerTree,
+                    'total_length' => $woodNeededForThisSupply,
+                    'use_whole_trees' => false,
                 ]);
 
                 // Cập nhật kho: Trừ số cây đã dùng
-                $supply->decrement('tree_count', $itemData['tree_quantity']);
+                $supply->decrement('tree_count', $treeQuantity);
                 
                 // Nếu cắt cây (chiều dài cần < chiều dài mỗi cây trong kho)
                 // Tự động tạo record mới cho phần dư
-                if ($itemData['length_per_tree'] < $supply->quantity) {
-                    $remainingLength = $supply->quantity - $itemData['length_per_tree'];
+                if ($lengthPerTree < $supply->quantity) {
+                    $remainingLength = $supply->quantity - $lengthPerTree;
                     
                     // Tìm hoặc tạo record cho phần dư
                     $existingRemaining = Supply::where('name', $supply->name)
@@ -89,17 +112,17 @@ class FrameController extends Controller
                     
                     if ($existingRemaining) {
                         // Đã có record với chiều dài này, cộng thêm số cây
-                        $existingRemaining->increment('tree_count', $itemData['tree_quantity']);
+                        $existingRemaining->increment('tree_count', $treeQuantity);
                     } else {
                         // Tạo record mới cho phần dư
                         Supply::create([
-                            'code' => $supply->code . '-' . $remainingLength . 'cm',
+                            'code' => $supply->code . '-' . round($remainingLength, 2) . 'cm',
                             'name' => $supply->name,
                             'type' => $supply->type,
                             'unit' => $supply->unit,
                             'quantity' => $remainingLength,
-                            'tree_count' => $itemData['tree_quantity'],
-                            'notes' => "Phần dư {$remainingLength}cm sau khi cắt từ {$supply->code} ({$supply->quantity}cm)",
+                            'tree_count' => $treeQuantity,
+                            'notes' => "Phần dư " . round($remainingLength, 2) . "cm sau khi cắt từ {$supply->code} ({$supply->quantity}cm)",
                         ]);
                     }
                 }
