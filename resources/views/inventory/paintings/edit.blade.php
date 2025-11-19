@@ -89,10 +89,16 @@
                         class="w-full px-2 py-1.5 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
                 </div>
                 <div>
-                    <label class="block text-xs font-medium text-gray-700 mb-1">Giá (USD)</label>
+                    <label class="block text-xs font-medium text-gray-700 mb-1">Giá USD</label>
                     <input type="number" step="0.01" name="price_usd" value="{{ old('price_usd', $painting->price_usd) }}"
-                        required
-                        class="w-full px-2 py-1.5 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                        class="w-full px-2 py-1.5 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                        placeholder="Ví dụ: 4500">
+                </div>
+                <div>
+                    <label class="block text-xs font-medium text-gray-700 mb-1">Giá VND</label>
+                    <input type="number" step="1" name="price_vnd" value="{{ old('price_vnd', $painting->price_vnd) }}"
+                        class="w-full px-2 py-1.5 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                        placeholder="Ví dụ: 100000000">
                 </div>
                 <div>
                     <label class="block text-xs font-medium text-gray-700 mb-1">Ngày nhập</label>

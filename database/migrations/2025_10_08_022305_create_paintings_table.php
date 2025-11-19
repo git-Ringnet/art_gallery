@@ -17,7 +17,7 @@ return new class extends Migration
             $table->decimal('width', 8, 2)->nullable()->comment('Chiều rộng (cm)');
             $table->decimal('height', 8, 2)->nullable()->comment('Chiều cao (cm)');
             $table->string('paint_year', 20)->nullable()->comment('Năm sản xuất');
-            $table->decimal('price_usd', 10, 2)->comment('Giá bán (USD)');
+            $table->decimal('price_usd', 10, 2)->nullable()->comment('Giá bán (USD)');
             $table->decimal('price_vnd', 15, 2)->nullable()->comment('Giá bán (VND)');
             $table->string('image')->nullable()->comment('Ảnh tranh');
             $table->integer('quantity')->default(1)->comment('Số lượng tồn kho');

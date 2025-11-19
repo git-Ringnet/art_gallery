@@ -84,8 +84,25 @@
                 </div>
                 
                 <div>
-                    <label class="block text-xs font-medium text-gray-700 mb-1">Giá (USD)</label>
-                    <p class="text-sm font-semibold text-green-600">${{ number_format($painting->price_usd, 2) }}</p>
+                    <label class="block text-xs font-medium text-gray-700 mb-1">Giá USD</label>
+                    <p class="text-sm font-semibold text-blue-600">
+                        @if($painting->price_usd)
+                            ${{ number_format($painting->price_usd, 2) }}
+                        @else
+                            <span class="text-gray-400">Chưa có</span>
+                        @endif
+                    </p>
+                </div>
+                
+                <div>
+                    <label class="block text-xs font-medium text-gray-700 mb-1">Giá VND</label>
+                    <p class="text-sm font-semibold text-green-600">
+                        @if($painting->price_vnd)
+                            {{ number_format($painting->price_vnd) }}đ
+                        @else
+                            <span class="text-gray-400">Chưa có</span>
+                        @endif
+                    </p>
                 </div>
                 
                 <div>

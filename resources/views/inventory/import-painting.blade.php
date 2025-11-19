@@ -84,10 +84,17 @@
                         placeholder="Ví dụ: 2019">
                 </div>
                 <div>
-                    <label class="block text-xs font-medium text-gray-700 mb-1">Giá (USD) <span class="text-red-500">*</span></label>
-                    <input type="number" name="price" value="{{ old('price') }}" required
+                    <label class="block text-xs font-medium text-gray-700 mb-1">Giá USD</label>
+                    <input type="number" name="price_usd" value="{{ old('price_usd') }}" step="0.01"
                         class="w-full px-2 py-1.5 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                         placeholder="Ví dụ: 4500">
+                    <p class="text-xs text-gray-500 mt-1">Nhập giá USD hoặc VND (ít nhất 1 loại)</p>
+                </div>
+                <div>
+                    <label class="block text-xs font-medium text-gray-700 mb-1">Giá VND</label>
+                    <input type="number" name="price_vnd" value="{{ old('price_vnd') }}" step="1"
+                        class="w-full px-2 py-1.5 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                        placeholder="Ví dụ: 100000000">
                 </div>
                 <div>
                     <label class="block text-xs font-medium text-gray-700 mb-1">Ngày nhập kho <span class="text-red-500">*</span></label>
