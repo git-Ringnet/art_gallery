@@ -64,7 +64,7 @@
         <button onclick="window.print()" class="bg-blue-600 text-white px-3 py-2 rounded-lg hover:bg-blue-700 text-sm">
             <i class="fas fa-print mr-1"></i>In
         </button>
-        <button onclick="window.close()" class="bg-gray-600 text-white px-3 py-2 rounded-lg hover:bg-gray-700 text-sm">
+        <button onclick="closePrintView()" class="bg-gray-600 text-white px-3 py-2 rounded-lg hover:bg-gray-700 text-sm">
             <i class="fas fa-times mr-1"></i>Đóng
         </button>
     </div>
@@ -1002,6 +1002,21 @@
             // Auto print when page loads (optional)
             // window.print();
         };
+        // Close print view safely
+        function closePrintView() {
+            // Nếu cửa sổ được mở từ script (popup), thử đóng nó
+            if (window.opener) {
+                window.close();
+            }
+            
+            // Nếu vẫn chưa đóng (hoặc không phải popup), chuyển hướng về trang chi tiết
+            // Sử dụng setTimeout để window.close() có thời gian thực thi nếu có thể
+            setTimeout(function() {
+                if (!window.closed) {
+                    window.location.href = "{{ route('sales.show', $sale->id) }}";
+                }
+            }, 100);
+        }
     </script>
 </body>
 </html>
