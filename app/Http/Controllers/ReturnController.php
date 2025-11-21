@@ -209,6 +209,11 @@ class ReturnController extends Controller
             $item->unit_price = $unitPrice;
         }
 
+        // Calculate USD values for display
+        $sale->paid_usd = $sale->paid_amount / ($sale->exchange_rate ?? 25000);
+        $sale->debt_usd = $sale->debt_amount / ($sale->exchange_rate ?? 25000);
+        $sale->total_usd = $sale->total_vnd / ($sale->exchange_rate ?? 25000);
+
         return response()->json([
             'success' => true,
             'sale' => $sale,
@@ -399,6 +404,11 @@ class ReturnController extends Controller
                 $totalRefund = $paidForReturnedItems;
             }
 
+            // Tính USD cho return dựa vào tỷ giá của sale
+            $exchangeRate = $sale->exchange_rate ?? 25000;
+            $totalRefundUsd = $totalRefund / $exchangeRate;
+            $exchangeAmountUsd = $exchangeAmount ? ($exchangeAmount / $exchangeRate) : null;
+
             // Create return record
             $return = ReturnModel::create([
                 'return_code' => ReturnModel::generateReturnCode(),
@@ -407,7 +417,10 @@ class ReturnController extends Controller
                 'customer_id' => $sale->customer_id,
                 'return_date' => $request->return_date,
                 'total_refund' => $totalRefund,
+                'total_refund_usd' => $totalRefundUsd,
                 'exchange_amount' => $exchangeAmount,
+                'exchange_amount_usd' => $exchangeAmountUsd,
+                'exchange_rate' => $exchangeRate,
                 'reason' => $request->reason,
                 'status' => 'pending',
                 'processed_by' => Auth::id(),
@@ -671,12 +684,20 @@ class ReturnController extends Controller
                 }
             }
             
+            // Tính USD cho return dựa vào tỷ giá của sale
+            $exchangeRate = $sale->exchange_rate ?? 25000;
+            $totalRefundUsd = $totalRefund / $exchangeRate;
+            $exchangeAmountUsd = $exchangeAmount ? ($exchangeAmount / $exchangeRate) : null;
+            
             // Update return
             $return->update([
                 'return_date' => $request->return_date,
                 'type' => $type,
                 'total_refund' => $totalRefund,
+                'total_refund_usd' => $totalRefundUsd,
                 'exchange_amount' => $exchangeAmount,
+                'exchange_amount_usd' => $exchangeAmountUsd,
+                'exchange_rate' => $exchangeRate,
                 'reason' => $request->reason,
                 'notes' => $notesToUpdate,
             ]);

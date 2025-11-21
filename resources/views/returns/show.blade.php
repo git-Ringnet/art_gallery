@@ -288,7 +288,10 @@
                 <div class="mt-2 pt-2 border-t">
                     <div class="flex justify-between text-xs font-semibold">
                         <span>Tổng trả:</span>
-                        <span class="text-red-600">{{ number_format($return->total_refund, 0, ',', '.') }}đ</span>
+                        <div class="text-right">
+                            <div class="text-green-600 font-bold">${{ number_format($return->total_refund_usd ?? 0, 2) }}</div>
+                            <div class="text-xs text-gray-500">≈ {{ number_format($return->total_refund, 0, ',', '.') }}đ</div>
+                        </div>
                     </div>
                     @if($return->type == 'exchange')
                     @php
@@ -444,7 +447,19 @@
                     ->where('notes', 'like', "%{$return->return_code}%")
                     ->sum('amount');
                 $remainingDebt = $return->exchange_amount - $exchangePayments;
+                
+                // Tính USD
+                $exchangeRate = $return->exchange_rate ?? 25000;
+                $exchangeAmountUsd = $return->exchange_amount_usd ?? ($return->exchange_amount / $exchangeRate);
+                $exchangePaymentsUsd = $exchangePayments / $exchangeRate;
+                $remainingDebtUsd = $remainingDebt / $exchangeRate;
             @endphp
+            
+            <div class="mt-2 text-xs">
+                <div class="text-gray-600 mb-1">Chênh lệch:</div>
+                <div class="font-bold text-red-600">${{ number_format($exchangeAmountUsd, 2) }}</div>
+                <div class="text-xs text-gray-500">≈ {{ number_format($return->exchange_amount, 0, ',', '.') }}đ (KH trả thêm)</div>
+            </div>
             
             @if($exchangePayments > 0)
             <div class="mt-2 pt-2 border-t border-blue-300">
@@ -518,8 +533,9 @@
                     <tr>
                         <td colspan="3" class="px-2 py-2 text-right text-xs font-semibold">Tổng:</td>
                         <td class="px-2 py-2 text-right text-xs font-semibold">{{ $return->items->sum('quantity') }}</td>
-                        <td colspan="3" class="px-2 py-2 text-right text-sm font-semibold text-red-600 whitespace-nowrap">
-                            {{ number_format($return->total_refund, 0, ',', '.') }}đ
+                        <td colspan="3" class="px-2 py-2 text-right text-sm font-semibold whitespace-nowrap">
+                            <div class="text-green-600 font-bold">${{ number_format($return->total_refund_usd ?? 0, 2) }}</div>
+                            <div class="text-xs text-gray-500">≈ {{ number_format($return->total_refund, 0, ',', '.') }}đ</div>
                         </td>
                     </tr>
                 </tfoot>

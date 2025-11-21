@@ -17,7 +17,10 @@ class ReturnModel extends Model
         'customer_id',
         'return_date',
         'total_refund',
+        'total_refund_usd',
         'exchange_amount',
+        'exchange_amount_usd',
+        'exchange_rate',
         'reason',
         'status',
         'processed_by',
@@ -27,7 +30,10 @@ class ReturnModel extends Model
     protected $casts = [
         'return_date' => 'date',
         'total_refund' => 'decimal:2',
+        'total_refund_usd' => 'decimal:2',
         'exchange_amount' => 'decimal:2',
+        'exchange_amount_usd' => 'decimal:2',
+        'exchange_rate' => 'decimal:2',
     ];
 
     public function sale(): BelongsTo
