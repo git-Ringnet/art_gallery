@@ -64,22 +64,20 @@
             </div>
 
             <!-- Stats -->
-            @php
-                // Tính tổng từ sales không bị hủy (lọc cancelled)
-                $activeSales = $customer->sales->where('payment_status', '!=', 'cancelled');
-                $totalPurchased = $activeSales->sum('total_vnd');
-                $totalDebt = $activeSales->sum('debt_amount');
-            @endphp
             <div class="mt-4 pt-4 border-t grid grid-cols-2 gap-3">
                 <div class="text-center">
                     <p class="text-xs text-gray-500">Tổng mua</p>
-                    <p class="text-base font-bold text-green-600">{{ number_format($totalPurchased, 0, ',', '.') }}đ</p>
+                    <p class="text-base font-bold text-green-600">${{ number_format($customer->total_purchased_usd, 2) }}</p>
+                    <p class="text-xs text-gray-500">{{ number_format($customer->total_purchased, 0, ',', '.') }}đ</p>
                 </div>
                 <div class="text-center">
                     <p class="text-xs text-gray-500">Công nợ</p>
-                    <p class="text-base font-bold {{ $totalDebt > 0 ? 'text-red-600' : 'text-gray-400' }}">
-                        {{ number_format($totalDebt, 0, ',', '.') }}đ
-                    </p>
+                    @if($customer->total_debt > 0)
+                        <p class="text-base font-bold text-red-600">${{ number_format($customer->total_debt_usd, 2) }}</p>
+                        <p class="text-xs text-red-500">{{ number_format($customer->total_debt, 0, ',', '.') }}đ</p>
+                    @else
+                        <p class="text-base font-bold text-gray-400">$0.00</p>
+                    @endif
                 </div>
             </div>
         </div>
@@ -220,7 +218,10 @@
                         <tr class="hover:bg-gray-50">
                             <td class="px-2 py-2 font-medium text-xs text-blue-600">{{ $sale->invoice_code }}</td>
                             <td class="px-2 py-2 text-xs">{{ $sale->sale_date->format('d/m/Y') }}</td>
-                            <td class="px-2 py-2 text-right text-xs font-medium">{{ number_format($sale->total_vnd, 0, ',', '.') }}đ</td>
+                            <td class="px-2 py-2 text-right text-xs font-medium">
+                                <div>${{ number_format($sale->total_usd, 2) }}</div>
+                                <div class="text-[10px] text-gray-500">{{ number_format($sale->total_vnd, 0, ',', '.') }}đ</div>
+                            </td>
                             <td class="px-2 py-2 text-center">
                                 @if($sale->payment_status === 'cancelled')
                                     <span class="px-1.5 py-0.5 bg-gray-100 text-gray-800 text-xs rounded">Đã hủy</span>

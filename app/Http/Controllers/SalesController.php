@@ -342,17 +342,8 @@ class SalesController extends Controller
             // Payment sẽ được tạo khi duyệt phiếu (approve)
 
             // Create debt if there's remaining amount
-            if ($sale->debt_amount > 0) {
-                Debt::create([
-                    'sale_id' => $sale->id,
-                    'customer_id' => $customer->id,
-                    'total_amount' => $sale->total_vnd,
-                    'paid_amount' => $sale->paid_amount,
-                    'debt_amount' => $sale->debt_amount,
-                    'due_date' => now()->addDays(30),
-                    'status' => 'unpaid',
-                ]);
-            }
+            // KHÔNG tạo debt khi tạo phiếu pending
+            // Debt sẽ được tạo khi duyệt phiếu (approve)
 
             DB::commit();
 
@@ -686,28 +677,38 @@ class SalesController extends Controller
             }
 
             // Update debt if there's remaining amount
-            $existingDebt = $sale->debt()->first();
-            if ($sale->debt_amount > 0) {
-                if ($existingDebt) {
+            // Update debt ONLY if sale is completed
+            if ($sale->isCompleted()) {
+                $existingDebt = $sale->debt()->first();
+                if ($sale->debt_amount > 0) {
+                    if ($existingDebt) {
+                        $existingDebt->update([
+                            'customer_id' => $customer->id,
+                            'total_amount' => $sale->total_vnd,
+                            'paid_amount' => $sale->paid_amount,
+                            'debt_amount' => $sale->debt_amount,
+                        ]);
+                    } else {
+                        Debt::create([
+                            'sale_id' => $sale->id,
+                            'customer_id' => $customer->id,
+                            'total_amount' => $sale->total_vnd,
+                            'paid_amount' => $sale->paid_amount,
+                            'debt_amount' => $sale->debt_amount,
+                            'due_date' => now()->addDays(30),
+                            'status' => 'unpaid',
+                        ]);
+                    }
+                } elseif ($existingDebt) {
+                    // If debt becomes 0, update existing record
                     $existingDebt->update([
                         'customer_id' => $customer->id,
                         'total_amount' => $sale->total_vnd,
                         'paid_amount' => $sale->paid_amount,
-                        'debt_amount' => $sale->debt_amount,
-                    ]);
-                } else {
-                    Debt::create([
-                        'sale_id' => $sale->id,
-                        'customer_id' => $customer->id,
-                        'total_amount' => $sale->total_vnd,
-                        'paid_amount' => $sale->paid_amount,
-                        'debt_amount' => $sale->debt_amount,
-                        'due_date' => now()->addDays(30),
-                        'status' => 'unpaid',
+                        'debt_amount' => 0,
+                        'status' => 'paid'
                     ]);
                 }
-            } else if ($existingDebt) {
-                $existingDebt->delete();
             }
 
             DB::commit();
@@ -1025,6 +1026,19 @@ class SalesController extends Controller
                     'payment_date' => now(),
                     'notes' => 'Thanh toán ban đầu khi duyệt phiếu',
                     'created_by' => $user->id,
+                ]);
+            }
+
+            // Create debt if there's remaining amount
+            if ($sale->debt_amount > 0) {
+                Debt::create([
+                    'sale_id' => $sale->id,
+                    'customer_id' => $sale->customer_id,
+                    'total_amount' => $sale->total_vnd,
+                    'paid_amount' => $sale->paid_amount,
+                    'debt_amount' => $sale->debt_amount,
+                    'due_date' => now()->addDays(30),
+                    'status' => 'unpaid',
                 ]);
             }
 

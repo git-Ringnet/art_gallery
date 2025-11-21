@@ -12,11 +12,7 @@
     </a>
     @endhasPermission
     
-    @hasPermission('returns', 'can_edit')
-    <button onclick="recalculateSaleTotals()" class="bg-orange-600 text-white px-3 py-1.5 text-sm rounded-lg hover:bg-orange-700 transition-colors">
-        <i class="fas fa-calculator mr-1"></i>Sửa tổng HD
-    </button>
-    @endhasPermission
+    
 </div>
 @endsection
 

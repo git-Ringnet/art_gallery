@@ -50,9 +50,21 @@ class Customer extends Model
     public function updateTotals()
     {
         $this->update([
-            'total_purchased' => $this->sales()->sum('total_vnd'),
+            'total_purchased' => $this->sales()->where('sale_status', 'completed')->sum('total_vnd'),
             'total_debt' => $this->debts()->where('status', '!=', 'paid')->sum('debt_amount'),
         ]);
+    }
+
+    public function getTotalPurchasedUsdAttribute()
+    {
+        return $this->sales()->where('sale_status', 'completed')->sum('total_usd');
+    }
+
+    public function getTotalDebtUsdAttribute()
+    {
+        return $this->debts()->where('status', '!=', 'paid')->with('sale')->get()->sum(function($debt) {
+            return $debt->sale ? $debt->sale->debt_usd : 0;
+        });
     }
 
     public function scopeWithDebt($query)
