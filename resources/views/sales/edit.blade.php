@@ -219,8 +219,8 @@
                            required 
                            class="w-full px-3 py-1.5 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500" 
                            value="{{ number_format(round($sale->exchange_rate)) }}" 
-                           oninput="formatExchangeRate(this)" 
-                           onchange="calc()">
+                           oninput="formatExchangeRate(this); calcTotalPaid()" 
+                           onchange="calc(); calcTotalPaid()">
                     <div class="mt-1 text-xs text-gray-500">
                         Tỷ giá cũ: {{ number_format(round($sale->exchange_rate)) }}
                     </div>
@@ -265,7 +265,7 @@
                 </div>
                 @else
                 <div>
-                    <label class="block text-xs font-medium text-gray-400 mb-1">Tổng VND  là giá tổng với tỷ số quy đổi cũ</label>
+                    <label class="block text-xs font-medium text-gray-400 mb-1">Tổng VND là giá tổng với tỷ số quy đổi cũ có thể sai số!</label>
                     <input type="text" id="total_vnd" readonly class="w-full px-3 py-1.5 text-sm border-2 border-gray-200 rounded-lg bg-gray-50 font-bold text-gray-400" value="0đ">
                 </div>
                 @endif
@@ -354,6 +354,10 @@
                             <input type="text" id="total_paid_display" readonly class="w-full px-3 py-1.5 text-sm border border-blue-300 rounded-lg bg-blue-50 font-bold text-blue-600">
                             <input type="hidden" name="payment_amount" id="total_paid_value">
                             <div class="mt-1 text-xs text-blue-700 font-medium" id="total_paid_usd_display"></div>
+                            <div id="payment-warning" class="hidden mt-2 text-xs text-red-600 bg-red-100 p-2 rounded flex items-center">
+                                <i class="fas fa-exclamation-triangle mr-1"></i>
+                                <span id="payment-warning-text"></span>
+                            </div>
                         </div>
                     </div>
 
@@ -385,6 +389,10 @@
                             <input type="text" id="total_paid_display" readonly class="w-full px-3 py-1.5 text-sm border border-blue-300 rounded-lg bg-blue-50 font-bold text-blue-600">
                             <input type="hidden" name="payment_amount" id="total_paid_value">
                             <div class="mt-1 text-xs text-blue-700 font-medium" id="total_paid_usd_display"></div>
+                            <div id="payment-warning" class="hidden mt-2 text-xs text-red-600 bg-red-100 p-2 rounded flex items-center">
+                                <i class="fas fa-exclamation-triangle mr-1"></i>
+                                <span id="payment-warning-text"></span>
+                            </div>
                         </div>
                     </div>
                     
@@ -402,7 +410,7 @@
                         <input type="text" id="current_debt" readonly class="w-full px-3 py-1.5 text-sm border border-yellow-300 rounded-lg bg-white font-bold text-orange-600" value="0đ">
                     </div>
                     <div>
-                        <label class="block text-xs font-medium text-red-900 mb-1">Còn nợ (VND là giá tổng với tỷ số quy đổi cũ)</label>
+                        <label class="block text-xs font-medium text-red-900 mb-1">Còn nợ (VND là giá tổng với tỷ số quy đổi cũ có thể sai số!)</label>
                         <input type="text" id="debt" readonly class="w-full px-3 py-1.5 text-sm border border-red-300 rounded-lg bg-white font-bold text-red-600" value="{{ number_format($sale->debt_amount) }}đ">
                     </div>
                 </div>
@@ -998,8 +1006,14 @@ function togCur(sel, i) {
     calc();
 }
 
-// Format payment USD (giống format giá USD)
+// Format payment USD (với dấu phẩy, giữ nguyên vị trí cursor)
 function formatPaymentUSD(input) {
+    // Lưu vị trí cursor
+    const cursorPosition = input.selectionStart;
+    const oldValue = input.value;
+    const oldLength = oldValue.length;
+    
+    // Loại bỏ tất cả ký tự không hợp lệ
     let value = input.value.replace(/[^\d.]/g, '');
     const parts = value.split('.');
     
@@ -1008,28 +1022,41 @@ function formatPaymentUSD(input) {
         value = parts[0] + '.' + parts.slice(1).join('');
         parts.length = 2;
         parts[0] = value.split('.')[0];
-        parts[1] = value.split('.')[1];
+        parts[1] = value.split('.').slice(1).join('');
     }
     
-    // Lưu giá trị số thuần vào hidden input
-    const rawValue = value;
-    const hiddenInput = document.getElementById('paid_usd');
-    if (hiddenInput) {
-        hiddenInput.value = rawValue || '0';
+    // Giới hạn 2 chữ số thập phân
+    if (parts[1] && parts[1].length > 2) {
+        parts[1] = parts[1].substring(0, 2);
     }
     
     // Format phần nguyên với dấu phẩy
     if (parts[0]) {
-        parts[0] = parseInt(parts[0]).toLocaleString('en-US');
+        parts[0] = parseInt(parts[0] || 0).toLocaleString('en-US');
     }
     
-    // Giới hạn 2 chữ số thập phân
-    if (parts[1]) {
-        parts[1] = parts[1].substring(0, 2);
-    }
+    // Ghép lại
+    const newValue = parts.length > 1 ? parts[0] + '.' + (parts[1] || '') : parts[0];
+    input.value = newValue;
     
-    // Ghép lại và hiển thị
-    input.value = parts.length > 1 ? parts[0] + '.' + (parts[1] || '') : parts[0];
+    // Tính toán vị trí cursor mới
+    const newLength = newValue.length;
+    const diff = newLength - oldLength;
+    let newCursorPosition = cursorPosition + diff;
+    
+    // Đảm bảo cursor không vượt quá độ dài
+    if (newCursorPosition < 0) newCursorPosition = 0;
+    if (newCursorPosition > newLength) newCursorPosition = newLength;
+    
+    // Khôi phục vị trí cursor
+    input.setSelectionRange(newCursorPosition, newCursorPosition);
+    
+    // Lưu giá trị số thuần vào hidden input (không có dấu phẩy)
+    const rawValue = newValue.replace(/,/g, '');
+    const hiddenInput = document.getElementById('paid_usd');
+    if (hiddenInput) {
+        hiddenInput.value = rawValue || '0';
+    }
     
     // Tính tổng đã trả
     calcTotalPaid();
@@ -1105,6 +1132,34 @@ function calcTotalPaid() {
     } else if (totalPaidUsdDisplayEl) {
         totalPaidUsdDisplayEl.textContent = '';
     }
+    
+    // Cảnh báo nếu vượt quá nợ (chỉ cho phiếu completed)
+    @if($sale->sale_status === 'completed')
+    const warningDiv = document.getElementById('payment-warning');
+    const warningText = document.getElementById('payment-warning-text');
+    
+    if (warningDiv && warningText) {
+        warningDiv.classList.add('hidden');
+        
+        // Lấy số nợ còn lại
+        const totalUsdEl = document.getElementById('total_usd');
+        if (totalUsdEl) {
+            const totalUsd = parseFloat(totalUsdEl.value.replace(/[^\d.]/g, '')) || 0;
+            const currentPaidUsd = {{ $sale->paid_usd }};
+            const additionalTotalPaidUsd = currentPaidUsd + totalPaidUsd;
+            
+            const tolerance = 0.01; // Sai số cho phép của USD
+            const maxDebtUsd = totalUsd - currentPaidUsd;
+            
+            // Kiểm tra vượt quá
+            if (totalPaidUsd > maxDebtUsd + tolerance) {
+                // Hiển thị warning
+                warningText.textContent = `Số tiền vượt quá nợ còn lại ($${maxDebtUsd.toLocaleString('en-US', {minimumFractionDigits: 2})})`;
+                warningDiv.classList.remove('hidden');
+            }
+        }
+    }
+    @endif
     
     // Calculate debt
     calcDebt();
@@ -1216,7 +1271,7 @@ function calcDebt() {
         
         // Công nợ còn lại (USD) - KHÔNG đổi khi chỉ thay đổi tỷ giá
         const debtUsd = Math.max(0, totalUsd - totalPaidUsd);
-        const debtVnd = debtUsd * originalRate; // Quy đổi về VND để hiển thị
+        const debtVnd = Math.round(debtUsd * originalRate); // Quy đổi về VND và làm tròn
         
         debtEl.value = '$' + debtUsd.toFixed(2) + ' (≈' + debtVnd.toLocaleString('vi-VN') + 'đ)';
         
@@ -1243,7 +1298,7 @@ function calcDebt() {
         const totalPaidUsd = paidUsdValue + (paidVndValue / currentRate);
         
         const debtUsd = Math.max(0, totalUsd - totalPaidUsd);
-        const debtVnd = debtUsd * originalRate;
+        const debtVnd = Math.round(debtUsd * originalRate);
         
         debtEl.value = '$' + debtUsd.toFixed(2) + ' (≈' + debtVnd.toLocaleString('vi-VN') + 'đ)';
         
