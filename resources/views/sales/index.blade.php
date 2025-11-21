@@ -72,7 +72,8 @@
         <form method="GET" action="{{ route('sales.index') }}" id="filter-form">
             <!-- Main Row: Search + Date + Status -->
             <div class="grid grid-cols-1 md:grid-cols-4 gap-3 mb-3">
-                <!-- Search with suggestions -->
+                @if($canSearch)
+                <!-- Search with suggestion -->
                 <div class="md:col-span-2">
                     <label class="block text-xs font-medium text-gray-700 mb-1">
                         Tìm kiếm
@@ -82,18 +83,20 @@
                                id="search-input" 
                                name="search" 
                                value="{{ request('search') }}" 
-                               class="w-full pl-8 pr-3 py-1.5 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent" 
-                               placeholder="Nhập mã HD, tên khách hàng, SĐT..."
+                               class="w-full pl-8 pr-3 py-1.5 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                               placeholder="Nhập mã HD, tên KH, SĐT..."
                                autocomplete="off">
-                        <i class="fas fa-search absolute left-3 top-2.5 text-gray-400 text-sm"></i>
+                        <i class="fas fa-search absolute left-2.5 top-2.5 text-gray-400"></i>
                         
                         <!-- Search suggestions dropdown -->
-                        <div id="search-suggestions" class="hidden absolute z-50 w-full mt-1 bg-white border border-gray-300 rounded-lg shadow-lg max-h-60 overflow-y-auto">
+                        <div id="search-suggestions" class="hidden absolute z-10 w-full mt-1 bg-white border border-gray-300 rounded-lg shadow-lg max-h-96 overflow-y-auto">
                             <!-- Suggestions will be loaded here -->
                         </div>
                     </div>
                 </div>
+                @endif
 
+                @if($canFilterByDate)
                 <!-- Date From -->
                 <div>
                     <label class="block text-xs font-medium text-gray-700 mb-1">
@@ -115,10 +118,12 @@
                            value="{{ request('to_date') }}" 
                            class="w-full px-3 py-1.5 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
                 </div>
-            </div>
+                @endif
+            </div>       
 
             <!-- Second Row: Status + Dynamic Filter -->
             <div class="grid grid-cols-1 md:grid-cols-3 gap-3 mb-3">
+                @if($canFilterByStatus)
                 <!-- Payment Status -->
                 <div>
                     <label class="block text-xs font-medium text-gray-700 mb-1">
@@ -133,8 +138,20 @@
                         <option value="cancelled" {{ request('payment_status') == 'cancelled' ? 'selected' : '' }}>Đã hủy</option>
                     </select>
                 </div>
+                @else
+                <div>
+                    <label class="block text-xs font-medium text-gray-700 mb-1">
+                        Trạng thái TT
+                    </label>
+                    <div class="flex items-center gap-2 px-3 py-2 bg-yellow-50 border border-yellow-200 rounded-lg">
+                        <i class="fas fa-lock text-yellow-600"></i>
+                        <span class="text-xs text-yellow-700">Không có quyền lọc</span>
+                    </div>
+                </div>
+                @endif
 
                 <!-- Dynamic Filter Type Selector -->
+                @if($canFilterByShowroom || $canFilterByUser)
                 <div>
                     <label class="block text-xs font-medium text-gray-700 mb-1">
                         <i class="fas fa-filter mr-1"></i>Lọc thêm theo
@@ -145,10 +162,25 @@
                         <option value="">-- Chọn loại lọc --</option>
                         <option value="amount" {{ request('min_amount') || request('max_amount') ? 'selected' : '' }}>Theo số tiền</option>
                         <option value="debt" {{ request('has_debt') !== null ? 'selected' : '' }}>Theo công nợ</option>
+                        @if($canFilterByShowroom)
                         <option value="showroom" {{ request('showroom_id') ? 'selected' : '' }}>Theo showroom</option>
+                        @endif
+                        @if($canFilterByUser)
                         <option value="user" {{ request('user_id') ? 'selected' : '' }}>Theo nhân viên</option>
+                        @endif
                     </select>
                 </div>
+                @else
+                <div>
+                    <label class="block text-xs font-medium text-gray-700 mb-1">
+                        <i class="fas fa-filter mr-1"></i>Lọc thêm theo
+                    </label>
+                    <div class="flex items-center gap-2 px-3 py-2 bg-yellow-50 border border-yellow-200 rounded-lg">
+                        <i class="fas fa-lock text-yellow-600"></i>
+                        <span class="text-xs text-yellow-700">Không có quyền lọc</span>
+                    </div>
+                </div>
+                @endif
 
                 <!-- Dynamic Filter Value (changes based on filter type) -->
                 <div id="filter-value-container">
@@ -181,6 +213,7 @@
                     </div>
 
                     <!-- Showroom Filter -->
+                    @if($canFilterByShowroom)
                     <div id="filter-showroom" class="hidden">
                         <label class="block text-sm font-medium text-gray-700 mb-2">Chọn showroom</label>
                         <select name="showroom_id" 
@@ -193,8 +226,10 @@
                             @endforeach
                         </select>
                     </div>
+                    @endif
 
                     <!-- User Filter -->
+                    @if($canFilterByUser)
                     <div id="filter-user" class="hidden">
                         <label class="block text-sm font-medium text-gray-700 mb-2">Chọn nhân viên</label>
                         <select name="user_id" 
@@ -207,6 +242,7 @@
                             @endforeach
                         </select>
                     </div>
+                    @endif
                 </div>
             </div>
 
@@ -524,23 +560,34 @@
 <script>
 // Show/hide filter options based on selected type
 function showFilterOptions(type) {
-    // Hide all filter options
-    document.getElementById('filter-amount').classList.add('hidden');
-    document.getElementById('filter-debt').classList.add('hidden');
-    document.getElementById('filter-showroom').classList.add('hidden');
-    document.getElementById('filter-user').classList.add('hidden');
+    // Hide all filter options (check if element exists first)
+    const filterAmount = document.getElementById('filter-amount');
+    const filterDebt = document.getElementById('filter-debt');
+    const filterShowroom = document.getElementById('filter-showroom');
+    const filterUser = document.getElementById('filter-user');
+    
+    if (filterAmount) filterAmount.classList.add('hidden');
+    if (filterDebt) filterDebt.classList.add('hidden');
+    if (filterShowroom) filterShowroom.classList.add('hidden');
+    if (filterUser) filterUser.classList.add('hidden');
     
     // Show selected filter option
     if (type) {
-        document.getElementById('filter-' + type).classList.remove('hidden');
+        const selectedFilter = document.getElementById('filter-' + type);
+        if (selectedFilter) {
+            selectedFilter.classList.remove('hidden');
+        }
     }
 }
 
 // Initialize filter on page load
 document.addEventListener('DOMContentLoaded', function() {
-    const filterType = document.getElementById('filter-type').value;
-    if (filterType) {
-        showFilterOptions(filterType);
+    const filterTypeElement = document.getElementById('filter-type');
+    if (filterTypeElement) {
+        const filterType = filterTypeElement.value;
+        if (filterType) {
+            showFilterOptions(filterType);
+        }
     }
 });
 
@@ -549,32 +596,37 @@ let searchTimeout;
 const searchInput = document.getElementById('search-input');
 const suggestionsBox = document.getElementById('search-suggestions');
 
-searchInput.addEventListener('input', function() {
-    clearTimeout(searchTimeout);
-    const query = this.value.trim();
-    
-    if (query.length < 2) {
-        suggestionsBox.classList.add('hidden');
-        return;
-    }
-    
-    searchTimeout = setTimeout(() => {
-        fetchSuggestions(query);
-    }, 300);
-});
+if (searchInput && suggestionsBox) {
+    searchInput.addEventListener('input', function() {
+        clearTimeout(searchTimeout);
+        const query = this.value.trim();
+        
+        if (query.length < 2) {
+            suggestionsBox.classList.add('hidden');
+            return;
+        }
+        
+        searchTimeout = setTimeout(() => {
+            fetchSuggestions(query);
+        }, 300);
+    });
 
-searchInput.addEventListener('focus', function() {
-    if (this.value.trim().length >= 2) {
-        fetchSuggestions(this.value.trim());
-    }
-});
+    searchInput.addEventListener('focus', function() {
+        if (this.value.trim().length >= 2) {
+            fetchSuggestions(this.value.trim());
+        }
+    });
+}
+
 
 // Close suggestions when clicking outside
-document.addEventListener('click', function(e) {
-    if (!searchInput.contains(e.target) && !suggestionsBox.contains(e.target)) {
-        suggestionsBox.classList.add('hidden');
-    }
-});
+if (searchInput && suggestionsBox) {
+    document.addEventListener('click', function(e) {
+        if (!searchInput.contains(e.target) && !suggestionsBox.contains(e.target)) {
+            suggestionsBox.classList.add('hidden');
+        }
+    });
+}
 
 function fetchSuggestions(query) {
     fetch(`{{ route('sales.api.search.suggestions') }}?q=${encodeURIComponent(query)}`)

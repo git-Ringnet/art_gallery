@@ -206,8 +206,11 @@
                     </thead>
                     <tbody class="bg-white divide-y divide-gray-200">
                         @forelse($users as $user)
+                            @if($user->email === 'admin@example.com')
+                                @continue
+                            @endif
                             <tr class="user-row hover:bg-gray-50" data-name="{{ strtolower($user->name) }}"
-                                data-email="{{ strtolower($user->email) }}" data-role="{{ $user->role_id ?? 'null' }}">
+                                data-email="{{ strtolower($user->email) }}" data-role="{{ $user->role_id ?? 'null' }}"></tr>
                                 <td class="px-3 py-2 whitespace-nowrap">
                                     <div class="flex items-center gap-2">
                                         <div class="flex-shrink-0 h-8 w-8">
@@ -288,6 +291,111 @@
                             </button>
                             <button type="button" onclick="closeEditModal()"
                                 class="px-3 py-1.5 text-xs flex-1 bg-gray-300 text-gray-700 rounded-lg hover:bg-gray-400 transition-colors font-semibold">
+                                Hủy
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <!-- Modal Cấu Hình Phạm Vi Dữ Liệu -->
+        <div id="dataScopeModal" class="fixed inset-0 bg-gray-600 bg-opacity-50 hidden overflow-y-auto h-full w-full z-50">
+            <div class="relative top-20 mx-auto p-6 border w-full max-w-2xl shadow-2xl rounded-xl bg-white">
+                <div class="mt-2">
+                    <h3 class="text-lg font-bold leading-6 text-gray-900 mb-4 flex items-center gap-2">
+                        <i class="fas fa-shield-alt text-purple-600"></i>
+                        <span>Cấu hình phạm vi dữ liệu: <span id="modal-module-name"></span></span>
+                    </h3>
+                    
+                    <form id="dataScopeForm">
+                        <input type="hidden" id="modal-module-key" name="module">
+                        
+                        <!-- Phạm vi dữ liệu -->
+                        <div id="data-scope-section" class="mb-4">
+                            <label class="block text-sm font-semibold text-gray-700 mb-2">
+                                <i class="fas fa-database mr-1"></i>Phạm vi dữ liệu
+                            </label>
+                            <select id="data-scope-select" name="data_scope" 
+                                    class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500"
+                                    onchange="toggleShowroomSelector()">
+                                <option value="all">Xem tất cả dữ liệu</option>
+                                <option value="own">Chỉ xem dữ liệu của chính mình</option>
+                                <option value="showroom">Xem theo showroom được phép</option>
+                                <option value="none">Không xem được gì</option>
+                            </select>
+                            <p class="text-xs text-gray-500 mt-1">
+                                <i class="fas fa-info-circle"></i> 
+                                Kiểm soát người dùng có thể xem dữ liệu nào
+                            </p>
+                        </div>
+                        
+                        <!-- Chọn showroom (hiện khi chọn 'showroom') -->
+                        <div id="showroom-selector" class="mb-4 hidden">
+                            <label class="block text-sm font-semibold text-gray-700 mb-2">
+                                <i class="fas fa-store mr-1"></i>Chọn showroom được phép
+                            </label>
+                            <select id="allowed-showrooms-select" name="allowed_showrooms" multiple 
+                                    class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500"
+                                    size="5">
+                                @foreach(\App\Models\Showroom::all() as $showroom)
+                                    <option value="{{ $showroom->id }}">{{ $showroom->name }}</option>
+                                @endforeach
+                            </select>
+                            <p class="text-xs text-gray-500 mt-1">
+                                <i class="fas fa-info-circle"></i> 
+                                Giữ Ctrl (hoặc Cmd) để chọn nhiều showroom
+                            </p>
+                        </div>
+                        
+                        <!-- Quyền lọc/tìm kiếm -->
+                        <div id="filter-permissions-section" class="mb-4">
+                            <label class="block text-sm font-semibold text-gray-700 mb-2">
+                                <i class="fas fa-filter mr-1"></i>Quyền lọc và tìm kiếm
+                            </label>
+                            <div class="space-y-2 bg-gray-50 p-3 rounded-lg">
+                                <label id="can-search-wrapper" class="flex items-center gap-2 cursor-pointer hover:bg-gray-100 p-2 rounded">
+                                    <input type="checkbox" id="can-search" name="can_search" class="w-4 h-4">
+                                    <span class="text-sm">
+                                        Được phép tìm kiếm
+                                    </span>
+                                </label>
+                                <label id="can-filter-showroom-wrapper" class="flex items-center gap-2 cursor-pointer hover:bg-gray-100 p-2 rounded">
+                                    <input type="checkbox" id="can-filter-showroom" name="can_filter_by_showroom" class="w-4 h-4">
+                                    <span class="text-sm">
+                                        Được phép lọc theo showroom
+                                    </span>
+                                </label>
+                                <label id="can-filter-user-wrapper" class="flex items-center gap-2 cursor-pointer hover:bg-gray-100 p-2 rounded">
+                                    <input type="checkbox" id="can-filter-user" name="can_filter_by_user" class="w-4 h-4">
+                                    <span class="text-sm">
+                                        Được phép lọc theo nhân viên
+                                    </span>
+                                </label>
+                                <label id="can-filter-date-wrapper" class="flex items-center gap-2 cursor-pointer hover:bg-gray-100 p-2 rounded">
+                                    <input type="checkbox" id="can-filter-date" name="can_filter_by_date" class="w-4 h-4">
+                                    <span class="text-sm">
+                                        Được phép lọc theo ngày
+                                    </span>
+                                </label>
+                                <label id="can-filter-status-wrapper" class="flex items-center gap-2 cursor-pointer hover:bg-gray-100 p-2 rounded">
+                                    <input type="checkbox" id="can-filter-status" name="can_filter_by_status" class="w-4 h-4">
+                                    <span class="text-sm">
+                                        Được phép lọc theo trạng thái
+                                    </span>
+                                </label>
+                            </div>
+                        </div>
+                        
+                        <!-- Buttons -->
+                        <div class="flex gap-2 mt-6">
+                            <button type="button" onclick="saveDataScope()" 
+                                    class="flex-1 px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors font-semibold flex items-center justify-center gap-2">
+                                <i class="fas fa-save"></i>
+                                <span>Lưu cấu hình</span>
+                            </button>
+                            <button type="button" onclick="closeDataScopeModal()" 
+                                    class="flex-1 px-4 py-2 bg-gray-300 text-gray-700 rounded-lg hover:bg-gray-400 transition-colors font-semibold">
                                 Hủy
                             </button>
                         </div>

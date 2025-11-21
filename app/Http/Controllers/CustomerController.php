@@ -11,7 +11,8 @@ class CustomerController extends Controller
     {
         $query = Customer::query();
 
-        if ($request->filled('search')) {
+        // Tìm kiếm (nếu có quyền)
+        if ($request->filled('search') && \App\Helpers\PermissionHelper::canSearch('customers')) {
             $query->search($request->search);
         }
 
@@ -19,9 +20,26 @@ class CustomerController extends Controller
             $query->withDebt();
         }
 
+        // Lọc theo ngày (nếu có quyền)
+        $canFilterDate = \Illuminate\Support\Facades\Auth::user()->email === 'admin@example.com' || 
+                        (\Illuminate\Support\Facades\Auth::user()->role && \Illuminate\Support\Facades\Auth::user()->role->getModulePermissions('customers') && 
+                         \Illuminate\Support\Facades\Auth::user()->role->getModulePermissions('customers')->can_filter_by_date);
+        if ($canFilterDate) {
+            if ($request->filled('from_date')) {
+                $query->whereDate('created_at', '>=', $request->from_date);
+            }
+            if ($request->filled('to_date')) {
+                $query->whereDate('created_at', '<=', $request->to_date);
+            }
+        }
+
         $customers = $query->orderBy('created_at', 'desc')->paginate(15);
 
-        return view('customers.index', compact('customers'));
+        // Truyền quyền vào view
+        $canSearch = \App\Helpers\PermissionHelper::canSearch('customers');
+        $canFilterByDate = $canFilterDate;
+
+        return view('customers.index', compact('customers', 'canSearch', 'canFilterByDate'));
     }
 
     public function create()

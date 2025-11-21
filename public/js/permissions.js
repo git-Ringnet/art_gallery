@@ -5,6 +5,98 @@ let currentPermissions = {};
 let currentFieldPermissions = {};
 let allModuleFields = {};
 
+// Định nghĩa các tính năng lọc/tìm kiếm cho từng module
+const moduleFilterFeatures = {
+    'dashboard': {
+        hasSearch: false,
+        hasShowroomFilter: false,
+        hasUserFilter: false,
+        hasDateFilter: true,
+        hasStatusFilter: false,
+        hasDataScope: false, // Dashboard không cần phạm vi dữ liệu
+    },
+    'sales': {
+        hasSearch: true,
+        hasShowroomFilter: true,
+        hasUserFilter: true,
+        hasDateFilter: true,
+        hasStatusFilter: true,
+        hasDataScope: true,
+    },
+    'debt': {
+        hasSearch: true,
+        hasShowroomFilter: false,
+        hasUserFilter: false,
+        hasDateFilter: true,
+        hasStatusFilter: true,
+        hasDataScope: true,
+    },
+    'returns': {
+        hasSearch: true,
+        hasShowroomFilter: true,
+        hasUserFilter: true,
+        hasDateFilter: true,
+        hasStatusFilter: true,
+        hasDataScope: true,
+    },
+    'inventory': {
+        hasSearch: true,
+        hasShowroomFilter: true,
+        hasUserFilter: false,
+        hasDateFilter: true,
+        hasStatusFilter: true,
+        hasDataScope: true,
+    },
+    'frames': {
+        hasSearch: true,
+        hasShowroomFilter: false,
+        hasUserFilter: false,
+        hasDateFilter: false,
+        hasStatusFilter: true,
+        hasDataScope: false,
+    },
+    'showrooms': {
+        hasSearch: true,
+        hasShowroomFilter: false,
+        hasUserFilter: false,
+        hasDateFilter: false,
+        hasStatusFilter: true,
+        hasDataScope: false,
+    },
+    'customers': {
+        hasSearch: true,
+        hasShowroomFilter: false,
+        hasUserFilter: false,
+        hasDateFilter: true,
+        hasStatusFilter: false,
+        hasDataScope: false,
+    },
+    'employees': {
+        hasSearch: true,
+        hasShowroomFilter: false,
+        hasUserFilter: false,
+        hasDateFilter: false,
+        hasStatusFilter: true,
+        hasDataScope: false,
+    },
+    'permissions': {
+        hasSearch: false,
+        hasShowroomFilter: false,
+        hasUserFilter: false,
+        hasDateFilter: false,
+        hasStatusFilter: false,
+        hasDataScope: false,
+    },
+    'year_database': {
+        hasSearch: false,
+        hasShowroomFilter: false,
+        hasUserFilter: false,
+        hasDateFilter: false,
+        hasStatusFilter: false,
+        hasDataScope: false,
+    },
+};
+
 // Switch tabs
 function switchTab(tab) {
     document.querySelectorAll('.tab-content').forEach(el => el.classList.add('hidden'));
@@ -106,16 +198,17 @@ async function renderPermissions() {
     
     html += '<div class="overflow-x-auto"><table class="min-w-full divide-y-2 divide-gray-200 border-2 border-gray-200 rounded-lg">';
     html += '<thead class="bg-gray-100"><tr>';
-    html += '<th class="px-6 py-4 text-left large-text font-bold text-gray-700 uppercase">Module</th>';
-    html += '<th class="px-6 py-4 text-center large-text font-bold text-gray-700 uppercase">Xem</th>';
-    html += '<th class="px-6 py-4 text-center large-text font-bold text-gray-700 uppercase">Thêm</th>';
-    html += '<th class="px-6 py-4 text-center large-text font-bold text-gray-700 uppercase">Sửa</th>';
-    html += '<th class="px-6 py-4 text-center large-text font-bold text-gray-700 uppercase">Xóa</th>';
-    html += '<th class="px-6 py-4 text-center large-text font-bold text-gray-700 uppercase">Xuất</th>';
-    html += '<th class="px-6 py-4 text-center large-text font-bold text-gray-700 uppercase">Nhập</th>';
-    html += '<th class="px-6 py-4 text-center large-text font-bold text-gray-700 uppercase">In</th>';
-    html += '<th class="px-6 py-4 text-center large-text font-bold text-gray-700 uppercase">Duyệt</th>';
-    html += '<th class="px-6 py-4 text-center large-text font-bold text-gray-700 uppercase">Hủy</th>';
+    html += '<th class="px-6 py-4 text-left large-text font-bold text-gray-700 uppercase">Module<br><input type="checkbox" class="mt-2 large-checkbox" id="select-all-modules" onclick="toggleAllModules()" title="Chọn tất cả module"></th>';
+    html += '<th class="px-6 py-4 text-center large-text font-bold text-gray-700 uppercase">Xem<br><input type="checkbox" class="mt-2 large-checkbox select-all-action" data-action="can_view" onclick="toggleAllAction(\'can_view\')" title="Chọn tất cả quyền Xem"></th>';
+    html += '<th class="px-6 py-4 text-center large-text font-bold text-gray-700 uppercase">Thêm<br><input type="checkbox" class="mt-2 large-checkbox select-all-action" data-action="can_create" onclick="toggleAllAction(\'can_create\')" title="Chọn tất cả quyền Thêm"></th>';
+    html += '<th class="px-6 py-4 text-center large-text font-bold text-gray-700 uppercase">Sửa<br><input type="checkbox" class="mt-2 large-checkbox select-all-action" data-action="can_edit" onclick="toggleAllAction(\'can_edit\')" title="Chọn tất cả quyền Sửa"></th>';
+    html += '<th class="px-6 py-4 text-center large-text font-bold text-gray-700 uppercase">Xóa<br><input type="checkbox" class="mt-2 large-checkbox select-all-action" data-action="can_delete" onclick="toggleAllAction(\'can_delete\')" title="Chọn tất cả quyền Xóa"></th>';
+    html += '<th class="px-6 py-4 text-center large-text font-bold text-gray-700 uppercase">Xuất<br><input type="checkbox" class="mt-2 large-checkbox select-all-action" data-action="can_export" onclick="toggleAllAction(\'can_export\')" title="Chọn tất cả quyền Xuất"></th>';
+    html += '<th class="px-6 py-4 text-center large-text font-bold text-gray-700 uppercase">Nhập<br><input type="checkbox" class="mt-2 large-checkbox select-all-action" data-action="can_import" onclick="toggleAllAction(\'can_import\')" title="Chọn tất cả quyền Nhập"></th>';
+    html += '<th class="px-6 py-4 text-center large-text font-bold text-gray-700 uppercase">In<br><input type="checkbox" class="mt-2 large-checkbox select-all-action" data-action="can_print" onclick="toggleAllAction(\'can_print\')" title="Chọn tất cả quyền In"></th>';
+    html += '<th class="px-6 py-4 text-center large-text font-bold text-gray-700 uppercase">Duyệt<br><input type="checkbox" class="mt-2 large-checkbox select-all-action" data-action="can_approve" onclick="toggleAllAction(\'can_approve\')" title="Chọn tất cả quyền Duyệt"></th>';
+    html += '<th class="px-6 py-4 text-center large-text font-bold text-gray-700 uppercase">Hủy<br><input type="checkbox" class="mt-2 large-checkbox select-all-action" data-action="can_cancel" onclick="toggleAllAction(\'can_cancel\')" title="Chọn tất cả quyền Hủy"></th>';
+    html += '<th class="px-6 py-4 text-center large-text font-bold text-gray-700 uppercase bg-purple-50">Phạm vi & Lọc</th>';
     html += '</tr></thead><tbody class="bg-white divide-y-2 divide-gray-200">';
     
     for (const [key, label] of Object.entries(modules)) {
@@ -127,8 +220,12 @@ async function renderPermissions() {
             console.log('Rendering sales permissions:', perms);
         }
         
-        html += '<tr class="hover:bg-gray-50 module-row" data-module-name="' + label.toLowerCase() + '">';
-        html += '<td class="px-6 py-4 large-text font-semibold text-gray-900">' + label + '</td>';
+        html += '<tr class="hover:bg-gray-50 module-row" data-module-name="' + label.toLowerCase() + '" data-module-key="' + key + '">';
+        html += '<td class="px-6 py-4 large-text font-semibold text-gray-900">';
+        html += '<div class="flex items-center gap-3">';
+        html += '<input type="checkbox" class="large-checkbox select-module-all" data-module="' + key + '" onclick="toggleModuleAll(\'' + key + '\')" title="Chọn tất cả quyền của ' + label + '">';
+        html += '<span>' + label + '</span>';
+        html += '</div></td>';
         
         // Xem
         html += '<td class="px-6 py-4 text-center">';
@@ -191,6 +288,52 @@ async function renderPermissions() {
         if (allowedPerms.includes('can_cancel')) {
             html += '<input type="checkbox" class="perm-checkbox large-checkbox" data-module="' + key + '" data-action="can_cancel" ' + (perms.can_cancel ? 'checked' : '') + '>';
         }
+        html += '</td>';
+        
+        // Phạm vi & Lọc - Nút cấu hình
+        html += '<td class="px-6 py-4 text-center bg-purple-50">';
+        
+        // Kiểm tra xem module có tính năng lọc/phạm vi không
+        const features = moduleFilterFeatures[key] || {};
+        const hasAnyFeature = features.hasDataScope || features.hasSearch || features.hasShowroomFilter || 
+                             features.hasUserFilter || features.hasDateFilter || features.hasStatusFilter;
+        
+        if (hasAnyFeature) {
+            html += '<button onclick="showDataScopeModal(\'' + key + '\')" class="px-3 py-1.5 text-xs bg-purple-600 text-white rounded-lg hover:bg-purple-700 font-semibold transition-colors">';
+            html += '<i class="fas fa-cog mr-1"></i>Cấu hình';
+            html += '</button>';
+            
+            // Hiển thị trạng thái hiện tại (chỉ khi có data scope)
+            if (features.hasDataScope) {
+                const dataScope = perms.data_scope || 'all';
+                const dataScopeLabels = {
+                    'all': 'Tất cả',
+                    'own': 'Của mình',
+                    'showroom': 'Theo SR',
+                    'none': 'Không xem'
+                };
+                html += '<div class="text-xs text-gray-600 mt-1">' + dataScopeLabels[dataScope] + '</div>';
+            } else {
+                // Hiển thị số lượng quyền lọc đang bật
+                let enabledFilters = 0;
+                if (perms.can_search !== false && features.hasSearch) enabledFilters++;
+                if (perms.can_filter_by_showroom !== false && features.hasShowroomFilter) enabledFilters++;
+                if (perms.can_filter_by_user !== false && features.hasUserFilter) enabledFilters++;
+                if (perms.can_filter_by_date !== false && features.hasDateFilter) enabledFilters++;
+                if (perms.can_filter_by_status !== false && features.hasStatusFilter) enabledFilters++;
+                
+                const totalFilters = (features.hasSearch ? 1 : 0) + 
+                                   (features.hasShowroomFilter ? 1 : 0) + 
+                                   (features.hasUserFilter ? 1 : 0) + 
+                                   (features.hasDateFilter ? 1 : 0) + 
+                                   (features.hasStatusFilter ? 1 : 0);
+                
+                html += '<div class="text-xs text-gray-600 mt-1">' + enabledFilters + '/' + totalFilters + ' quyền</div>';
+            }
+        } else {
+            html += '<span class="text-xs text-gray-400 italic">Không có</span>';
+        }
+        
         html += '</td>';
         
         html += '</tr>';
@@ -334,11 +477,35 @@ async function savePermissions() {
                 can_import: false, 
                 can_print: false,
                 can_approve: false,
-                can_cancel: false
+                can_cancel: false,
+                // Quyền mới - mặc định
+                data_scope: 'all',
+                allowed_showrooms: null,
+                can_view_all_users_data: true,
+                can_filter_by_showroom: true,
+                can_filter_by_user: true,
+                can_filter_by_date: true,
+                can_filter_by_status: true,
+                can_search: true,
             };
             permissions.push(perm);
         }
         perm[action] = checkbox.checked;
+        
+        // Merge với cấu hình phạm vi dữ liệu
+        if (dataScopeConfigs[module]) {
+            Object.assign(perm, dataScopeConfigs[module]);
+        } else if (currentPermissions[module]) {
+            // Sử dụng cấu hình hiện tại nếu chưa thay đổi
+            perm.data_scope = currentPermissions[module].data_scope || 'all';
+            perm.allowed_showrooms = currentPermissions[module].allowed_showrooms || null;
+            perm.can_view_all_users_data = currentPermissions[module].can_view_all_users_data !== false;
+            perm.can_filter_by_showroom = currentPermissions[module].can_filter_by_showroom !== false;
+            perm.can_filter_by_user = currentPermissions[module].can_filter_by_user !== false;
+            perm.can_filter_by_date = currentPermissions[module].can_filter_by_date !== false;
+            perm.can_filter_by_status = currentPermissions[module].can_filter_by_status !== false;
+            perm.can_search = currentPermissions[module].can_search !== false;
+        }
     });
     
     const fieldPermissions = [];
@@ -783,3 +950,226 @@ document.addEventListener('DOMContentLoaded', function() {
         updateUserCount(userRows.length, userRows.length);
     }
 });
+
+
+// ============================================
+// PHẠM VI DỮ LIỆU VÀ QUYỀN LỌC
+// ============================================
+
+// Lưu trữ cấu hình phạm vi dữ liệu tạm thời
+let dataScopeConfigs = {};
+
+// Hiện modal cấu hình phạm vi dữ liệu
+function showDataScopeModal(moduleKey) {
+    const modules = window.permissionsModules || {};
+    const moduleName = modules[moduleKey] || moduleKey;
+    const perms = currentPermissions[moduleKey] || {};
+    const features = moduleFilterFeatures[moduleKey] || {};
+    
+    // Set module info
+    document.getElementById('modal-module-key').value = moduleKey;
+    document.getElementById('modal-module-name').textContent = moduleName;
+    
+    // Ẩn/hiện phần phạm vi dữ liệu
+    const dataScopeSection = document.getElementById('data-scope-section');
+    if (features.hasDataScope) {
+        dataScopeSection.classList.remove('hidden');
+        document.getElementById('data-scope-select').value = perms.data_scope || 'all';
+    } else {
+        dataScopeSection.classList.add('hidden');
+    }
+    
+    // Load current config và ẩn/hiện các checkbox
+    const filterCheckboxes = [
+        { id: 'can-search-wrapper', checkbox: 'can-search', feature: 'hasSearch', perm: 'can_search' },
+        { id: 'can-filter-showroom-wrapper', checkbox: 'can-filter-showroom', feature: 'hasShowroomFilter', perm: 'can_filter_by_showroom' },
+        { id: 'can-filter-user-wrapper', checkbox: 'can-filter-user', feature: 'hasUserFilter', perm: 'can_filter_by_user' },
+        { id: 'can-filter-date-wrapper', checkbox: 'can-filter-date', feature: 'hasDateFilter', perm: 'can_filter_by_date' },
+        { id: 'can-filter-status-wrapper', checkbox: 'can-filter-status', feature: 'hasStatusFilter', perm: 'can_filter_by_status' },
+    ];
+    
+    let hasAnyFilter = false;
+    filterCheckboxes.forEach(item => {
+        const wrapper = document.getElementById(item.id);
+        const checkbox = document.getElementById(item.checkbox);
+        
+        if (features[item.feature]) {
+            wrapper.classList.remove('hidden');
+            checkbox.checked = perms[item.perm] !== false;
+            hasAnyFilter = true;
+        } else {
+            wrapper.classList.add('hidden');
+        }
+    });
+    
+    // Ẩn/hiện section quyền lọc
+    const filterSection = document.getElementById('filter-permissions-section');
+    if (hasAnyFilter) {
+        filterSection.classList.remove('hidden');
+    } else {
+        filterSection.classList.add('hidden');
+    }
+    
+    // Nếu không có gì để cấu hình
+    if (!features.hasDataScope && !hasAnyFilter) {
+        alert('Module này không có tính năng lọc/tìm kiếm để cấu hình');
+        return;
+    }
+    
+    // Load allowed showrooms
+    const allowedShowrooms = perms.allowed_showrooms || [];
+    const showroomSelect = document.getElementById('allowed-showrooms-select');
+    if (showroomSelect) {
+        Array.from(showroomSelect.options).forEach(option => {
+            option.selected = allowedShowrooms.includes(parseInt(option.value));
+        });
+    }
+    
+    // Show/hide showroom selector
+    toggleShowroomSelector();
+    
+    // Show modal
+    document.getElementById('dataScopeModal').classList.remove('hidden');
+}
+
+// Đóng modal
+function closeDataScopeModal() {
+    document.getElementById('dataScopeModal').classList.add('hidden');
+}
+
+// Toggle showroom selector
+function toggleShowroomSelector() {
+    const dataScope = document.getElementById('data-scope-select').value;
+    const showroomSelector = document.getElementById('showroom-selector');
+    
+    if (dataScope === 'showroom') {
+        showroomSelector.classList.remove('hidden');
+    } else {
+        showroomSelector.classList.add('hidden');
+    }
+}
+
+// Lưu cấu hình phạm vi dữ liệu
+function saveDataScope() {
+    const moduleKey = document.getElementById('modal-module-key').value;
+    const dataScope = document.getElementById('data-scope-select').value;
+    
+    // Get allowed showrooms
+    const showroomSelect = document.getElementById('allowed-showrooms-select');
+    const allowedShowrooms = showroomSelect ? Array.from(showroomSelect.selectedOptions).map(opt => parseInt(opt.value)) : [];
+    
+    // Validate: nếu chọn 'showroom' thì phải chọn ít nhất 1 showroom
+    if (dataScope === 'showroom' && allowedShowrooms.length === 0) {
+        alert('Vui lòng chọn ít nhất 1 showroom khi chọn phạm vi "Theo showroom"');
+        return;
+    }
+    
+    // Get filter permissions
+    const config = {
+        data_scope: dataScope,
+        allowed_showrooms: dataScope === 'showroom' ? allowedShowrooms : null,
+        can_search: document.getElementById('can-search').checked,
+        can_filter_by_showroom: document.getElementById('can-filter-showroom').checked,
+        can_filter_by_user: document.getElementById('can-filter-user').checked,
+        can_filter_by_date: document.getElementById('can-filter-date').checked,
+        can_filter_by_status: document.getElementById('can-filter-status').checked,
+    };
+    
+    // Lưu vào biến tạm
+    dataScopeConfigs[moduleKey] = config;
+    
+    // Cập nhật currentPermissions
+    if (!currentPermissions[moduleKey]) {
+        currentPermissions[moduleKey] = {};
+    }
+    Object.assign(currentPermissions[moduleKey], config);
+    
+    // Đóng modal
+    closeDataScopeModal();
+    
+    // Re-render để cập nhật hiển thị
+    renderPermissions();
+    
+    // Hiển thị thông báo
+    alert('Đã lưu cấu hình. Nhớ nhấn nút "Lưu tất cả quyền" ở cuối trang để áp dụng thay đổi.');
+}
+
+// Toggle all modules - Chọn/bỏ chọn TẤT CẢ quyền của TẤT CẢ module
+function toggleAllModules() {
+    const checkbox = document.getElementById('select-all-modules');
+    const isChecked = checkbox.checked;
+    
+    // Chọn tất cả checkbox trong bảng
+    document.querySelectorAll('.perm-checkbox').forEach(cb => {
+        cb.checked = isChecked;
+    });
+    
+    // Cập nhật trạng thái các checkbox "chọn tất cả" khác
+    document.querySelectorAll('.select-all-action').forEach(cb => {
+        cb.checked = isChecked;
+    });
+    
+    document.querySelectorAll('.select-module-all').forEach(cb => {
+        cb.checked = isChecked;
+    });
+}
+
+// Toggle all action - Chọn/bỏ chọn tất cả quyền của 1 loại (VD: tất cả quyền "Xem")
+function toggleAllAction(action) {
+    const headerCheckbox = document.querySelector('.select-all-action[data-action="' + action + '"]');
+    const isChecked = headerCheckbox.checked;
+    
+    // Chọn tất cả checkbox của action này
+    document.querySelectorAll('.perm-checkbox[data-action="' + action + '"]').forEach(cb => {
+        cb.checked = isChecked;
+    });
+    
+    // Cập nhật trạng thái checkbox "chọn tất cả module" của từng hàng
+    updateModuleCheckboxes();
+}
+
+// Toggle module all - Chọn/bỏ chọn tất cả quyền của 1 module
+function toggleModuleAll(moduleKey) {
+    const moduleCheckbox = document.querySelector('.select-module-all[data-module="' + moduleKey + '"]');
+    const isChecked = moduleCheckbox.checked;
+    
+    // Chọn tất cả checkbox của module này
+    document.querySelectorAll('.perm-checkbox[data-module="' + moduleKey + '"]').forEach(cb => {
+        cb.checked = isChecked;
+    });
+    
+    // Cập nhật trạng thái các checkbox header
+    updateHeaderCheckboxes();
+}
+
+// Cập nhật trạng thái checkbox "chọn tất cả" của từng module
+function updateModuleCheckboxes() {
+    document.querySelectorAll('.select-module-all').forEach(moduleCheckbox => {
+        const moduleKey = moduleCheckbox.dataset.module;
+        const allCheckboxes = document.querySelectorAll('.perm-checkbox[data-module="' + moduleKey + '"]');
+        const checkedCheckboxes = Array.from(allCheckboxes).filter(cb => cb.checked);
+        
+        // Nếu tất cả đều checked thì check, ngược lại uncheck
+        moduleCheckbox.checked = allCheckboxes.length > 0 && checkedCheckboxes.length === allCheckboxes.length;
+    });
+}
+
+// Cập nhật trạng thái checkbox "chọn tất cả" ở header
+function updateHeaderCheckboxes() {
+    document.querySelectorAll('.select-all-action').forEach(headerCheckbox => {
+        const action = headerCheckbox.dataset.action;
+        const allCheckboxes = document.querySelectorAll('.perm-checkbox[data-action="' + action + '"]');
+        const checkedCheckboxes = Array.from(allCheckboxes).filter(cb => cb.checked);
+        
+        // Nếu tất cả đều checked thì check, ngược lại uncheck
+        headerCheckbox.checked = allCheckboxes.length > 0 && checkedCheckboxes.length === allCheckboxes.length;
+    });
+    
+    // Cập nhật checkbox "chọn tất cả module"
+    const allPermCheckboxes = document.querySelectorAll('.perm-checkbox');
+    const allChecked = Array.from(allPermCheckboxes).filter(cb => cb.checked);
+    const selectAllModules = document.getElementById('select-all-modules');
+    if (selectAllModules) {
+        selectAllModules.checked = allPermCheckboxes.length > 0 && allChecked.length === allPermCheckboxes.length;
+    }
+}

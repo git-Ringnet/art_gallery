@@ -18,6 +18,7 @@ class Supply extends Model
         'tree_count',
         'min_quantity',
         'notes',
+        'image',
     ];
 
     protected function casts(): array

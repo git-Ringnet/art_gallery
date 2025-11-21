@@ -39,7 +39,7 @@ function filterItems(query, idx) {
                 html += frames.map(f => `
                 <div class="px-3 py-2 hover:bg-green-50 cursor-pointer border-b" onclick="selectFrame(${f.id}, ${idx})">
                     <div class="font-medium text-sm">${f.name}</div>
-                    <div class="text-xs text-gray-500">Giá: ${(f.cost_price || 0).toLocaleString()}đ</div>
+                    <div class="text-xs text-gray-500">USD: ${f.cost_price_usd || 0} | VND: ${(f.cost_price || 0).toLocaleString()}đ</div>
                 </div>
             `).join('');
             }
@@ -123,9 +123,16 @@ function selectFrame(frameId, idx) {
 
             // Set price from frame cost_price
             const vndInput = document.querySelector(`.vnd-${idx}`);
+            const usdInput = document.querySelector(`.usd-${idx}`);
+            
             if (vndInput) {
                 const vndValue = parseInt(frame.cost_price) || 0;
                 vndInput.value = vndValue.toLocaleString('en-US');
+            }
+            
+            if (usdInput) {
+                const usdValue = parseFloat(frame.cost_price_usd) || 0;
+                usdInput.value = usdValue.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
             }
 
             // Clear image for frame

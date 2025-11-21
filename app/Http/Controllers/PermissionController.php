@@ -82,6 +82,15 @@ class PermissionController extends Controller
                 'can_print' => $rp->can_print,
                 'can_approve' => $rp->can_approve ?? false,
                 'can_cancel' => $rp->can_cancel ?? false,
+                // Quyền mới
+                'data_scope' => $rp->data_scope ?? 'all',
+                'allowed_showrooms' => $rp->allowed_showrooms ?? null,
+                'can_view_all_users_data' => $rp->can_view_all_users_data ?? true,
+                'can_filter_by_showroom' => $rp->can_filter_by_showroom ?? true,
+                'can_filter_by_user' => $rp->can_filter_by_user ?? true,
+                'can_filter_by_date' => $rp->can_filter_by_date ?? true,
+                'can_filter_by_status' => $rp->can_filter_by_status ?? true,
+                'can_search' => $rp->can_search ?? true,
             ];
         }
 
@@ -125,6 +134,16 @@ class PermissionController extends Controller
             'permissions.*.can_print' => 'boolean',
             'permissions.*.can_approve' => 'boolean',
             'permissions.*.can_cancel' => 'boolean',
+            // Quyền mới
+            'permissions.*.data_scope' => 'nullable|in:all,own,showroom,none',
+            'permissions.*.allowed_showrooms' => 'nullable|array',
+            'permissions.*.allowed_showrooms.*' => 'integer|exists:showrooms,id',
+            'permissions.*.can_view_all_users_data' => 'boolean',
+            'permissions.*.can_filter_by_showroom' => 'boolean',
+            'permissions.*.can_filter_by_user' => 'boolean',
+            'permissions.*.can_filter_by_date' => 'boolean',
+            'permissions.*.can_filter_by_status' => 'boolean',
+            'permissions.*.can_search' => 'boolean',
         ])->validate();
 
         // Delete existing permissions
@@ -152,6 +171,15 @@ class PermissionController extends Controller
                 'can_print' => $permData['can_print'] ?? false,
                 'can_approve' => $permData['can_approve'] ?? false,
                 'can_cancel' => $permData['can_cancel'] ?? false,
+                // Quyền mới
+                'data_scope' => $permData['data_scope'] ?? 'all',
+                'allowed_showrooms' => $permData['allowed_showrooms'] ?? null,
+                'can_view_all_users_data' => $permData['can_view_all_users_data'] ?? true,
+                'can_filter_by_showroom' => $permData['can_filter_by_showroom'] ?? true,
+                'can_filter_by_user' => $permData['can_filter_by_user'] ?? true,
+                'can_filter_by_date' => $permData['can_filter_by_date'] ?? true,
+                'can_filter_by_status' => $permData['can_filter_by_status'] ?? true,
+                'can_search' => $permData['can_search'] ?? true,
             ]);
         }
 

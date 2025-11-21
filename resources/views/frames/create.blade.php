@@ -38,11 +38,19 @@
                     </div>
 
                     <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-2">Giá nhập khung <span class="text-red-500">*</span></label>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Giá nhập khung (VND) <span class="text-red-500">*</span></label>
                         <input type="number" name="cost_price" value="{{ old('cost_price') }}" 
                             step="0.01" min="0" required
                             class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                             placeholder="VD: 150000">
+                    </div>
+
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Giá nhập khung (USD)</label>
+                        <input type="number" name="cost_price_usd" value="{{ old('cost_price_usd') }}" 
+                            step="0.01" min="0"
+                            class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                            placeholder="VD: 10">
                     </div>
 
                     <div>

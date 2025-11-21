@@ -58,14 +58,28 @@
                 </div>
                 
                 <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-1">Chiều dài</label>
-                    <p class="text-lg font-semibold text-gray-900">{{ $supply->quantity }} {{ $supply->unit }}</p>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Chiều dài mỗi cây</label>
+                    <p class="text-lg font-semibold text-gray-900">{{ $supply->quantity }} {{ $supply->unit }}/cây</p>
                 </div>
                 
-                @if($supply->type == 'frame')
+                @if($supply->type == 'frame' && $supply->tree_count > 0)
                 <div>
                     <label class="block text-sm font-medium text-gray-700 mb-1">Số lượng cây</label>
                     <p class="text-lg font-semibold text-blue-600">{{ $supply->tree_count }} cây</p>
+                </div>
+                
+                <div class="md:col-span-2">
+                    <div class="bg-green-50 border border-green-200 rounded-lg p-3">
+                        <label class="block text-sm font-medium text-gray-700 mb-1">
+                            <i class="fas fa-calculator text-green-600 mr-1"></i>Tổng chiều dài
+                        </label>
+                        @php
+                            $totalLength = $supply->tree_count * $supply->quantity;
+                        @endphp
+                        <p class="text-2xl font-bold text-green-600">
+                            {{ $supply->tree_count }} cây × {{ $supply->quantity }}{{ $supply->unit }}/cây = {{ number_format($totalLength, 2) }}{{ $supply->unit }}
+                        </p>
+                    </div>
                 </div>
                 @endif
                 
@@ -99,6 +113,14 @@
     
     <!-- Sidebar -->
     <div class="lg:col-span-1">
+        <!-- Image -->
+        @if($supply->image)
+        <div class="bg-white rounded-xl shadow-lg p-4 glass-effect mb-4">
+            <h3 class="text-base font-semibold text-gray-900 mb-3">Hình ảnh vật tư</h3>
+            <img src="{{ asset('storage/' . $supply->image) }}" alt="{{ $supply->name }}" class="w-full h-auto rounded-lg border border-gray-200">
+        </div>
+        @endif
+
         <!-- Actions -->
         <div class="bg-white rounded-xl shadow-lg p-4 glass-effect">
             <h3 class="text-base font-semibold text-gray-900 mb-3">Thao tác</h3>

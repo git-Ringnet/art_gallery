@@ -77,11 +77,19 @@ Route::middleware(['auth'])->group(function () {
         Route::get('/', [App\Http\Controllers\InventoryController::class, 'index'])->middleware('permission:inventory,can_view')->name('index');
         Route::get('/export/excel', [App\Http\Controllers\InventoryController::class, 'exportExcel'])->middleware('permission:inventory,can_export')->name('export.excel');
         Route::get('/export/pdf', [App\Http\Controllers\InventoryController::class, 'exportPdf'])->middleware('permission:inventory,can_export')->name('export.pdf');
+        
+        // Template downloads
+        Route::get('/template/painting', [App\Http\Controllers\InventoryController::class, 'downloadPaintingTemplate'])->middleware('permission:inventory,can_create')->name('template.painting');
+        Route::get('/template/supply', [App\Http\Controllers\InventoryController::class, 'downloadSupplyTemplate'])->middleware('permission:inventory,can_create')->name('template.supply');
+        
+        // Import routes
         Route::get('/import', [App\Http\Controllers\InventoryController::class, 'import'])->middleware('permission:inventory,can_create')->name('import');
         Route::get('/import/painting', [App\Http\Controllers\InventoryController::class, 'importPaintingForm'])->middleware('permission:inventory,can_create')->name('import.painting.form');
         Route::get('/import/supply', [App\Http\Controllers\InventoryController::class, 'importSupplyForm'])->middleware('permission:inventory,can_create')->name('import.supply.form');
         Route::post('/import/painting', [App\Http\Controllers\InventoryController::class, 'importPainting'])->middleware('permission:inventory,can_create')->name('import.painting');
         Route::post('/import/supply', [App\Http\Controllers\InventoryController::class, 'importSupply'])->middleware('permission:inventory,can_create')->name('import.supply');
+        Route::post('/import/painting/excel', [App\Http\Controllers\InventoryController::class, 'importPaintingExcel'])->middleware('permission:inventory,can_create')->name('import.painting.excel');
+        Route::post('/import/supply/excel', [App\Http\Controllers\InventoryController::class, 'importSupplyExcel'])->middleware('permission:inventory,can_create')->name('import.supply.excel');
 
         Route::get('/paintings/{id}/show', [App\Http\Controllers\InventoryController::class, 'showPainting'])->middleware('permission:inventory,can_view')->name('paintings.show');
         Route::get('/paintings/{id}/edit', [App\Http\Controllers\InventoryController::class, 'editPainting'])->middleware('permission:inventory,can_edit')->name('paintings.edit');

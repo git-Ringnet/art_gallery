@@ -14,6 +14,7 @@ class Frame extends Model
         'corner_deduction',
         'total_wood_needed',
         'cost_price',
+        'cost_price_usd',
         'notes',
         'status',
     ];
@@ -27,6 +28,7 @@ class Frame extends Model
             'corner_deduction' => 'decimal:2',
             'total_wood_needed' => 'decimal:2',
             'cost_price' => 'decimal:2',
+            'cost_price_usd' => 'decimal:2',
         ];
     }
 

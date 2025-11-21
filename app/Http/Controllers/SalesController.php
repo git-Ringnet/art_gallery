@@ -50,8 +50,11 @@ class SalesController extends Controller
         $query = Sale::with(['customer', 'showroom', 'user', 'payments'])
             ->orderBy('created_at', 'desc'); // Phiếu mới tạo lên trên
 
-        // Search - tìm theo mã HD, tên KH, SĐT, email, sản phẩm
-        if ($request->filled('search')) {
+        // Áp dụng phạm vi dữ liệu theo phân quyền
+        $query = \App\Helpers\PermissionHelper::applyDataScope($query, 'sales', 'user_id', 'showroom_id');
+
+        // Search - tìm theo mã HD, tên KH, SĐT, email, sản phẩm (nếu có quyền)
+        if ($request->filled('search') && \App\Helpers\PermissionHelper::canSearch('sales')) {
             $search = $request->search;
             $query->where(function($q) use ($search) {
                 $q->where('invoice_code', 'like', "%{$search}%")
@@ -67,28 +70,36 @@ class SalesController extends Controller
             });
         }
 
-        // Filter by payment status
+        // Filter by payment status (nếu có quyền lọc theo trạng thái)
         if ($request->filled('payment_status')) {
-            $query->where('payment_status', $request->payment_status);
+            $canFilterStatus = Auth::user()->email === 'admin@example.com' || 
+                             (Auth::user()->role && Auth::user()->role->getModulePermissions('sales') && Auth::user()->role->getModulePermissions('sales')->can_filter_by_status);
+            if ($canFilterStatus) {
+                $query->where('payment_status', $request->payment_status);
+            }
         }
 
-        // Filter by showroom
-        if ($request->filled('showroom_id')) {
+        // Filter by showroom (nếu có quyền lọc theo showroom)
+        if ($request->filled('showroom_id') && \App\Helpers\PermissionHelper::canFilterByShowroom('sales')) {
             $query->where('showroom_id', $request->showroom_id);
         }
 
-        // Filter by user (nhân viên bán)
-        if ($request->filled('user_id')) {
+        // Filter by user (nhân viên bán) - nếu có quyền lọc theo nhân viên
+        if ($request->filled('user_id') && \App\Helpers\PermissionHelper::canFilterByUser('sales')) {
             $query->where('user_id', $request->user_id);
         }
 
-        // Filter by date range
-        if ($request->filled('from_date')) {
-            $query->whereDate('sale_date', '>=', $request->from_date);
-        }
-        
-        if ($request->filled('to_date')) {
-            $query->whereDate('sale_date', '<=', $request->to_date);
+        // Filter by date range (nếu có quyền lọc theo ngày)
+        $canFilterDate = Auth::user()->email === 'admin@example.com' || 
+                        (Auth::user()->role && Auth::user()->role->getModulePermissions('sales') && Auth::user()->role->getModulePermissions('sales')->can_filter_by_date);
+        if ($canFilterDate) {
+            if ($request->filled('from_date')) {
+                $query->whereDate('sale_date', '>=', $request->from_date);
+            }
+            
+            if ($request->filled('to_date')) {
+                $query->whereDate('sale_date', '<=', $request->to_date);
+            }
         }
 
         // Filter by amount range
@@ -119,11 +130,31 @@ class SalesController extends Controller
 
         $sales = $query->paginate(10)->withQueryString();
 
-        // Get filter options
-        $showrooms = Showroom::active()->get();
+        // Get filter options - chỉ lấy showroom được phép xem
+        $showrooms = \App\Helpers\PermissionHelper::getAllowedShowrooms('sales');
         $users = User::all();
 
-        return view('sales.index', compact('sales', 'showrooms', 'users'));
+        // Kiểm tra các quyền để truyền vào view
+        $canSearch = \App\Helpers\PermissionHelper::canSearch('sales');
+        $canFilterByShowroom = \App\Helpers\PermissionHelper::canFilterByShowroom('sales');
+        $canFilterByUser = \App\Helpers\PermissionHelper::canFilterByUser('sales');
+        $canFilterByDate = Auth::user()->email === 'admin@example.com' || 
+                          (Auth::user()->role && Auth::user()->role->getModulePermissions('sales') && Auth::user()->role->getModulePermissions('sales')->can_filter_by_date);
+        $canFilterByStatus = Auth::user()->email === 'admin@example.com' || 
+                            (Auth::user()->role && Auth::user()->role->getModulePermissions('sales') && Auth::user()->role->getModulePermissions('sales')->can_filter_by_status);
+
+        // Debug: Log permission values
+        \Log::info('Sales Index Permissions', [
+            'user' => Auth::user()->email,
+            'role' => Auth::user()->role ? Auth::user()->role->name : 'No Role',
+            'canSearch' => $canSearch,
+            'canFilterByShowroom' => $canFilterByShowroom,
+            'canFilterByUser' => $canFilterByUser,
+            'canFilterByDate' => $canFilterByDate,
+            'canFilterByStatus' => $canFilterByStatus,
+        ]);
+
+        return view('sales.index', compact('sales', 'showrooms', 'users', 'canSearch', 'canFilterByShowroom', 'canFilterByUser', 'canFilterByDate', 'canFilterByStatus'));
     }
 
     public function create()

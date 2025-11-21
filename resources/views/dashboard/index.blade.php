@@ -18,7 +18,7 @@
                 <label for="dashboard-time-filter" class="mr-2 text-xs font-medium text-gray-700 whitespace-nowrap">
                     <i class="fas fa-calendar-alt mr-1 text-blue-500"></i>Thời gian
                 </label>
-                <select id="dashboard-time-filter" class="px-3 py-1.5 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white flex-1 lg:flex-none">
+                <select id="dashboard-time-filter" class="px-3 py-1.5 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white flex-1 lg:flex-none" {{ !$canFilterDate ? 'disabled' : '' }}>
                     <option value="">-- Chọn --</option>
                     <option value="week" {{ $period == 'week' && !request('from_date') ? 'selected' : '' }}>Tuần này</option>
                     <option value="month" {{ $period == 'month' && !request('from_date') ? 'selected' : '' }}>Tháng này</option>
@@ -26,6 +26,7 @@
                 </select>
             </div>
             
+            @if($canFilterDate)
             <div class="flex flex-col sm:flex-row items-start sm:items-center gap-2 w-full lg:w-auto lg:border-l lg:pl-3">
                 <label class="text-xs font-medium text-gray-700 whitespace-nowrap">Hoặc chọn khoảng:</label>
                 <div class="flex flex-wrap items-center gap-2 w-full sm:w-auto">
@@ -46,6 +47,12 @@
                     </button>
                 </div>
             </div>
+            @else
+            <div class="flex items-center gap-2 px-3 py-2 bg-yellow-50 border border-yellow-200 rounded-lg">
+                <i class="fas fa-lock text-yellow-600"></i>
+                <span class="text-xs text-yellow-700">Bạn không có quyền lọc theo ngày</span>
+            </div>
+            @endif
         </div>
     </div>
 
@@ -71,7 +78,7 @@
                 <div class="flex-1 min-w-0">
                     <p class="text-gray-600 text-xs flex flex-wrap items-center gap-1">
                         <span>Công nợ còn lại</span>
-                        <span class="px-1.5 py-0.5 bg-gray-100 text-gray-600 text-xs rounded-full whitespace-nowrap">Tổng</span>
+                        <span class="px-1.5 py-0.5 bg-green-100 text-green-700 text-xs rounded-full whitespace-nowrap">Theo bộ lọc</span>
                     </p>
                     <p id="dashboard-debt" class="text-xl font-bold text-red-600 truncate">{{ number_format($stats['debt']) }}đ</p>
                 </div>
@@ -86,7 +93,7 @@
                 <div class="flex-1 min-w-0">
                     <p class="text-gray-600 text-xs flex flex-wrap items-center gap-1">
                         <span>Tồn Vật tư</span>
-                        <span class="px-1.5 py-0.5 bg-gray-100 text-gray-600 text-xs rounded-full whitespace-nowrap">Hiện tại</span>
+                        <span class="px-1.5 py-0.5 bg-green-100 text-green-700 text-xs rounded-full whitespace-nowrap">Theo bộ lọc</span>
                     </p>
                     <p id="dashboard-stock-supplies" class="text-xl font-bold text-blue-600">{{ $stats['stock_supplies'] }}</p>
                 </div>
@@ -101,7 +108,7 @@
                 <div class="flex-1 min-w-0">
                     <p class="text-gray-600 text-xs flex flex-wrap items-center gap-1">
                         <span>Tồn tranh</span>
-                        <span class="px-1.5 py-0.5 bg-gray-100 text-gray-600 text-xs rounded-full whitespace-nowrap">Hiện tại</span>
+                        <span class="px-1.5 py-0.5 bg-green-100 text-green-700 text-xs rounded-full whitespace-nowrap">Theo bộ lọc</span>
                     </p>
                     <p id="dashboard-stock-paintings" class="text-xl font-bold text-purple-600">{{ $stats['stock_paintings'] }}</p>
                 </div>
@@ -406,9 +413,6 @@
                             <p class="font-semibold text-gray-800 mb-1">Dữ liệu cố định</p>
                             <p class="text-sm text-gray-600">Các chỉ số này <strong>không bị ảnh hưởng</strong> bởi bộ lọc:</p>
                             <ul class="list-disc list-inside text-sm text-gray-600 mt-2 ml-2">
-                                <li>Công nợ còn lại (tổng tất cả)</li>
-                                <li>Tồn Vật tư (số lượng hiện tại)</li>
-                                <li>Tồn tranh (số lượng hiện tại)</li>
                                 <li>Thống kê kho hàng (tháng hiện tại)</li>
                             </ul>
                         </div>

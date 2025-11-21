@@ -19,7 +19,7 @@
 <div class="bg-white rounded-xl shadow-lg p-4 glass-effect">
     <h3 class="text-base font-semibold text-gray-900 mb-4">Chỉnh sửa thông tin vật tư</h3>
     
-    <form action="{{ route('inventory.supplies.update', $supply->id) }}" method="POST">
+    <form action="{{ route('inventory.supplies.update', $supply->id) }}" method="POST" enctype="multipart/form-data">
         @csrf
         @method('PUT')
         
@@ -86,6 +86,25 @@
                 @enderror
             </div>
             
+            <div>
+                <label class="block text-xs font-medium text-gray-700 mb-1">Ảnh vật tư (2Mb)</label>
+                @if($supply->image)
+                    <div class="mb-2">
+                        <img src="{{ asset('storage/' . $supply->image) }}" alt="{{ $supply->name }}" class="w-32 h-32 object-cover rounded border">
+                        <label class="flex items-center mt-2">
+                            <input type="checkbox" name="remove_image" value="1" class="mr-2">
+                            <span class="text-xs text-red-600">Xóa ảnh hiện tại</span>
+                        </label>
+                    </div>
+                @endif
+                <input id="supply-edit-image-input" type="file" name="image" accept="image/*"
+                    class="w-full px-2 py-1.5 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white">
+                <div id="supply-edit-image-preview-wrap" class="mt-2 hidden">
+                    <img id="supply-edit-image-preview" src="#" alt="Xem trước ảnh"
+                        class="w-32 h-32 object-cover rounded border">
+                </div>
+            </div>
+
             <div class="md:col-span-2">
                 <label class="block text-xs font-medium text-gray-700 mb-1">Ghi chú</label>
                 <textarea name="notes" rows="2" 
@@ -110,3 +129,22 @@
 @endsection
 
 
+
+@push('scripts')
+    <script>
+        // Live preview cho hình ảnh
+        (() => {
+            const input = document.getElementById('supply-edit-image-input');
+            if (!input) return;
+            const wrap = document.getElementById('supply-edit-image-preview-wrap');
+            const img = document.getElementById('supply-edit-image-preview');
+            input.addEventListener('change', (e) => {
+                const file = e.target.files && e.target.files[0];
+                if (!file) { wrap.classList.add('hidden'); return; }
+                const url = URL.createObjectURL(file);
+                img.src = url;
+                wrap.classList.remove('hidden');
+            });
+        })();
+    </script>
+@endpush

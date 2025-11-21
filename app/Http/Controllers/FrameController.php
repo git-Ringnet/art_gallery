@@ -34,6 +34,7 @@ class FrameController extends Controller
             'frame_width' => 'required|numeric|min:0',
             'corner_deduction' => 'required|numeric|min:0',
             'cost_price' => 'required|numeric|min:0',
+            'cost_price_usd' => 'nullable|numeric|min:0',
             'notes' => 'nullable|string',
             'items' => 'required|array|min:1',
             'items.*.supply_id' => 'required|exists:supplies,id',
@@ -59,6 +60,7 @@ class FrameController extends Controller
                 'corner_deduction' => $cornerDeduction,
                 'total_wood_needed' => $totalWoodNeeded,
                 'cost_price' => $validated['cost_price'],
+                'cost_price_usd' => $validated['cost_price_usd'] ?? 0,
                 'notes' => $validated['notes'],
             ]);
 
@@ -339,6 +341,7 @@ class FrameController extends Controller
             'id' => $frame->id,
             'name' => $frame->name,
             'cost_price' => $frame->cost_price,
+            'cost_price_usd' => $frame->cost_price_usd,
             'notes' => $frame->notes,
         ]);
     }

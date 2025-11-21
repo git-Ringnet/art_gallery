@@ -70,6 +70,25 @@
 </div>
 @endif
 
+@if(session('import_errors'))
+<div class="bg-orange-100 border border-orange-400 text-orange-700 px-4 py-3 rounded mb-4 relative" role="alert">
+    <div class="flex items-start">
+        <i class="fas fa-exclamation-triangle mr-2 mt-1"></i>
+        <div class="flex-1">
+            <strong>Chi tiết lỗi import:</strong>
+            <ul class="mt-2 list-disc list-inside text-sm max-h-60 overflow-y-auto">
+                @foreach(session('import_errors') as $error)
+                    <li>{{ $error }}</li>
+                @endforeach
+            </ul>
+        </div>
+        <button type="button" class="text-orange-700 hover:text-orange-900 ml-2" onclick="this.parentElement.parentElement.remove()">
+            <i class="fas fa-times"></i>
+        </button>
+    </div>
+</div>
+@endif
+
 <script>
 document.addEventListener('DOMContentLoaded', function() {
     // Tự động ẩn alert sau 5 giây với đếm ngược

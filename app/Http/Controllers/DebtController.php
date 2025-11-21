@@ -43,7 +43,16 @@ class DebtController extends Controller
             })->count(),
         ];
 
-        return view('debts.index', compact('payments', 'stats'));
+        // Truyền quyền vào view
+        $canSearch = \App\Helpers\PermissionHelper::canSearch('debt');
+        $canFilterByDate = \Illuminate\Support\Facades\Auth::user()->email === 'admin@example.com' || 
+                          (\Illuminate\Support\Facades\Auth::user()->role && \Illuminate\Support\Facades\Auth::user()->role->getModulePermissions('debt') && 
+                           \Illuminate\Support\Facades\Auth::user()->role->getModulePermissions('debt')->can_filter_by_date);
+        $canFilterByStatus = \Illuminate\Support\Facades\Auth::user()->email === 'admin@example.com' || 
+                            (\Illuminate\Support\Facades\Auth::user()->role && \Illuminate\Support\Facades\Auth::user()->role->getModulePermissions('debt') && 
+                             \Illuminate\Support\Facades\Auth::user()->role->getModulePermissions('debt')->can_filter_by_status);
+
+        return view('debts.index', compact('payments', 'stats', 'canSearch', 'canFilterByDate', 'canFilterByStatus'));
     }
 
     public function show($id)
@@ -108,13 +117,68 @@ class DebtController extends Controller
     private function getFilteredPayments(Request $request, $all = false)
     {
         // Lấy TẤT CẢ Payment (lịch sử thanh toán) - CHỈ của các phiếu đã duyệt hoặc đã hủy (trả hết)
-        $query = Payment::with(['sale.customer', 'sale.debt', 'sale.payments'])
+        $query = Payment::with(['sale.customer', 'sale.debt', 'sale.payments', 'createdBy'])
             ->whereHas('sale', function($q) {
                 $q->whereIn('sale_status', ['completed', 'cancelled']);
             });
+        
+        // Áp dụng phạm vi dữ liệu - custom logic cho Payment
+        \Log::info('Debt Filter - Start', [
+            'is_authenticated' => \Illuminate\Support\Facades\Auth::check(),
+            'user_email' => \Illuminate\Support\Facades\Auth::check() ? \Illuminate\Support\Facades\Auth::user()->email : null,
+            'is_admin' => \Illuminate\Support\Facades\Auth::check() && \Illuminate\Support\Facades\Auth::user()->email === 'admin@example.com',
+        ]);
+        
+        if (\Illuminate\Support\Facades\Auth::check() && \Illuminate\Support\Facades\Auth::user()->email !== 'admin@example.com') {
+            $role = \Illuminate\Support\Facades\Auth::user()->role;
+            \Log::info('Debt Filter - Non-admin user', [
+                'has_role' => $role !== null,
+                'role_name' => $role ? $role->name : null,
+            ]);
+            
+            if ($role) {
+                $dataScope = $role->getDataScope('debt');
+                
+                // Debug log
+                \Log::info('Debt Data Scope Filter', [
+                    'user_id' => \Illuminate\Support\Facades\Auth::id(),
+                    'user_email' => \Illuminate\Support\Facades\Auth::user()->email,
+                    'role_name' => $role->name,
+                    'data_scope' => $dataScope,
+                ]);
+                
+                switch ($dataScope) {
+                    case 'own':
+                        // Chỉ xem payment mà chính mình thu (created_by)
+                        $query->where('created_by', \Illuminate\Support\Facades\Auth::id());
+                        \Log::info('Filtering by created_by', ['created_by' => \Illuminate\Support\Facades\Auth::id()]);
+                        break;
+                    
+                    case 'showroom':
+                        // Xem payment của các sale thuộc showroom được phép
+                        $allowedShowrooms = $role->getAllowedShowrooms('debt');
+                        if ($allowedShowrooms && is_array($allowedShowrooms) && count($allowedShowrooms) > 0) {
+                            $query->whereHas('sale', function($q) use ($allowedShowrooms) {
+                                $q->whereIn('showroom_id', $allowedShowrooms);
+                            });
+                        }
+                        break;
+                    
+                    case 'all':
+                        // Xem tất cả - không filter
+                        break;
+                    
+                    case 'none':
+                    default:
+                        // Không có quyền
+                        $query->whereRaw('1 = 0');
+                        break;
+                }
+            }
+        }
 
-        // Search
-        if ($request->filled('search')) {
+        // Search (nếu có quyền)
+        if ($request->filled('search') && \App\Helpers\PermissionHelper::canSearch('debt')) {
             $search = $request->search;
             $query->whereHas('sale', function($q) use ($search) {
                 $q->whereIn('sale_status', ['completed', 'cancelled'])
@@ -128,12 +192,17 @@ class DebtController extends Controller
             });
         }
 
-        // Filter by date
-        if ($request->filled('date_from')) {
-            $query->whereDate('payment_date', '>=', $request->date_from);
-        }
-        if ($request->filled('date_to')) {
-            $query->whereDate('payment_date', '<=', $request->date_to);
+        // Filter by date (nếu có quyền)
+        $canFilterDate = \Illuminate\Support\Facades\Auth::user()->email === 'admin@example.com' || 
+                        (\Illuminate\Support\Facades\Auth::user()->role && \Illuminate\Support\Facades\Auth::user()->role->getModulePermissions('debt') && 
+                         \Illuminate\Support\Facades\Auth::user()->role->getModulePermissions('debt')->can_filter_by_date);
+        if ($canFilterDate) {
+            if ($request->filled('date_from')) {
+                $query->whereDate('payment_date', '>=', $request->date_from);
+            }
+            if ($request->filled('date_to')) {
+                $query->whereDate('payment_date', '<=', $request->date_to);
+            }
         }
 
         // Filter by amount range

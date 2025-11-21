@@ -21,8 +21,43 @@ class ReturnController extends Controller
     {
         $query = ReturnModel::with(['sale', 'customer', 'processedBy', 'items.painting', 'items.supply']);
 
-        // Search by return code, invoice code, or customer
-        if ($request->filled('search')) {
+        // Áp dụng phạm vi dữ liệu - custom logic cho Returns
+        if (Auth::check() && Auth::user()->email !== 'admin@example.com') {
+            $role = Auth::user()->role;
+            if ($role) {
+                $dataScope = $role->getDataScope('returns');
+                
+                switch ($dataScope) {
+                    case 'own':
+                        // Chỉ xem return mà chính mình xử lý (processed_by)
+                        $query->where('processed_by', Auth::id());
+                        break;
+                    
+                    case 'showroom':
+                        // Xem return của các sale thuộc showroom được phép
+                        $allowedShowrooms = $role->getAllowedShowrooms('returns');
+                        if ($allowedShowrooms && is_array($allowedShowrooms) && count($allowedShowrooms) > 0) {
+                            $query->whereHas('sale', function($q) use ($allowedShowrooms) {
+                                $q->whereIn('showroom_id', $allowedShowrooms);
+                            });
+                        }
+                        break;
+                    
+                    case 'all':
+                        // Xem tất cả - không filter
+                        break;
+                    
+                    case 'none':
+                    default:
+                        // Không có quyền
+                        $query->whereRaw('1 = 0');
+                        break;
+                }
+            }
+        }
+
+        // Search by return code, invoice code, or customer (nếu có quyền)
+        if ($request->filled('search') && \App\Helpers\PermissionHelper::canSearch('returns')) {
             $search = $request->search;
             $query->where(function($q) use ($search) {
                 $q->where('return_code', 'like', "%{$search}%")
@@ -36,27 +71,62 @@ class ReturnController extends Controller
             });
         }
 
+        // Filter by showroom (nếu có quyền)
+        if ($request->filled('showroom_id') && \App\Helpers\PermissionHelper::canFilterByShowroom('returns')) {
+            $query->whereHas('sale', function($q) use ($request) {
+                $q->where('showroom_id', $request->showroom_id);
+            });
+        }
+
+        // Filter by user (nếu có quyền)
+        if ($request->filled('user_id') && \App\Helpers\PermissionHelper::canFilterByUser('returns')) {
+            $query->where('processed_by', $request->user_id);
+        }
+
         // Filter by type
         if ($request->filled('type')) {
             $query->where('type', $request->type);
         }
 
-        // Filter by status
+        // Filter by status (nếu có quyền)
         if ($request->filled('status')) {
-            $query->where('status', $request->status);
+            $canFilterStatus = Auth::user()->email === 'admin@example.com' || 
+                              (Auth::user()->role && Auth::user()->role->getModulePermissions('returns') && 
+                               Auth::user()->role->getModulePermissions('returns')->can_filter_by_status);
+            if ($canFilterStatus) {
+                $query->where('status', $request->status);
+            }
         }
 
-        // Filter by date range
-        if ($request->filled('from_date')) {
-            $query->whereDate('return_date', '>=', $request->from_date);
-        }
-        if ($request->filled('to_date')) {
-            $query->whereDate('return_date', '<=', $request->to_date);
+        // Filter by date range (nếu có quyền)
+        $canFilterDate = Auth::user()->email === 'admin@example.com' || 
+                        (Auth::user()->role && Auth::user()->role->getModulePermissions('returns') && 
+                         Auth::user()->role->getModulePermissions('returns')->can_filter_by_date);
+        if ($canFilterDate) {
+            if ($request->filled('from_date')) {
+                $query->whereDate('return_date', '>=', $request->from_date);
+            }
+            if ($request->filled('to_date')) {
+                $query->whereDate('return_date', '<=', $request->to_date);
+            }
         }
 
         $returns = $query->orderBy('created_at', 'desc')->paginate(10)->appends($request->query());
 
-        return view('returns.index', compact('returns'));
+        // Lấy showroom được phép
+        $showrooms = \App\Helpers\PermissionHelper::getAllowedShowrooms('returns');
+        $users = \App\Models\User::all();
+
+        // Truyền quyền vào view
+        $canSearch = \App\Helpers\PermissionHelper::canSearch('returns');
+        $canFilterByShowroom = \App\Helpers\PermissionHelper::canFilterByShowroom('returns');
+        $canFilterByUser = \App\Helpers\PermissionHelper::canFilterByUser('returns');
+        $canFilterByDate = $canFilterDate;
+        $canFilterByStatus = Auth::user()->email === 'admin@example.com' || 
+                            (Auth::user()->role && Auth::user()->role->getModulePermissions('returns') && 
+                             Auth::user()->role->getModulePermissions('returns')->can_filter_by_status);
+
+        return view('returns.index', compact('returns', 'showrooms', 'users', 'canSearch', 'canFilterByShowroom', 'canFilterByUser', 'canFilterByDate', 'canFilterByStatus'));
     }
 
     public function create()

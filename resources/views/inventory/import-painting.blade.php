@@ -7,11 +7,31 @@
 @section('content')
     <div class="bg-white rounded-xl shadow-lg p-4 glass-effect">
         <div class="flex items-center justify-between mb-4">
-            <h4 class="font-medium text-base">Form nhập tranh</h4>
-            <a href="{{ route('inventory.import.supply.form') }}" class="text-blue-600 hover:text-blue-700 hover:bg-white border border-indigo-600 px-3 py-1.5 bg-blue-600 rounded-lg text-white text-sm">
-                <i class="fas fa-box mr-1"></i>Chuyển sang nhập vật tư
-            </a>
+            <h4 class="font-medium text-base">Nhập tranh</h4>
+            <div class="flex space-x-2">
+                <a href="{{ route('inventory.template.painting') }}" class="text-green-600 hover:text-green-700 border border-green-600 px-3 py-1.5 rounded-lg text-sm hover:bg-green-50">
+                    <i class="fas fa-download mr-1"></i>Tải file mẫu
+                </a>
+                <a href="{{ route('inventory.import.supply.form') }}" class="text-blue-600 hover:text-blue-700 hover:bg-white border border-indigo-600 px-3 py-1.5 bg-blue-600 rounded-lg text-white text-sm">
+                    <i class="fas fa-box mr-1"></i>Chuyển sang nhập vật tư
+                </a>
+            </div>
         </div>
+
+        <!-- Tab Navigation -->
+        <div class="border-b border-gray-200 mb-4">
+            <nav class="-mb-px flex space-x-4">
+                <button type="button" onclick="switchTab('manual')" id="tab-manual" class="tab-btn border-b-2 border-blue-500 py-2 px-1 text-sm font-medium text-blue-600">
+                    Nhập thủ công
+                </button>
+                <button type="button" onclick="switchTab('excel')" id="tab-excel" class="tab-btn border-b-2 border-transparent py-2 px-1 text-sm font-medium text-gray-500 hover:text-gray-700 hover:border-gray-300">
+                    Import từ Excel
+                </button>
+            </nav>
+        </div>
+
+        <!-- Manual Form -->
+        <div id="form-manual" class="tab-content">
 
         <form action="{{ route('inventory.import.painting') }}" method="POST" enctype="multipart/form-data">
             @csrf
@@ -128,11 +148,89 @@
                 </a>
             </div>
         </form>
+        </div>
+
+        <!-- Excel Import Form -->
+        <div id="form-excel" class="tab-content hidden">
+            <div class="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-4">
+                <h5 class="font-medium text-sm text-blue-800 mb-2"><i class="fas fa-info-circle mr-1"></i>Hướng dẫn import</h5>
+                <ol class="text-xs text-blue-700 space-y-1 list-decimal list-inside">
+                    <li>Tải file mẫu Excel bằng nút "Tải file mẫu" ở trên</li>
+                    <li>Điền thông tin tranh vào file Excel theo mẫu</li>
+                    <li><strong>Chuẩn bị ảnh:</strong> Đặt tên ảnh theo mã tranh (VD: T001.jpg, T002.png, T003.jpg)</li>
+                    <li>Các cột có dấu (*) là bắt buộc</li>
+                    <li>Upload file Excel + chọn nhiều ảnh cùng lúc (Ctrl + Click)</li>
+                </ol>
+                <div class="mt-3 p-2 bg-green-50 border border-green-200 rounded">
+                    <p class="text-xs text-green-800"><i class="fas fa-lightbulb mr-1"></i><strong>Mẹo:</strong> Đặt tên ảnh theo mã tranh (T001.jpg, T002.png...) rồi chọn tất cả ảnh cùng lúc khi upload!</p>
+                </div>
+            </div>
+
+            <form action="{{ route('inventory.import.painting.excel') }}" method="POST" enctype="multipart/form-data">
+                @csrf
+                <div class="mb-4">
+                    <label class="block text-sm font-medium text-gray-700 mb-2">
+                        <i class="fas fa-file-excel text-green-600 mr-1"></i>
+                        Bước 1: Chọn file Excel <span class="text-red-500">*</span>
+                    </label>
+                    <input type="file" name="file" id="excel-file" accept=".xlsx,.xls" required
+                        class="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white">
+                    <p class="text-xs text-gray-500 mt-1">Chấp nhận file .xlsx hoặc .xls, tối đa 10MB</p>
+                </div>
+
+                <div class="mb-4 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+                    <label class="block text-sm font-medium text-gray-700 mb-2">
+                        <i class="fas fa-images text-blue-600 mr-1"></i>
+                        Bước 2: Chọn ảnh tranh (tùy chọn)
+                    </label>
+                    <input type="file" name="images[]" id="image-files" accept="image/jpeg,image/png,image/jpg,image/gif" multiple
+                        class="w-full px-3 py-2 text-sm border border-blue-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white">
+                    <div class="mt-2 text-xs text-blue-700">
+                        <p class="font-semibold mb-1"><i class="fas fa-lightbulb mr-1"></i>Hướng dẫn:</p>
+                        <ul class="list-disc list-inside space-y-1 ml-2">
+                            <li>Đặt tên ảnh theo mã tranh: <code class="bg-blue-100 px-1 rounded">T001.jpg</code>, <code class="bg-blue-100 px-1 rounded">T002.png</code></li>
+                            <li>Chọn nhiều ảnh: Giữ <kbd class="bg-white px-1 border rounded">Ctrl</kbd> + Click từng ảnh</li>
+                            <li>Hoặc: Click ảnh đầu → Giữ <kbd class="bg-white px-1 border rounded">Shift</kbd> → Click ảnh cuối</li>
+                        </ul>
+                    </div>
+                    <div id="image-preview" class="mt-2 text-xs text-gray-600"></div>
+                </div>
+
+                <div class="flex space-x-2">
+                    <button type="submit"
+                        class="bg-blue-600 text-white py-2 px-4 text-sm rounded-lg hover:bg-blue-700 transition-colors">
+                        <i class="fas fa-upload mr-1"></i>Import từ Excel
+                    </button>
+                    <a href="{{ route('inventory.index') }}"
+                        class="bg-gray-600 text-white py-2 px-4 text-sm rounded-lg hover:bg-gray-700 transition-colors">
+                        <i class="fas fa-times mr-1"></i>Hủy
+                    </a>
+                </div>
+            </form>
+        </div>
     </div>
 @endsection
 
 @push('scripts')
     <script>
+        // Tab switching
+        function switchTab(tab) {
+            const tabs = ['manual', 'excel'];
+            tabs.forEach(t => {
+                const btn = document.getElementById(`tab-${t}`);
+                const content = document.getElementById(`form-${t}`);
+                if (t === tab) {
+                    btn.classList.add('border-blue-500', 'text-blue-600');
+                    btn.classList.remove('border-transparent', 'text-gray-500');
+                    content.classList.remove('hidden');
+                } else {
+                    btn.classList.remove('border-blue-500', 'text-blue-600');
+                    btn.classList.add('border-transparent', 'text-gray-500');
+                    content.classList.add('hidden');
+                }
+            });
+        }
+
         // Material select
         (() => {
             const wrapper = document.getElementById('material-select-create');
@@ -191,6 +289,24 @@
                 const url = URL.createObjectURL(file);
                 img.src = url;
                 wrap.classList.remove('hidden');
+            });
+        })();
+
+        // Image files preview
+        (() => {
+            const imageInput = document.getElementById('image-files');
+            const preview = document.getElementById('image-preview');
+            if (!imageInput || !preview) return;
+
+            imageInput.addEventListener('change', (e) => {
+                const files = e.target.files;
+                if (files.length === 0) {
+                    preview.innerHTML = '';
+                    return;
+                }
+
+                const fileNames = Array.from(files).map(f => f.name).join(', ');
+                preview.innerHTML = `<i class="fas fa-check-circle text-green-600 mr-1"></i>Đã chọn <strong>${files.length}</strong> ảnh: ${fileNames}`;
             });
         })();
     </script>

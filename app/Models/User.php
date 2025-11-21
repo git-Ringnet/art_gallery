@@ -35,6 +35,11 @@ class User extends Authenticatable
 
     public function hasPermission($module, $action = 'can_view')
     {
+        // Bypass cho admin@example.com
+        if ($this->email === 'admin@example.com') {
+            return true;
+        }
+        
         if (!$this->role) {
             return false;
         }
@@ -43,6 +48,11 @@ class User extends Authenticatable
 
     public function canAccess($module)
     {
+        // Bypass cho admin@example.com
+        if ($this->email === 'admin@example.com') {
+            return true;
+        }
+        
         if (!$this->role) {
             return false;
         }

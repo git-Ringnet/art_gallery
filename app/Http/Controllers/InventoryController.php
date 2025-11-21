@@ -10,7 +10,15 @@ use Illuminate\Support\Facades\Storage;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Maatwebsite\Excel\Facades\Excel;
 use App\Exports\InventoryExport;
+use App\Exports\PaintingTemplateExport;
+use App\Exports\SupplyTemplateExport;
+use App\Imports\PaintingImport;
+use App\Imports\PaintingImportWithImages;
+use App\Imports\SupplyImport;
 use Illuminate\Support\Facades\Log;
+use PhpOffice\PhpSpreadsheet\IOFactory;
+use PhpOffice\PhpSpreadsheet\Worksheet\Drawing;
+use PhpOffice\PhpSpreadsheet\Worksheet\MemoryDrawing;
 
 class InventoryController extends Controller
 {
@@ -20,6 +28,39 @@ class InventoryController extends Controller
         $type = $request->get('type');
         $dateFrom = $request->get('date_from');
         $dateTo = $request->get('date_to');
+
+        // Check data scope permission
+        $canView = true;
+        if (\Illuminate\Support\Facades\Auth::check() && \Illuminate\Support\Facades\Auth::user()->email !== 'admin@example.com') {
+            $role = \Illuminate\Support\Facades\Auth::user()->role;
+            if ($role) {
+                $dataScope = $role->getDataScope('inventory');
+                if ($dataScope === 'none') {
+                    $canView = false;
+                }
+            }
+        }
+
+        if (!$canView) {
+            $inventoryPaginator = new LengthAwarePaginator(
+                [],
+                0,
+                10,
+                1,
+                [
+                    'path' => route('inventory.index'),
+                    'query' => $request->query(),
+                ]
+            );
+
+            return view('inventory.index', [
+                'inventory' => $inventoryPaginator,
+                'search' => $search,
+                'type' => $type,
+                'dateFrom' => $dateFrom,
+                'dateTo' => $dateTo,
+            ]);
+        }
 
         // Get paintings with sale information
         $paintingsQuery = Painting::with(['saleItems.sale']);
@@ -213,15 +254,13 @@ class InventoryController extends Controller
             'unit' => 'required|string|max:20',
             'length_per_tree' => 'required|numeric|min:0',
             'tree_count' => 'required|integer|min:1',
-            'notes' => 'nullable|string'
+            'notes' => 'nullable|string',
+            'image' => 'nullable|image|max:2048',
         ], [
             'code.required' => 'Vui lòng nhập mã vật tư.',
             'length_per_tree.required' => 'Vui lòng nhập chiều dài mỗi cây.',
             'tree_count.required' => 'Vui lòng nhập số lượng cây.',
         ]);
-
-        // Tính tổng chiều dài = chiều dài mỗi cây × số cây
-        $totalQuantity = $validated['length_per_tree'] * $validated['tree_count'];
 
         // Kiểm tra xem đã có vật tư cùng mã, cùng tên và cùng chiều dài mỗi cây chưa
         $existingSupply = Supply::where('code', $validated['code'])
@@ -245,6 +284,12 @@ class InventoryController extends Controller
                 ->withInput();
         }
 
+        // Xử lý upload hình ảnh
+        $imagePath = null;
+        if ($request->hasFile('image')) {
+            $imagePath = $request->file('image')->store('supplies', 'public');
+        }
+
         // Tạo mới vật tư
         // Lưu chiều dài mỗi cây vào quantity (để dễ so sánh khi nhập lần sau)
         Supply::create([
@@ -255,10 +300,12 @@ class InventoryController extends Controller
             'quantity' => $validated['length_per_tree'], // Chiều dài mỗi cây
             'tree_count' => $validated['tree_count'], // Số lượng cây
             'notes' => $validated['notes'] ?? null,
+            'image' => $imagePath,
         ]);
 
+        $totalLength = $validated['length_per_tree'] * $validated['tree_count'];
         return redirect()->route('inventory.index')
-            ->with('success', 'Đã nhập vật tư thành công: ' . $validated['tree_count'] . ' cây × ' . $validated['length_per_tree'] . 'cm');
+            ->with('success', 'Đã nhập vật tư thành công: ' . $validated['tree_count'] . ' cây × ' . $validated['length_per_tree'] . 'cm = ' . $totalLength . 'cm tổng');
     }
 
     public function showPainting($id)
@@ -411,10 +458,27 @@ class InventoryController extends Controller
             'tree_count' => 'nullable|integer|min:0',
             'min_quantity' => 'nullable|numeric|min:0',
             'notes' => 'nullable|string',
+            'image' => 'nullable|image|max:2048',
+            'remove_image' => 'nullable|in:0,1',
         ], [
             'code.unique' => 'Mã vật tư đã tồn tại trong hệ thống.',
             'code.required' => 'Vui lòng nhập mã vật tư.',
         ]);
+
+        // Remove old image if requested
+        if ($request->input('remove_image') === '1' && $supply->image) {
+            Storage::disk('public')->delete($supply->image);
+            $validated['image'] = null;
+        }
+
+        // Replace with new image: delete old first
+        if ($request->hasFile('image')) {
+            if ($supply->image) {
+                Storage::disk('public')->delete($supply->image);
+            }
+            $imagePath = $request->file('image')->store('supplies', 'public');
+            $validated['image'] = $imagePath;
+        }
 
         $supply->update($validated);
 
@@ -447,6 +511,22 @@ class InventoryController extends Controller
         $scope = $request->get('scope', 'all'); // 'current' or 'all'
         $currentPage = (int) $request->get('page', 1);
         $perPage = 10;
+
+        // Check data scope permission
+        $canView = true;
+        if (\Illuminate\Support\Facades\Auth::check() && \Illuminate\Support\Facades\Auth::user()->email !== 'admin@example.com') {
+            $role = \Illuminate\Support\Facades\Auth::user()->role;
+            if ($role) {
+                $dataScope = $role->getDataScope('inventory');
+                if ($dataScope === 'none') {
+                    $canView = false;
+                }
+            }
+        }
+
+        if (!$canView) {
+            return Excel::download(new InventoryExport(collect([])), 'quan-ly-kho-' . date('Y-m-d-His') . '.xlsx');
+        }
 
         // Get filtered data (same logic as index)
         $paintingsQuery = Painting::query();
@@ -496,7 +576,8 @@ class InventoryController extends Controller
             $inventory = $inventory->merge($supplies->map(function ($supply) {
                 $quantityDisplay = $supply->quantity . ' ' . $supply->unit;
                 if ($supply->type == 'frame' && $supply->tree_count > 0) {
-                    $quantityDisplay .= ' (' . $supply->tree_count . ' cây)';
+                    $totalLength = $supply->tree_count * $supply->quantity;
+                    $quantityDisplay = $supply->tree_count . ' cây × ' . $supply->quantity . $supply->unit . '/cây = ' . number_format($totalLength, 2) . $supply->unit . ' tổng';
                 }
                 
                 return [
@@ -539,6 +620,30 @@ class InventoryController extends Controller
         $scope = $request->get('scope', 'all');
         $currentPage = (int) $request->get('page', 1);
         $perPage = 10;
+
+        // Check data scope permission
+        $canView = true;
+        if (\Illuminate\Support\Facades\Auth::check() && \Illuminate\Support\Facades\Auth::user()->email !== 'admin@example.com') {
+            $role = \Illuminate\Support\Facades\Auth::user()->role;
+            if ($role) {
+                $dataScope = $role->getDataScope('inventory');
+                if ($dataScope === 'none') {
+                    $canView = false;
+                }
+            }
+        }
+
+        if (!$canView) {
+            $pdf = Pdf::loadView('inventory.export-pdf', [
+                'inventory' => collect([]),
+                'search' => $search,
+                'type' => $type,
+                'dateFrom' => $dateFrom,
+                'dateTo' => $dateTo,
+                'scope' => $scope
+            ]);
+            return $pdf->download('quan-ly-kho-' . date('Y-m-d-His') . '.pdf');
+        }
 
         // Get filtered data (same logic as index)
         $paintingsQuery = Painting::query();
@@ -585,7 +690,8 @@ class InventoryController extends Controller
             $inventory = $inventory->merge($supplies->map(function ($supply) {
                 $quantityDisplay = $supply->quantity . ' ' . $supply->unit;
                 if ($supply->type == 'frame' && $supply->tree_count > 0) {
-                    $quantityDisplay .= ' (' . $supply->tree_count . ' cây)';
+                    $totalLength = $supply->tree_count * $supply->quantity;
+                    $quantityDisplay = $supply->tree_count . ' cây × ' . $supply->quantity . $supply->unit . '/cây = ' . number_format($totalLength, 2) . $supply->unit . ' tổng';
                 }
                 
                 return [
@@ -615,5 +721,232 @@ class InventoryController extends Controller
 
         $filename = 'quan-ly-kho-' . date('Y-m-d-His') . '.pdf';
         return $pdf->download($filename);
+    }
+
+    // Download template files
+    public function downloadPaintingTemplate()
+    {
+        return Excel::download(new PaintingTemplateExport(), 'mau-nhap-tranh.xlsx');
+    }
+
+    public function downloadSupplyTemplate()
+    {
+        return Excel::download(new SupplyTemplateExport(), 'mau-nhap-vat-tu.xlsx');
+    }
+
+    // Import from Excel
+    public function importPaintingExcel(Request $request)
+    {
+        $request->validate([
+            'file' => 'required|mimes:xlsx,xls|max:10240',
+        ], [
+            'file.required' => 'Vui lòng chọn file Excel',
+            'file.mimes' => 'File phải có định dạng .xlsx hoặc .xls',
+            'file.max' => 'File không được vượt quá 10MB',
+        ]);
+
+        try {
+            // Handle uploaded images
+            $uploadedImages = [];
+            if ($request->hasFile('images')) {
+                foreach ($request->file('images') as $image) {
+                    $originalName = $image->getClientOriginalName();
+                    $nameWithoutExt = pathinfo($originalName, PATHINFO_FILENAME);
+                    $extension = $image->getClientOriginalExtension();
+                    
+                    // Store image
+                    $uniqueName = uniqid() . '_' . time() . '.' . $extension;
+                    $filename = 'paintings/' . $uniqueName;
+                    
+                    // Save file using Storage facade
+                    Storage::disk('public')->putFileAs('paintings', $image, $uniqueName);
+                    
+                    // Verify file was saved
+                    $fullPath = storage_path('app' . DIRECTORY_SEPARATOR . 'public' . DIRECTORY_SEPARATOR . 'paintings' . DIRECTORY_SEPARATOR . $uniqueName);
+                    if (!file_exists($fullPath)) {
+                        Log::error('File not saved', ['path' => $fullPath]);
+                    } else {
+                        Log::info('File saved successfully', ['path' => $fullPath, 'size' => filesize($fullPath)]);
+                    }
+                    
+                    // Map by code (filename without extension)
+                    $uploadedImages[$nameWithoutExt] = $filename;
+                    
+                    Log::info('Uploaded image', [
+                        'original' => $originalName,
+                        'code' => $nameWithoutExt,
+                        'stored' => $filename
+                    ]);
+                }
+            }
+            
+        // Extract embedded images from Excel manually
+        $excelImages = [];
+        try {
+            $spreadsheet = IOFactory::load($request->file('file')->getPathname());
+            $worksheet = $spreadsheet->getActiveSheet();
+            $drawings = $worksheet->getDrawingCollection();
+
+            foreach ($drawings as $drawing) {
+                $coordinates = $drawing->getCoordinates();
+                if (strpos($coordinates, ':') !== false) {
+                    $coordinates = explode(':', $coordinates)[0];
+                }
+                $row = (int) preg_replace('/[^0-9]/', '', $coordinates);
+                
+                if ($row <= 1) continue;
+
+                $imageContent = null;
+                $extension = 'jpg';
+
+                if ($drawing instanceof Drawing) {
+                    $imagePath = $drawing->getPath();
+                    if (file_exists($imagePath)) {
+                        $imageContent = file_get_contents($imagePath);
+                        $extension = pathinfo($imagePath, PATHINFO_EXTENSION) ?: 'jpg';
+                    }
+                } elseif ($drawing instanceof MemoryDrawing) {
+                    $gdImage = $drawing->getImageResource();
+                    if ($gdImage) {
+                        ob_start();
+                        switch ($drawing->getMimeType()) {
+                            case MemoryDrawing::MIMETYPE_PNG:
+                                imagepng($gdImage);
+                                $extension = 'png';
+                                break;
+                            case MemoryDrawing::MIMETYPE_GIF:
+                                imagegif($gdImage);
+                                $extension = 'gif';
+                                break;
+                            default:
+                                imagejpeg($gdImage);
+                                $extension = 'jpg';
+                        }
+                        $imageContent = ob_get_contents();
+                        ob_end_clean();
+                    }
+                }
+
+                if ($imageContent) {
+                    $uniqueName = uniqid() . '_' . time() . '.' . $extension;
+                    Storage::disk('public')->put('paintings/' . $uniqueName, $imageContent);
+                    $excelImages[$row] = 'paintings/' . $uniqueName;
+                }
+            }
+        } catch (\Exception $e) {
+            Log::error('Error extracting excel images: ' . $e->getMessage());
+        }
+        
+        // Use new import class that handles images better
+        $import = new PaintingImportWithImages($uploadedImages, $excelImages);
+        Excel::import($import, $request->file('file'));
+
+            $message = "Import thành công {$import->getImportedCount()} tranh";
+            if ($import->getSkippedCount() > 0) {
+                $message .= ", bỏ qua {$import->getSkippedCount()} dòng";
+            }
+
+            $errors = $import->getErrors();
+            if (!empty($errors)) {
+                return redirect()->route('inventory.index')
+                    ->with('warning', $message)
+                    ->with('import_errors', $errors);
+            }
+
+            return redirect()->route('inventory.index')
+                ->with('success', $message);
+        } catch (\Maatwebsite\Excel\Validators\ValidationException $e) {
+            $failures = $e->failures();
+            $errorMessages = [];
+            foreach ($failures as $failure) {
+                $errorMessages[] = "Dòng {$failure->row()}: " . implode(', ', $failure->errors());
+            }
+            Log::error('Import validation error', ['errors' => $errorMessages]);
+            return redirect()->back()
+                ->with('error', 'Lỗi validation dữ liệu')
+                ->with('import_errors', $errorMessages)
+                ->withInput();
+        } catch (\Exception $e) {
+            Log::error('Import painting excel error', [
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
+            ]);
+            return redirect()->back()
+                ->with('error', 'Có lỗi xảy ra khi import: ' . $e->getMessage())
+                ->withInput();
+        }
+    }
+
+    public function importSupplyExcel(Request $request)
+    {
+        $request->validate([
+            'file' => 'required|mimes:xlsx,xls|max:10240',
+        ], [
+            'file.required' => 'Vui lòng chọn file Excel',
+            'file.mimes' => 'File phải có định dạng .xlsx hoặc .xls',
+            'file.max' => 'File không được vượt quá 10MB',
+        ]);
+
+        try {
+            // Handle uploaded images
+            $uploadedImages = [];
+            if ($request->hasFile('images')) {
+                foreach ($request->file('images') as $image) {
+                    $originalName = $image->getClientOriginalName();
+                    $nameWithoutExt = pathinfo($originalName, PATHINFO_FILENAME);
+                    $extension = $image->getClientOriginalExtension();
+                    
+                    // Store image
+                    $uniqueName = uniqid() . '_' . time() . '.' . $extension;
+                    $filename = 'supplies/' . $uniqueName;
+                    
+                    // Save file using Storage facade
+                    Storage::disk('public')->putFileAs('supplies', $image, $uniqueName);
+                    
+                    // Verify file was saved
+                    $fullPath = storage_path('app' . DIRECTORY_SEPARATOR . 'public' . DIRECTORY_SEPARATOR . 'supplies' . DIRECTORY_SEPARATOR . $uniqueName);
+                    if (!file_exists($fullPath)) {
+                        Log::error('Supply file not saved', ['path' => $fullPath]);
+                    } else {
+                        Log::info('Supply file saved successfully', ['path' => $fullPath, 'size' => filesize($fullPath)]);
+                    }
+                    
+                    // Map by code (filename without extension)
+                    $uploadedImages[$nameWithoutExt] = $filename;
+                    
+                    Log::info('Uploaded supply image', [
+                        'original' => $originalName,
+                        'code' => $nameWithoutExt,
+                        'stored' => $filename
+                    ]);
+                }
+            }
+
+            $import = new SupplyImport($uploadedImages);
+            Excel::import($import, $request->file('file'));
+
+            $message = "Import thành công {$import->getImportedCount()} vật tư mới";
+            if ($import->getUpdatedCount() > 0) {
+                $message .= ", cập nhật {$import->getUpdatedCount()} vật tư";
+            }
+            if ($import->getSkippedCount() > 0) {
+                $message .= ", bỏ qua {$import->getSkippedCount()} dòng";
+            }
+
+            $errors = $import->getErrors();
+            if (!empty($errors)) {
+                return redirect()->route('inventory.index')
+                    ->with('warning', $message)
+                    ->with('import_errors', $errors);
+            }
+
+            return redirect()->route('inventory.index')
+                ->with('success', $message);
+        } catch (\Exception $e) {
+            Log::error('Import supply excel error', ['error' => $e->getMessage()]);
+            return redirect()->back()
+                ->with('error', 'Có lỗi xảy ra khi import: ' . $e->getMessage())
+                ->withInput();
+        }
     }
 }

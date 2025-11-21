@@ -64,6 +64,78 @@ class Role extends Model
             ->first();
     }
 
+    /**
+     * Kiểm tra phạm vi dữ liệu cho module
+     */
+    public function getDataScope($module)
+    {
+        $permission = $this->getModulePermissions($module);
+        return $permission ? $permission->data_scope : 'none';
+    }
+
+    /**
+     * Lấy danh sách showroom được phép xem
+     */
+    public function getAllowedShowrooms($module)
+    {
+        $permission = $this->getModulePermissions($module);
+        return $permission ? $permission->allowed_showrooms : null;
+    }
+
+    /**
+     * Kiểm tra có được xem dữ liệu của tất cả nhân viên không
+     */
+    public function canViewAllUsersData($module)
+    {
+        $permission = $this->getModulePermissions($module);
+        return $permission ? $permission->can_view_all_users_data : false;
+    }
+
+    /**
+     * Kiểm tra có được lọc theo showroom không
+     */
+    public function canFilterByShowroom($module)
+    {
+        $permission = $this->getModulePermissions($module);
+        return $permission ? $permission->can_filter_by_showroom : false;
+    }
+
+    /**
+     * Kiểm tra có được lọc theo nhân viên không
+     */
+    public function canFilterByUser($module)
+    {
+        $permission = $this->getModulePermissions($module);
+        return $permission ? $permission->can_filter_by_user : false;
+    }
+
+    /**
+     * Kiểm tra có được tìm kiếm không
+     */
+    public function canSearch($module)
+    {
+        $permission = $this->getModulePermissions($module);
+        return $permission ? $permission->can_search : false;
+    }
+
+    /**
+     * Kiểm tra có được lọc theo ngày không
+     */
+    public function canFilterByDate($module)
+    {
+        $permission = $this->getModulePermissions($module);
+        return $permission ? $permission->can_filter_by_date : false;
+    }
+
+    /**
+     * Kiểm tra có được lọc theo trạng thái không
+     */
+    public function canFilterByStatus($module)
+    {
+        $permission = $this->getModulePermissions($module);
+        return $permission ? $permission->can_filter_by_status : false;
+    }
+
     public function getFieldPermissions($module)
     {
         return $this->fieldPermissions()

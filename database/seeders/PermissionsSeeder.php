@@ -57,6 +57,14 @@ class PermissionsSeeder extends Seeder
                     'can_print' => true,
                     'can_approve' => true,
                     'can_cancel' => true,
+                    'data_scope' => 'all',
+                    'allowed_showrooms' => null,
+                    'can_view_all_users_data' => true,
+                    'can_filter_by_showroom' => true,
+                    'can_filter_by_user' => true,
+                    'can_filter_by_date' => true,
+                    'can_filter_by_status' => true,
+                    'can_search' => true,
                 ]
             );
         }
@@ -86,6 +94,15 @@ class PermissionsSeeder extends Seeder
                         'can_print' => true,
                         'can_approve' => false,
                         'can_cancel' => false,
+                        // Nhân viên bán hàng chỉ xem đơn của mình
+                        'data_scope' => $module === 'sales' ? 'own' : 'all',
+                        'allowed_showrooms' => null,
+                        'can_view_all_users_data' => false,
+                        'can_filter_by_showroom' => true,
+                        'can_filter_by_user' => false,
+                        'can_filter_by_date' => true,
+                        'can_filter_by_status' => true,
+                        'can_search' => true,
                     ]
                 );
             }
@@ -116,6 +133,14 @@ class PermissionsSeeder extends Seeder
                         'can_print' => true,
                         'can_approve' => false,
                         'can_cancel' => false,
+                        'data_scope' => 'all',
+                        'allowed_showrooms' => null,
+                        'can_view_all_users_data' => true,
+                        'can_filter_by_showroom' => true,
+                        'can_filter_by_user' => true,
+                        'can_filter_by_date' => true,
+                        'can_filter_by_status' => true,
+                        'can_search' => true,
                     ]
                 );
             }
@@ -146,6 +171,15 @@ class PermissionsSeeder extends Seeder
                         'can_print' => true,
                         'can_approve' => false,
                         'can_cancel' => false,
+                        // Kế toán xem tất cả dữ liệu
+                        'data_scope' => 'all',
+                        'allowed_showrooms' => null,
+                        'can_view_all_users_data' => true,
+                        'can_filter_by_showroom' => true,
+                        'can_filter_by_user' => true,
+                        'can_filter_by_date' => true,
+                        'can_filter_by_status' => true,
+                        'can_search' => true,
                     ]
                 );
             }

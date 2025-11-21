@@ -39,6 +39,9 @@
             <div>
                 <label class="block text-sm font-medium text-gray-500 mb-1">Giá nhập khung</label>
                 <p class="text-lg font-semibold text-green-600">{{ number_format($frame->cost_price, 0) }} VNĐ</p>
+                @if($frame->cost_price_usd > 0)
+                    <p class="text-sm text-gray-500">{{ number_format($frame->cost_price_usd, 2) }} USD</p>
+                @endif
             </div>
 
             @if($frame->frame_length && $frame->frame_width)

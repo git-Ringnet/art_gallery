@@ -26,26 +26,38 @@ class DashboardController extends Controller
             return view('dashboard.no-access');
         }
 
+        // Kiểm tra quyền lọc theo ngày
+        $canFilterDate = Auth::user()->email === 'admin@example.com' || 
+                        (Auth::user()->role && Auth::user()->role->getModulePermissions('dashboard') && 
+                         Auth::user()->role->getModulePermissions('dashboard')->can_filter_by_date);
+
         $period = $request->get('period', 'week');
-        $fromDate = $request->get('from_date');
-        $toDate = $request->get('to_date');
+        $fromDate = $canFilterDate ? $request->get('from_date') : null;
+        $toDate = $canFilterDate ? $request->get('to_date') : null;
 
         $stats = $this->getStatistics($period, $fromDate, $toDate);
         
-        return view('dashboard.index', compact('stats', 'period'));
+        return view('dashboard.index', compact('stats', 'period', 'canFilterDate'));
     }
+
 
 
     public function getStats(Request $request)
     {
+        // Kiểm tra quyền lọc theo ngày
+        $canFilterDate = Auth::user()->email === 'admin@example.com' || 
+                        (Auth::user()->role && Auth::user()->role->getModulePermissions('dashboard') && 
+                         Auth::user()->role->getModulePermissions('dashboard')->can_filter_by_date);
+
         $period = $request->get('period', 'week');
-        $fromDate = $request->get('from_date');
-        $toDate = $request->get('to_date');
+        $fromDate = $canFilterDate ? $request->get('from_date') : null;
+        $toDate = $canFilterDate ? $request->get('to_date') : null;
 
         $stats = $this->getStatistics($period, $fromDate, $toDate);
         
         return response()->json($stats);
     }
+
 
     private function getStatistics($period, $fromDate = null, $toDate = null)
     {
@@ -57,16 +69,24 @@ class DashboardController extends Controller
             ->where('payment_status', '!=', 'cancelled')
             ->sum('total_vnd');
 
-        // Calculate remaining debt from Sales table (more accurate)
-        // Only count debt from completed sales that are not cancelled
-        $totalDebt = Sale::where('sale_status', 'completed')
+        // Calculate remaining debt from Sales in the selected date range
+        // Only count debt from sales within the date range that are not cancelled
+        $totalDebt = Sale::whereBetween('sale_date', [$dateRange['start'], $dateRange['end']])
+            ->where('sale_status', 'completed')
             ->where('payment_status', '!=', 'cancelled')
             ->where('debt_amount', '>', 0)
             ->sum('debt_amount');
 
-        // Count stock
-        $stockPaintings = Painting::where('quantity', '>', 0)->sum('quantity');
-        $stockSupplies = Supply::where('quantity', '>', 0)->sum('quantity');
+        // Count stock - filter by created_at within date range
+        // Tồn tranh: số lượng tranh được tạo trong khoảng thời gian
+        $stockPaintings = Painting::whereBetween('created_at', [$dateRange['start'], $dateRange['end']])
+            ->where('quantity', '>', 0)
+            ->sum('quantity');
+            
+        // Tồn vật tư: số lượng vật tư được tạo trong khoảng thời gian
+        $stockSupplies = Supply::whereBetween('created_at', [$dateRange['start'], $dateRange['end']])
+            ->where('quantity', '>', 0)
+            ->sum('quantity');
 
         // Get revenue chart data
         $revenueChart = $this->getRevenueChartData($period, $fromDate, $toDate);
