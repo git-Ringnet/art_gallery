@@ -175,13 +175,41 @@
                                     <div class="text-xs text-gray-500">{{ $paymentDateTime->format('H:i') }}</div>
                                 @endif
                             </td>
-                            <td class="px-2 py-2 text-right font-medium {{ $payment->amount < 0 ? 'text-red-600' : 'text-green-600' }} text-xs whitespace-nowrap">
-                                @if($payment->amount < 0)
-                                    <i class="fas fa-undo"></i>
-                                @endif
-                                {{ number_format(abs($payment->amount), 0, ',', '.') }}đ
-                                @if($payment->amount < 0)
-                                    <span class="text-xs">(Hoàn)</span>
+                            <td class="px-2 py-2 text-right text-xs whitespace-nowrap">
+                                @php
+                                    $hasUsd = $payment->payment_usd > 0;
+                                    $hasVnd = $payment->payment_vnd > 0;
+                                    $exchangeRate = $payment->payment_exchange_rate ?? $payment->sale->exchange_rate;
+                                    $isRefund = $payment->amount < 0;
+                                @endphp
+
+                                @if($isRefund)
+                                    <div class="text-red-600 font-medium">
+                                        <i class="fas fa-undo mr-1"></i>{{ number_format(abs($payment->amount), 0, ',', '.') }}đ
+                                        <span class="text-xs block">(Hoàn tiền)</span>
+                                    </div>
+                                @elseif($hasUsd && !$hasVnd)
+                                    {{-- Chỉ trả USD --}}
+                                    <div class="font-bold text-blue-600">${{ number_format($payment->payment_usd, 2) }}</div>
+                                    <div class="text-xs text-gray-500">≈ {{ number_format($payment->payment_usd * $exchangeRate, 0, ',', '.') }}đ (Tỷ giá: {{ number_format($exchangeRate, 0, ',', '.') }})</div>
+                                @elseif($hasVnd && !$hasUsd)
+                                    {{-- Chỉ trả VND --}}
+                                    <div class="font-bold text-green-600">{{ number_format($payment->payment_vnd, 0, ',', '.') }}đ</div>
+                                    <div class="text-xs text-gray-500">≈ ${{ number_format($payment->payment_vnd / $exchangeRate, 2) }} (Tỷ giá: {{ number_format($exchangeRate, 0, ',', '.') }})</div>
+                                @elseif($hasUsd && $hasVnd)
+                                    {{-- Trả cả hai --}}
+                                    <div class="font-bold">
+                                        <span class="text-blue-600">${{ number_format($payment->payment_usd, 2) }}</span>
+                                        <span class="text-gray-400 mx-0.5">+</span>
+                                        <span class="text-green-600">{{ number_format($payment->payment_vnd, 0, ',', '.') }}đ</span>
+                                    </div>
+                                    <div class="text-xs text-gray-500">
+                                        Tổng: ${{ number_format($payment->payment_usd + ($payment->payment_vnd / $exchangeRate), 2) }} (Tỷ giá: {{ number_format($exchangeRate, 0, ',', '.') }})
+                                    </div>
+                                @else
+                                    {{-- Fallback cho dữ liệu cũ --}}
+                                    <div class="font-medium text-green-600">{{ number_format($payment->amount, 0, ',', '.') }}đ</div>
+                                    <div class="text-xs text-gray-500">≈ ${{ number_format($payment->amount / $exchangeRate, 2) }} (Tỷ giá: {{ number_format($exchangeRate, 0, ',', '.') }})</div>
                                 @endif
                             </td>
                             <td class="px-2 py-2 text-center">
@@ -249,7 +277,6 @@
         <div class="mt-1">
             <div class="flex items-center justify-between mb-4 pb-3 border-b border-gray-200">
                 <h3 class="text-xl font-bold text-gray-900 flex items-center">
-                    
                     Thanh toán
                 </h3>
                 <button onclick="closeCollectModal()" class="text-gray-400 hover:text-gray-600 text-2xl w-8 h-8">
@@ -314,18 +341,31 @@
                     <!-- Tổng thanh toán -->
                     <div class="bg-blue-50 border border-blue-200 rounded-lg p-3">
                         <label class="block text-sm font-bold text-blue-900 mb-2">
-                            Tổng thanh toán (VND)
+                            Tổng thanh toán quy đổi
                         </label>
-                        <input type="text" 
-                               name="amount" 
-                               id="payment-amount" 
-                               readonly
-                               class="w-full px-3 py-2 text-lg font-bold border border-blue-300 rounded-lg bg-white text-blue-600"
-                               value="0đ">
-                        <p class="text-xs text-gray-600 mt-2 flex items-center">
-                            <i class="fas fa-info-circle mr-1 text-blue-500"></i>
-                            Tối đa: <span class="font-bold ml-1">{{ number_format($remainingDebt, 0, ',', '.') }}đ</span>
-                        </p>
+                        
+                        <!-- Hiển thị USD -->
+                        <div class="flex justify-between items-center mb-2">
+                            <span class="text-sm text-gray-600">Quy đổi USD:</span>
+                            <input type="text" 
+                                   id="total-payment-usd" 
+                                   readonly
+                                   class="w-2/3 px-2 py-1 text-lg font-bold bg-transparent border-none text-right text-blue-600 focus:ring-0"
+                                   value="$0.00">
+                        </div>
+                        
+                        <!-- Hiển thị VND -->
+                        <div class="flex justify-between items-center border-t border-blue-200 pt-2">
+                            <span class="text-sm text-gray-600">Quy đổi VND:</span>
+                            <input type="text" 
+                                   name="amount" 
+                                   id="payment-amount" 
+                                   readonly
+                                   class="w-2/3 px-2 py-1 text-base font-medium bg-transparent border-none text-right text-gray-600 focus:ring-0"
+                                   value="0đ">
+                        </div>
+                        
+                        <div id="payment-warning" class="hidden mt-2 text-xs text-red-600 bg-red-100 p-2 rounded"></div>
                     </div>
 
                     <div>
@@ -359,12 +399,17 @@
 </div>
 
 <script>
-const maxDebt = {{ $remainingDebt }};
+const maxDebtVnd = {{ $remainingDebt }};
+const maxDebtUsd = {{ $debt->sale->debt_usd }};
 
 function showCollectModal() {
     document.getElementById('collectModal').classList.remove('hidden');
     // Reset form
     document.getElementById('payment-form').reset();
+    // Set default exchange rate if empty
+    if (!document.getElementById('current_rate').value) {
+        document.getElementById('current_rate').value = "{{ number_format($debt->sale->exchange_rate, 0, ',', '.') }}";
+    }
     calculatePayment();
 }
 
@@ -388,56 +433,90 @@ function calculatePayment() {
     const usdInput = document.getElementById('payment_usd');
     const vndInput = document.getElementById('payment_vnd');
     const rateInput = document.getElementById('current_rate');
-    const totalInput = document.getElementById('payment-amount');
+    const totalUsdDisplay = document.getElementById('total-payment-usd');
+    const totalVndDisplay = document.getElementById('payment-amount');
+    const warningDiv = document.getElementById('payment-warning');
     
-    if (!usdInput || !vndInput || !rateInput || !totalInput) return;
+    if (!usdInput || !vndInput || !rateInput) return;
     
     // Lấy giá trị
     const usd = parseFloat(usdInput.value.replace(/[^\d.]/g, '')) || 0;
     const vnd = parseFloat(vndInput.value.replace(/[^\d]/g, '')) || 0;
-    const rate = parseFloat(rateInput.value.replace(/[^\d]/g, '')) || 25000;
+    const rate = parseFloat(rateInput.value.replace(/[^\d]/g, '')) || {{ $debt->sale->exchange_rate }};
     
-    // Tính tổng VND
-    const usdToVnd = usd * rate;
-    const total = usdToVnd + vnd;
+    // Tính toán
+    // 1. Tổng USD = USD nhập + (VND nhập / Tỷ giá hiện tại)
+    const totalUsd = usd + (vnd / rate);
+    
+    // 2. Tổng VND = (USD nhập * Tỷ giá hiện tại) + VND nhập
+    const totalVnd = (usd * rate) + vnd;
     
     // Hiển thị
-    totalInput.value = total.toLocaleString('vi-VN') + 'đ';
+    totalUsdDisplay.value = '$' + totalUsd.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2});
+    totalVndDisplay.value = totalVnd.toLocaleString('vi-VN') + 'đ';
+    
+    // Cảnh báo real-time
+    warningDiv.classList.add('hidden');
+    
+    // Logic check vượt quá nợ (tương tự edit.blade.php)
+    const tolerance = 0.01; // Sai số cho phép của USD
+    const vndTolerance = 1000; // Sai số cho phép của VND
+    
+    let isOverPayment = false;
+    
+    if (totalUsd > maxDebtUsd + tolerance) {
+        // Nếu USD vượt quá, kiểm tra xem có phải do trả đủ VND gốc không
+        // Nếu tổng VND trả <= tổng nợ VND (có sai số), thì vẫn chấp nhận
+        if (totalVnd <= maxDebtVnd + vndTolerance) {
+            // Hợp lệ: Khách trả đủ VND, nhưng do tỷ giá thay đổi nên USD quy đổi tăng lên
+            // Không cảnh báo
+        } else {
+            isOverPayment = true;
+        }
+    }
+    
+    if (isOverPayment) {
+        warningDiv.innerHTML = `<i class="fas fa-exclamation-triangle mr-1"></i> Số tiền vượt quá nợ còn lại ($${maxDebtUsd.toLocaleString('en-US', {minimumFractionDigits: 2})})`;
+        warningDiv.classList.remove('hidden');
+    }
 }
 
 function validatePayment(event) {
-    const input = document.getElementById('payment-amount');
     const usdInput = document.getElementById('payment_usd');
     const vndInput = document.getElementById('payment_vnd');
     const rateInput = document.getElementById('current_rate');
-    
-    const amountStr = input.value;
-    const amount = unformatNumber(amountStr);
+    const totalVndInput = document.getElementById('payment-amount');
     
     const usd = parseFloat(usdInput.value.replace(/[^\d.]/g, '')) || 0;
     const vnd = parseFloat(vndInput.value.replace(/[^\d]/g, '')) || 0;
+    const rate = parseFloat(rateInput.value.replace(/[^\d]/g, '')) || {{ $debt->sale->exchange_rate }};
     
-    // Validate
+    // Validate cơ bản
     if (usd === 0 && vnd === 0) {
         alert('Vui lòng nhập số tiền USD hoặc VND');
         return false;
     }
     
-    if (!amount || amount <= 0) {
-        alert('Vui lòng nhập số tiền hợp lệ');
-        return false;
+    // Tính toán lại để validate
+    const totalUsd = usd + (vnd / rate);
+    const totalVnd = (usd * rate) + vnd;
+    
+    // Logic validate (giống calculatePayment)
+    const tolerance = 0.01;
+    const vndTolerance = 1000;
+    
+    if (totalUsd > maxDebtUsd + tolerance) {
+        if (totalVnd > maxDebtVnd + vndTolerance) {
+            alert(`Số tiền thanh toán vượt quá số nợ!\n\nNợ còn lại: $${maxDebtUsd.toLocaleString('en-US', {minimumFractionDigits: 2})} (hoặc ${maxDebtVnd.toLocaleString('vi-VN')}đ)\n\nBạn đang trả: $${totalUsd.toLocaleString('en-US', {minimumFractionDigits: 2})} (quy đổi)`);
+            return false;
+        }
     }
     
-    if (amount > maxDebt) {
-        alert(`Số tiền nhập vượt quá số nợ!\nSố nợ: ${maxDebt.toLocaleString('vi-VN')}đ\nSố tiền nhập: ${amount.toLocaleString('vi-VN')}đ`);
-        return false;
-    }
-    
-    // Set unformatted values before submit
-    input.value = amount;
+    // Unformat values before submit
     usdInput.value = usd;
     vndInput.value = vnd;
-    rateInput.value = unformatNumber(rateInput.value);
+    rateInput.value = rate;
+    totalVndInput.value = totalVnd; // Submit tổng VND để controller xử lý (mặc dù controller sẽ tính lại từ usd/vnd components)
     
     return true;
 }
@@ -446,28 +525,6 @@ function validatePayment(event) {
 document.getElementById('collectModal')?.addEventListener('click', function(e) {
     if (e.target === this) {
         closeCollectModal();
-    }
-});
-
-// Real-time validation
-document.getElementById('payment-amount')?.addEventListener('input', function() {
-    const amount = unformatNumber(this.value);
-    const infoText = this.parentElement.querySelector('p');
-    
-    if (amount > maxDebt) {
-        this.classList.add('border-red-500', 'bg-red-50');
-        this.classList.remove('border-gray-300');
-        if (infoText) {
-            infoText.innerHTML = `<i class="fas fa-exclamation-triangle mr-2 text-red-500"></i>
-                <span class="text-red-600 font-bold">Vượt quá số nợ! Tối đa: ${maxDebt.toLocaleString('vi-VN')}đ</span>`;
-        }
-    } else {
-        this.classList.remove('border-red-500', 'bg-red-50');
-        this.classList.add('border-gray-300');
-        if (infoText) {
-            infoText.innerHTML = `<i class="fas fa-info-circle mr-2 text-blue-500"></i>
-                Tối đa: <span class="font-bold ml-2">${maxDebt.toLocaleString('vi-VN')}đ</span>`;
-        }
     }
 });
 </script>

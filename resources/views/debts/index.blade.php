@@ -243,7 +243,17 @@
                     <td class="px-2 py-2 text-right text-green-600 font-bold text-xs whitespace-nowrap">
                         @php
                             // Tính số tiền USD đã trả trong lần này
-                            $paymentUsd = $payment->amount / $payment->sale->exchange_rate;
+                            $rate = $payment->payment_exchange_rate ?? $payment->sale->exchange_rate;
+                            if ($rate <= 0) $rate = 1;
+                            
+                            if (isset($payment->payment_usd) || isset($payment->payment_vnd)) {
+                                $usd = $payment->payment_usd ?? 0;
+                                $vnd = $payment->payment_vnd ?? 0;
+                                $paymentUsd = $usd + ($vnd / $rate);
+                            } else {
+                                // Fallback cho dữ liệu cũ
+                                $paymentUsd = $payment->amount / $rate;
+                            }
                         @endphp
                         ${{ number_format($paymentUsd, 2) }}
                     </td>
@@ -290,10 +300,25 @@
                                 $remainingDebtUsd = 0;
                             } else {
                                 // Tính số nợ còn lại SAU khi thanh toán này (theo USD)
-                                $paidUpToNowVnd = $payment->sale->payments()
+                                // Logic mới: Cộng dồn USD thực tế hoặc quy đổi từng payment theo tỷ giá lúc đó
+                                $paidUpToNowUsd = $payment->sale->payments
                                     ->where('id', '<=', $payment->id)
-                                    ->sum('amount');
-                                $paidUpToNowUsd = $paidUpToNowVnd / $payment->sale->exchange_rate;
+                                    ->reduce(function ($carry, $p) use ($payment) {
+                                        // Lấy tỷ giá của payment đó, fallback về tỷ giá sale
+                                        $rate = $p->payment_exchange_rate ?? $payment->sale->exchange_rate;
+                                        if ($rate <= 0) $rate = 1; // Tránh chia cho 0
+                                        
+                                        // Nếu là dữ liệu mới (có payment_usd/vnd)
+                                        if (isset($p->payment_usd) || isset($p->payment_vnd)) {
+                                            $usd = $p->payment_usd ?? 0;
+                                            $vnd = $p->payment_vnd ?? 0;
+                                            return $carry + $usd + ($vnd / $rate);
+                                        }
+                                        
+                                        // Fallback cho dữ liệu cũ (chỉ có amount)
+                                        return $carry + ($p->amount / $rate);
+                                    }, 0);
+
                                 $remainingDebtUsd = $payment->sale->total_usd - $paidUpToNowUsd;
                             }
                         @endphp
