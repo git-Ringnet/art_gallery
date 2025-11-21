@@ -238,9 +238,10 @@
                         @else
                             <!-- Không có trả/đổi hàng -->
                             <div class="text-gray-900">${{ number_format($sale->total_usd, 2) }}</div>
+                            <div class="text-xs text-gray-500">{{ number_format($sale->total_vnd, 0, ',', '.') }}đ</div>
                         @endif
                     </td>
-                    <td class="px-2 py-2 text-right text-green-600 font-bold text-xs whitespace-nowrap">
+                    <td class="px-2 py-2 text-right text-xs whitespace-nowrap">
                         @php
                             // Tính số tiền USD đã trả trong lần này
                             $rate = $payment->payment_exchange_rate ?? $payment->sale->exchange_rate;
@@ -255,7 +256,8 @@
                                 $paymentUsd = $payment->amount / $rate;
                             }
                         @endphp
-                        ${{ number_format($paymentUsd, 2) }}
+                        <div class="font-bold text-green-600">${{ number_format($paymentUsd, 2) }}</div>
+                        <div class="text-gray-500">{{ number_format($payment->amount, 0, ',', '.') }}đ</div>
                     </td>
                     <td class="px-2 py-2 text-center">
                         @if($payment->payment_method === 'cash')
@@ -320,6 +322,12 @@
                                     }, 0);
 
                                 $remainingDebtUsd = $payment->sale->total_usd - $paidUpToNowUsd;
+                                
+                                // Tính số nợ còn lại theo VND (Tổng VND - Tổng đã trả VND)
+                                $paidUpToNowVnd = $payment->sale->payments
+                                    ->where('id', '<=', $payment->id)
+                                    ->sum('amount');
+                                $remainingDebtVnd = $payment->sale->total_vnd - $paidUpToNowVnd;
                             }
                         @endphp
                         @if($isCancelled)
@@ -327,9 +335,12 @@
                                 (Đã hủy)
                             </span>
                         @else
-                            <span class="{{ $remainingDebtUsd > 0 ? 'text-red-600' : ($remainingDebtUsd < 0 ? 'text-green-600' : 'text-gray-600') }}">
+                            <div class="{{ $remainingDebtUsd > 0.01 ? 'text-red-600' : ($remainingDebtUsd < -0.01 ? 'text-green-600' : 'text-gray-600') }}">
                                 ${{ number_format($remainingDebtUsd, 2) }}
-                            </span>
+                            </div>
+                            <div class="text-xs {{ $remainingDebtVnd > 1000 ? 'text-red-500' : ($remainingDebtVnd < -1000 ? 'text-green-500' : 'text-gray-500') }}">
+                                {{ number_format($remainingDebtVnd, 0, ',', '.') }}đ
+                            </div>
                         @endif
                     </td>
                     <td class="px-4 py-3 text-center">
