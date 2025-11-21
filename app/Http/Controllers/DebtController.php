@@ -227,12 +227,19 @@ class DebtController extends Controller
         
         $validated = $request->validate([
             'amount' => 'required|numeric|min:1|max:' . $currentDebt,
+            'payment_usd' => 'nullable|numeric|min:0',
+            'payment_vnd' => 'nullable|numeric|min:0',
+            'current_exchange_rate' => 'nullable|numeric|min:1',
             'payment_method' => 'nullable|string|in:cash,bank_transfer,card',
             'notes' => 'nullable|string'
         ], [
             'amount.max' => 'Số tiền thu không được vượt quá số nợ hiện tại: ' . number_format($currentDebt, 0, ',', '.') . 'đ',
             'amount.required' => 'Vui lòng nhập số tiền thu',
             'amount.min' => 'Số tiền thu phải lớn hơn 0',
+            'payment_usd.numeric' => 'Số tiền USD phải là số',
+            'payment_vnd.numeric' => 'Số tiền VND phải là số',
+            'current_exchange_rate.numeric' => 'Tỉ giá phải là số',
+            'current_exchange_rate.min' => 'Tỉ giá phải lớn hơn 0',
         ]);
 
         // Tạo payment mới
@@ -242,9 +249,19 @@ class DebtController extends Controller
         \Log::info('Timezone: ' . config('app.timezone'));
         \Log::info('Date format: ' . $currentTime->format('Y-m-d H:i:s'));
         
+        // Lấy tỉ giá hiện tại (nếu có), nếu không thì dùng tỉ giá ban đầu
+        // Loại bỏ dấu phẩy và ký tự không phải số
+        $paymentExchangeRate = $validated['current_exchange_rate'] ?? $debt->sale->exchange_rate;
+        if (is_string($paymentExchangeRate)) {
+            $paymentExchangeRate = (float) str_replace([',', '.', ' '], '', $paymentExchangeRate);
+        }
+        
         $payment = Payment::create([
             'sale_id' => $debt->sale_id,
             'amount' => $validated['amount'],
+            'payment_usd' => $validated['payment_usd'] ?? 0,
+            'payment_vnd' => $validated['payment_vnd'] ?? 0,
+            'payment_exchange_rate' => $paymentExchangeRate,
             'payment_method' => $validated['payment_method'] ?? 'cash',
             'transaction_type' => 'sale_payment',
             'payment_date' => $currentTime,
@@ -255,6 +272,9 @@ class DebtController extends Controller
         \Log::info('Payment created with ID: ' . $payment->id);
         \Log::info('Payment date saved: ' . $payment->payment_date);
         \Log::info('Payment date formatted: ' . $payment->payment_date->format('Y-m-d H:i:s'));
+        \Log::info('Payment USD: ' . $payment->payment_usd);
+        \Log::info('Payment VND: ' . $payment->payment_vnd);
+        \Log::info('Payment Exchange Rate: ' . $payment->payment_exchange_rate);
 
         // Update sale payment status (sẽ tự động update debt)
         $debt->sale->refresh(); // Refresh để lấy data mới nhất

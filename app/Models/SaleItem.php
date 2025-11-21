@@ -62,18 +62,26 @@ class SaleItem extends Model
 
     public function calculateTotals()
     {
+        // Đảm bảo có exchange_rate
+        $exchangeRate = $this->sale->exchange_rate ?? 25000;
+        
+        if ($exchangeRate <= 0) {
+            $exchangeRate = 25000; // Fallback
+        }
+        
         if ($this->currency === 'USD') {
             $subtotal = $this->quantity * $this->price_usd;
             $discountAmount = $subtotal * ($this->discount_percent / 100);
             $this->total_usd = $subtotal - $discountAmount;
-            $this->total_vnd = $this->total_usd * $this->sale->exchange_rate;
-            $this->price_vnd = $this->price_usd * $this->sale->exchange_rate;
+            // Làm tròn total_vnd để tránh sai số
+            $this->total_vnd = round($this->total_usd * $exchangeRate, 2);
+            $this->price_vnd = round($this->price_usd * $exchangeRate, 2);
         } else {
             $subtotal = $this->quantity * $this->price_vnd;
             $discountAmount = $subtotal * ($this->discount_percent / 100);
             $this->total_vnd = $subtotal - $discountAmount;
-            $this->total_usd = $this->total_vnd / $this->sale->exchange_rate;
-            $this->price_usd = $this->price_vnd / $this->sale->exchange_rate;
+            $this->total_usd = round($this->total_vnd / $exchangeRate, 2);
+            $this->price_usd = round($this->price_vnd / $exchangeRate, 2);
         }
         
         $this->save();

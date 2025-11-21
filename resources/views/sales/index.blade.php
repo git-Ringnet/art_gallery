@@ -277,9 +277,9 @@
                     <th class="px-2 py-2 text-left text-xs">Khách hàng</th>
                     <th class="px-2 py-2 text-left text-xs">Showroom</th>
                     <th class="px-2 py-2 text-left text-xs">Nhân viên</th>
-                    <th class="px-2 py-2 text-right text-xs">Tổng tiền</th>
-                    <th class="px-2 py-2 text-right text-xs">Đã trả</th>
-                    <th class="px-2 py-2 text-right text-xs">Còn nợ</th>
+                    <th class="px-2 py-2 text-right text-xs">Tổng tiền (USD/VND)</th>
+                    <th class="px-2 py-2 text-right text-xs">Đã trả (USD/VND)</th>
+                    <th class="px-2 py-2 text-right text-xs">Còn nợ (USD/VND)</th>
                     <th class="px-2 py-2 text-center text-xs">Tình trạng</th>
                     <th class="px-2 py-2 text-center text-xs">Thanh toán</th>
                     <th class="px-2 py-2 text-center text-xs">Thao tác</th>
@@ -328,16 +328,20 @@
                             $totalChanged = ($hasReturns || $hasExchanges) && $originalTotal != $sale->total_vnd;
                         @endphp
                         
-                        @if($hasReturns && $sale->total_vnd == 0)
+                        @if($hasReturns && $sale->total_usd == 0)
                             <!-- Trả hết - hiển thị giá gốc không gạch ngang -->
-                            <div class="font-medium text-gray-900 text-xs whitespace-nowrap">{{ number_format($originalTotal) }}đ</div>
+                            <div class="font-medium text-gray-900 text-xs whitespace-nowrap">${{ number_format($originalTotalUsd, 2) }}</div>
+                            <div class="text-xs text-gray-500">{{ number_format($originalTotal) }}đ</div>
                             <div class="text-xs text-red-600">
                                 <i class="fas fa-undo"></i>Trả hết
                             </div>
                         @elseif($totalChanged)
                             <!-- Có thay đổi (trả hàng hoặc đổi hàng) - hiển thị giá gốc gạch ngang và giá mới -->
-                            <div class="text-xs text-gray-400 line-through whitespace-nowrap">{{ number_format($originalTotal) }}đ</div>
+                            <div class="text-xs text-gray-400 line-through whitespace-nowrap">${{ number_format($originalTotalUsd, 2) }}</div>
                             <div class="font-medium {{ $hasExchanges ? 'text-purple-600' : 'text-orange-600' }} text-xs whitespace-nowrap">
+                                ${{ number_format($sale->total_usd, 2) }}
+                            </div>
+                            <div class="text-xs {{ $hasExchanges ? 'text-purple-600' : 'text-orange-600' }}">
                                 {{ number_format($sale->total_vnd) }}đ
                             </div>
                             @if($hasExchanges)
@@ -347,17 +351,20 @@
                             @endif
                         @else
                             <!-- Không có thay đổi -->
-                            <div class="font-medium text-gray-900 text-xs whitespace-nowrap">{{ number_format($sale->total_vnd) }}đ</div>
+                            <div class="font-medium text-gray-900 text-xs whitespace-nowrap">${{ number_format($sale->total_usd, 2) }}</div>
+                            <div class="text-xs text-gray-500">{{ number_format($sale->total_vnd) }}đ</div>
                         @endif
                     </td>
-                    <td class="px-2 py-2 text-right text-green-600 font-bold text-xs whitespace-nowrap">
-                        {{ number_format($sale->paid_amount) }}đ
+                    <td class="px-2 py-2 text-right text-xs whitespace-nowrap">
+                        <div class="text-green-600 font-bold">${{ number_format($sale->paid_usd, 2) }}</div>
+                        <div class="text-gray-500">{{ number_format($sale->paid_amount) }}đ</div>
                     </td>
-                    <td class="px-2 py-2 text-right font-bold text-xs whitespace-nowrap">
+                    <td class="px-2 py-2 text-right text-xs whitespace-nowrap">
                         @if($sale->sale_status == 'cancelled')
                             <span class="text-gray-500">(Hủy)</span>
                         @else
-                            <span class="text-red-600">{{ number_format($sale->debt_amount) }}đ</span>
+                            <div class="text-red-600 font-bold">${{ number_format($sale->debt_usd, 2) }}</div>
+                            <div class="text-gray-500">{{ number_format($sale->debt_amount) }}đ</div>
                         @endif
                     </td>
                     <td class="px-2 py-2 text-center">

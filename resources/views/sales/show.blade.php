@@ -273,21 +273,36 @@
                 @foreach($sale->payments->sortByDesc('payment_date')->sortByDesc('id') as $payment)
                 <div class="p-3 bg-gray-50 rounded">
                     <div class="flex justify-between items-center">
-                        <div>
-                            <p class="font-medium">{{ number_format($payment->amount) }}đ</p>
-                            @if($payment->payment_usd > 0 || $payment->payment_vnd > 0)
-                            <p class="text-xs text-gray-500 mt-1">
-                                @if($payment->payment_usd > 0)
+                        <div class="flex-1">
+                            @php
+                                $hasUsd = $payment->payment_usd > 0;
+                                $hasVnd = $payment->payment_vnd > 0;
+                                $exchangeRate = $payment->payment_exchange_rate ?? $sale->exchange_rate;
+                            @endphp
+                            
+                            @if($hasUsd && !$hasVnd)
+                                {{-- Chỉ trả USD: Hiển thị USD to, VND nhỏ (tham khảo) --}}
+                                <p class="font-bold text-lg text-blue-600">${{ number_format($payment->payment_usd, 2) }}</p>
+                                <p class="text-xs text-gray-500 mt-0.5">≈ {{ number_format($payment->payment_usd * $exchangeRate) }}đ (tham khảo)</p>
+                            @elseif($hasVnd && !$hasUsd)
+                                {{-- Chỉ trả VND: Hiển thị VND to, USD nhỏ (quy đổi) --}}
+                                <p class="font-bold text-lg text-green-600">{{ number_format($payment->payment_vnd) }}đ</p>
+                                <p class="text-xs text-gray-500 mt-0.5">≈ ${{ number_format($payment->payment_vnd / $exchangeRate, 2) }} (tỷ giá {{ number_format($exchangeRate) }})</p>
+                            @elseif($hasUsd && $hasVnd)
+                                {{-- Trả cả USD và VND: Hiển thị cả hai --}}
+                                <p class="font-bold text-base">
                                     <span class="text-blue-600">${{ number_format($payment->payment_usd, 2) }}</span>
-                                @endif
-                                @if($payment->payment_usd > 0 && $payment->payment_vnd > 0)
-                                    <span class="mx-1">+</span>
-                                @endif
-                                @if($payment->payment_vnd > 0)
+                                    <span class="text-gray-400 mx-1">+</span>
                                     <span class="text-green-600">{{ number_format($payment->payment_vnd) }}đ</span>
-                                @endif
-                            </p>
+                                </p>
+                                <p class="text-xs text-gray-500 mt-0.5">
+                                    Tổng: ≈ ${{ number_format($payment->payment_usd + ($payment->payment_vnd / $exchangeRate), 2) }}
+                                </p>
+                            @else
+                                {{-- Fallback: Hiển thị amount --}}
+                                <p class="font-medium">{{ number_format($payment->amount) }}đ</p>
                             @endif
+                            
                             <p class="text-sm text-gray-600 mt-1">
                                 {{ $payment->payment_date->format('d/m/Y H:i') }} - 
                                 @if($payment->payment_method == 'cash') Tiền mặt
@@ -298,7 +313,7 @@
                             </p>
                         </div>
                         @if($payment->notes)
-                        <p class="text-sm text-gray-500">{{ $payment->notes }}</p>
+                        <p class="text-sm text-gray-500 ml-2">{{ $payment->notes }}</p>
                         @endif
                     </div>
                 </div>
@@ -415,13 +430,29 @@
                 <div class="bg-blue-50 p-2 rounded text-sm">
                     <div class="flex justify-between">
                         <span class="text-blue-700 font-medium">Đã trả:</span>
-                        <span class="font-bold text-blue-700">{{ number_format($sale->paid_amount) }}đ</span>
+                        <div class="text-right">
+                            <div class="font-bold text-blue-700">${{ number_format($sale->paid_usd, 2) }}</div>
+                            <div class="text-xs text-blue-600">{{ number_format($sale->paid_amount) }}đ</div>
+                        </div>
                     </div>
+                    
+                    @php
+                        $overpaidUsd = max(0, $sale->paid_usd - $sale->total_usd);
+                    @endphp
+                    
+                    @if($overpaidUsd > 0.01)
+                        <div class="mt-1 text-xs text-blue-800 bg-blue-100 px-2 py-1 rounded border border-blue-200">
+                            <i class="fas fa-info-circle mr-1"></i>
+                            Gồm: ${{ number_format($sale->total_usd, 2) }} gốc
+                            <span class="block text-right">+ ${{ number_format($overpaidUsd, 2) }} chênh lệch tỷ giá</span>
+                        </div>
+                    @endif
+
                     @php
                         $totalUsd = $sale->payments->sum('payment_usd');
                         $totalVnd = $sale->payments->sum('payment_vnd');
                     @endphp
-                    @if($totalUsd > 0 || $totalVnd > 0)
+                    @if(($totalUsd > 0 || $totalVnd > 0) && $overpaidUsd <= 0.01)
                     <div class="flex justify-end mt-1 text-xs text-blue-600">
                         <span class="italic">
                             @if($totalUsd > 0)
@@ -447,13 +478,23 @@
                 @elseif($sale->debt_amount > 0)
                 <div class="flex justify-between text-red-600 bg-red-50 p-2 rounded border border-red-200 text-sm">
                     <span class="font-bold">Còn thiếu:</span>
-                    <span class="font-bold text-base">{{ number_format($sale->debt_amount) }}đ</span>
+                    <div class="text-right">
+                        <div class="font-bold text-base">${{ number_format($sale->debt_usd, 2) }}</div>
+                        <div class="text-xs">≈ {{ number_format($sale->debt_usd * $sale->exchange_rate) }}đ</div>
+                    </div>
                 </div>
                 @else
-                <div class="flex justify-between text-green-600 bg-green-50 p-2 rounded border border-green-200 text-sm">
-                    <span class="font-bold">
-                        <i class="fas fa-check-circle"></i>Đã TT đủ
-                    </span>
+                <div class="flex flex-col text-green-600 bg-green-50 p-2 rounded border border-green-200 text-sm">
+                    <div class="flex justify-between items-center">
+                        <span class="font-bold">
+                            <i class="fas fa-check-circle"></i>Đã TT đủ
+                        </span>
+                        @if($overpaidUsd > 0.01)
+                            <span class="text-xs bg-green-100 px-2 py-0.5 rounded text-green-800 border border-green-200">
+                                Dư ${{ number_format($overpaidUsd, 2) }} (Do tỷ giá)
+                            </span>
+                        @endif
+                    </div>
                 </div>
                 @endif
             </div>

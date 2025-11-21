@@ -207,39 +207,51 @@
             </h3>
             
             <!-- Tỷ giá và Giảm giá -->
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-3 mb-3">
+            <!-- Tỷ giá ban đầu, Giảm giá và Tổng tiền -->
+            <div class="grid grid-cols-4 gap-3 mb-3">
                 <div>
-                    <label class="block text-xs font-medium text-gray-700 mb-1">Tỷ giá (VND/USD) <span class="text-red-500">*</span></label>
-                    <input type="text" name="exchange_rate" id="rate" required class="w-full px-3 py-1.5 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500" value="{{ number_format(round($sale->exchange_rate)) }}" oninput="formatVND(this)" onblur="formatVND(this)" onchange="calc()">
+                    <label class="block text-xs font-medium text-gray-700 mb-1">
+                        Tỷ giá (VND/USD) chỉ áp dụng khi thanh toán từ VND sang USD<span class="text-red-500">*</span>
+                    </label>
+                    <input type="text" 
+                           name="exchange_rate" 
+                           id="rate" 
+                           required 
+                           class="w-full px-3 py-1.5 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500" 
+                           value="{{ number_format(round($sale->exchange_rate)) }}" 
+                           oninput="formatExchangeRate(this)" 
+                           onchange="calc()">
+                    <div class="mt-1 text-xs text-gray-500">
+                        Tỷ giá cũ: {{ number_format(round($sale->exchange_rate)) }}
+                    </div>
                 </div>
                 <div>
                     <label class="block text-xs font-medium text-gray-700 mb-1">Giảm giá (%)</label>
                     <input type="number" name="discount_percent" id="discount" class="w-full px-3 py-1.5 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500" value="{{ round($sale->discount_percent) }}" min="0" max="100" step="1" onchange="calc()">
                 </div>
-            </div>
-
-            <!-- Tổng tiền -->
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-3 mb-3">
                 <div>
-                    <label class="block text-xs font-medium text-blue-900 mb-1">Tổng tiền USD</label>
+                    <label class="block text-xs font-medium text-blue-900 mb-1">Tổng USD</label>
                     <input type="text" id="total_usd" readonly class="w-full px-3 py-1.5 text-sm border-2 border-blue-300 rounded-lg bg-white font-bold text-blue-600" value="${{ number_format($sale->total_usd, 2) }}">
                 </div>
-                <div>
-                    <label class="block text-xs font-medium text-green-900 mb-1">Tổng tiền VND</label>
-                    @php
-                        $hasReturns = $sale->returns()->where('status', 'completed')->where('type', 'return')->exists();
-                        $hasExchanges = $sale->returns()->where('status', 'completed')->where('type', 'exchange')->exists();
-                        
-                        // Lấy original_total
-                        if ($sale->original_total_vnd) {
-                            $originalTotal = $sale->original_total_vnd;
-                        } else {
-                            $originalTotal = $sale->saleItems->sum('total_vnd');
-                        }
-                        
-                        $showStrikethrough = ($hasReturns || $hasExchanges) && $originalTotal != $sale->total_vnd;
-                    @endphp
+                @php
+                    // Kiểm tra xem có sản phẩm VND không
+                    $hasVndItems = $sale->saleItems->where('currency', 'VND')->count() > 0;
+                    $hasReturns = $sale->returns()->where('status', 'completed')->where('type', 'return')->exists();
+                    $hasExchanges = $sale->returns()->where('status', 'completed')->where('type', 'exchange')->exists();
                     
+                    // Lấy original_total
+                    if ($sale->original_total_vnd) {
+                        $originalTotal = $sale->original_total_vnd;
+                    } else {
+                        $originalTotal = $sale->saleItems->sum('total_vnd');
+                    }
+                    
+                    $showStrikethrough = ($hasReturns || $hasExchanges) && $originalTotal != $sale->total_vnd;
+                @endphp
+                
+                @if($hasVndItems)
+                <div>
+                    <label class="block text-xs font-medium text-green-900 mb-1">Tổng VND</label>
                     @if($showStrikethrough)
                         <!-- Có trả/đổi hàng - hiển thị giá gốc gạch ngang -->
                         <div class="w-full px-3 py-1.5 text-sm border-2 border-green-300 rounded-lg bg-white">
@@ -251,6 +263,12 @@
                         <input type="text" id="total_vnd" readonly class="w-full px-3 py-1.5 text-sm border-2 border-green-300 rounded-lg bg-white font-bold text-green-600" value="{{ number_format($sale->total_vnd) }}đ">
                     @endif
                 </div>
+                @else
+                <div>
+                    <label class="block text-xs font-medium text-gray-400 mb-1">Tổng VND  là giá tổng với tỷ số quy đổi cũ</label>
+                    <input type="text" id="total_vnd" readonly class="w-full px-3 py-1.5 text-sm border-2 border-gray-200 rounded-lg bg-gray-50 font-bold text-gray-400" value="0đ">
+                </div>
+                @endif
             </div>
 
             <!-- Thanh toán -->
@@ -327,34 +345,18 @@
                             </select>
                         </div>
                         <div>
-                            <label class="block text-xs font-medium text-blue-900 mb-1">Tổng trả thêm (VND)</label>
+                            <label class="block text-xs font-medium text-blue-900 mb-1">
+                                Tổng trả thêm (VND) và USD khi quy đổi
+                                <i class="fas fa-info-circle text-blue-500 cursor-pointer ml-1 hover:text-blue-700 transition-colors" 
+                                   onclick="showExchangeRateInfo()"
+                                   title="Click để xem giải thích"></i>
+                            </label>
                             <input type="text" id="total_paid_display" readonly class="w-full px-3 py-1.5 text-sm border border-blue-300 rounded-lg bg-blue-50 font-bold text-blue-600">
                             <input type="hidden" name="payment_amount" id="total_paid_value">
+                            <div class="mt-1 text-xs text-blue-700 font-medium" id="total_paid_usd_display"></div>
                         </div>
                     </div>
-                    
-                    <!-- Tổng hợp lịch sử thanh toán -->
-                    @if($sale->payments->count() > 0)
-                    <div class="p-2 bg-gray-50 rounded-lg border border-gray-200">
-                        <div class="text-xs font-semibold text-gray-600 mb-1 flex items-center">
-                            <i class="fas fa-history mr-1"></i> Lịch sử TT (Tổng hợp)
-                        </div>
-                        <div class="space-y-1 max-h-24 overflow-y-auto">
-                            @foreach($sale->payments as $payment)
-                            <div class="flex justify-between items-center text-xs py-0.5 border-b border-gray-200 last:border-0">
-                                <span class="text-gray-600">{{ $payment->payment_date->format('d/m/Y H:i') }}</span>
-                                <span class="font-semibold {{ $payment->amount < 0 ? 'text-red-600' : 'text-green-600' }}">
-                                    {{ $payment->amount < 0 ? '' : '+' }}{{ number_format($payment->amount) }}đ
-                                </span>
-                            </div>
-                            @endforeach
-                        </div>
-                        <div class="mt-1 pt-1 border-t border-gray-300 flex justify-between items-center">
-                            <span class="text-xs font-semibold text-gray-700">Tổng đã trả:</span>
-                            <span class="text-sm font-bold text-blue-600">{{ number_format($sale->paid_amount) }}đ</span>
-                        </div>
-                    </div>
-                    @endif
+
                 @else
                     <!-- Phiếu pending - cho phép sửa số tiền đã trả -->
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-3 mb-3">
@@ -382,6 +384,7 @@
                             <label class="block text-xs font-medium text-blue-900 mb-1">Tổng đã trả (VND)</label>
                             <input type="text" id="total_paid_display" readonly class="w-full px-3 py-1.5 text-sm border border-blue-300 rounded-lg bg-blue-50 font-bold text-blue-600">
                             <input type="hidden" name="payment_amount" id="total_paid_value">
+                            <div class="mt-1 text-xs text-blue-700 font-medium" id="total_paid_usd_display"></div>
                         </div>
                     </div>
                     
@@ -399,7 +402,7 @@
                         <input type="text" id="current_debt" readonly class="w-full px-3 py-1.5 text-sm border border-yellow-300 rounded-lg bg-white font-bold text-orange-600" value="0đ">
                     </div>
                     <div>
-                        <label class="block text-xs font-medium text-red-900 mb-1">Còn nợ</label>
+                        <label class="block text-xs font-medium text-red-900 mb-1">Còn nợ (VND là giá tổng với tỷ số quy đổi cũ)</label>
                         <input type="text" id="debt" readonly class="w-full px-3 py-1.5 text-sm border border-red-300 rounded-lg bg-white font-bold text-red-600" value="{{ number_format($sale->debt_amount) }}đ">
                     </div>
                 </div>
@@ -612,14 +615,28 @@ function selectPainting(paintingId, idx) {
             
             const usdInput = document.querySelector(`.usd-${idx}`);
             const vndInput = document.querySelector(`.vnd-${idx}`);
+            const currencySelect = document.querySelector(`select[name="items[${idx}][currency]"]`);
             
-            if (usdInput) {
-                const usdValue = parseFloat(painting.price_usd) || 0;
-                usdInput.value = usdValue.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2});
-            }
-            if (vndInput) {
-                const vndValue = parseInt(painting.price_vnd) || 0;
-                vndInput.value = vndValue.toLocaleString('en-US');
+            const hasUsd = painting.price_usd && parseFloat(painting.price_usd) > 0;
+            const hasVnd = painting.price_vnd && parseFloat(painting.price_vnd) > 0;
+            
+            // Tự động chọn loại tiền dựa vào giá sản phẩm
+            if (hasUsd && hasVnd) {
+                if (currencySelect) { currencySelect.value = 'BOTH'; togCur(currencySelect, idx); }
+                if (usdInput) usdInput.value = parseFloat(painting.price_usd).toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2});
+                if (vndInput) vndInput.value = parseInt(painting.price_vnd).toLocaleString('en-US');
+            } else if (hasUsd) {
+                if (currencySelect) { currencySelect.value = 'USD'; togCur(currencySelect, idx); }
+                if (usdInput) usdInput.value = parseFloat(painting.price_usd).toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2});
+                if (vndInput) vndInput.value = '0';
+            } else if (hasVnd) {
+                if (currencySelect) { currencySelect.value = 'VND'; togCur(currencySelect, idx); }
+                if (usdInput) usdInput.value = '0.00';
+                if (vndInput) vndInput.value = parseInt(painting.price_vnd).toLocaleString('en-US');
+            } else {
+                if (currencySelect) { currencySelect.value = 'VND'; togCur(currencySelect, idx); }
+                if (usdInput) usdInput.value = '0.00';
+                if (vndInput) vndInput.value = '0';
             }
             
             const imgUrl = painting.image ? `/storage/${painting.image}` : 'https://via.placeholder.com/80x60?text=No+Image';
@@ -845,18 +862,29 @@ function selectPainting(paintingId, idx) {
             
             const usdInput = document.querySelector(`.usd-${idx}`);
             const vndInput = document.querySelector(`.vnd-${idx}`);
-            
-            if (usdInput) {
-                const usdValue = parseFloat(painting.price_usd) || 0;
-                usdInput.value = usdValue.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2});
-            }
-            if (vndInput) {
-                const vndValue = parseInt(painting.price_vnd) || 0;
-                vndInput.value = vndValue.toLocaleString('en-US');
-            }
-            
-            // Set currency dropdown to VND and hide USD input
             const currencySelect = document.querySelector(`select[name="items[${idx}][currency]"]`);
+            
+            const hasUsd = painting.price_usd && parseFloat(painting.price_usd) > 0;
+            const hasVnd = painting.price_vnd && parseFloat(painting.price_vnd) > 0;
+            
+            // Tự động chọn loại tiền dựa vào giá sản phẩm
+            if (hasUsd && hasVnd) {
+                if (currencySelect) { currencySelect.value = 'BOTH'; togCur(currencySelect, idx); }
+                if (usdInput) usdInput.value = parseFloat(painting.price_usd).toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2});
+                if (vndInput) vndInput.value = parseInt(painting.price_vnd).toLocaleString('en-US');
+            } else if (hasUsd) {
+                if (currencySelect) { currencySelect.value = 'USD'; togCur(currencySelect, idx); }
+                if (usdInput) usdInput.value = parseFloat(painting.price_usd).toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2});
+                if (vndInput) vndInput.value = '0';
+            } else if (hasVnd) {
+                if (currencySelect) { currencySelect.value = 'VND'; togCur(currencySelect, idx); }
+                if (usdInput) usdInput.value = '0.00';
+                if (vndInput) vndInput.value = parseInt(painting.price_vnd).toLocaleString('en-US');
+            } else {
+                if (currencySelect) { currencySelect.value = 'VND'; togCur(currencySelect, idx); }
+                if (usdInput) usdInput.value = '0.00';
+                if (vndInput) vndInput.value = '0';
+            }
             if (currencySelect) {
                 currencySelect.value = 'VND';
                 // Trigger the togCur function to hide/show appropriate inputs
@@ -1033,12 +1061,14 @@ function calcTotalPaid() {
     const paidVndEl = document.getElementById('paid_vnd'); // hidden input
     const totalPaidDisplayEl = document.getElementById('total_paid_display');
     const totalPaidValueEl = document.getElementById('total_paid_value');
+    const totalPaidUsdDisplayEl = document.getElementById('total_paid_usd_display');
     
     if (!rateEl || !paidUsdEl || !paidVndEl || !totalPaidDisplayEl || !totalPaidValueEl) {
         return;
     }
     
-    const exchangeRate = parseFloat(unformatNumber(rateEl.value)) || 25000;
+    // Lấy tỉ giá hiện tại - CHỈ dùng khi trả VND
+    const currentRate = parseFloat(unformatNumber(rateEl.value)) || 25000;
     
     // Get USD paid từ hidden input (đã là số thuần)
     const paidUsd = parseFloat(paidUsdEl.value) || 0;
@@ -1046,20 +1076,44 @@ function calcTotalPaid() {
     // Get VND paid từ hidden input (đã là số thuần)
     const paidVnd = parseFloat(paidVndEl.value) || 0;
     
-    // Convert USD to VND and add
-    const totalPaidVnd = (paidUsd * exchangeRate) + paidVnd;
+    // Tính tổng USD (đơn vị chính):
+    // - USD: cộng trực tiếp (KHÔNG cần tỉ giá)
+    // - VND: quy đổi sang USD theo tỉ giá hiện tại
+    const totalPaidUsd = paidUsd + (paidVnd / currentRate);
     
-    // Display total paid
+    // Tính tổng VND (chỉ để hiển thị tham khảo):
+    // - USD: quy đổi sang VND theo tỉ giá gốc (để hiển thị)
+    // - VND: cộng trực tiếp
+    const originalRate = {{ $sale->exchange_rate }};
+    const totalPaidVnd = (paidUsd * originalRate) + paidVnd;
+    
+    // Display total paid VND (tham khảo)
     totalPaidDisplayEl.value = totalPaidVnd.toLocaleString('vi-VN') + 'đ';
     totalPaidValueEl.value = Math.round(totalPaidVnd);
+    
+    // Hiển thị tổng USD (đơn vị chính) với chi tiết
+    if (totalPaidUsdDisplayEl && (paidUsd > 0 || paidVnd > 0)) {
+        let displayText = '≈ $' + totalPaidUsd.toFixed(2) + ' USD';
+        if (paidUsd > 0 && paidVnd > 0) {
+            displayText += ' ($' + paidUsd.toFixed(2) + ' + ' + paidVnd.toLocaleString('vi-VN') + 'đ ÷ ' + currentRate.toLocaleString('vi-VN') + ')';
+        } else if (paidVnd > 0) {
+            displayText += ' (' + paidVnd.toLocaleString('vi-VN') + 'đ ÷ ' + currentRate.toLocaleString('vi-VN') + ')';
+        } else if (paidUsd > 0) {
+            displayText = '$' + paidUsd.toFixed(2) + ' USD';
+        }
+        totalPaidUsdDisplayEl.textContent = displayText;
+    } else if (totalPaidUsdDisplayEl) {
+        totalPaidUsdDisplayEl.textContent = '';
+    }
     
     // Calculate debt
     calcDebt();
 }
 
 function calc() {
-    const rateVal = unformatNumber(document.getElementById('rate').value);
-    const rate = parseFloat(rateVal) || 25000;
+    // Tỷ giá gốc của sale - KHÔNG thay đổi, dùng để tính tổng tiền
+    const originalRate = {{ $sale->exchange_rate }};
+    
     const disc = parseFloat(document.getElementById('discount').value) || 0;
     const rows = document.querySelectorAll('#items-body tr');
     
@@ -1077,18 +1131,18 @@ function calc() {
             const subtotal = usd * qty;
             const itemDiscountAmt = subtotal * (itemDiscountPercent / 100);
             const itemTotalUsd = subtotal - itemDiscountAmt;
-            const itemTotalVnd = itemTotalUsd * rate;
             totUsd += itemTotalUsd;
-            totVnd += itemTotalVnd;
+            // Quy đổi USD sang VND theo tỷ giá gốc để hiển thị tham khảo
+            totVnd += itemTotalUsd * originalRate;
         } else if (cur === 'VND') {
             const vndVal = unformatNumber(row.querySelector('[name*="[price_vnd]"]')?.value || '0');
             const vnd = parseFloat(vndVal);
             const subtotal = vnd * qty;
             const itemDiscountAmt = subtotal * (itemDiscountPercent / 100);
             const itemTotalVnd = subtotal - itemDiscountAmt;
-            const itemTotalUsd = itemTotalVnd / rate;
             totVnd += itemTotalVnd;
-            totUsd += itemTotalUsd;
+            // Quy đổi VND sang USD theo tỷ giá gốc để tính tổng hóa đơn USD
+            totUsd += itemTotalVnd / originalRate;
         } else { // BOTH
             const usdVal = unformatNumber(row.querySelector('[name*="[price_usd]"]')?.value || '0');
             const vndVal = unformatNumber(row.querySelector('[name*="[price_vnd]"]')?.value || '0');
@@ -1109,25 +1163,65 @@ function calc() {
     const finalVnd = totVnd - discAmtVnd;
     
     document.getElementById('total_usd').value = '$' + finalUsd.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2});
-    document.getElementById('total_vnd').value = finalVnd.toLocaleString('vi-VN') + 'đ';
+    
+    // Hiển thị Tổng VND: Luôn hiển thị giá trị (bao gồm cả USD quy đổi)
+    const totalVndEl = document.getElementById('total_vnd');
+    if (totalVndEl) {
+        totalVndEl.value = finalVnd.toLocaleString('vi-VN') + 'đ';
+        totalVndEl.classList.remove('text-gray-400', 'bg-gray-50', 'border-gray-200');
+        totalVndEl.classList.add('text-green-600', 'bg-white', 'border-green-300');
+    }
     
     calcDebt();
 }
 
 function calcDebt() {
-    const totTxt = document.getElementById('total_vnd').value.replace(/[^\d]/g, '');
-    const tot = parseFloat(totTxt) || 0;
+    const totalUsdEl = document.getElementById('total_usd');
+    const totalVndEl = document.getElementById('total_vnd');
+    const debtEl = document.getElementById('debt');
+    const rateEl = document.getElementById('rate');
+    
+    if (!totalUsdEl || !totalVndEl || !debtEl || !rateEl) return;
+    
+    // Lấy tổng tiền USD (KHÔNG đổi khi thay đổi tỷ giá)
+    const totalUsdTxt = totalUsdEl.value.replace(/[^\d.]/g, '');
+    const totalUsd = parseFloat(totalUsdTxt) || 0;
+    
+    // Lấy tổng tiền VND
+    const totalVndTxt = totalVndEl.value.replace(/[^\d]/g, '');
+    const totalVnd = parseFloat(totalVndTxt) || 0;
+    
+    // Lấy tỉ giá hiện tại (CHỈ dùng để quy đổi VND khi trả tiền)
+    const rateTxt = rateEl.value.replace(/[^\d]/g, '');
+    const currentRate = parseFloat(rateTxt) || 25000;
+    
+    // Tỷ giá gốc để hiển thị nợ VND
+    const originalRate = {{ $sale->exchange_rate }};
     
     @if($sale->sale_status === 'completed')
-        // Phiếu đã duyệt: Tính nợ = Tổng - (Đã trả cũ + Trả thêm)
-        const currentPaid = {{ $sale->paid_amount }};
-        const additionalPaidVal = document.getElementById('total_paid_value').value;
-        const additionalPaid = parseFloat(additionalPaidVal) || 0;
-        const totalPaid = currentPaid + additionalPaid;
-        const debt = Math.max(0, tot - totalPaid);
+        // Phiếu đã duyệt: Tính công nợ theo USD
+        // Lấy số USD đã trả (đã tính đúng theo từng lần thanh toán với tỉ giá tương ứng)
+        const currentPaidUsd = {{ $sale->paid_usd }};
+        
+        // Lấy số tiền trả thêm USD và VND
+        const paidUsdEl = document.getElementById('paid_usd');
+        const paidVndEl = document.getElementById('paid_vnd');
+        const additionalPaidUsd = paidUsdEl ? (parseFloat(paidUsdEl.value) || 0) : 0;
+        const additionalPaidVnd = paidVndEl ? (parseFloat(paidVndEl.value) || 0) : 0;
+        
+        // Tính tổng đã trả USD:
+        // - USD: cộng trực tiếp (không cần tỉ giá)
+        // - VND: quy đổi sang USD theo tỉ giá HIỆN TẠI (có thể thay đổi)
+        const totalPaidUsd = currentPaidUsd + additionalPaidUsd + (additionalPaidVnd / currentRate);
+        
+        // Công nợ còn lại (USD) - KHÔNG đổi khi chỉ thay đổi tỷ giá
+        const debtUsd = Math.max(0, totalUsd - totalPaidUsd);
+        const debtVnd = debtUsd * originalRate; // Quy đổi về VND để hiển thị
+        
+        debtEl.value = '$' + debtUsd.toFixed(2) + ' (≈' + debtVnd.toLocaleString('vi-VN') + 'đ)';
         
         // Warning if overpaid
-        if (totalPaid > tot && additionalPaid > 0) {
+        if (totalPaidUsd > totalUsd && (additionalPaidUsd > 0 || additionalPaidVnd > 0)) {
             const paidDisplay = document.getElementById('total_paid_display');
             paidDisplay.classList.add('border-orange-500', 'bg-orange-100');
             paidDisplay.title = 'Số tiền trả vượt quá tổng tiền hóa đơn';
@@ -1137,13 +1231,24 @@ function calcDebt() {
             }, 3000);
         }
     @else
-        // Phiếu pending: Tính nợ = Tổng - Tổng đã trả
-        const totalPaidVal = document.getElementById('total_paid_value').value;
-        const paid = parseFloat(totalPaidVal) || 0;
-        const debt = Math.max(0, tot - paid);
+        // Phiếu pending: Tính nợ theo USD
+        const paidUsdEl = document.getElementById('paid_usd');
+        const paidVndEl = document.getElementById('paid_vnd');
+        const paidUsdValue = paidUsdEl ? (parseFloat(paidUsdEl.value) || 0) : 0;
+        const paidVndValue = paidVndEl ? (parseFloat(paidVndEl.value) || 0) : 0;
+        
+        // Tính tổng đã trả USD:
+        // - USD: cộng trực tiếp (không cần tỉ giá)
+        // - VND: quy đổi sang USD theo tỉ giá HIỆN TẠI (có thể thay đổi)
+        const totalPaidUsd = paidUsdValue + (paidVndValue / currentRate);
+        
+        const debtUsd = Math.max(0, totalUsd - totalPaidUsd);
+        const debtVnd = debtUsd * originalRate;
+        
+        debtEl.value = '$' + debtUsd.toFixed(2) + ' (≈' + debtVnd.toLocaleString('vi-VN') + 'đ)';
         
         // Warning if overpaid
-        if (paid > tot && paid > 0) {
+        if (totalPaidUsd > totalUsd && (paidUsdValue > 0 || paidVndValue > 0)) {
             const paidDisplay = document.getElementById('total_paid_display');
             paidDisplay.classList.add('border-orange-500', 'bg-orange-100');
             paidDisplay.title = 'Số tiền trả vượt quá tổng tiền hóa đơn';
@@ -1153,8 +1258,6 @@ function calcDebt() {
             }, 3000);
         }
     @endif
-    
-    document.getElementById('debt').value = debt.toLocaleString('vi-VN') + 'đ';
 }
 
 // Load công nợ hiện tại khi chọn khách hàng
@@ -1359,43 +1462,132 @@ document.addEventListener('DOMContentLoaded', () => {
             
             @if($sale->sale_status === 'completed')
                 // Phiếu đã duyệt: kiểm tra trả thêm
-                const currentPaid = {{ $sale->paid_amount }};
-                const additionalPaid = parseFloat(totalPaidValueEl.value) || 0;
-                const totalPaid = currentPaid + additionalPaid;
+                const totalUsdEl = document.getElementById('total_usd');
+                const totalUsdTxt = totalUsdEl.value.replace(/[^\d.]/g, '');
+                const totalUsd = parseFloat(totalUsdTxt) || 0;
                 
-                if (totalPaid > totalVnd) {
+                const currentPaidUsd = {{ $sale->paid_usd }};
+                const paidUsdEl = document.getElementById('paid_usd');
+                const paidVndEl = document.getElementById('paid_vnd');
+                const rateEl = document.getElementById('rate');
+                const rate = parseFloat(unformatNumber(rateEl.value)) || 25000;
+                
+                const additionalPaidUsd = parseFloat(paidUsdEl?.value || 0);
+                const additionalPaidVnd = parseFloat(paidVndEl?.value || 0);
+                const additionalPaidUsdTotal = additionalPaidUsd + (additionalPaidVnd / rate);
+                const totalPaidUsd = currentPaidUsd + additionalPaidUsdTotal;
+                
+                // LOGIC MỚI: Cho phép trả VND >= tổng VND gốc (dù USD có thể thừa do tỷ giá thay đổi)
+                const originalTotalVnd = {{ $sale->original_total_vnd ?? $sale->total_vnd }};
+                const shouldBlock = totalPaidUsd > totalUsd && totalPaidVnd < originalTotalVnd;
+                
+                if (shouldBlock) {
                     e.preventDefault();
-                    alert('⚠️ Cảnh báo!\n\nSố tiền trả vượt quá tổng hóa đơn!\n\n' +
-                          'Tổng hóa đơn: ' + totalVnd.toLocaleString('vi-VN') + 'đ\n' +
-                          'Đã trả trước: ' + currentPaid.toLocaleString('vi-VN') + 'đ\n' +
-                          'Trả thêm: ' + additionalPaid.toLocaleString('vi-VN') + 'đ\n' +
-                          'Tổng trả: ' + totalPaid.toLocaleString('vi-VN') + 'đ\n\n' +
-                          'Vui lòng điều chỉnh số tiền!');
+                    
+                    // Kiểm tra xem phiếu có item USD không
+                    const rows = document.querySelectorAll('#items-table tbody tr');
+                    let hasUsdItem = false;
+                    let hasVndItem = false;
+                    
+                    rows.forEach(row => {
+                        const currency = row.querySelector('[name*="[currency]"]')?.value;
+                        if (currency === 'USD' || currency === 'BOTH') {
+                            hasUsdItem = true;
+                        }
+                        if (currency === 'VND' || currency === 'BOTH') {
+                            hasVndItem = true;
+                        }
+                    });
+                    
+                    let message = '⚠️ Cảnh báo!\n\nSố tiền trả chưa đủ!\n\n';
+                    
+                    if (hasUsdItem) {
+                        // Phiếu có item USD → hiển thị USD là chính
+                        message += 'Tổng hóa đơn: $' + totalUsd.toFixed(2) + '\n';
+                        message += 'Đã trả trước: $' + currentPaidUsd.toFixed(2) + '\n';
+                        message += 'Trả thêm: $' + additionalPaidUsdTotal.toFixed(2) + '\n';
+                        message += 'Tổng trả: $' + totalPaidUsd.toFixed(2) + '\n\n';
+                    } else if (hasVndItem) {
+                        // Phiếu chỉ có item VND → hiển thị VND và quy đổi sang USD
+                        const currentPaidVnd = currentPaidUsd * rate;
+                        const additionalPaidVndTotal = additionalPaidUsdTotal * rate;
+                        const totalPaidVnd = totalPaidUsd * rate;
+                        
+                        message += 'Tổng hóa đơn: ' + totalVnd.toLocaleString('vi-VN') + 'đ (≈$' + totalUsd.toFixed(2) + ')\n';
+                        message += 'Đã trả trước: ' + currentPaidVnd.toLocaleString('vi-VN') + 'đ (≈$' + currentPaidUsd.toFixed(2) + ')\n';
+                        message += 'Trả thêm: ' + additionalPaidVndTotal.toLocaleString('vi-VN') + 'đ (≈$' + additionalPaidUsdTotal.toFixed(2) + ')\n';
+                        message += 'Tổng trả: ' + totalPaidVnd.toLocaleString('vi-VN') + 'đ (≈$' + totalPaidUsd.toFixed(2) + ')\n\n';
+                    }
+                    
+                    message += 'Vui lòng điều chỉnh số tiền!';
+                    alert(message);
                     
                     // Highlight các ô nhập
-                    const paidUsdEl = document.getElementById('paid_usd');
-                    const paidVndEl = document.getElementById('paid_vnd');
-                    if (paidUsdEl) paidUsdEl.classList.add('border-red-500', 'bg-red-50');
-                    if (paidVndEl) paidVndEl.classList.add('border-red-500', 'bg-red-50');
+                    const paidUsdDisplayEl = document.getElementById('paid_usd_display');
+                    const paidVndDisplayEl = document.getElementById('paid_vnd_display');
+                    if (paidUsdDisplayEl) paidUsdDisplayEl.classList.add('border-red-500', 'bg-red-50');
+                    if (paidVndDisplayEl) paidVndDisplayEl.classList.add('border-red-500', 'bg-red-50');
                     
                     return false;
                 }
             @else
                 // Phiếu pending: kiểm tra tổng đã trả
-                const paid = parseFloat(totalPaidValueEl.value) || 0;
+                const totalUsdEl = document.getElementById('total_usd');
+                const totalUsdTxt = totalUsdEl.value.replace(/[^\d.]/g, '');
+                const totalUsd = parseFloat(totalUsdTxt) || 0;
                 
-                if (paid > totalVnd) {
+                const paidUsdEl = document.getElementById('paid_usd');
+                const paidVndEl = document.getElementById('paid_vnd');
+                const rateEl = document.getElementById('rate');
+                const rate = parseFloat(unformatNumber(rateEl.value)) || 25000;
+                
+                const paidUsd = parseFloat(paidUsdEl?.value || 0);
+                const paidVnd = parseFloat(paidVndEl?.value || 0);
+                const totalPaidUsd = paidUsd + (paidVnd / rate);
+                const totalPaidVnd = parseFloat(totalPaidValueEl.value) || 0;
+                
+                // LOGIC MỚI: Cho phép trả VND >= tổng VND gốc (dù USD có thể thừa do tỷ giá thay đổi)
+                const originalTotalVnd = {{ $sale->original_total_vnd ?? $sale->total_vnd }};
+                const shouldBlock = totalPaidUsd > totalUsd && totalPaidVnd < originalTotalVnd;
+                
+                if (shouldBlock) {
                     e.preventDefault();
-                    alert('⚠️ Cảnh báo!\n\nSố tiền trả vượt quá tổng hóa đơn!\n\n' +
-                          'Tổng hóa đơn: ' + totalVnd.toLocaleString('vi-VN') + 'đ\n' +
-                          'Tổng trả: ' + paid.toLocaleString('vi-VN') + 'đ\n\n' +
-                          'Vui lòng điều chỉnh số tiền!');
+                    
+                    // Kiểm tra xem phiếu có item USD không
+                    const rows = document.querySelectorAll('#items-table tbody tr');
+                    let hasUsdItem = false;
+                    let hasVndItem = false;
+                    
+                    rows.forEach(row => {
+                        const currency = row.querySelector('[name*="[currency]"]')?.value;
+                        if (currency === 'USD' || currency === 'BOTH') {
+                            hasUsdItem = true;
+                        }
+                        if (currency === 'VND' || currency === 'BOTH') {
+                            hasVndItem = true;
+                        }
+                    });
+                    
+                    let message = '⚠️ Cảnh báo!\n\nSố tiền trả chưa đủ!\n\n';
+                    
+                    if (hasUsdItem) {
+                        // Phiếu có item USD → hiển thị USD là chính
+                        message += 'Tổng hóa đơn: $' + totalUsd.toFixed(2) + '\n';
+                        message += 'Tổng trả: $' + totalPaidUsd.toFixed(2) + '\n\n';
+                    } else if (hasVndItem) {
+                        // Phiếu chỉ có item VND → hiển thị VND và quy đổi sang USD
+                        message += 'Tổng hóa đơn: ' + totalVnd.toLocaleString('vi-VN') + 'đ (≈$' + totalUsd.toFixed(2) + ')\n';
+                        message += 'Tổng trả: ' + totalPaidVnd.toLocaleString('vi-VN') + 'đ (≈$' + totalPaidUsd.toFixed(2) + ')\n\n';
+                    }
+                    
+                    message += 'Vui lòng điều chỉnh số tiền!';
+                    alert(message);
                     
                     // Highlight các ô nhập
-                    const paidUsdEl = document.getElementById('paid_usd');
-                    const paidVndEl = document.getElementById('paid_vnd');
-                    if (paidUsdEl) paidUsdEl.classList.add('border-red-500', 'bg-red-50');
-                    if (paidVndEl) paidVndEl.classList.add('border-red-500', 'bg-red-50');
+                    const paidUsdDisplayEl = document.getElementById('paid_usd_display');
+                    const paidVndDisplayEl = document.getElementById('paid_vnd_display');
+                    if (paidUsdDisplayEl) paidUsdDisplayEl.classList.add('border-red-500', 'bg-red-50');
+                    if (paidVndDisplayEl) paidVndDisplayEl.classList.add('border-red-500', 'bg-red-50');
                     
                     return false;
                 }
@@ -1403,7 +1595,89 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 });
+
+// Show exchange rate info modal
+function showExchangeRateInfo() {
+    const modal = document.getElementById('exchangeRateInfoModal');
+    modal.classList.remove('hidden');
+    modal.classList.add('flex');
+}
+
+function closeExchangeRateInfo() {
+    const modal = document.getElementById('exchangeRateInfoModal');
+    modal.classList.add('hidden');
+    modal.classList.remove('flex');
+}
 </script>
+
+<!-- Exchange Rate Info Modal -->
+<div id="exchangeRateInfoModal" class="hidden fixed inset-0 bg-black bg-opacity-50 items-center justify-center z-50" onclick="closeExchangeRateInfo()">
+    <div class="bg-white rounded-xl shadow-2xl max-w-md w-full mx-4 overflow-hidden" onclick="event.stopPropagation()">
+        <!-- Header -->
+        <div class="bg-blue-600 p-6 text-white">
+            <div class="flex items-center justify-between">
+                <div class="flex items-center">
+                    <div class="bg-white bg-opacity-20 rounded-full p-3 mr-3">
+                        <i class="fas fa-info-circle text-2xl"></i>
+                    </div>
+                    <h3 class="text-xl font-bold">Lưu ý về Tỷ giá</h3>
+                </div>
+                <button onclick="closeExchangeRateInfo()" class="text-white hover:bg-white hover:bg-opacity-20 rounded-full p-2 transition-all">
+                    <i class="fas fa-times text-xl"></i>
+                </button>
+            </div>
+        </div>
+        
+        <!-- Content -->
+        <div class="p-6 space-y-3">
+            <!-- USD Payment -->
+            <div class="bg-blue-50 rounded-lg p-4 border-l-4 border-blue-500">
+                <div class="flex items-start">
+                    <div class="bg-blue-500 text-white rounded-full w-8 h-8 flex items-center justify-center mr-3 mt-0.5 flex-shrink-0">
+                        <i class="fas fa-dollar-sign text-sm"></i>
+                    </div>
+                    <div>
+                        <h4 class="font-bold text-gray-800 mb-1">Khi trả USD</h4>
+                        <p class="text-sm text-gray-600">Không áp dụng tỷ giá, trừ trực tiếp vào công nợ USD, giá VND hiện tại là giá trị áp dụng với tỉ giá cũ nên không được chính xác (có sai số)</p>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- VND Payment -->
+            <div class="bg-blue-50 rounded-lg p-4 border-l-4 border-blue-500">
+                <div class="flex items-start">
+                    <div class="bg-blue-500 text-white rounded-full w-8 h-8 flex items-center justify-center mr-3 mt-0.5 flex-shrink-0">
+                        <i class="fas fa-dong-sign text-sm"></i>
+                    </div>
+                    <div>
+                        <h4 class="font-bold text-gray-800 mb-1">Khi trả VND</h4>
+                        <p class="text-sm text-gray-600">Áp dụng tỷ giá hiện tại để quy đổi sang USD</p>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Important Note -->
+            <div class="bg-amber-50 rounded-lg p-4 border-l-4 border-amber-500">
+                <div class="flex items-start">
+                    <div class="bg-amber-500 text-white rounded-full w-8 h-8 flex items-center justify-center mr-3 mt-0.5 flex-shrink-0">
+                        <i class="fas fa-exclamation-triangle text-sm"></i>
+                    </div>
+                    <div>
+                        <h4 class="font-bold text-gray-800 mb-1">Lưu ý quan trọng</h4>
+                        <p class="text-sm text-gray-600">Nếu bạn trả USD thì số tiền VND hiển thị chỉ là <span class="font-semibold">tham khảo</span> (dùng tỷ giá gốc), không phải số tiền thực tế thanh toán.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Footer -->
+        <div class="bg-gray-50 px-6 py-4 flex justify-end">
+            <button onclick="closeExchangeRateInfo()" class="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 rounded-lg font-medium transition-all">
+                <i class="fas fa-check mr-2"></i>Đã hiểu
+            </button>
+        </div>
+    </div>
+</div>
 
 @endpush
 @endsection

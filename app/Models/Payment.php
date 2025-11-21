@@ -14,6 +14,7 @@ class Payment extends Model
         'amount',
         'payment_usd',
         'payment_vnd',
+        'payment_exchange_rate',
         'payment_method',
         'transaction_type',
         'payment_date',
@@ -27,6 +28,7 @@ class Payment extends Model
             'amount' => 'decimal:2',
             'payment_usd' => 'decimal:2',
             'payment_vnd' => 'decimal:2',
+            'payment_exchange_rate' => 'decimal:2',
             'payment_date' => 'datetime',
         ];
     }

@@ -47,7 +47,7 @@ class SalesController extends Controller
 
     public function index(Request $request)
     {
-        $query = Sale::with(['customer', 'showroom', 'user'])
+        $query = Sale::with(['customer', 'showroom', 'user', 'payments'])
             ->orderBy('created_at', 'desc'); // Phiếu mới tạo lên trên
 
         // Search - tìm theo mã HD, tên KH, SĐT, email, sản phẩm
@@ -249,6 +249,12 @@ class SalesController extends Controller
                 ? $request->payment_amount 
                 : 0;
 
+            // Xử lý exchange_rate - loại bỏ dấu phẩy, chấm
+            $exchangeRate = $request->exchange_rate;
+            if (is_string($exchangeRate)) {
+                $exchangeRate = (float) str_replace([',', '.', ' '], '', $exchangeRate);
+            }
+
             // Create sale
             $sale = Sale::create([
                 'invoice_code' => $request->invoice_code ?: Sale::generateInvoiceCode($request->showroom_id),
@@ -256,7 +262,7 @@ class SalesController extends Controller
                 'showroom_id' => $request->showroom_id,
                 'user_id' => $user->id,
                 'sale_date' => $request->sale_date,
-                'exchange_rate' => $request->exchange_rate,
+                'exchange_rate' => $exchangeRate,
                 'discount_percent' => $request->discount_percent ?? 0,
                 'subtotal_usd' => 0,
                 'subtotal_vnd' => 0,
@@ -485,17 +491,35 @@ class SalesController extends Controller
             // Get default user
             $user = $this->getDefaultUser();
 
+            // Xử lý exchange_rate 
+            // CHÚ Ý: Chỉ cho phép thay đổi tỷ giá khi phiếu còn PENDING
+            // Khi đã duyệt (completed), tỷ giá KHÔNG được thay đổi để đảm bảo tính toán chính xác
+            $exchangeRate = $sale->exchange_rate; // Mặc định giữ nguyên tỷ giá cũ
+            
+            if ($sale->sale_status === 'pending' && $request->filled('exchange_rate')) {
+                // Phiếu pending → Cho phép thay đổi tỷ giá
+                $newExchangeRate = $request->exchange_rate;
+                if (is_string($newExchangeRate)) {
+                    $newExchangeRate = (float) str_replace([',', '.', ' '], '', $newExchangeRate);
+                }
+                $exchangeRate = $newExchangeRate;
+            }
+            // Nếu phiếu đã completed → Giữ nguyên exchange_rate cũ
+
             // Update sale
             $sale->update([
                 'customer_id' => $customer->id,
                 'showroom_id' => $request->showroom_id,
                 'user_id' => $user->id,
                 'sale_date' => $request->sale_date,
-                'exchange_rate' => $request->exchange_rate,
+                'exchange_rate' => $exchangeRate, // Chỉ thay đổi nếu pending
                 'discount_percent' => $request->discount_percent ?? 0,
                 'notes' => $request->notes,
                 'invoice_code' => $request->invoice_code ?: $sale->invoice_code,
             ]);
+            
+            // Refresh để đảm bảo dữ liệu mới được load
+            $sale->refresh();
 
             // Nếu CHƯA có return: Cho phép sửa sản phẩm
             if (!$hasReturns) {
@@ -596,11 +620,24 @@ class SalesController extends Controller
             if ($request->filled('payment_amount') && $request->payment_amount > 0) {
                 if ($sale->sale_status === 'completed') {
                     // Phiếu đã duyệt - tạo payment mới (trả thêm)
+                    $paymentUsd = $request->payment_usd ?? 0;
+                    $paymentVnd = $request->payment_vnd ?? 0;
+                    
+                    // Lấy tỉ giá hiện tại - CHỈ dùng khi trả VND
+                    $paymentExchangeRate = null;
+                    if ($paymentVnd > 0) {
+                        $paymentExchangeRate = $request->exchange_rate ?? $sale->exchange_rate;
+                        if (is_string($paymentExchangeRate)) {
+                            $paymentExchangeRate = (float) str_replace([',', '.', ' '], '', $paymentExchangeRate);
+                        }
+                    }
+                    
                     Payment::create([
                         'sale_id' => $sale->id,
                         'amount' => $request->payment_amount,
-                        'payment_usd' => $request->payment_usd ?? 0,
-                        'payment_vnd' => $request->payment_vnd ?? 0,
+                        'payment_usd' => $paymentUsd,
+                        'payment_vnd' => $paymentVnd,
+                        'payment_exchange_rate' => $paymentExchangeRate, // NULL nếu chỉ trả USD
                         'payment_method' => $request->payment_method ?? 'cash',
                         'transaction_type' => 'sale_payment',
                         'payment_date' => now(),
@@ -938,11 +975,20 @@ class SalesController extends Controller
 
             // Tạo payment record từ paid_amount ban đầu (nếu có)
             if ($sale->paid_amount > 0) {
+                // Xác định payment_exchange_rate: CHỈ lưu khi có thanh toán VND
+                $paymentExchangeRate = null;
+                if (($sale->payment_vnd ?? 0) > 0) {
+                    // Có thanh toán VND → Lưu tỷ giá tại thời điểm này
+                    $paymentExchangeRate = $sale->exchange_rate;
+                }
+                // Nếu chỉ trả USD → payment_exchange_rate = null
+                
                 Payment::create([
                     'sale_id' => $sale->id,
                     'amount' => $sale->paid_amount,
                     'payment_usd' => $sale->payment_usd ?? 0,
                     'payment_vnd' => $sale->payment_vnd ?? 0,
+                    'payment_exchange_rate' => $paymentExchangeRate, // Lưu tỷ giá tại thời điểm thanh toán
                     'payment_method' => 'cash', // Default
                     'transaction_type' => 'sale_payment',
                     'payment_date' => now(),

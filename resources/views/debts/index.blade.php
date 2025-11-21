@@ -176,11 +176,11 @@
                     <th class="px-2 py-2 text-left text-xs">Mã HĐ</th>
                     <th class="px-2 py-2 text-left text-xs">Khách hàng</th>
                     <th class="px-2 py-2 text-left text-xs">SĐT</th>
-                    <th class="px-2 py-2 text-right text-xs">Tổng HĐ</th>
-                    <th class="px-2 py-2 text-right text-xs">Trả lần này</th>
+                    <th class="px-2 py-2 text-right text-xs">Tổng HĐ (USD)</th>
+                    <th class="px-2 py-2 text-right text-xs">Trả lần này (USD)</th>
                     <th class="px-2 py-2 text-center text-xs">P.Thức</th>
                     <th class="px-2 py-2 text-center text-xs">Loại GD</th>
-                    <th class="px-2 py-2 text-right text-xs">Còn thiếu</th>
+                    <th class="px-2 py-2 text-right text-xs">Còn thiếu (USD)</th>
                     <th class="px-2 py-2 text-center text-xs">Tình trạng</th>
                     <th class="px-2 py-2 text-center text-xs">Thao tác</th>
                 </tr>
@@ -222,23 +222,30 @@
                             }
                         @endphp
                         
-                        @if($hasReturns && $sale->total_vnd == 0)
+                        @php
+                            $originalTotalUsd = $sale->original_total_usd ?? ($originalTotal / $sale->exchange_rate);
+                        @endphp
+                        @if($hasReturns && $sale->total_usd == 0)
                             <!-- Trả hết - hiển thị giá gốc không gạch ngang -->
-                            <div class="text-gray-900">{{ number_format($originalTotal, 0, ',', '.') }}đ</div>
+                            <div class="text-gray-900">${{ number_format($originalTotalUsd, 2) }}</div>
                             <div class="text-xs text-red-600">
                                 <i class="fas fa-undo"></i>Trả hết
                             </div>
-                        @elseif(($hasReturns || $hasExchanges) && $originalTotal != $sale->total_vnd)
+                        @elseif(($hasReturns || $hasExchanges) && $originalTotalUsd != $sale->total_usd)
                             <!-- Trả/Đổi một phần - hiển thị giá gốc gạch ngang và giá mới -->
-                            <div class="text-xs text-gray-400 line-through">{{ number_format($originalTotal, 0, ',', '.') }}đ</div>
-                            <div class="text-orange-600">{{ number_format($sale->total_vnd, 0, ',', '.') }}đ</div>
+                            <div class="text-xs text-gray-400 line-through">${{ number_format($originalTotalUsd, 2) }}</div>
+                            <div class="text-orange-600">${{ number_format($sale->total_usd, 2) }}</div>
                         @else
                             <!-- Không có trả/đổi hàng -->
-                            <div class="text-gray-900">{{ number_format($sale->total_vnd, 0, ',', '.') }}đ</div>
+                            <div class="text-gray-900">${{ number_format($sale->total_usd, 2) }}</div>
                         @endif
                     </td>
                     <td class="px-2 py-2 text-right text-green-600 font-bold text-xs whitespace-nowrap">
-                        {{ number_format($payment->amount, 0, ',', '.') }}đ
+                        @php
+                            // Tính số tiền USD đã trả trong lần này
+                            $paymentUsd = $payment->amount / $payment->sale->exchange_rate;
+                        @endphp
+                        ${{ number_format($paymentUsd, 2) }}
                     </td>
                     <td class="px-2 py-2 text-center">
                         @if($payment->payment_method === 'cash')
@@ -280,13 +287,14 @@
                             
                             if ($isCancelled) {
                                 // Đã hủy - không còn nợ
-                                $remainingDebt = 0;
+                                $remainingDebtUsd = 0;
                             } else {
-                                // Tính số nợ còn lại SAU khi thanh toán này
-                                $paidUpToNow = $payment->sale->payments()
+                                // Tính số nợ còn lại SAU khi thanh toán này (theo USD)
+                                $paidUpToNowVnd = $payment->sale->payments()
                                     ->where('id', '<=', $payment->id)
                                     ->sum('amount');
-                                $remainingDebt = $payment->sale->total_vnd - $paidUpToNow;
+                                $paidUpToNowUsd = $paidUpToNowVnd / $payment->sale->exchange_rate;
+                                $remainingDebtUsd = $payment->sale->total_usd - $paidUpToNowUsd;
                             }
                         @endphp
                         @if($isCancelled)
@@ -294,8 +302,8 @@
                                 (Đã hủy)
                             </span>
                         @else
-                            <span class="{{ $remainingDebt > 0 ? 'text-red-600' : ($remainingDebt < 0 ? 'text-green-600' : 'text-gray-600') }}">
-                                {{ number_format($remainingDebt, 0, ',', '.') }}đ
+                            <span class="{{ $remainingDebtUsd > 0 ? 'text-red-600' : ($remainingDebtUsd < 0 ? 'text-green-600' : 'text-gray-600') }}">
+                                ${{ number_format($remainingDebtUsd, 2) }}
                             </span>
                         @endif
                     </td>
