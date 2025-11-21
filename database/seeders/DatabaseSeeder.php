@@ -14,13 +14,13 @@ class DatabaseSeeder extends Seeder
     public function run(): void
     {
         $this->call([
-            // PermissionsSeeder::class,  // Tạo roles và permissions trước
-            // ShowroomSeeder::class,
-            // SupplySeeder::class,
-            // PaintingSeeder::class,
+            PermissionsSeeder::class,  // Tạo roles và permissions trước
+            ShowroomSeeder::class,
+            SupplySeeder::class,
+            PaintingSeeder::class,
             CustomerSeeder::class,
             UserSeeder::class,  // Tạo users sau khi có roles
-            //FrameSeeder::class,  // Tạo khung tranh sau khi có supplies
+            FrameSeeder::class,  // Tạo khung tranh sau khi có supplies
             // SaleSeeder::class,
             // ReturnSeeder::class,
         ]);
