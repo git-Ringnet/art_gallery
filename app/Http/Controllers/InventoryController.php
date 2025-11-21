@@ -29,13 +29,13 @@ class InventoryController extends Controller
         $dateFrom = $request->get('date_from');
         $dateTo = $request->get('date_to');
 
-        // Check data scope permission
+        // Check view permission
         $canView = true;
         if (\Illuminate\Support\Facades\Auth::check() && \Illuminate\Support\Facades\Auth::user()->email !== 'admin@example.com') {
             $role = \Illuminate\Support\Facades\Auth::user()->role;
             if ($role) {
-                $dataScope = $role->getDataScope('inventory');
-                if ($dataScope === 'none') {
+                $perm = $role->getModulePermissions('inventory');
+                if (!$perm || !$perm->can_view) {
                     $canView = false;
                 }
             }
@@ -75,11 +75,25 @@ class InventoryController extends Controller
                   });
             });
         }
-        if ($dateFrom) {
-            $paintingsQuery->where('import_date', '>=', $dateFrom);
+        // Check filter permissions
+        $canFilterDate = true;
+        if (\Illuminate\Support\Facades\Auth::check() && \Illuminate\Support\Facades\Auth::user()->email !== 'admin@example.com') {
+            $role = \Illuminate\Support\Facades\Auth::user()->role;
+            if ($role) {
+                $perm = $role->getModulePermissions('inventory');
+                if ($perm && !$perm->can_filter_by_date) {
+                    $canFilterDate = false;
+                }
+            }
         }
-        if ($dateTo) {
-            $paintingsQuery->where('import_date', '<=', $dateTo);
+
+        if ($canFilterDate) {
+            if ($dateFrom) {
+                $paintingsQuery->where('import_date', '>=', $dateFrom);
+            }
+            if ($dateTo) {
+                $paintingsQuery->where('import_date', '<=', $dateTo);
+            }
         }
         $paintings = $paintingsQuery->orderBy('created_at', 'desc')->get();
 
@@ -91,11 +105,13 @@ class InventoryController extends Controller
                   ->orWhere('name', 'like', "%{$search}%");
             });
         }
-        if ($dateFrom) {
-            $suppliesQuery->where('import_date', '>=', $dateFrom);
-        }
-        if ($dateTo) {
-            $suppliesQuery->where('import_date', '<=', $dateTo);
+        if ($canFilterDate) {
+            if ($dateFrom) {
+                $suppliesQuery->where('import_date', '>=', $dateFrom);
+            }
+            if ($dateTo) {
+                $suppliesQuery->where('import_date', '<=', $dateTo);
+            }
         }
         $supplies = $suppliesQuery->orderBy('created_at', 'desc')->get();
 
@@ -207,15 +223,21 @@ class InventoryController extends Controller
             'width' => 'nullable|numeric',
             'height' => 'nullable|numeric',
             'year' => 'nullable',
-            'price' => 'required|numeric|min:0',
+            'price_usd' => 'nullable|numeric|min:0',
+            'price_vnd' => 'nullable|numeric|min:0',
             'import_date' => 'required|date',
             'export_date' => 'nullable|date|after:import_date',
             'notes' => 'nullable|string',
-            'image' => 'nullable|image|max:2048',
+            'image' => 'nullable|image|max:5120',
         ], [
             'code.unique' => 'Mã tranh đã tồn tại trong hệ thống.',
             'code.required' => 'Vui lòng nhập mã tranh.',
         ]);
+
+        // Validate that at least one price is provided
+        if (empty($validated['price_usd']) && empty($validated['price_vnd'])) {
+            return back()->withErrors(['price_usd' => 'Vui lòng nhập ít nhất một loại giá (USD hoặc VND).'])->withInput();
+        }
 
         // Persist painting
         $imagePath = null;
@@ -231,8 +253,8 @@ class InventoryController extends Controller
             'width' => $validated['width'] ?? null,
             'height' => $validated['height'] ?? null,
             'paint_year' => $validated['year'] ?? null,
-            'price_usd' => $validated['price'],
-            'price_vnd' => null,
+            'price_usd' => $validated['price_usd'] ?? null,
+            'price_vnd' => $validated['price_vnd'] ?? null,
             'image' => $imagePath,
             'quantity' => 1,
             'import_date' => $validated['import_date'],
@@ -255,7 +277,7 @@ class InventoryController extends Controller
             'length_per_tree' => 'required|numeric|min:0',
             'tree_count' => 'required|integer|min:1',
             'notes' => 'nullable|string',
-            'image' => 'nullable|image|max:2048',
+            'image' => 'nullable|image|max:5120',
         ], [
             'code.required' => 'Vui lòng nhập mã vật tư.',
             'length_per_tree.required' => 'Vui lòng nhập chiều dài mỗi cây.',
@@ -355,7 +377,7 @@ class InventoryController extends Controller
                 'import_date' => 'nullable|date',
                 'export_date' => 'nullable|date|after:import_date',
                 'notes' => 'nullable|string',
-                'image' => 'nullable|image|max:2048',
+                'image' => 'nullable|image|max:5120',
                 'remove_image' => 'nullable|in:0,1',
             ], [
                 'code.unique' => 'Mã tranh đã tồn tại trong hệ thống.',
@@ -458,7 +480,7 @@ class InventoryController extends Controller
             'tree_count' => 'nullable|integer|min:0',
             'min_quantity' => 'nullable|numeric|min:0',
             'notes' => 'nullable|string',
-            'image' => 'nullable|image|max:2048',
+            'image' => 'nullable|image|max:5120',
             'remove_image' => 'nullable|in:0,1',
         ], [
             'code.unique' => 'Mã vật tư đã tồn tại trong hệ thống.',
@@ -512,13 +534,13 @@ class InventoryController extends Controller
         $currentPage = (int) $request->get('page', 1);
         $perPage = 10;
 
-        // Check data scope permission
+        // Check view permission
         $canView = true;
         if (\Illuminate\Support\Facades\Auth::check() && \Illuminate\Support\Facades\Auth::user()->email !== 'admin@example.com') {
             $role = \Illuminate\Support\Facades\Auth::user()->role;
             if ($role) {
-                $dataScope = $role->getDataScope('inventory');
-                if ($dataScope === 'none') {
+                $perm = $role->getModulePermissions('inventory');
+                if (!$perm || !$perm->can_view) {
                     $canView = false;
                 }
             }
@@ -533,11 +555,25 @@ class InventoryController extends Controller
         if ($search) {
             $paintingsQuery->search($search);
         }
-        if ($dateFrom) {
-            $paintingsQuery->where('import_date', '>=', $dateFrom);
+        // Check filter permissions
+        $canFilterDate = true;
+        if (\Illuminate\Support\Facades\Auth::check() && \Illuminate\Support\Facades\Auth::user()->email !== 'admin@example.com') {
+            $role = \Illuminate\Support\Facades\Auth::user()->role;
+            if ($role) {
+                $perm = $role->getModulePermissions('inventory');
+                if ($perm && !$perm->can_filter_by_date) {
+                    $canFilterDate = false;
+                }
+            }
         }
-        if ($dateTo) {
-            $paintingsQuery->where('import_date', '<=', $dateTo);
+
+        if ($canFilterDate) {
+            if ($dateFrom) {
+                $paintingsQuery->where('import_date', '>=', $dateFrom);
+            }
+            if ($dateTo) {
+                $paintingsQuery->where('import_date', '<=', $dateTo);
+            }
         }
         $paintings = $paintingsQuery->orderBy('created_at', 'desc')->get();
 
@@ -546,11 +582,13 @@ class InventoryController extends Controller
             $suppliesQuery->where('code', 'like', "%{$search}%")
                 ->orWhere('name', 'like', "%{$search}%");
         }
-        if ($dateFrom) {
-            $suppliesQuery->where('import_date', '>=', $dateFrom);
-        }
-        if ($dateTo) {
-            $suppliesQuery->where('import_date', '<=', $dateTo);
+        if ($canFilterDate) {
+            if ($dateFrom) {
+                $suppliesQuery->where('import_date', '>=', $dateFrom);
+            }
+            if ($dateTo) {
+                $suppliesQuery->where('import_date', '<=', $dateTo);
+            }
         }
         $supplies = $suppliesQuery->orderBy('created_at', 'desc')->get();
 
@@ -621,13 +659,13 @@ class InventoryController extends Controller
         $currentPage = (int) $request->get('page', 1);
         $perPage = 10;
 
-        // Check data scope permission
+        // Check view permission
         $canView = true;
         if (\Illuminate\Support\Facades\Auth::check() && \Illuminate\Support\Facades\Auth::user()->email !== 'admin@example.com') {
             $role = \Illuminate\Support\Facades\Auth::user()->role;
             if ($role) {
-                $dataScope = $role->getDataScope('inventory');
-                if ($dataScope === 'none') {
+                $perm = $role->getModulePermissions('inventory');
+                if (!$perm || !$perm->can_view) {
                     $canView = false;
                 }
             }
@@ -650,11 +688,25 @@ class InventoryController extends Controller
         if ($search) {
             $paintingsQuery->search($search);
         }
-        if ($dateFrom) {
-            $paintingsQuery->where('import_date', '>=', $dateFrom);
+        // Check filter permissions
+        $canFilterDate = true;
+        if (\Illuminate\Support\Facades\Auth::check() && \Illuminate\Support\Facades\Auth::user()->email !== 'admin@example.com') {
+            $role = \Illuminate\Support\Facades\Auth::user()->role;
+            if ($role) {
+                $perm = $role->getModulePermissions('inventory');
+                if ($perm && !$perm->can_filter_by_date) {
+                    $canFilterDate = false;
+                }
+            }
         }
-        if ($dateTo) {
-            $paintingsQuery->where('import_date', '<=', $dateTo);
+
+        if ($canFilterDate) {
+            if ($dateFrom) {
+                $paintingsQuery->where('import_date', '>=', $dateFrom);
+            }
+            if ($dateTo) {
+                $paintingsQuery->where('import_date', '<=', $dateTo);
+            }
         }
         $paintings = $paintingsQuery->orderBy('created_at', 'desc')->get();
 
@@ -663,11 +715,13 @@ class InventoryController extends Controller
             $suppliesQuery->where('code', 'like', "%{$search}%")
                 ->orWhere('name', 'like', "%{$search}%");
         }
-        if ($dateFrom) {
-            $suppliesQuery->where('import_date', '>=', $dateFrom);
-        }
-        if ($dateTo) {
-            $suppliesQuery->where('import_date', '<=', $dateTo);
+        if ($canFilterDate) {
+            if ($dateFrom) {
+                $suppliesQuery->where('import_date', '>=', $dateFrom);
+            }
+            if ($dateTo) {
+                $suppliesQuery->where('import_date', '<=', $dateTo);
+            }
         }
         $supplies = $suppliesQuery->orderBy('created_at', 'desc')->get();
 

@@ -87,7 +87,7 @@
             </div>
             
             <div>
-                <label class="block text-xs font-medium text-gray-700 mb-1">Ảnh vật tư (2Mb)</label>
+                <label class="block text-xs font-medium text-gray-700 mb-1">Ảnh vật tư (5Mb)</label>
                 @if($supply->image)
                     <div class="mb-2">
                         <img src="{{ asset('storage/' . $supply->image) }}" alt="{{ $supply->name }}" class="w-32 h-32 object-cover rounded border">

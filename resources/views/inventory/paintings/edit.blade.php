@@ -90,7 +90,7 @@
                 </div>
                 <div>
                     <label class="block text-xs font-medium text-gray-700 mb-1">Giá USD</label>
-                    <input type="number" step="0.01" name="price_usd" value="{{ old('price_usd', $painting->price_usd) }}"
+                    <input type="number" step="0.01" name="price_usd" value="{{ old('price_usd', $painting->price_usd) }}" required
                         class="w-full px-2 py-1.5 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                         placeholder="Ví dụ: 4500">
                 </div>
@@ -118,7 +118,7 @@
                         class="w-full px-2 py-1.5 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">{{ old('notes', $painting->notes) }}</textarea>
                 </div>
                 <div class="md:col-span-2">
-                    <label class="block text-xs font-medium text-gray-700 mb-1">Ảnh tranh (2Mb)</label>
+                    <label class="block text-xs font-medium text-gray-700 mb-1">Ảnh tranh (5Mb)</label>
                     <div class="flex items-center space-x-3">
                         @if($painting->image)
                             <div class="relative group">
