@@ -36,7 +36,7 @@ class ShowroomController extends Controller
         $validated = $request->validate([
             'code' => 'required|string|max:50|unique:showrooms,code',
             'name' => 'required|string|max:255',
-            'phone' => 'required|string|max:20',
+            'phone' => 'required|string|max:50',
             'address' => 'required|string',
             'bank_name' => 'nullable|string|max:100',
             'bank_account' => 'nullable|string|max:50',
@@ -68,7 +68,7 @@ class ShowroomController extends Controller
         $validated = $request->validate([
             'code' => 'required|string|max:50|unique:showrooms,code,' . $id,
             'name' => 'required|string|max:255',
-            'phone' => 'required|string|max:20',
+            'phone' => 'required|string|max:50',
             'address' => 'required|string',
             'bank_name' => 'nullable|string|max:100',
             'bank_account' => 'nullable|string|max:50',
