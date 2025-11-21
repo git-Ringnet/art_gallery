@@ -64,7 +64,7 @@
         <button onclick="window.print()" class="bg-blue-600 text-white px-3 py-2 rounded-lg hover:bg-blue-700 text-sm">
             <i class="fas fa-print mr-1"></i>In
         </button>
-        <button onclick="window.close()" class="bg-gray-600 text-white px-3 py-2 rounded-lg hover:bg-gray-700 text-sm">
+        <button onclick="closePrintView()" class="bg-gray-600 text-white px-3 py-2 rounded-lg hover:bg-gray-700 text-sm">
             <i class="fas fa-times mr-1"></i>Đóng
         </button>
     </div>
@@ -462,11 +462,11 @@
                                 <td class="px-2 py-2 text-xs text-center align-top">{{ $item->quantity }}</td>
                                 <td class="px-2 py-2 text-xs text-right align-top">
                                     @if($item->currency == 'USD')
-                                        <div class="font-medium">${{ number_format($item->price_usd, 2) }}</div>
-                                        <div class="text-[10px] text-gray-700">{{ number_format($item->price_vnd) }}đ</div>
+                                        <div class="font-medium">${{ number_format((float)$item->price_usd, 2) }}</div>
+                                        <div class="text-[10px] text-gray-700">{{ number_format((float)$item->price_vnd) }}đ</div>
                                     @else
-                                        <div class="font-medium">{{ number_format($item->price_vnd) }}đ</div>
-                                        <div class="text-[10px] text-gray-700">${{ number_format($item->price_usd, 2) }}</div>
+                                        <div class="font-medium">{{ number_format((float)$item->price_vnd) }}đ</div>
+                                        <div class="text-[10px] text-gray-700">${{ number_format((float)$item->price_usd, 2) }}</div>
                                     @endif
                                 </td>
                                 <td class="px-2 py-2 text-xs text-right align-top field-item-discount" data-field="item-discount">
@@ -477,8 +477,8 @@
                                     @endif
                                 </td>
                                 <td class="px-2 py-2 text-xs text-right font-semibold align-top">
-                                    <div class="text-sm">${{ number_format($item->total_usd, 2) }}</div>
-                                    <div class="text-[10px] text-gray-700">{{ number_format($item->total_vnd) }}đ</div>
+                                    <div class="text-sm">${{ number_format((float)$item->total_usd, 2) }}</div>
+                                    <div class="text-[10px] text-gray-700">{{ number_format((float)$item->total_vnd) }}đ</div>
                                 </td>
                             </tr>
                         @endif
@@ -494,39 +494,39 @@
                     <div class="flex justify-between text-xs py-1 border-b">
                         <span class="text-gray-700"><span class="lang-vi">Tạm tính:</span><span class="lang-en hidden">Subtotal:</span></span>
                         <div class="text-right">
-                            <div class="font-medium text-gray-900">${{ number_format($sale->subtotal_usd, 2) }}</div>
-                            <div class="text-[10px] text-gray-700">{{ number_format($sale->subtotal_vnd) }}đ</div>
+                            <div class="font-medium text-gray-900">${{ number_format((float)$sale->subtotal_usd, 2) }}</div>
+                            <div class="text-[10px] text-gray-700">{{ number_format((float)$sale->subtotal_vnd) }}đ</div>
                         </div>
                     </div>
                     @if($sale->discount_percent > 0)
                     <div class="flex justify-between text-xs py-1 border-b field-total-discount" data-field="total-discount">
                         <span class="text-gray-700"><span class="lang-vi">Giảm ({{ $sale->discount_percent }}%):</span><span class="lang-en hidden">Disc ({{ $sale->discount_percent }}%):</span></span>
                         <div class="text-right">
-                            <div class="font-medium text-red-600">-${{ number_format($sale->discount_usd, 2) }}</div>
-                            <div class="text-[10px] text-red-500">-{{ number_format($sale->discount_vnd) }}đ</div>
+                            <div class="font-medium text-red-600">-${{ number_format((float)$sale->discount_usd, 2) }}</div>
+                            <div class="text-[10px] text-red-500">-{{ number_format((float)$sale->discount_vnd) }}đ</div>
                         </div>
                     </div>
                     @endif
                     <div class="flex justify-between text-sm font-bold py-2 border-t-2 border-gray-300">
                         <span class="text-gray-900"><span class="lang-vi">Tổng cộng:</span><span class="lang-en hidden">Total:</span></span>
                         <div class="text-right">
-                            <div class="text-gray-900">${{ number_format($sale->total_usd, 2) }}</div>
-                            <div class="text-xs text-gray-900">{{ number_format($sale->total_vnd) }}đ</div>
+                            <div class="text-gray-900">${{ number_format((float)$sale->total_usd, 2) }}</div>
+                            <div class="text-xs text-gray-900">{{ number_format((float)$sale->total_vnd) }}đ</div>
                         </div>
                     </div>
                     <div class="flex justify-between text-xs py-1">
                         <span class="text-gray-700"><span class="lang-vi">Đã TT:</span><span class="lang-en hidden">Paid:</span></span>
                         <div class="text-right">
-                            <div class="font-medium text-gray-900">${{ number_format($sale->paid_amount / $sale->exchange_rate, 2) }}</div>
-                            <div class="text-[10px] text-gray-700">{{ number_format($sale->paid_amount) }}đ</div>
+                            <div class="font-medium text-gray-900">${{ number_format($sale->paid_usd, 2) }}</div>
+                            <div class="text-[10px] text-gray-700">{{ number_format((float)$sale->paid_amount) }}đ</div>
                         </div>
                     </div>
                     @if($sale->debt_amount > 0)
                     <div class="flex justify-between text-xs py-1 bg-red-50 px-2 rounded field-debt-amount" data-field="debt-amount">
                         <span class="text-red-700 font-medium"><span class="lang-vi">Còn nợ:</span><span class="lang-en hidden">Balance:</span></span>
                         <div class="text-right">
-                            <div class="font-bold text-red-600">${{ number_format($sale->debt_amount / $sale->exchange_rate, 2) }}</div>
-                            <div class="text-[10px] text-red-600">{{ number_format($sale->debt_amount) }}đ</div>
+                            <div class="font-bold text-red-600">${{ number_format($sale->debt_usd, 2) }}</div>
+                            <div class="text-[10px] text-red-600">{{ number_format((float)$sale->debt_amount) }}đ</div>
                         </div>
                     </div>
                     @endif
@@ -977,6 +977,22 @@
         function loadOrientation() {
             const savedOrientation = localStorage.getItem(ORIENTATION_KEY) || 'portrait';
             applyOrientation(savedOrientation);
+        }
+
+        // Close print view safely
+        function closePrintView() {
+            // Nếu cửa sổ được mở từ script (popup), thử đóng nó
+            if (window.opener) {
+                window.close();
+            }
+            
+            // Nếu vẫn chưa đóng (hoặc không phải popup), chuyển hướng về trang chi tiết
+            // Sử dụng setTimeout để window.close() có thời gian thực thi nếu có thể
+            setTimeout(function() {
+                if (!window.closed) {
+                    window.location.href = "{{ route('sales.show', $sale->id) }}";
+                }
+            }, 100);
         }
 
         // Initialize on page load
