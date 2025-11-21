@@ -208,22 +208,68 @@
                     </div>
                     
                     <!-- Payment Section (chỉ hiện khi đổi hàng và khách phải trả thêm) -->
-                    <div id="payment-section" class="hidden border-t pt-3">
-                        <label class="block text-xs font-medium text-gray-700 mb-1">Khách trả thêm (VND)</label>
-                        <input type="text" name="payment_amount" id="payment-amount" class="w-full px-3 py-1.5 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500" value="0" oninput="formatPaymentVND(this)" onblur="formatPaymentVND(this)" onchange="updatePaymentSummary()" placeholder="Nhập số tiền khách trả...">
+                    <!-- Payment Section (chỉ hiện khi đổi hàng và khách phải trả thêm) -->
+                    <div id="payment-section" class="hidden mt-4 border-t pt-4">
+                        <h4 class="font-semibold text-gray-800 mb-3 text-sm">Thanh toán chênh lệch</h4>
                         
-                        <div class="mt-2 p-2 bg-blue-50 rounded-lg border border-blue-200">
-                            <div class="flex justify-between text-xs">
-                                <span class="text-gray-600">Tổng phải trả:</span>
-                                <span id="payment-total" class="font-semibold text-blue-600">0đ</span>
+                        <!-- Số tiền cần thanh toán -->
+                        <div class="bg-red-50 border border-red-100 rounded-lg p-3 mb-4">
+                            <div class="text-xs text-gray-600">Số tiền còn thanh toán:</div>
+                            <div class="text-lg font-bold text-red-600" id="payment-due-usd">$0.00</div>
+                            <div class="text-xs text-red-500" id="payment-due-vnd">0đ</div>
+                        </div>
+
+                        <!-- Tỷ giá -->
+                        <div class="bg-yellow-50 border border-yellow-100 rounded-lg p-3 mb-4">
+                            <label class="block text-xs font-medium text-gray-700 mb-1">
+                                <i class="fas fa-exchange-alt mr-1"></i>Tỷ giá hiện tại (VND/USD)
+                            </label>
+                            <input type="text" id="payment-exchange-rate" name="payment_exchange_rate" 
+                                   class="w-full px-2 py-1.5 text-sm border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
+                                   value="25,000" oninput="formatNumber(this); updatePaymentCalculations()" placeholder="25,000">
+                            <div class="text-xs text-yellow-700 mt-1">
+                                <i class="fas fa-info-circle mr-1"></i>Tỷ giá ban đầu: <span id="original-exchange-rate">25.000</span> VND/USD
                             </div>
-                            <div class="flex justify-between text-xs mt-1">
-                                <span class="text-gray-600">Còn nợ:</span>
-                                <span id="payment-debt" class="font-semibold text-red-600">0đ</span>
+                        </div>
+
+                        <!-- Inputs -->
+                        <div class="grid grid-cols-2 gap-3 mb-4">
+                            <div>
+                                <label class="block text-xs font-medium text-gray-700 mb-1">Trả bằng USD</label>
+                                <input type="text" id="payment-usd" name="payment_usd" 
+                                       class="w-full px-2 py-1.5 text-sm border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
+                                       placeholder="0.00" oninput="formatUSD(this); updatePaymentCalculations()">
+                            </div>
+                            <div>
+                                <label class="block text-xs font-medium text-gray-700 mb-1">Trả bằng VND</label>
+                                <input type="text" id="payment-vnd" name="payment_vnd" 
+                                       class="w-full px-2 py-1.5 text-sm border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
+                                       placeholder="0" oninput="formatNumber(this); updatePaymentCalculations()">
+                            </div>
+                        </div>
+
+                        <!-- Tổng quy đổi -->
+                        <div class="bg-blue-50 border border-blue-100 rounded-lg p-3 mb-3">
+                            <div class="text-xs font-medium text-blue-800 mb-2">Tổng thanh toán quy đổi</div>
+                            <div class="flex justify-between items-center mb-1">
+                                <span class="text-xs text-gray-600">Quy đổi USD:</span>
+                                <span class="font-bold text-blue-700 text-sm" id="total-converted-usd">$0.00</span>
+                            </div>
+                            <div class="flex justify-between items-center">
+                                <span class="text-xs text-gray-600">Quy đổi VND:</span>
+                                <span class="font-medium text-gray-700 text-xs" id="total-converted-vnd">0đ</span>
                             </div>
                         </div>
                         
-                        <input type="hidden" name="payment_method" value="cash">
+                        <!-- Phương thức thanh toán -->
+                        <div class="mb-3">
+                            <label class="block text-xs font-medium text-gray-700 mb-1">Phương thức thanh toán <span class="text-red-500">*</span></label>
+                            <select name="payment_method" class="w-full px-2 py-1.5 text-sm border border-gray-300 rounded-lg focus:ring-blue-500">
+                                <option value="cash">Tiền mặt</option>
+                                <option value="bank_transfer">Chuyển khoản</option>
+                                <option value="credit_card">Thẻ tín dụng</option>
+                            </select>
+                        </div>
                     </div>
                     
                     <div class="flex gap-2 pt-3">
@@ -312,6 +358,8 @@ function displayProducts(items, returnedQty) {
     const container = document.getElementById('products-container');
     container.innerHTML = '';
     
+    const exchangeRate = saleData ? parseFloat(saleData.exchange_rate || 25000) : 25000;
+    
     let hasItems = false;
     items.forEach(item => {
         const available = item.quantity - (returnedQty[item.id] || 0);
@@ -320,6 +368,10 @@ function displayProducts(items, returnedQty) {
         hasItems = true;
         const div = document.createElement('div');
         div.className = 'border rounded-lg p-3 mb-2';
+        
+        // Calculate USD price
+        const priceVnd = parseFloat(item.unit_price);
+        const priceUsd = priceVnd / exchangeRate;
         
         // Build image HTML
         const imageHtml = item.painting_image ? 
@@ -332,7 +384,10 @@ function displayProducts(items, returnedQty) {
                 <div class="flex-1">
                     <h4 class="font-medium text-sm">${item.item_name}</h4>
                     <p class="text-xs text-gray-600">Đã mua: ${item.quantity} | Đã trả: ${returnedQty[item.id] || 0} | Còn lại: ${available}</p>
-                    <p class="text-xs text-green-600">Đơn giá: ${parseFloat(item.unit_price).toLocaleString('vi-VN')}đ</p>
+                    <div class="text-xs mt-1">
+                        <div class="font-bold text-blue-600">Đơn giá: $${priceUsd.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</div>
+                        <div class="text-gray-500">≈ ${priceVnd.toLocaleString('vi-VN')}đ</div>
+                    </div>
                 </div>
                 <div class="text-right flex-shrink-0">
                     <label class="text-xs text-gray-600">Số lượng trả:</label>
@@ -388,6 +443,8 @@ function displaySuggestions(products) {
         return;
     }
     
+    const exchangeRate = saleData ? parseFloat(saleData.exchange_rate || 25000) : 25000;
+    
     container.innerHTML = products.map(product => {
         const code = product.code || '';
         const image = product.image || '';
@@ -395,14 +452,34 @@ function displaySuggestions(products) {
         const escapedCode = code.replace(/'/g, "\\'").replace(/"/g, '&quot;');
         const escapedImage = image.replace(/'/g, "\\'").replace(/"/g, '&quot;');
         
+        // Handle price - show original currency first (bold), converted currency in parentheses
+        let priceDisplay = '';
+        let priceVnd = 0;
+        let isUsd = false;
+        let priceUsdVal = 0;
+        
+        if (product.price_usd) {
+            // Painting with USD price - show USD first (bold)
+            isUsd = true;
+            priceUsdVal = parseFloat(product.price_usd);
+            priceVnd = priceUsdVal * exchangeRate;
+            priceDisplay = `<strong>$${priceUsdVal.toLocaleString('en-US', {minimumFractionDigits: 2})}</strong> (≈${priceVnd.toLocaleString('vi-VN')}đ)`;
+        } else if (product.price_vnd) {
+            // Supply or item with VND price - show VND first (bold)
+            isUsd = false;
+            priceVnd = parseFloat(product.price_vnd);
+            priceUsdVal = priceVnd / exchangeRate;
+            priceDisplay = `<strong>${priceVnd.toLocaleString('vi-VN')}đ</strong> (≈$${priceUsdVal.toLocaleString('en-US', {minimumFractionDigits: 2})})`;
+        }
+        
         return `
-        <div class="px-4 py-3 hover:bg-gray-50 cursor-pointer border-b last:border-b-0" onclick='selectProduct(${product.id}, "${product.type}", "${escapedName}", ${product.price_vnd}, ${product.quantity}, "${escapedCode}", "${escapedImage}")'>
+        <div class="px-4 py-3 hover:bg-gray-50 cursor-pointer border-b last:border-b-0" onclick='selectProduct(${product.id}, "${product.type}", "${escapedName}", ${priceVnd}, ${product.quantity}, "${escapedCode}", "${escapedImage}", ${isUsd}, ${priceUsdVal})'>
             <div class="flex justify-between items-center">
                 <div class="flex-1">
                     <p class="font-medium text-sm">${product.name}</p>
                     <p class="text-xs text-gray-600">
                         <span class="px-2 py-0.5 rounded-full ${product.type === 'painting' ? 'bg-purple-100 text-purple-800' : 'bg-blue-100 text-blue-800'}">${product.type === 'painting' ? 'Tranh' : 'Vật tư'}</span>
-                        ${code ? `| Mã: ${code}` : ''} | Tồn: ${product.quantity} | Giá: ${parseFloat(product.price_vnd).toLocaleString('vi-VN')}đ
+                        ${code ? `| Mã: ${code}` : ''} | Tồn: ${product.quantity} | Giá: ${priceDisplay}
                     </p>
                 </div>
                 <i class="fas fa-plus text-blue-600"></i>
@@ -414,8 +491,8 @@ function displaySuggestions(products) {
     container.classList.remove('hidden');
 }
 
-function selectProduct(id, type, name, price, maxQty, code = '', image = '') {
-    addExchangeProduct(id, type, name, price, maxQty, code, image);
+function selectProduct(id, type, name, price, maxQty, code = '', image = '', isUsd = false, priceUsd = 0) {
+    addExchangeProduct(id, type, name, price, maxQty, code, image, isUsd, priceUsd);
     document.getElementById('product-search').value = '';
     document.getElementById('product-suggestions').classList.add('hidden');
 }
@@ -427,7 +504,7 @@ document.addEventListener('click', function(e) {
     }
 });
 
-function addExchangeProduct(id, type, name, price, maxQty, code = '', image = '') {
+function addExchangeProduct(id, type, name, price, maxQty, code = '', image = '', isUsd = false, priceUsd = 0) {
     const existing = exchangeProducts.find(p => p.id === id && p.type === type);
     if (existing) {
         showNotification('Sản phẩm đã được thêm', 'warning');
@@ -450,6 +527,9 @@ function addExchangeProduct(id, type, name, price, maxQty, code = '', image = ''
         image,
         price, 
         defaultPrice: price,
+        priceUsd: priceUsd,
+        defaultPriceUsd: priceUsd,
+        isUsd: isUsd,
         maxQty: availableQty, 
         quantity: 1,
         discount: 0
@@ -471,10 +551,35 @@ function renderExchangeProducts() {
         return;
     }
     
+    const exchangeRate = saleData ? parseFloat(saleData.exchange_rate || 25000) : 25000;
+    
     container.innerHTML = exchangeProducts.map((product, index) => {
         const finalPrice = product.price * (1 - (product.discount || 0) / 100);
         const stockWarning = product.quantity > product.maxQty;
         const rowClass = stockWarning ? 'bg-red-50 border-l-2 border-red-500' : 'hover:bg-blue-50 border-l-2 border-transparent';
+        
+        let priceInputHtml = '';
+        let priceDisplayHtml = '';
+        
+        if (product.isUsd) {
+            const finalPriceUsd = product.priceUsd * (1 - (product.discount || 0) / 100);
+            priceInputHtml = `<input type="number" 
+                       class="w-28 px-2 py-1.5 border border-gray-300 rounded text-right text-xs font-medium focus:ring-2 focus:ring-blue-500"
+                       min="0" 
+                       step="0.01"
+                       value="${product.priceUsd}"
+                       onchange="updateExchangePriceUsd(${index}, this.value)">`;
+            priceDisplayHtml = `<div class="text-xs text-gray-500 mt-0.5">≈ ${finalPrice.toLocaleString('vi-VN')}đ</div>`;
+        } else {
+            const finalPriceUsd = finalPrice / exchangeRate;
+            priceInputHtml = `<input type="number" 
+                       class="w-28 px-2 py-1.5 border border-gray-300 rounded text-right text-xs font-medium focus:ring-2 focus:ring-blue-500"
+                       min="0" 
+                       step="1000"
+                       value="${product.price}"
+                       onchange="updateExchangePrice(${index}, this.value)">`;
+            priceDisplayHtml = `<div class="text-xs text-gray-500 mt-0.5">≈ $${finalPriceUsd.toLocaleString('en-US', {minimumFractionDigits: 2})}</div>`;
+        }
         
         return `
         <tr class="${rowClass} border-b transition-colors">
@@ -502,13 +607,8 @@ function renderExchangeProducts() {
                 ${stockWarning ? '<div class="text-xs text-red-600 font-medium mt-0.5"><i class="fas fa-exclamation-triangle mr-1"></i>Vượt tồn!</div>' : ''}
             </td>
             <td class="px-2 py-2 text-right">
-                <input type="number" 
-                       class="w-28 px-2 py-1.5 border border-gray-300 rounded text-right text-xs font-medium focus:ring-2 focus:ring-blue-500"
-                       min="0" 
-                       step="1000"
-                       value="${product.price}"
-                       onchange="updateExchangePrice(${index}, this.value)">
-                <div class="text-xs text-gray-500 mt-0.5">${finalPrice.toLocaleString('vi-VN')}đ</div>
+                ${priceInputHtml}
+                ${priceDisplayHtml}
             </td>
             <td class="px-2 py-2 text-center">
                 <input type="number" 
@@ -543,6 +643,19 @@ function updateExchangeQty(index, qty) {
 
 function updateExchangePrice(index, price) {
     exchangeProducts[index].price = parseFloat(price) || 0;
+    // Also update USD price for reference if needed
+    const exchangeRate = saleData ? parseFloat(saleData.exchange_rate || 25000) : 25000;
+    exchangeProducts[index].priceUsd = exchangeProducts[index].price / exchangeRate;
+    
+    renderExchangeProducts();
+    updateSummary();
+}
+
+function updateExchangePriceUsd(index, priceUsd) {
+    const exchangeRate = saleData ? parseFloat(saleData.exchange_rate || 25000) : 25000;
+    exchangeProducts[index].priceUsd = parseFloat(priceUsd) || 0;
+    exchangeProducts[index].price = exchangeProducts[index].priceUsd * exchangeRate;
+    
     renderExchangeProducts();
     updateSummary();
 }
@@ -686,35 +799,61 @@ function updateSummary() {
     
     // Hiển thị payment section nếu đổi hàng và khách phải trả thêm
     const paymentSection = document.getElementById('payment-section');
-    if (type === 'exchange' && exchangeAmountVnd > 0) {
+    if (type === 'exchange' && exchangeAmountUsd > 0) {
         paymentSection.classList.remove('hidden');
-        document.getElementById('payment-total').textContent = exchangeAmountVnd.toLocaleString('vi-VN') + 'đ';
-        updatePaymentSummary();
+        
+        // Update payment due display
+        document.getElementById('payment-due-usd').textContent = '$' + exchangeAmountUsd.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2});
+        document.getElementById('payment-due-vnd').textContent = exchangeAmountVnd.toLocaleString('vi-VN') + 'đ';
+        
+        // Store the due amount for calculation reference
+        paymentSection.dataset.dueUsd = exchangeAmountUsd;
+        paymentSection.dataset.dueVnd = exchangeAmountVnd;
+        
+        // Update original exchange rate display
+        document.getElementById('original-exchange-rate').textContent = exchangeRate.toLocaleString('vi-VN');
+        
+        // Call calculation update
+        updatePaymentCalculations();
     } else {
         paymentSection.classList.add('hidden');
     }
 }
 
-// Format VND for payment input
-function formatPaymentVND(input) {
+function updatePaymentCalculations() {
+    const exchangeRate = parseFloat(document.getElementById('payment-exchange-rate').value.replace(/,/g, '')) || 25000;
+    const usdAmount = parseFloat(document.getElementById('payment-usd').value.replace(/,/g, '')) || 0;
+    const vndAmount = parseFloat(document.getElementById('payment-vnd').value.replace(/,/g, '')) || 0;
+    
+    const convertedUsd = usdAmount + (vndAmount / exchangeRate);
+    const convertedVnd = (usdAmount * exchangeRate) + vndAmount;
+    
+    document.getElementById('total-converted-usd').textContent = '$' + convertedUsd.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2});
+    document.getElementById('total-converted-vnd').textContent = convertedVnd.toLocaleString('vi-VN') + 'đ';
+}
+
+function formatNumber(input) {
     let value = input.value.replace(/[^\d]/g, '');
     if (value) {
-        input.value = parseInt(value).toLocaleString('vi-VN');
+        input.value = parseInt(value).toLocaleString('en-US');
     } else {
-        input.value = '0';
+        input.value = '';
     }
 }
 
-// Update payment summary
-function updatePaymentSummary() {
-    const paymentInput = document.getElementById('payment-amount');
-    const paymentAmount = parseInt(paymentInput.value.replace(/[^\d]/g, '')) || 0;
+function formatUSD(input) {
+    let value = input.value.replace(/[^0-9.]/g, '');
+    const parts = value.split('.');
     
-    const totalText = document.getElementById('payment-total').textContent;
-    const totalAmount = parseInt(totalText.replace(/[^\d]/g, '')) || 0;
+    if (parts.length > 2) {
+        value = parts[0] + '.' + parts.slice(1).join('');
+    }
     
-    const debt = Math.max(0, totalAmount - paymentAmount);
-    document.getElementById('payment-debt').textContent = debt.toLocaleString('vi-VN') + 'đ';
+    if (parts[0]) {
+        parts[0] = parseInt(parts[0]).toLocaleString('en-US');
+    }
+    
+    input.value = parts.join('.');
 }
 
 function updateReturnType() {

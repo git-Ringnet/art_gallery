@@ -223,10 +223,20 @@ class ReturnController extends Controller
 
     public function store(Request $request)
     {
-        // Convert VND formatted payment_amount to number
-        if ($request->filled('payment_amount')) {
+        // Convert formatted payment inputs to numbers
+        $paymentUsd = $request->filled('payment_usd') ? (float)str_replace(',', '', $request->payment_usd) : 0;
+        $paymentVnd = $request->filled('payment_vnd') ? (float)str_replace(',', '', $request->payment_vnd) : 0;
+        $paymentExchangeRate = $request->filled('payment_exchange_rate') ? (float)str_replace(',', '', $request->payment_exchange_rate) : 25000;
+        
+        // Calculate total payment in VND for validation
+        $totalPaymentVnd = ($paymentUsd * $paymentExchangeRate) + $paymentVnd;
+        
+        if ($totalPaymentVnd > 0) {
             $request->merge([
-                'payment_amount' => (float) str_replace([',', '.'], '', $request->payment_amount)
+                'payment_amount' => $totalPaymentVnd,
+                'payment_usd' => $paymentUsd,
+                'payment_vnd' => $paymentVnd,
+                'payment_exchange_rate' => $paymentExchangeRate,
             ]);
         }
         
@@ -440,21 +450,21 @@ class ReturnController extends Controller
             // LƯU Ý: KHÔNG tạo payment ngay khi tạo phiếu đổi hàng
             // Payment sẽ được tạo khi phiếu được duyệt và hoàn thành
             // Lưu thông tin payment để xử lý sau
-            if ($type === 'exchange' && $request->filled('payment_amount')) {
-                $paymentAmount = $request->payment_amount;
-                if ($paymentAmount > 0) {
-                    // Lưu thông tin payment vào notes của return để xử lý khi complete
-                    $paymentInfo = [
-                        'payment_amount' => $paymentAmount,
-                        'payment_method' => $request->payment_method ?? 'cash',
-                        'payment_date' => $request->return_date
-                    ];
-                    
-                    $currentNotes = $return->notes ?? '';
-                    $return->update([
-                        'notes' => $currentNotes . "\n[PAYMENT_INFO]" . json_encode($paymentInfo)
-                    ]);
-                }
+            if ($type === 'exchange' && $request->payment_amount > 0) {
+                // Lưu thông tin payment vào notes của return để xử lý khi complete
+                $paymentInfo = [
+                    'payment_amount' => $request->payment_amount,
+                    'payment_usd' => $request->payment_usd,
+                    'payment_vnd' => $request->payment_vnd,
+                    'payment_exchange_rate' => $request->payment_exchange_rate,
+                    'payment_method' => $request->payment_method ?? 'cash',
+                    'payment_date' => $request->return_date
+                ];
+                
+                $currentNotes = $return->notes ?? '';
+                $return->update([
+                    'notes' => $currentNotes . "\n[PAYMENT_INFO]" . json_encode($paymentInfo)
+                ]);
             }
 
             DB::commit();
@@ -506,10 +516,20 @@ class ReturnController extends Controller
 
     public function update(Request $request, $id)
     {
-        // Convert VND formatted payment_amount to number
-        if ($request->filled('payment_amount')) {
+        // Convert formatted payment inputs to numbers
+        $paymentUsd = $request->filled('payment_usd') ? (float)str_replace(',', '', $request->payment_usd) : 0;
+        $paymentVnd = $request->filled('payment_vnd') ? (float)str_replace(',', '', $request->payment_vnd) : 0;
+        $paymentExchangeRate = $request->filled('payment_exchange_rate') ? (float)str_replace(',', '', $request->payment_exchange_rate) : 25000;
+        
+        // Calculate total payment in VND for validation
+        $totalPaymentVnd = ($paymentUsd * $paymentExchangeRate) + $paymentVnd;
+        
+        if ($totalPaymentVnd > 0) {
             $request->merge([
-                'payment_amount' => (float) str_replace([',', '.'], '', $request->payment_amount)
+                'payment_amount' => $totalPaymentVnd,
+                'payment_usd' => $paymentUsd,
+                'payment_vnd' => $paymentVnd,
+                'payment_exchange_rate' => $paymentExchangeRate,
             ]);
         }
         
@@ -669,18 +689,31 @@ class ReturnController extends Controller
             // LƯU Ý: KHÔNG tạo payment ngay khi update phiếu đổi hàng
             // Payment sẽ được tạo khi phiếu được duyệt và hoàn thành
             // Lưu thông tin payment để xử lý sau
-            $notesToUpdate = $request->notes;
-            if ($type === 'exchange' && $request->filled('payment_amount')) {
-                $paymentAmount = $request->payment_amount;
-                if ($paymentAmount > 0) {
-                    // Lưu thông tin payment vào notes của return để xử lý khi complete
-                    $paymentInfo = [
-                        'payment_amount' => $paymentAmount,
-                        'payment_method' => $request->payment_method ?? 'cash',
-                        'payment_date' => $request->return_date
-                    ];
-                    
-                    $notesToUpdate = ($notesToUpdate ?? '') . "\n[PAYMENT_INFO]" . json_encode($paymentInfo);
+            // Update payment info in notes if exists
+            if ($request->type === 'exchange' && $request->payment_amount > 0) {
+                $paymentInfo = [
+                    'payment_amount' => $request->payment_amount,
+                    'payment_usd' => $request->payment_usd,
+                    'payment_vnd' => $request->payment_vnd,
+                    'payment_exchange_rate' => $request->payment_exchange_rate,
+                    'payment_method' => $request->payment_method ?? 'cash',
+                    'payment_date' => $request->return_date
+                ];
+                
+                // Remove old payment info if exists
+                $notesToUpdate = $request->notes;
+                if (strpos($notesToUpdate, '[PAYMENT_INFO]') !== false) {
+                    $parts = explode('[PAYMENT_INFO]', $notesToUpdate);
+                    $notesToUpdate = trim($parts[0]);
+                }
+                
+                $notesToUpdate .= "\n[PAYMENT_INFO]" . json_encode($paymentInfo);
+            } else {
+                // If no payment or not exchange, just update notes (removing old payment info if any)
+                $notesToUpdate = $request->notes;
+                if (strpos($notesToUpdate, '[PAYMENT_INFO]') !== false) {
+                    $parts = explode('[PAYMENT_INFO]', $notesToUpdate);
+                    $notesToUpdate = trim($parts[0]);
                 }
             }
             
@@ -1155,6 +1188,9 @@ class ReturnController extends Controller
                     Payment::create([
                         'sale_id' => $sale->id,
                         'amount' => $paymentInfo['payment_amount'],
+                        'payment_usd' => $paymentInfo['payment_usd'] ?? 0,
+                        'payment_vnd' => $paymentInfo['payment_vnd'] ?? 0,
+                        'payment_exchange_rate' => $paymentInfo['payment_exchange_rate'] ?? 25000,
                         'payment_date' => $paymentInfo['payment_date'] ?? now(),
                         'payment_method' => $paymentInfo['payment_method'] ?? 'cash',
                         'transaction_type' => 'exchange_payment',

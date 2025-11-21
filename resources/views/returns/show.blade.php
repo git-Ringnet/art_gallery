@@ -8,6 +8,9 @@
 <x-alert />
 
 <div class="bg-white rounded-xl shadow-lg p-4 glass-effect">
+    @php
+        $exchangeRate = $return->exchange_rate ?? 25000;
+    @endphp
     <!-- Header Actions -->
     <div class="flex justify-between items-center mb-4">
         <a href="{{ route('returns.index') }}?tab=list" class="text-blue-600 hover:text-blue-800 text-sm">
@@ -69,10 +72,10 @@
                 <div>
                     <h4 class="font-semibold text-sm text-yellow-800">Thông báo về thanh toán</h4>
                     <p class="text-xs text-yellow-700 mt-1">
-                        Khách hàng cần trả thêm <strong>{{ number_format($return->exchange_amount, 0, ',', '.') }}đ</strong> cho đơn đổi hàng này.
+                        Khách hàng cần trả thêm <strong>${{ number_format($return->exchange_amount / $exchangeRate, 2) }}</strong> ({{ number_format($return->exchange_amount, 0, ',', '.') }}đ) cho đơn đổi hàng này.
                         @if($exchangePayments > 0)
-                        <br><strong>Đã trả:</strong> {{ number_format($exchangePayments, 0, ',', '.') }}đ cho sản phẩm mới.
-                        <br>Còn lại: <strong>{{ number_format($return->exchange_amount - $exchangePayments, 0, ',', '.') }}đ</strong>
+                        <br><strong>Đã trả:</strong> ${{ number_format($exchangePayments / $exchangeRate, 2) }} ({{ number_format($exchangePayments, 0, ',', '.') }}đ) cho sản phẩm mới.
+                        <br>Còn lại: <strong>${{ number_format(($return->exchange_amount - $exchangePayments) / $exchangeRate, 2) }}</strong> ({{ number_format($return->exchange_amount - $exchangePayments, 0, ',', '.') }}đ)
                         @endif
                         <br>Số tiền sẽ được cập nhật vào phiếu bán hàng khi phiếu đổi hàng được <strong>duyệt và hoàn thành</strong>.
                     </p>
@@ -86,10 +89,10 @@
                 <div>
                     <h4 class="font-semibold text-sm text-blue-800">Phiếu đã được duyệt</h4>
                     <p class="text-xs text-blue-700 mt-1">
-                        Khách hàng cần trả thêm <strong>{{ number_format($return->exchange_amount, 0, ',', '.') }}đ</strong> cho đơn đổi hàng này.
+                        Khách hàng cần trả thêm <strong>${{ number_format($return->exchange_amount / $exchangeRate, 2) }}</strong> ({{ number_format($return->exchange_amount, 0, ',', '.') }}đ) cho đơn đổi hàng này.
                         @if($exchangePayments > 0)
-                        <br><strong>Đã trả:</strong> {{ number_format($exchangePayments, 0, ',', '.') }}đ cho sản phẩm mới.
-                        <br>Còn lại: <strong>{{ number_format($return->exchange_amount - $exchangePayments, 0, ',', '.') }}đ</strong>
+                        <br><strong>Đã trả:</strong> ${{ number_format($exchangePayments / $exchangeRate, 2) }} ({{ number_format($exchangePayments, 0, ',', '.') }}đ) cho sản phẩm mới.
+                        <br>Còn lại: <strong>${{ number_format(($return->exchange_amount - $exchangePayments) / $exchangeRate, 2) }}</strong> ({{ number_format($return->exchange_amount - $exchangePayments, 0, ',', '.') }}đ)
                         @endif
                         <br>Số tiền sẽ được cập nhật vào phiếu bán hàng khi phiếu đổi hàng được <strong>hoàn thành</strong>.
                     </p>
@@ -103,7 +106,7 @@
                 <div>
                     <h4 class="font-semibold text-sm text-green-800">Đã hoàn thành thanh toán</h4>
                     <p class="text-xs text-green-700 mt-1">
-                        Số tiền <strong>{{ number_format($exchangePayments, 0, ',', '.') }}đ</strong> đã được cập nhật vào phiếu bán hàng.
+                        Số tiền <strong>${{ number_format($exchangePayments / $exchangeRate, 2) }}</strong> ({{ number_format($exchangePayments, 0, ',', '.') }}đ) đã được cập nhật vào phiếu bán hàng.
                     </p>
                 </div>
             </div>
@@ -217,9 +220,9 @@
                                 <th class="px-1 py-1.5 text-left text-xs">Vật tư</th>
                                 <th class="px-1 py-1.5 text-center text-xs">Mét</th>
                                 <th class="px-1 py-1.5 text-center text-xs">Số lượng</th>
-                                <th class="px-1 py-1.5 text-right text-xs">Giá</th>
+                                <th class="px-1 py-1.5 text-right text-xs">Giá (USD)</th>
                                 <th class="px-1 py-1.5 text-center text-xs">Giảm giá</th>
-                                <th class="px-1 py-1.5 text-right text-xs">Thành tiền</th>
+                                <th class="px-1 py-1.5 text-right text-xs">Thành tiền (USD)</th>
                             </tr>
                         </thead>
                         <tbody class="bg-white">
@@ -267,7 +270,10 @@
                                     @endif
                                 </td>
                                 <td class="px-1 py-1.5 text-center text-xs font-medium">{{ $item->quantity }}</td>
-                                <td class="px-1 py-1.5 text-right text-xs whitespace-nowrap">{{ number_format($item->unit_price, 0, ',', '.') }}đ</td>
+                                <td class="px-1 py-1.5 text-right text-xs whitespace-nowrap">
+                                    <div class="font-medium">${{ number_format($item->unit_price / $exchangeRate, 2) }}</div>
+                                    <div class="text-[10px] text-gray-500">{{ number_format($item->unit_price, 0, ',', '.') }}đ</div>
+                                </td>
                                 <td class="px-1 py-1.5 text-center text-xs">
                                     @php
                                         $saleItem = $item->saleItem;
@@ -279,7 +285,10 @@
                                         <span class="text-gray-400">-</span>
                                     @endif
                                 </td>
-                                <td class="px-1 py-1.5 text-right text-xs font-semibold text-red-600 whitespace-nowrap">{{ number_format($item->subtotal, 0, ',', '.') }}đ</td>
+                                <td class="px-1 py-1.5 text-right text-xs font-semibold text-red-600 whitespace-nowrap">
+                                    <div>${{ number_format($item->subtotal / $exchangeRate, 2) }}</div>
+                                    <div class="text-[10px] text-gray-500">{{ number_format($item->subtotal, 0, ',', '.') }}đ</div>
+                                </td>
                             </tr>
                             @endforeach
                         </tbody>
@@ -289,8 +298,14 @@
                     <div class="flex justify-between text-xs font-semibold">
                         <span>Tổng trả:</span>
                         <div class="text-right">
-                            <div class="text-green-600 font-bold">${{ number_format($return->total_refund_usd ?? 0, 2) }}</div>
-                            <div class="text-xs text-gray-500">≈ {{ number_format($return->total_refund, 0, ',', '.') }}đ</div>
+                            @php
+                                $calculatedTotalRefund = $return->items->sum('subtotal');
+                                $finalTotalRefund = $return->total_refund > 0 ? $return->total_refund : $calculatedTotalRefund;
+                                $totalRefundUsd = $return->total_refund_usd > 0 ? $return->total_refund_usd : ($finalTotalRefund / $exchangeRate);
+                            @endphp
+                            <div class="text-green-600 font-bold">${{ number_format($totalRefundUsd, 2) }}</div>
+                            <div class="text-xs text-gray-500">≈ {{ number_format($finalTotalRefund, 0, ',', '.') }}đ</div>
+                            <div class="text-[10px] text-gray-400 mt-0.5">Tỷ giá: {{ number_format($exchangeRate, 0, ',', '.') }}</div>
                         </div>
                     </div>
                     @if($return->type == 'exchange')
@@ -305,7 +320,10 @@
                     @if($initialPayments > 0)
                     <div class="flex justify-between text-xs mt-1">
                         <span class="text-gray-600">Đã trả (ban đầu):</span>
-                        <span class="font-semibold text-green-600">{{ number_format($initialPayments, 0, ',', '.') }}đ</span>
+                        <div class="text-right">
+                            <span class="font-semibold text-green-600">${{ number_format($initialPayments / $exchangeRate, 2) }}</span>
+                            <div class="text-[10px] text-gray-500">≈ {{ number_format($initialPayments, 0, ',', '.') }}đ</div>
+                        </div>
                     </div>
                     @endif
                     @endif
@@ -334,9 +352,9 @@
                                 <th class="px-1 py-1.5 text-left text-xs">Vật tư</th>
                                 <th class="px-1 py-1.5 text-center text-xs">Mét</th>
                                 <th class="px-1 py-1.5 text-center text-xs">Số lượng</th>
-                                <th class="px-1 py-1.5 text-right text-xs">Đơn giá</th>
+                                <th class="px-1 py-1.5 text-right text-xs">Đơn giá (USD)</th>
                                 <th class="px-1 py-1.5 text-center text-xs">Giảm giá</th>
-                                <th class="px-1 py-1.5 text-right text-xs">Thành tiền</th>
+                                <th class="px-1 py-1.5 text-right text-xs">Thành tiền (USD)</th>
                             </tr>
                         </thead>
                         <tbody class="bg-white">
@@ -384,7 +402,10 @@
                                     @endif
                                 </td>
                                 <td class="px-1 py-1.5 text-center text-xs font-medium">{{ $item->quantity }}</td>
-                                <td class="px-1 py-1.5 text-right text-xs whitespace-nowrap">{{ number_format($item->unit_price, 0, ',', '.') }}đ</td>
+                                <td class="px-1 py-1.5 text-right text-xs whitespace-nowrap">
+                                    <div class="font-medium">${{ number_format($item->unit_price / $exchangeRate, 2) }}</div>
+                                    <div class="text-[10px] text-gray-500">{{ number_format($item->unit_price, 0, ',', '.') }}đ</div>
+                                </td>
                                 <td class="px-1 py-1.5 text-center text-xs">
                                     @if($item->discount_percent > 0)
                                         <span class="text-red-600">{{ $item->discount_percent }}%</span>
@@ -392,7 +413,10 @@
                                         <span class="text-gray-400">-</span>
                                     @endif
                                 </td>
-                                <td class="px-1 py-1.5 text-right text-xs font-semibold text-green-600 whitespace-nowrap">{{ number_format($item->subtotal, 0, ',', '.') }}đ</td>
+                                <td class="px-1 py-1.5 text-right text-xs font-semibold text-green-600 whitespace-nowrap">
+                                    <div>${{ number_format($item->subtotal / $exchangeRate, 2) }}</div>
+                                    <div class="text-[10px] text-gray-500">{{ number_format($item->subtotal, 0, ',', '.') }}đ</div>
+                                </td>
                             </tr>
                             @endforeach
                         </tbody>
@@ -401,7 +425,11 @@
                 <div class="mt-2 pt-2 border-t">
                     <div class="flex justify-between text-xs font-semibold">
                         <span>Tổng đổi:</span>
-                        <span class="text-green-600">{{ number_format($return->exchangeItems->sum('subtotal'), 0, ',', '.') }}đ</span>
+                        <div class="text-right">
+                            <span class="text-green-600">${{ number_format($return->exchangeItems->sum('subtotal') / $exchangeRate, 2) }}</span>
+                            <div class="text-[10px] text-gray-500">≈ {{ number_format($return->exchangeItems->sum('subtotal'), 0, ',', '.') }}đ</div>
+                            <div class="text-[10px] text-gray-400 mt-0.5">Tỷ giá: {{ number_format($exchangeRate, 0, ',', '.') }}</div>
+                        </div>
                     </div>
                     @php
                         // Tính số tiền đã trả cho phiếu đổi hàng này
@@ -413,7 +441,10 @@
                     @if($exchangePayments > 0)
                     <div class="flex justify-between text-xs mt-1">
                         <span class="text-gray-600">Đã trả:</span>
-                        <span class="font-semibold text-green-600">{{ number_format($exchangePayments, 0, ',', '.') }}đ</span>
+                        <div class="text-right">
+                            <span class="font-semibold text-green-600">${{ number_format($exchangePayments / $exchangeRate, 2) }}</span>
+                            <div class="text-[10px] text-gray-500">≈ {{ number_format($exchangePayments, 0, ',', '.') }}đ</div>
+                        </div>
                     </div>
                     @endif
                 </div>
@@ -432,10 +463,13 @@
                 <span class="font-semibold text-sm">Chênh lệch:</span>
                 <span class="font-bold text-base">
                     @if($return->exchange_amount > 0)
-                        <span class="text-red-600">+{{ number_format($return->exchange_amount, 0, ',', '.') }}đ (KH trả thêm)</span>
+                        <span class="text-red-600">+${{ number_format($return->exchange_amount / $exchangeRate, 2) }}</span>
+                        <span class="text-xs font-normal text-gray-500 block text-right">≈ {{ number_format($return->exchange_amount, 0, ',', '.') }}đ (KH trả thêm)</span>
                     @else
-                        <span class="text-green-600">{{ number_format($return->exchange_amount, 0, ',', '.') }}đ (Hoàn lại)</span>
+                        <span class="text-green-600">${{ number_format(abs($return->exchange_amount) / $exchangeRate, 2) }}</span>
+                        <span class="text-xs font-normal text-gray-500 block text-right">≈ {{ number_format(abs($return->exchange_amount), 0, ',', '.') }}đ (Hoàn lại)</span>
                     @endif
+                    <span class="text-[10px] font-normal text-gray-400 block text-right mt-0.5">Tỷ giá: {{ number_format($exchangeRate, 0, ',', '.') }}</span>
                 </span>
             </div>
             
@@ -449,27 +483,28 @@
                 $remainingDebt = $return->exchange_amount - $exchangePayments;
                 
                 // Tính USD
-                $exchangeRate = $return->exchange_rate ?? 25000;
                 $exchangeAmountUsd = $return->exchange_amount_usd ?? ($return->exchange_amount / $exchangeRate);
                 $exchangePaymentsUsd = $exchangePayments / $exchangeRate;
                 $remainingDebtUsd = $remainingDebt / $exchangeRate;
             @endphp
             
-            <div class="mt-2 text-xs">
-                <div class="text-gray-600 mb-1">Chênh lệch:</div>
-                <div class="font-bold text-red-600">${{ number_format($exchangeAmountUsd, 2) }}</div>
-                <div class="text-xs text-gray-500">≈ {{ number_format($return->exchange_amount, 0, ',', '.') }}đ (KH trả thêm)</div>
-            </div>
+            <!-- Removed duplicate display block -->
             
             @if($exchangePayments > 0)
             <div class="mt-2 pt-2 border-t border-blue-300">
                 <div class="flex justify-between text-xs">
                     <span class="text-gray-600">Đã trả:</span>
-                    <span class="font-semibold text-green-600">{{ number_format($exchangePayments, 0, ',', '.') }}đ</span>
+                    <div class="text-right">
+                        <span class="font-semibold text-green-600">${{ number_format($exchangePayments / $exchangeRate, 2) }}</span>
+                        <div class="text-[10px] text-gray-500">≈ {{ number_format($exchangePayments, 0, ',', '.') }}đ</div>
+                    </div>
                 </div>
                 <div class="flex justify-between text-xs mt-1">
                     <span class="text-gray-600">Còn nợ:</span>
-                    <span class="font-semibold text-red-600">{{ number_format($remainingDebt, 0, ',', '.') }}đ</span>
+                    <div class="text-right">
+                        <span class="font-semibold text-red-600">${{ number_format($remainingDebt / $exchangeRate, 2) }}</span>
+                        <div class="text-[10px] text-gray-500">≈ {{ number_format($remainingDebt, 0, ',', '.') }}đ</div>
+                    </div>
                 </div>
             </div>
             @endif
@@ -570,7 +605,8 @@
                     if ($jsonPart) {
                         $paymentInfo = json_decode($jsonPart, true);
                         if ($paymentInfo) {
-                            $displayNotes = 'Khách hàng đã trả ' . number_format($paymentInfo['payment_amount'], 0, ',', '.') . 'đ';
+                            $displayNotes = 'Khách hàng đã trả $' . number_format(($paymentInfo['payment_usd'] ?? ($paymentInfo['payment_amount'] / $exchangeRate)), 2);
+                            $displayNotes .= ' (≈ ' . number_format($paymentInfo['payment_amount'], 0, ',', '.') . 'đ)';
                             $displayNotes .= ' bằng ' . ($paymentInfo['payment_method'] == 'cash' ? 'tiền mặt' : 'chuyển khoản');
                             $displayNotes .= ' vào ngày ' . date('d/m/Y', strtotime($paymentInfo['payment_date']));
                         }

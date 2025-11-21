@@ -144,16 +144,43 @@
                         {{ $return->items->sum('quantity') }}
                     </td>
                     <td class="px-2 py-2 whitespace-nowrap text-xs text-right">
+                        @php
+                            $exchangeRate = $return->exchange_rate ?? 25000;
+                            // Determine primary currency based on stored USD values
+                            $isUsdPrimary = ($return->total_refund_usd > 0 || ($return->exchange_amount_usd ?? 0) != 0);
+                        @endphp
+
                         @if($return->type == 'exchange')
-                            @if($return->exchange_amount > 0)
-                                <span class="font-semibold text-red-600">+{{ number_format($return->exchange_amount, 0, ',', '.') }}đ</span>
-                            @elseif($return->exchange_amount < 0)
-                                <span class="font-semibold text-green-600">{{ number_format($return->exchange_amount, 0, ',', '.') }}đ</span>
-                            @else
+                            @php
+                                $amountVnd = $return->exchange_amount;
+                                $amountUsd = $return->exchange_amount_usd ?? ($amountVnd / $exchangeRate);
+                                $colorClass = $amountVnd > 0 ? 'text-red-600' : ($amountVnd < 0 ? 'text-green-600' : 'text-gray-600');
+                                $sign = $amountVnd > 0 ? '+' : '';
+                            @endphp
+                            
+                            @if($amountVnd == 0)
                                 <span class="text-gray-600">0đ</span>
+                            @else
+                                @if($isUsdPrimary)
+                                    <div class="font-bold {{ $colorClass }}">{{ $sign }}${{ number_format($amountUsd, 2) }}</div>
+                                    <div class="text-[10px] text-gray-500">≈ {{ number_format($amountVnd, 0, ',', '.') }}đ</div>
+                                @else
+                                    <div class="font-bold {{ $colorClass }}">{{ $sign }}{{ number_format($amountVnd, 0, ',', '.') }}đ</div>
+                                    <div class="text-[10px] text-gray-500">≈ ${{ number_format($amountUsd, 2) }}</div>
+                                @endif
                             @endif
                         @else
-                            <span class="font-semibold text-red-600">{{ number_format($return->total_refund, 0, ',', '.') }}đ</span>
+                            @php
+                                $amountVnd = $return->total_refund;
+                                $amountUsd = $return->total_refund_usd ?? ($amountVnd / $exchangeRate);
+                            @endphp
+                            @if($isUsdPrimary)
+                                <div class="font-bold text-red-600">${{ number_format($amountUsd, 2) }}</div>
+                                <div class="text-[10px] text-gray-500">≈ {{ number_format($amountVnd, 0, ',', '.') }}đ</div>
+                            @else
+                                <div class="font-bold text-red-600">{{ number_format($amountVnd, 0, ',', '.') }}đ</div>
+                                <div class="text-[10px] text-gray-500">≈ ${{ number_format($amountUsd, 2) }}</div>
+                            @endif
                         @endif
                     </td>
                     <td class="px-2 py-2 whitespace-nowrap text-xs text-right">
@@ -163,9 +190,16 @@
                                     ->where('transaction_type', 'exchange_payment')
                                     ->where('notes', 'like', "%{$return->return_code}%")
                                     ->sum('amount');
+                                $exchangePaymentsUsd = $exchangePayments / $exchangeRate;
                             @endphp
                             @if($exchangePayments > 0)
-                                <span class="font-semibold text-green-600">{{ number_format($exchangePayments, 0, ',', '.') }}đ</span>
+                                @if($isUsdPrimary)
+                                    <div class="font-bold text-green-600">${{ number_format($exchangePaymentsUsd, 2) }}</div>
+                                    <div class="text-[10px] text-gray-500">≈ {{ number_format($exchangePayments, 0, ',', '.') }}đ</div>
+                                @else
+                                    <div class="font-bold text-green-600">{{ number_format($exchangePayments, 0, ',', '.') }}đ</div>
+                                    <div class="text-[10px] text-gray-500">≈ ${{ number_format($exchangePaymentsUsd, 2) }}</div>
+                                @endif
                             @else
                                 <span class="text-gray-400">-</span>
                             @endif
