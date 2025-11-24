@@ -190,7 +190,7 @@ class SalesController extends Controller
         $validated = $request->validate([
             'customer_id' => 'nullable|exists:customers,id',
             'customer_name' => 'required_without:customer_id|string|max:255',
-            'customer_phone' => 'required_without:customer_id|string|max:20',
+            'customer_phone' => 'nullable|string|max:20',
             'customer_email' => 'nullable|email',
             'customer_address' => 'nullable|string',
             'showroom_id' => 'required|exists:showrooms,id',
@@ -216,7 +216,6 @@ class SalesController extends Controller
             'customer_name.required_without' => 'Tên khách hàng là bắt buộc',
             'customer_name.string' => 'Tên khách hàng phải là chuỗi ký tự',
             'customer_name.max' => 'Tên khách hàng không được quá 255 ký tự',
-            'customer_phone.required_without' => 'Số điện thoại là bắt buộc',
             'customer_phone.string' => 'Số điện thoại phải là chuỗi ký tự',
             'customer_phone.max' => 'Số điện thoại không được quá 20 ký tự',
             'customer_email.email' => 'Email không đúng định dạng',
@@ -423,7 +422,7 @@ class SalesController extends Controller
         $rules = [
             'customer_id' => 'nullable|exists:customers,id',
             'customer_name' => 'required_without:customer_id|string|max:255',
-            'customer_phone' => 'required_without:customer_id|string|max:20',
+            'customer_phone' => 'nullable|string|max:20',
             'customer_email' => 'nullable|email',
             'customer_address' => 'nullable|string',
             'showroom_id' => 'required|exists:showrooms,id',
@@ -457,7 +456,6 @@ class SalesController extends Controller
             'customer_name.required_without' => 'Tên khách hàng là bắt buộc',
             'customer_name.string' => 'Tên khách hàng phải là chuỗi ký tự',
             'customer_name.max' => 'Tên khách hàng không được quá 255 ký tự',
-            'customer_phone.required_without' => 'Số điện thoại là bắt buộc',
             'customer_phone.string' => 'Số điện thoại phải là chuỗi ký tự',
             'customer_phone.max' => 'Số điện thoại không được quá 20 ký tự',
             'customer_email.email' => 'Email không đúng định dạng',

@@ -93,8 +93,8 @@
             <!-- Các trường hiển thị khi đã chọn khách hàng -->
             <div id="customer-details" class="grid grid-cols-1 md:grid-cols-3 gap-3">
                 <div>
-                    <label class="block text-xs font-medium text-gray-700 mb-1">Số điện thoại <span class="text-red-500">*</span></label>
-                    <input type="tel" name="customer_phone" id="customer_phone" required readonly class="w-full px-3 py-1.5 text-sm border border-gray-300 rounded-lg bg-gray-50 focus:ring-2 focus:ring-green-500" value="{{ $sale->customer->phone }}">
+                    <label class="block text-xs font-medium text-gray-700 mb-1">Số điện thoại</label>
+                    <input type="tel" name="customer_phone" id="customer_phone" readonly class="w-full px-3 py-1.5 text-sm border border-gray-300 rounded-lg bg-gray-50 focus:ring-2 focus:ring-green-500" value="{{ $sale->customer->phone }}">
                 </div>
                 <div>
                     <label class="block text-xs font-medium text-gray-700 mb-1">Email</label>
