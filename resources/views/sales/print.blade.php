@@ -351,7 +351,7 @@
             <!-- Tiêu đề căn giữa -->
             <div class="text-center">
                 <h1 id="invoice-title" class="text-2xl font-bold text-gray-800">
-                    <span class="lang-vi">HÓA ĐƠN BÁN HÀNG</span>
+                    <span class="lang-vi">INVOICE/HÓA ĐƠN BÁN HÀNG</span>
                     <span class="lang-en hidden">SALES INVOICE</span>
                 </h1>
             </div>
@@ -386,6 +386,12 @@
                 @endif
             </div>
         </div>
+
+        @php
+            // Kiểm tra xem hóa đơn có items nào dùng USD/VND
+            $hasUsdItems = $sale->saleItems->where('currency', 'USD')->where('is_returned', '!=', true)->count() > 0;
+            $hasVndItems = $sale->saleItems->where('currency', 'VND')->where('is_returned', '!=', true)->count() > 0;
+        @endphp
 
         <!-- Items Table -->
         <div class="mb-4">
@@ -494,45 +500,67 @@
                     <div class="flex justify-between text-xs py-1 border-b">
                         <span class="text-gray-700"><span class="lang-vi">Tạm tính:</span><span class="lang-en hidden">Subtotal:</span></span>
                         <div class="text-right">
+                            @if($hasUsdItems)
                             <div class="font-medium text-gray-900">${{ number_format((float)$sale->subtotal_usd, 2) }}</div>
-                            <div class="text-[10px] text-gray-700">{{ number_format((float)$sale->subtotal_vnd) }}đ</div>
+                            @endif
+                            @if($hasVndItems)
+                            <div class="{{ $hasUsdItems ? 'text-[10px] text-gray-700' : 'font-medium text-gray-900' }}">{{ number_format((float)$sale->subtotal_vnd) }}đ</div>
+                            @endif
                         </div>
                     </div>
                     @if($sale->discount_percent > 0)
                     <div class="flex justify-between text-xs py-1 border-b field-total-discount" data-field="total-discount">
                         <span class="text-gray-700"><span class="lang-vi">Giảm ({{ $sale->discount_percent }}%):</span><span class="lang-en hidden">Disc ({{ $sale->discount_percent }}%):</span></span>
                         <div class="text-right">
+                            @if($hasUsdItems)
                             <div class="font-medium text-red-600">-${{ number_format((float)$sale->discount_usd, 2) }}</div>
-                            <div class="text-[10px] text-red-500">-{{ number_format((float)$sale->discount_vnd) }}đ</div>
+                            @endif
+                            @if($hasVndItems)
+                            <div class="{{ $hasUsdItems ? 'text-[10px] text-red-500' : 'font-medium text-red-600' }}">-{{ number_format((float)$sale->discount_vnd) }}đ</div>
+                            @endif
                         </div>
                     </div>
                     @endif
                     <div class="flex justify-between text-sm font-bold py-2 border-t-2 border-gray-300">
                         <span class="text-gray-900"><span class="lang-vi">Tổng cộng:</span><span class="lang-en hidden">Total:</span></span>
                         <div class="text-right">
+                            @if($hasUsdItems)
                             <div class="text-gray-900">${{ number_format((float)$sale->total_usd, 2) }}</div>
-                            <div class="text-xs text-gray-900">{{ number_format((float)$sale->total_vnd) }}đ</div>
+                            @endif
+                            @if($hasVndItems)
+                            <div class="{{ $hasUsdItems ? 'text-xs text-gray-900' : 'text-sm text-gray-900' }}">{{ number_format((float)$sale->total_vnd) }}đ</div>
+                            @endif
                         </div>
                     </div>
                     <div class="flex justify-between text-xs py-1">
                         <span class="text-gray-700"><span class="lang-vi">Đã TT:</span><span class="lang-en hidden">Paid:</span></span>
                         <div class="text-right">
+                            @if($hasUsdItems)
                             <div class="font-medium text-gray-900">${{ number_format($sale->paid_usd, 2) }}</div>
-                            <div class="text-[10px] text-gray-700">{{ number_format((float)$sale->paid_amount) }}đ</div>
+                            @endif
+                            @if($hasVndItems)
+                            <div class="{{ $hasUsdItems ? 'text-[10px] text-gray-700' : 'font-medium text-gray-900' }}">{{ number_format((float)$sale->paid_amount) }}đ</div>
+                            @endif
                         </div>
                     </div>
                     @if($sale->debt_amount > 0)
                     <div class="flex justify-between text-xs py-1 bg-red-50 px-2 rounded field-debt-amount" data-field="debt-amount">
                         <span class="text-red-700 font-medium"><span class="lang-vi">Còn nợ:</span><span class="lang-en hidden">Balance:</span></span>
                         <div class="text-right">
+                            @if($hasUsdItems)
                             <div class="font-bold text-red-600">${{ number_format($sale->debt_usd, 2) }}</div>
-                            <div class="text-[10px] text-red-600">{{ number_format((float)$sale->debt_amount) }}đ</div>
+                            @endif
+                            @if($hasVndItems)
+                            <div class="{{ $hasUsdItems ? 'text-[10px] text-red-600' : 'font-bold text-red-600' }}">{{ number_format((float)$sale->debt_amount) }}đ</div>
+                            @endif
                         </div>
                     </div>
                     @endif
+                    @if($hasUsdItems && $hasVndItems)
                     <div class="text-[10px] text-gray-700 text-right mt-1 field-exchange-rate" data-field="exchange-rate">
                         <span class="lang-vi">Tỷ giá:</span><span class="lang-en hidden">Rate:</span> 1 USD = {{ number_format($sale->exchange_rate) }} VND
                     </div>
+                    @endif
                 </div>
             </div>
         </div>

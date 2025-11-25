@@ -33,7 +33,7 @@ class Permission extends Model
     public static function getModules()
     {
         return [
-            'dashboard' => 'Báo cáo thống kê',
+            'dashboard' => 'Dashboard',
             'sales' => 'Bán hàng',
             'debt' => 'Lịch sử công nợ',
             'returns' => 'Đổi/Trả hàng',

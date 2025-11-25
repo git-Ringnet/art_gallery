@@ -246,9 +246,9 @@
                     @canAccess('dashboard')
                     <a href="{{ route('dashboard.index') }}"
                         class="nav-item flex items-center space-x-3 p-2.5 rounded-lg hover:bg-white hover:bg-opacity-20 transition-all duration-200 {{ request()->routeIs('dashboard.*') ? 'bg-white bg-opacity-20' : '' }}"
-                        title="Báo cáo thống kê">
+                        title="Dashboard">
                         <i class="fas fa-tachometer-alt w-5 flex-shrink-0"></i>
-                        <span class="sidebar-text text-sm">Báo cáo thống kê</span>
+                        <span class="sidebar-text text-sm">Dashboard</span>
                     </a>
                     @endcanAccess
 
@@ -467,7 +467,7 @@
         <div class="bg-white rounded-xl shadow-lg p-4 m-4 mb-4 relative z-30 no-print">
             <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
                 <div>
-                    <h2 class="text-xl font-bold text-gray-800">@yield('page-title', 'Báo cáo thống kê')</h2>
+                    <h2 class="text-xl font-bold text-gray-800">@yield('page-title', 'Dashboard')</h2>
                     <p class="text-sm text-gray-600">@yield('page-description', 'Tổng quan hệ thống quản lý tranh')</p>
                 </div>
                 <div class="flex items-center gap-2 w-full sm:w-auto">

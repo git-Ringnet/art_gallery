@@ -13,7 +13,7 @@ class PermissionsSeeder extends Seeder
     {
         // Create permissions for all modules
         $modules = [
-            'dashboard' => 'Báo cáo thống kê',
+            'dashboard' => 'Dashboard',
             'sales' => 'Bán hàng',
             'debt' => 'Lịch sử công nợ',
             'returns' => 'Đổi/Trả hàng',

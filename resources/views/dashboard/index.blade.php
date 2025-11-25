@@ -1,8 +1,8 @@
 @extends('layouts.app')
 
-@section('title', 'Báo cáo thống kê')
+@section('title', 'Dashboard')
 @section('page-title')
-    Báo cáo thống kê
+    Dashboard
     <button onclick="toggleHelpModal()" class="ml-2 text-blue-500 hover:text-blue-700 transition-colors" title="Hướng dẫn">
         <i class="fas fa-question-circle text-xl"></i>
     </button>

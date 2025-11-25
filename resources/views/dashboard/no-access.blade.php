@@ -109,7 +109,7 @@
 
             @php
                 $modules = [
-                    'dashboard' => ['name' => 'Báo cáo thống kê', 'icon' => 'fa-tachometer-alt', 'color' => 'blue'],
+                    'dashboard' => ['name' => 'Dashboard', 'icon' => 'fa-tachometer-alt', 'color' => 'blue'],
                     'sales' => ['name' => 'Bán hàng', 'icon' => 'fa-shopping-cart', 'color' => 'green'],
                     'debt' => ['name' => 'Lịch sử công nợ', 'icon' => 'fa-credit-card', 'color' => 'yellow'],
                     'returns' => ['name' => 'Đổi/Trả hàng', 'icon' => 'fa-undo', 'color' => 'orange'],
