@@ -216,6 +216,7 @@
             auth()->user()->canAccess('customers') ||
             auth()->user()->canAccess('employees') ||
             auth()->user()->canAccess('permissions') ||
+            auth()->user()->canAccess('reports') ||
             auth()->user()->canAccess('year_database')
         );
     @endphp
@@ -354,6 +355,15 @@
                         title="Đổi/Trả hàng">
                         <i class="fas fa-undo w-5 flex-shrink-0"></i>
                         <span class="sidebar-text text-sm">Đổi/Trả hàng</span>
+                    </a>
+                    @endcanAccess
+
+                    @canAccess('reports')
+                    <a href="{{ route('reports.index') }}"
+                        class="nav-item flex items-center space-x-3 p-2.5 rounded-lg hover:bg-white hover:bg-opacity-20 transition-all duration-200 {{ request()->routeIs('reports.*') ? 'bg-white bg-opacity-20' : '' }}"
+                        title="Báo cáo">
+                        <i class="fas fa-file-alt w-5 flex-shrink-0"></i>
+                        <span class="sidebar-text text-sm">Báo cáo</span>
                     </a>
                     @endcanAccess
 

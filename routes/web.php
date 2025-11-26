@@ -173,6 +173,12 @@ Route::middleware(['auth'])->group(function () {
         Route::delete('/export/{id}', [App\Http\Controllers\YearDatabaseController::class, 'deleteExport'])->middleware('permission:year_database,can_delete')->name('export.delete');
     });
 
+    // Reports routes
+    Route::prefix('reports')->name('reports.')->middleware('permission:reports,can_view')->group(function () {
+        Route::get('/', [App\Http\Controllers\ReportsController::class, 'index'])->name('index');
+        Route::get('/daily-cash-collection', [App\Http\Controllers\ReportsController::class, 'dailyCashCollection'])->name('daily-cash-collection');
+    });
+
     // Frames routes
     Route::prefix('frames')->name('frames.')->group(function () {
         Route::get('/', [App\Http\Controllers\FrameController::class, 'index'])->middleware('permission:frames,can_view')->name('index');
