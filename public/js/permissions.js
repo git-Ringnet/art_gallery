@@ -41,11 +41,11 @@ const moduleFilterFeatures = {
     },
     'inventory': {
         hasSearch: true,
-        hasShowroomFilter: true,
+        hasShowroomFilter: false,
         hasUserFilter: false,
         hasDateFilter: true,
-        hasStatusFilter: true,
-        hasDataScope: true,
+        hasStatusFilter: false,
+        hasDataScope: false,
     },
     'frames': {
         hasSearch: true,
@@ -86,6 +86,14 @@ const moduleFilterFeatures = {
         hasDateFilter: false,
         hasStatusFilter: false,
         hasDataScope: false,
+    },
+    'reports': {
+        hasSearch: false,           // Báo cáo không có tìm kiếm
+        hasShowroomFilter: true,
+        hasUserFilter: true,
+        hasDateFilter: true,
+        hasStatusFilter: false,     // Báo cáo không có lọc theo trạng thái
+        hasDataScope: true,         // Báo cáo CẦN phạm vi dữ liệu
     },
     'year_database': {
         hasSearch: false,
@@ -191,6 +199,9 @@ async function renderPermissions() {
         
         // Permissions - KHÔNG có export/import
         'permissions': ['can_view', 'can_create', 'can_edit', 'can_delete'],
+        
+        // Reports - Báo cáo (chỉ xem và in, không có xuất)
+        'reports': ['can_view', 'can_print'],
         
         // Year Database - CÓ export + import (export/import database SQL)
         'year_database': ['can_view', 'can_export', 'can_import', 'can_delete']

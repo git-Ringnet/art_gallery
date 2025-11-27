@@ -25,6 +25,47 @@
             </div>
         @endif
 
+        <!-- Search and Filter -->
+        <div class="bg-gray-50 p-3 rounded-lg mb-4">
+            <form method="GET" action="{{ route('frames.index') }}">
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
+                    @hasPermission('frames', 'can_search')
+                    <div class="md:col-span-1">
+                        <label class="block text-xs font-medium text-gray-700 mb-1">Tìm kiếm</label>
+                        <div class="relative">
+                            <input type="text" name="search" value="{{ request('search') }}"
+                                class="w-full pl-8 pr-2 py-1.5 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                                placeholder="Tìm theo tên khung...">
+                            <i class="fas fa-search absolute left-2 top-2 text-xs text-gray-400"></i>
+                        </div>
+                    </div>
+                    @endhasPermission
+                    
+                    @hasPermission('frames', 'can_filter_by_status')
+                    <div>
+                        <label class="block text-xs font-medium text-gray-700 mb-1">Trạng thái</label>
+                        <select name="status"
+                            class="w-full px-2 py-1.5 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                            <option value="">Tất cả</option>
+                            <option value="available" {{ request('status') == 'available' ? 'selected' : '' }}>Còn hàng</option>
+                            <option value="sold" {{ request('status') == 'sold' ? 'selected' : '' }}>Đã bán</option>
+                        </select>
+                    </div>
+                    @endhasPermission
+                </div>
+                <div class="flex justify-between items-center mt-3">
+                    <button type="submit"
+                        class="bg-blue-600 text-white py-1.5 px-4 text-sm rounded-lg hover:bg-blue-700 transition-colors">
+                        <i class="fas fa-filter mr-1"></i>Lọc
+                    </button>
+                    <a href="{{ route('frames.index') }}"
+                        class="bg-gray-500 text-white py-1.5 px-4 text-sm rounded-lg hover:bg-gray-600 transition-colors">
+                        <i class="fas fa-times mr-1"></i>Xóa lọc
+                    </a>
+                </div>
+            </form>
+        </div>
+
         <div class="overflow-x-auto">
             <table class="w-full text-sm">
                 <thead class="bg-gradient-to-r from-blue-500 to-cyan-600 text-white">

@@ -10,10 +10,41 @@ use Illuminate\Support\Facades\DB;
 
 class FrameController extends Controller
 {
-    public function index()
+    public function index(Request $request)
     {
-        $frames = Frame::with('items.supply')->latest()->paginate(20);
-        return view('frames.index', compact('frames'));
+        $search = $request->get('search');
+        $status = $request->get('status');
+
+        // Check permissions
+        $canSearch = true;
+        $canFilterStatus = true;
+        
+        if (\Illuminate\Support\Facades\Auth::check() && \Illuminate\Support\Facades\Auth::user()->email !== 'admin@example.com') {
+            $role = \Illuminate\Support\Facades\Auth::user()->role;
+            if ($role) {
+                $perm = $role->getModulePermissions('frames');
+                if ($perm) {
+                    $canSearch = $perm->can_search ?? true;
+                    $canFilterStatus = $perm->can_filter_by_status ?? true;
+                }
+            }
+        }
+
+        $query = Frame::with('items.supply');
+
+        // Apply search if allowed
+        if ($canSearch && $search) {
+            $query->where('name', 'like', "%{$search}%");
+        }
+
+        // Apply status filter if allowed
+        if ($canFilterStatus && $status) {
+            $query->where('status', $status);
+        }
+
+        $frames = $query->latest()->paginate(20)->appends($request->query());
+        
+        return view('frames.index', compact('frames', 'search', 'status'));
     }
 
     public function create()

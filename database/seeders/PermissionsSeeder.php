@@ -22,6 +22,7 @@ class PermissionsSeeder extends Seeder
             'customers' => 'Khách hàng',
             'employees' => 'Nhân viên',
             'permissions' => 'Phân quyền',
+            'reports' => 'Báo cáo',
             'year_database' => 'Database',
         ];
 
@@ -152,7 +153,7 @@ class PermissionsSeeder extends Seeder
             ['description' => 'Kế toán - Quản lý tài chính và công nợ']
         );
 
-        $accountantModules = ['dashboard', 'sales', 'debt', 'customers'];
+        $accountantModules = ['dashboard', 'sales', 'debt', 'customers', 'reports'];
         foreach ($accountantModules as $module) {
             $permission = Permission::where('module', $module)->first();
             if ($permission) {

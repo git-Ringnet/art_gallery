@@ -175,8 +175,7 @@ Route::middleware(['auth'])->group(function () {
 
     // Reports routes
     Route::prefix('reports')->name('reports.')->middleware('permission:reports,can_view')->group(function () {
-        Route::get('/', [App\Http\Controllers\ReportsController::class, 'index'])->name('index');
-        Route::get('/daily-cash-collection', [App\Http\Controllers\ReportsController::class, 'dailyCashCollection'])->name('daily-cash-collection');
+        Route::get('/', [App\Http\Controllers\ReportsController::class, 'dailyCashCollection'])->name('daily-cash-collection');
     });
 
     // Frames routes

@@ -220,8 +220,8 @@ class InventoryController extends Controller
             'name' => 'required|string|max:255',
             'artist' => 'required|string|max:255',
             'material' => 'required|string|max:100',
-            'width' => 'nullable|numeric',
-            'height' => 'nullable|numeric',
+            'width' => 'nullable|numeric|min:0|max:100000',
+            'height' => 'nullable|numeric|min:0|max:100000',
             'year' => 'nullable',
             'price_usd' => 'nullable|numeric|min:0',
             'price_vnd' => 'nullable|numeric|min:0',
@@ -232,6 +232,8 @@ class InventoryController extends Controller
         ], [
             'code.unique' => 'Mã tranh đã tồn tại trong hệ thống.',
             'code.required' => 'Vui lòng nhập mã tranh.',
+            'width.max' => 'Chiều rộng không được vượt quá 100,000 cm.',
+            'height.max' => 'Chiều cao không được vượt quá 100,000 cm.',
         ]);
 
         // Validate that at least one price is provided
@@ -370,8 +372,8 @@ class InventoryController extends Controller
                 'name' => 'required|string|max:255',
                 'artist' => 'required|string|max:255',
                 'material' => 'required|string|max:100',
-                'width' => 'nullable|numeric',
-                'height' => 'nullable|numeric',
+                'width' => 'nullable|numeric|min:0|max:100000',
+                'height' => 'nullable|numeric|min:0|max:100000',
                 'paint_year' => 'nullable',
                 'price_usd' => 'required|numeric|min:0',
                 'import_date' => 'nullable|date',
@@ -382,6 +384,8 @@ class InventoryController extends Controller
             ], [
                 'code.unique' => 'Mã tranh đã tồn tại trong hệ thống.',
                 'code.required' => 'Vui lòng nhập mã tranh.',
+                'width.max' => 'Chiều rộng không được vượt quá 100,000 cm.',
+                'height.max' => 'Chiều cao không được vượt quá 100,000 cm.',
             ]);
 
             // Remove old image if requested
@@ -792,14 +796,23 @@ class InventoryController extends Controller
     public function importPaintingExcel(Request $request)
     {
         $request->validate([
-            'file' => 'required|mimes:xlsx,xls|max:10240',
+            'file' => 'required|mimes:xlsx,xls|max:20480', // Tăng lên 20MB
         ], [
             'file.required' => 'Vui lòng chọn file Excel',
             'file.mimes' => 'File phải có định dạng .xlsx hoặc .xls',
-            'file.max' => 'File không được vượt quá 10MB',
+            'file.max' => 'File không được vượt quá 20MB',
         ]);
 
         try {
+            // Tăng timeout và memory limit cho file lớn
+            set_time_limit(300); // 5 phút
+            ini_set('memory_limit', '512M');
+            
+            Log::info('Starting painting import', [
+                'file_size' => $request->file('file')->getSize(),
+                'file_name' => $request->file('file')->getClientOriginalName()
+            ]);
+            
             // Handle uploaded images
             $uploadedImages = [];
             if ($request->hasFile('images')) {
@@ -837,61 +850,81 @@ class InventoryController extends Controller
         // Extract embedded images from Excel manually
         $excelImages = [];
         try {
+            Log::info('Loading Excel file to extract images');
             $spreadsheet = IOFactory::load($request->file('file')->getPathname());
             $worksheet = $spreadsheet->getActiveSheet();
+            
+            Log::info('Excel loaded, getting drawings');
             $drawings = $worksheet->getDrawingCollection();
+            Log::info('Found drawings', ['count' => count($drawings)]);
 
             foreach ($drawings as $drawing) {
-                $coordinates = $drawing->getCoordinates();
-                if (strpos($coordinates, ':') !== false) {
-                    $coordinates = explode(':', $coordinates)[0];
-                }
-                $row = (int) preg_replace('/[^0-9]/', '', $coordinates);
-                
-                if ($row <= 1) continue;
-
-                $imageContent = null;
-                $extension = 'jpg';
-
-                if ($drawing instanceof Drawing) {
-                    $imagePath = $drawing->getPath();
-                    if (file_exists($imagePath)) {
-                        $imageContent = file_get_contents($imagePath);
-                        $extension = pathinfo($imagePath, PATHINFO_EXTENSION) ?: 'jpg';
+                try {
+                    $coordinates = $drawing->getCoordinates();
+                    if (strpos($coordinates, ':') !== false) {
+                        $coordinates = explode(':', $coordinates)[0];
                     }
-                } elseif ($drawing instanceof MemoryDrawing) {
-                    $gdImage = $drawing->getImageResource();
-                    if ($gdImage) {
-                        ob_start();
-                        switch ($drawing->getMimeType()) {
-                            case MemoryDrawing::MIMETYPE_PNG:
-                                imagepng($gdImage);
-                                $extension = 'png';
-                                break;
-                            case MemoryDrawing::MIMETYPE_GIF:
-                                imagegif($gdImage);
-                                $extension = 'gif';
-                                break;
-                            default:
-                                imagejpeg($gdImage);
-                                $extension = 'jpg';
+                    $row = (int) preg_replace('/[^0-9]/', '', $coordinates);
+                    
+                    if ($row <= 1) continue;
+
+                    $imageContent = null;
+                    $extension = 'jpg';
+
+                    if ($drawing instanceof Drawing) {
+                        $imagePath = $drawing->getPath();
+                        if (file_exists($imagePath)) {
+                            $imageContent = file_get_contents($imagePath);
+                            $extension = pathinfo($imagePath, PATHINFO_EXTENSION) ?: 'jpg';
                         }
-                        $imageContent = ob_get_contents();
-                        ob_end_clean();
+                    } elseif ($drawing instanceof MemoryDrawing) {
+                        $gdImage = $drawing->getImageResource();
+                        if ($gdImage) {
+                            ob_start();
+                            switch ($drawing->getMimeType()) {
+                                case MemoryDrawing::MIMETYPE_PNG:
+                                    imagepng($gdImage);
+                                    $extension = 'png';
+                                    break;
+                                case MemoryDrawing::MIMETYPE_GIF:
+                                    imagegif($gdImage);
+                                    $extension = 'gif';
+                                    break;
+                                default:
+                                    imagejpeg($gdImage);
+                                    $extension = 'jpg';
+                            }
+                            $imageContent = ob_get_contents();
+                            ob_end_clean();
+                        }
                     }
-                }
 
-                if ($imageContent) {
-                    $uniqueName = uniqid() . '_' . time() . '.' . $extension;
-                    Storage::disk('public')->put('paintings/' . $uniqueName, $imageContent);
-                    $excelImages[$row] = 'paintings/' . $uniqueName;
+                    if ($imageContent) {
+                        $uniqueName = uniqid() . '_' . time() . '.' . $extension;
+                        Storage::disk('public')->put('paintings/' . $uniqueName, $imageContent);
+                        $excelImages[$row] = 'paintings/' . $uniqueName;
+                        Log::info('Extracted image from Excel', ['row' => $row, 'file' => $uniqueName]);
+                    }
+                } catch (\Exception $e) {
+                    Log::warning('Error extracting single image from Excel', [
+                        'row' => $row ?? 'unknown',
+                        'error' => $e->getMessage()
+                    ]);
+                    // Continue với images khác
                 }
             }
+            
+            Log::info('Finished extracting images', ['total' => count($excelImages)]);
         } catch (\Exception $e) {
-            Log::error('Error extracting excel images: ' . $e->getMessage());
+            Log::error('Error extracting excel images', [
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
+            ]);
+            // Không throw exception, tiếp tục import mà không có embedded images
         }
         
         // Use new import class that handles images better
+        Log::info('Starting Excel import process');
         $import = new PaintingImportWithImages($uploadedImages, $excelImages);
         Excel::import($import, $request->file('file'));
 
