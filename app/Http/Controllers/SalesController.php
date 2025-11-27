@@ -187,6 +187,35 @@ class SalesController extends Controller
             ]);
         }
         
+        // Clean up empty strings and format for numeric fields
+        if ($request->has('items')) {
+            $items = $request->items;
+            foreach ($items as $key => $item) {
+                // Clean price_usd: empty string, "0", or formatted string → null or clean number
+                if (isset($item['price_usd'])) {
+                    $priceUsd = $item['price_usd'];
+                    if ($priceUsd === '' || $priceUsd === '0' || $priceUsd === 0) {
+                        $items[$key]['price_usd'] = null;
+                    } else if (is_string($priceUsd)) {
+                        // Remove formatting (commas, spaces)
+                        $items[$key]['price_usd'] = str_replace([',', ' '], '', $priceUsd);
+                    }
+                }
+                
+                // Clean price_vnd: empty string, "0", or formatted string → null or clean number
+                if (isset($item['price_vnd'])) {
+                    $priceVnd = $item['price_vnd'];
+                    if ($priceVnd === '' || $priceVnd === '0' || $priceVnd === 0) {
+                        $items[$key]['price_vnd'] = null;
+                    } else if (is_string($priceVnd)) {
+                        // Remove formatting (commas, dots, spaces)
+                        $items[$key]['price_vnd'] = str_replace([',', '.', ' '], '', $priceVnd);
+                    }
+                }
+            }
+            $request->merge(['items' => $items]);
+        }
+        
         $validated = $request->validate([
             'customer_id' => 'nullable|exists:customers,id',
             'customer_name' => 'required_without:customer_id|string|max:255',
@@ -206,9 +235,11 @@ class SalesController extends Controller
             'items.*.price_usd' => 'nullable|numeric|min:0',
             'items.*.price_vnd' => 'nullable|numeric|min:0',
             'items.*.discount_percent' => 'nullable|numeric|min:0|max:100',
-            'exchange_rate' => 'required|numeric|min:1',
+            'exchange_rate' => 'nullable|numeric|min:0',
             'discount_percent' => 'nullable|numeric|min:0|max:100',
             'payment_amount' => 'nullable|numeric|min:0',
+            'payment_usd' => 'nullable|numeric|min:0',
+            'payment_vnd' => 'nullable|numeric|min:0',
             'payment_method' => 'nullable|in:cash,bank_transfer,card,other',
             'notes' => 'nullable|string',
         ], [
@@ -242,9 +273,8 @@ class SalesController extends Controller
             'items.*.price_usd.min' => 'Giá USD phải lớn hơn hoặc bằng 0',
             'items.*.price_vnd.numeric' => 'Giá VND phải là số',
             'items.*.price_vnd.min' => 'Giá VND phải lớn hơn hoặc bằng 0',
-            'exchange_rate.required' => 'Tỷ giá là bắt buộc',
             'exchange_rate.numeric' => 'Tỷ giá phải là số',
-            'exchange_rate.min' => 'Tỷ giá phải lớn hơn 0',
+            'exchange_rate.min' => 'Tỷ giá phải lớn hơn hoặc bằng 0',
             'discount_percent.numeric' => 'Phần trăm giảm giá phải là số',
             'discount_percent.min' => 'Phần trăm giảm giá phải lớn hơn hoặc bằng 0',
             'discount_percent.max' => 'Phần trăm giảm giá không được quá 100',
@@ -274,16 +304,20 @@ class SalesController extends Controller
             // Get default user
             $user = $this->getDefaultUser();
 
-            // Lấy số tiền đã trả (nếu có)
-            $paidAmount = $request->filled('payment_amount') && $request->payment_amount > 0 
-                ? $request->payment_amount 
-                : 0;
+            // Lấy payment_usd và payment_vnd
+            $paymentUsd = $request->payment_usd ?? 0;
+            $paymentVnd = $request->payment_vnd ?? 0;
 
             // Xử lý exchange_rate - loại bỏ dấu phẩy, chấm
-            $exchangeRate = $request->exchange_rate;
+            $exchangeRate = $request->exchange_rate ?? 0;
             if (is_string($exchangeRate)) {
                 $exchangeRate = (float) str_replace([',', '.', ' '], '', $exchangeRate);
             }
+            
+            // Tính paid_amount dựa vào loại payment
+            // NOTE: paid_amount trong DB được dùng để tương thích và tính debt
+            // Với logic mới: lưu riêng payment_usd và payment_vnd
+            $paidAmount = $request->payment_amount ?? 0;  // Giá trị đã được tính từ frontend
 
             // Create sale
             $sale = Sale::create([
@@ -299,8 +333,8 @@ class SalesController extends Controller
                 'total_usd' => 0,
                 'total_vnd' => 0,
                 'paid_amount' => $paidAmount,
-                'payment_usd' => $request->payment_usd ?? 0,
-                'payment_vnd' => $request->payment_vnd ?? 0,
+                'payment_usd' => $paymentUsd,
+                'payment_vnd' => $paymentVnd,
                 'debt_amount' => 0,
                 'payment_status' => 'unpaid',
                 'notes' => $request->notes,
@@ -336,6 +370,22 @@ class SalesController extends Controller
                 'original_total_vnd' => $sale->total_vnd,
                 'original_total_usd' => $sale->total_usd,
             ]);
+            
+            // Validation: Kiểm tra thanh toán không vượt quá tổng tiền
+            // CHỈ áp dụng cho phiếu có CẢ USD VÀ VND
+            if ($sale->total_usd > 0 && $sale->total_vnd > 0) {
+                $tolerance = 0.01; // Sai số cho phép
+                
+                // Kiểm tra USD
+                if ($paymentUsd > $sale->total_usd + $tolerance) {
+                    throw new \Exception("Số tiền USD thanh toán (\${$paymentUsd}) vượt quá tổng USD (\${$sale->total_usd})");
+                }
+                
+                // Kiểm tra VND
+                if ($paymentVnd > $sale->total_vnd + 1) { // Tolerance 1 VND
+                    throw new \Exception("Số tiền VND thanh toán (" . number_format($paymentVnd) . "đ) vượt quá tổng VND (" . number_format($sale->total_vnd) . "đ)");
+                }
+            }
 
             // KHÔNG tạo payment khi tạo phiếu pending
             // Payment sẽ được tạo khi duyệt phiếu (approve)
@@ -428,12 +478,43 @@ class SalesController extends Controller
             'showroom_id' => 'required|exists:showrooms,id',
             'sale_date' => 'required|date',
             'payment_amount' => 'nullable|numeric|min:0',
+            'payment_usd' => 'nullable|numeric|min:0',
+            'payment_vnd' => 'nullable|numeric|min:0',
             'payment_method' => 'nullable|in:cash,bank_transfer,card,other',
             'notes' => 'nullable|string',
         ];
 
         // Chỉ validate items nếu CHƯA có return
         if (!$hasReturns) {
+            // Clean up empty strings and format for numeric fields
+            if ($request->has('items')) {
+                $items = $request->items;
+                foreach ($items as $key => $item) {
+                    // Clean price_usd: empty string, "0", or formatted string → null or clean number
+                    if (isset($item['price_usd'])) {
+                        $priceUsd = $item['price_usd'];
+                        if ($priceUsd === '' || $priceUsd === '0' || $priceUsd === 0) {
+                            $items[$key]['price_usd'] = null;
+                        } else if (is_string($priceUsd)) {
+                            // Remove formatting (commas, spaces)
+                            $items[$key]['price_usd'] = str_replace([',', ' '], '', $priceUsd);
+                        }
+                    }
+                    
+                    // Clean price_vnd: empty string, "0", or formatted string → null or clean number
+                    if (isset($item['price_vnd'])) {
+                        $priceVnd = $item['price_vnd'];
+                        if ($priceVnd === '' || $priceVnd === '0' || $priceVnd === 0) {
+                            $items[$key]['price_vnd'] = null;
+                        } else if (is_string($priceVnd)) {
+                            // Remove formatting (commas, dots, spaces)
+                            $items[$key]['price_vnd'] = str_replace([',', '.', ' '], '', $priceVnd);
+                        }
+                    }
+                }
+                $request->merge(['items' => $items]);
+            }
+            
             $rules = array_merge($rules, [
                 'items' => 'required|array|min:1',
                 'items.*.painting_id' => 'nullable|exists:paintings,id',
@@ -446,7 +527,7 @@ class SalesController extends Controller
                 'items.*.price_usd' => 'nullable|numeric|min:0',
                 'items.*.price_vnd' => 'nullable|numeric|min:0',
                 'items.*.discount_percent' => 'nullable|numeric|min:0|max:100',
-                'exchange_rate' => 'required|numeric|min:1',
+                'exchange_rate' => 'nullable|numeric|min:0',
                 'discount_percent' => 'nullable|numeric|min:0|max:100',
             ]);
         }
@@ -482,9 +563,8 @@ class SalesController extends Controller
             'items.*.price_usd.min' => 'Giá USD phải lớn hơn hoặc bằng 0',
             'items.*.price_vnd.numeric' => 'Giá VND phải là số',
             'items.*.price_vnd.min' => 'Giá VND phải lớn hơn hoặc bằng 0',
-            'exchange_rate.required' => 'Tỷ giá là bắt buộc',
             'exchange_rate.numeric' => 'Tỷ giá phải là số',
-            'exchange_rate.min' => 'Tỷ giá phải lớn hơn 0',
+            'exchange_rate.min' => 'Tỷ giá phải lớn hơn hoặc bằng 0',
             'discount_percent.numeric' => 'Phần trăm giảm giá phải là số',
             'discount_percent.min' => 'Phần trăm giảm giá phải lớn hơn hoặc bằng 0',
             'discount_percent.max' => 'Phần trăm giảm giá không được quá 100',
@@ -643,21 +723,38 @@ class SalesController extends Controller
                     $paymentUsd = $request->payment_usd ?? 0;
                     $paymentVnd = $request->payment_vnd ?? 0;
                     
-                    // Lấy tỉ giá hiện tại - CHỈ dùng khi trả VND
+                    // Xác định loại hóa đơn
+                    $hasUsdTotal = $sale->total_usd > 0;
+                    $hasVndTotal = $sale->total_vnd > 0;
+                    
+                    // Lấy tỷ giá - CHỈ lưu khi thanh toán CHÉO
                     $paymentExchangeRate = null;
-                    if ($paymentVnd > 0) {
+                    
+                    // Trường hợp 1: Hóa đơn USD, trả VND (USD-VND)
+                    if ($hasUsdTotal && !$hasVndTotal && $paymentVnd > 0) {
                         $paymentExchangeRate = $request->exchange_rate ?? $sale->exchange_rate;
                         if (is_string($paymentExchangeRate)) {
                             $paymentExchangeRate = (float) str_replace([',', '.', ' '], '', $paymentExchangeRate);
                         }
                     }
                     
+                    // Trường hợp 2: Hóa đơn VND, trả USD (VND-USD)
+                    if ($hasVndTotal && !$hasUsdTotal && $paymentUsd > 0) {
+                        $paymentExchangeRate = $request->exchange_rate ?? $sale->exchange_rate;
+                        if (is_string($paymentExchangeRate)) {
+                            $paymentExchangeRate = (float) str_replace([',', '.', ' '], '', $paymentExchangeRate);
+                        }
+                    }
+                    
+                    // Trường hợp 3: Hóa đơn Mixed (USD+VND) - KHÔNG lưu tỷ giá
+                    // payment_exchange_rate = null
+                    
                     Payment::create([
                         'sale_id' => $sale->id,
                         'amount' => $request->payment_amount,
                         'payment_usd' => $paymentUsd,
                         'payment_vnd' => $paymentVnd,
-                        'payment_exchange_rate' => $paymentExchangeRate, // NULL nếu chỉ trả USD
+                        'payment_exchange_rate' => $paymentExchangeRate,
                         'payment_method' => $request->payment_method ?? 'cash',
                         'transaction_type' => 'sale_payment',
                         'payment_date' => now(),
@@ -669,7 +766,22 @@ class SalesController extends Controller
                     $sale->paid_amount = $request->payment_amount;
                     $sale->payment_usd = $request->payment_usd ?? 0;
                     $sale->payment_vnd = $request->payment_vnd ?? 0;
-                    $sale->debt_amount = $sale->total_vnd - $sale->paid_amount;
+                    
+                    // Tính debt_amount theo logic mới (sử dụng accessor)
+                    // Accessor sẽ tự động tính đúng theo loại hóa đơn
+                    $debtUsd = $sale->debt_usd;
+                    $debtVnd = $sale->debt_vnd;
+                    
+                    // Lưu debt_amount (để tương thích với code cũ)
+                    // Ưu tiên VND nếu có, không thì dùng USD quy đổi
+                    if ($debtVnd > 0) {
+                        $sale->debt_amount = $debtVnd;
+                    } else if ($debtUsd > 0) {
+                        $sale->debt_amount = $debtUsd * $sale->exchange_rate;
+                    } else {
+                        $sale->debt_amount = 0;
+                    }
+                    
                     $sale->save();
                 }
             }
@@ -733,7 +845,7 @@ class SalesController extends Controller
 
         // Chỉ không cho xóa nếu đã có thanh toán
         // Phiếu completed nhưng chưa thanh toán vẫn có thể xóa
-        if ($sale->paid_amount > 0) {
+        if ($sale->paid_usd > 0 || $sale->paid_vnd > 0) {
             Log::info('Cannot delete sale with payments');
             return back()->with('error', 'Không thể xóa hóa đơn đã có thanh toán');
         }
@@ -1004,7 +1116,11 @@ class SalesController extends Controller
             $sale->update(['sale_status' => 'completed']);
 
             // Tạo payment record từ paid_amount ban đầu (nếu có)
-            if ($sale->paid_amount > 0) {
+            // CHÚ Ý: Kiểm tra payment_usd hoặc payment_vnd thay vì paid_amount
+            // Vì paid_amount có thể được tính sai khi chỉ trả USD
+            $hasInitialPayment = ($sale->payment_usd ?? 0) > 0 || ($sale->payment_vnd ?? 0) > 0;
+            
+            if ($hasInitialPayment) {
                 // Xác định payment_exchange_rate: CHỈ lưu khi có thanh toán VND
                 $paymentExchangeRate = null;
                 if (($sale->payment_vnd ?? 0) > 0) {
@@ -1061,7 +1177,7 @@ class SalesController extends Controller
         }
 
         // Không cho hủy nếu đã có thanh toán
-        if ($sale->paid_amount > 0) {
+        if ($sale->paid_usd > 0 || $sale->paid_vnd > 0) {
             return back()->with('error', 'Không thể hủy phiếu đã có thanh toán');
         }
 

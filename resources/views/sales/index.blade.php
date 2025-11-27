@@ -350,6 +350,10 @@
                             $hasReturns = $sale->returns()->where('status', 'completed')->where('type', 'return')->exists();
                             $hasExchanges = $sale->returns()->where('status', 'completed')->where('type', 'exchange')->exists();
                             
+                            // Kiểm tra xem hóa đơn có items nào dùng USD/VND
+                            $hasUsdItems = $sale->saleItems->where('currency', 'USD')->where('is_returned', '!=', true)->count() > 0;
+                            $hasVndItems = $sale->saleItems->where('currency', 'VND')->where('is_returned', '!=', true)->count() > 0;
+                            
                             // Lấy original_total, nếu không có thì tính từ items
                             if ($sale->original_total_vnd) {
                                 $originalTotal = $sale->original_total_vnd;
@@ -366,20 +370,33 @@
                         
                         @if($hasReturns && $sale->total_usd == 0)
                             <!-- Trả hết - hiển thị giá gốc không gạch ngang -->
-                            <div class="font-medium text-gray-900 text-xs whitespace-nowrap">${{ number_format($originalTotalUsd, 2) }}</div>
-                            <div class="text-xs text-gray-500">{{ number_format($originalTotal) }}đ</div>
+                            @if($hasUsdItems)
+                                <div class="font-medium text-gray-900 text-xs whitespace-nowrap">${{ number_format($originalTotalUsd, 2) }}</div>
+                            @endif
+                            @if($hasVndItems)
+                                <div class="text-xs {{ $hasUsdItems ? 'text-gray-500' : 'font-medium text-gray-900' }}">{{ number_format($originalTotal) }}đ</div>
+                            @endif
                             <div class="text-xs text-red-600">
                                 <i class="fas fa-undo"></i>Trả hết
                             </div>
                         @elseif($totalChanged)
                             <!-- Có thay đổi (trả hàng hoặc đổi hàng) - hiển thị giá gốc gạch ngang và giá mới -->
-                            <div class="text-xs text-gray-400 line-through whitespace-nowrap">${{ number_format($originalTotalUsd, 2) }}</div>
-                            <div class="font-medium {{ $hasExchanges ? 'text-purple-600' : 'text-orange-600' }} text-xs whitespace-nowrap">
-                                ${{ number_format($sale->total_usd, 2) }}
-                            </div>
-                            <div class="text-xs {{ $hasExchanges ? 'text-purple-600' : 'text-orange-600' }}">
-                                {{ number_format($sale->total_vnd) }}đ
-                            </div>
+                            @if($hasUsdItems)
+                                <div class="text-xs text-gray-400 line-through whitespace-nowrap">${{ number_format($originalTotalUsd, 2) }}</div>
+                            @endif
+                            @if($hasVndItems && $hasUsdItems)
+                                <div class="text-xs text-gray-400 line-through">{{ number_format($originalTotal) }}đ</div>
+                            @endif
+                            @if($hasUsdItems)
+                                <div class="font-medium {{ $hasExchanges ? 'text-purple-600' : 'text-orange-600' }} text-xs whitespace-nowrap">
+                                    ${{ number_format($sale->total_usd, 2) }}
+                                </div>
+                            @endif
+                            @if($hasVndItems)
+                                <div class="text-xs {{ $hasExchanges ? 'text-purple-600' : 'text-orange-600' }} {{ $hasUsdItems ? '' : 'font-medium' }}">
+                                    {{ number_format($sale->total_vnd) }}đ
+                                </div>
+                            @endif
                             @if($hasExchanges)
                                 <div class="text-xs text-purple-600">
                                     <i class="fas fa-exchange-alt"></i>Đổi
@@ -387,20 +404,67 @@
                             @endif
                         @else
                             <!-- Không có thay đổi -->
-                            <div class="font-medium text-gray-900 text-xs whitespace-nowrap">${{ number_format($sale->total_usd, 2) }}</div>
-                            <div class="text-xs text-gray-500">{{ number_format($sale->total_vnd) }}đ</div>
+                            @if($hasUsdItems)
+                                <div class="font-medium text-gray-900 text-xs whitespace-nowrap">${{ number_format($sale->total_usd, 2) }}</div>
+                            @endif
+                            @if($hasVndItems)
+                                <div class="text-xs {{ $hasUsdItems ? 'text-gray-500' : 'font-medium text-gray-900' }}">{{ number_format($sale->total_vnd) }}đ</div>
+                            @endif
                         @endif
                     </td>
                     <td class="px-2 py-2 text-right text-xs whitespace-nowrap">
-                        <div class="text-green-600 font-bold">${{ number_format($sale->paid_usd, 2) }}</div>
-                        <div class="text-gray-500">{{ number_format($sale->paid_amount) }}đ</div>
+                        @if($hasUsdItems && $hasVndItems)
+                            {{-- Cả USD và VND - Hiển thị riêng --}}
+                            @php
+                                $paidUsdOnly = $sale->payments->sum('payment_usd');
+                                $paidVndOnly = $sale->payments->sum('payment_vnd');
+                            @endphp
+                            @if($paidUsdOnly > 0)
+                                <div class="text-blue-600 font-bold text-xs">USD: ${{ number_format($paidUsdOnly, 2) }}</div>
+                            @endif
+                            @if($paidVndOnly > 0)
+                                <div class="text-green-600 font-bold text-xs">VND: {{ number_format($paidVndOnly) }}đ</div>
+                            @endif
+                            @if($paidUsdOnly == 0 && $paidVndOnly == 0)
+                                <div class="text-gray-500">0</div>
+                            @endif
+                        @elseif($hasUsdItems)
+                            {{-- Chỉ USD --}}
+                            <div class="text-green-600 font-bold">${{ number_format($sale->paid_usd, 2) }}</div>
+                        @elseif($hasVndItems)
+                            {{-- Chỉ VND --}}
+                            <div class="text-green-600 font-bold">{{ number_format($sale->paid_vnd) }}đ</div>
+                        @endif
                     </td>
                     <td class="px-2 py-2 text-right text-xs whitespace-nowrap">
                         @if($sale->sale_status == 'cancelled')
                             <span class="text-gray-500">(Hủy)</span>
-                        @else
-                            <div class="text-red-600 font-bold">${{ number_format($sale->debt_usd, 2) }}</div>
-                            <div class="text-gray-500">{{ number_format($sale->debt_amount) }}đ</div>
+                        @elseif($hasUsdItems && $hasVndItems)
+                            {{-- Cả USD và VND - Hiển thị riêng --}}
+                            @if($sale->debt_usd > 0.01 || $sale->debt_vnd > 1)
+                                @if($sale->debt_usd > 0.01)
+                                    <div class="text-blue-600 font-bold text-xs">USD: ${{ number_format($sale->debt_usd, 2) }}</div>
+                                @endif
+                                @if($sale->debt_vnd > 1)
+                                    <div class="text-red-600 font-bold text-xs">VND: {{ number_format($sale->debt_vnd) }}đ</div>
+                                @endif
+                            @else
+                                <div class="text-gray-500">0</div>
+                            @endif
+                        @elseif($hasUsdItems)
+                            {{-- Chỉ USD --}}
+                            @if($sale->debt_usd > 0.01)
+                                <div class="text-red-600 font-bold">${{ number_format($sale->debt_usd, 2) }}</div>
+                            @else
+                                <div class="text-gray-500">0</div>
+                            @endif
+                        @elseif($hasVndItems)
+                            {{-- Chỉ VND --}}
+                            @if($sale->debt_vnd > 1)
+                                <div class="text-red-600 font-bold">{{ number_format($sale->debt_vnd) }}đ</div>
+                            @else
+                                <div class="text-gray-500">0</div>
+                            @endif
                         @endif
                     </td>
                     <td class="px-2 py-2 text-center">
@@ -445,7 +509,7 @@
                             @endif
                             
                             <!-- Cancel button - chỉ hiện khi chờ duyệt và chưa thanh toán -->
-                            @if($sale->isPending() && $sale->paid_amount == 0)
+                            @if($sale->isPending() && $sale->paid_usd == 0 && $sale->paid_vnd == 0)
                             <form method="POST" action="{{ route('sales.cancel', $sale->id) }}" class="inline">
                                 @csrf
                                 <button type="submit" 
@@ -496,7 +560,7 @@
                             
                             <!-- Delete button - hiển thị khi có quyền và chưa thanh toán -->
                             @hasPermission('sales', 'can_delete')
-                                @if($sale->paid_amount == 0)
+                                @if($sale->paid_usd == 0 && $sale->paid_vnd == 0)
                                 <button type="button" 
                                         class="w-7 h-7 flex items-center justify-center bg-red-100 text-red-600 rounded-lg hover:bg-red-200 transition-colors delete-btn text-xs" 
                                         title="Xóa"

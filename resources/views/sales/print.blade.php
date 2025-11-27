@@ -469,10 +469,8 @@
                                 <td class="px-2 py-2 text-xs text-right align-top">
                                     @if($item->currency == 'USD')
                                         <div class="font-medium">${{ number_format((float)$item->price_usd, 2) }}</div>
-                                        <div class="text-[10px] text-gray-700">{{ number_format((float)$item->price_vnd) }}đ</div>
                                     @else
                                         <div class="font-medium">{{ number_format((float)$item->price_vnd) }}đ</div>
-                                        <div class="text-[10px] text-gray-700">${{ number_format((float)$item->price_usd, 2) }}</div>
                                     @endif
                                 </td>
                                 <td class="px-2 py-2 text-xs text-right align-top field-item-discount" data-field="item-discount">
@@ -483,8 +481,11 @@
                                     @endif
                                 </td>
                                 <td class="px-2 py-2 text-xs text-right font-semibold align-top">
-                                    <div class="text-sm">${{ number_format((float)$item->total_usd, 2) }}</div>
-                                    <div class="text-[10px] text-gray-700">{{ number_format((float)$item->total_vnd) }}đ</div>
+                                    @if($item->currency == 'USD')
+                                        <div class="text-sm">${{ number_format((float)$item->total_usd, 2) }}</div>
+                                    @else
+                                        <div class="text-sm">{{ number_format((float)$item->total_vnd) }}đ</div>
+                                    @endif
                                 </td>
                             </tr>
                         @endif

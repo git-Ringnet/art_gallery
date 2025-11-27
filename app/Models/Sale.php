@@ -174,29 +174,72 @@ class Sale extends Model
 
     public function updatePaymentStatus()
     {
-        // Tính tổng đã trả theo USD (đơn vị chính)
-        $totalPaidUsd = $this->paid_usd; // Sử dụng accessor đã có
+        // Xác định loại tiền tệ chính của hóa đơn
+        $hasUsd = $this->total_usd > 0;
+        $hasVnd = $this->total_vnd > 0;
         
-        // Tính công nợ theo USD
-        $debtUsd = $this->total_usd - $totalPaidUsd;
-        
-        // Xác định trạng thái thanh toán dựa trên USD với tolerance 0.01 USD
-        // Nếu nợ <= 0.01 (bao gồm cả trả thừa - số âm), coi như đã thanh toán đủ
-        if ($debtUsd <= 0.01) {
-            $this->payment_status = 'paid';
-            $this->debt_amount = 0; // Đảm bảo debt = 0 khi đã thanh toán đủ
-        } elseif ($totalPaidUsd > 0) {
-            $this->payment_status = 'partial';
-            // Tính debt_amount theo VND để hiển thị (chỉ tham khảo)
-            $this->debt_amount = max(0, round($debtUsd * $this->exchange_rate, 2));
+        // Tính công nợ dựa trên loại tiền tệ
+        if ($hasUsd && !$hasVnd) {
+            // Chỉ có USD
+            $totalPaid = $this->paid_usd;
+            $totalAmount = $this->total_usd;
+            $debt = $totalAmount - $totalPaid;
+            
+            // Xác định trạng thái
+            if ($debt <= 0.01) {
+                $this->payment_status = 'paid';
+                $this->debt_amount = 0;
+            } elseif ($totalPaid > 0.01) {
+                $this->payment_status = 'partial';
+                $this->debt_amount = $this->exchange_rate > 0 ? round($debt * $this->exchange_rate, 2) : 0;
+            } else {
+                $this->payment_status = 'unpaid';
+                $this->debt_amount = $this->exchange_rate > 0 ? round($totalAmount * $this->exchange_rate, 2) : 0;
+            }
+            
+            $this->paid_amount = $this->exchange_rate > 0 ? round($totalPaid * $this->exchange_rate, 2) : 0;
+            
+        } elseif ($hasVnd && !$hasUsd) {
+            // Chỉ có VND
+            $totalPaid = $this->paid_vnd;
+            $totalAmount = $this->total_vnd;
+            $debt = $totalAmount - $totalPaid;
+            
+            // Xác định trạng thái
+            if ($debt <= 1) { // Tolerance 1 VND
+                $this->payment_status = 'paid';
+                $this->debt_amount = 0;
+            } elseif ($totalPaid > 1) {
+                $this->payment_status = 'partial';
+                $this->debt_amount = round($debt, 2);
+            } else {
+                $this->payment_status = 'unpaid';
+                $this->debt_amount = round($totalAmount, 2);
+            }
+            
+            $this->paid_amount = round($totalPaid, 2);
+            
         } else {
-            $this->payment_status = 'unpaid';
-            // Tính debt_amount theo VND để hiển thị (chỉ tham khảo)
-            $this->debt_amount = round($this->total_usd * $this->exchange_rate, 2);
+            // Có cả USD và VND - Kiểm tra RIÊNG từng loại
+            $debtUsd = $this->total_usd - $this->paid_usd;
+            $debtVnd = $this->total_vnd - $this->paid_vnd;
+            
+            // Xác định trạng thái: Chỉ "paid" khi CẢ HAI đều trả đủ
+            if ($debtUsd <= 0.01 && $debtVnd <= 1) {
+                $this->payment_status = 'paid';
+                $this->debt_amount = 0;
+            } elseif ($this->paid_usd > 0.01 || $this->paid_vnd > 1) {
+                $this->payment_status = 'partial';
+                // debt_amount chỉ để tham khảo, không dùng để tính toán
+                $this->debt_amount = round($debtVnd, 2);
+            } else {
+                $this->payment_status = 'unpaid';
+                $this->debt_amount = round($this->total_vnd, 2);
+            }
+            
+            // paid_amount chỉ để tham khảo, không dùng để tính toán
+            $this->paid_amount = round($this->paid_vnd, 2);
         }
-        
-        // Cập nhật paid_amount (VND) để hiển thị - chỉ tham khảo
-        $this->paid_amount = round($totalPaidUsd * $this->exchange_rate, 2);
         
         $this->save();
         
@@ -258,12 +301,12 @@ class Sale extends Model
         return $this->sale_status === 'pending';
     }
 
-    // Accessor để tính paid_usd từ các payments (theo tỉ giá tại thời điểm thanh toán)
+    // Accessor để tính paid_usd từ các payments
     public function getPaidUsdAttribute()
     {
-        if (!$this->exchange_rate || $this->exchange_rate == 0) {
-            return 0;
-        }
+        // Xác định loại hóa đơn
+        $hasUsdTotal = $this->total_usd > 0;
+        $hasVndTotal = $this->total_vnd > 0;
         
         // Tính tổng USD đã trả từ tất cả payments
         $totalPaidUsd = 0;
@@ -271,35 +314,86 @@ class Sale extends Model
         // Nếu có payment records, tính từ payments
         if ($this->payments && $this->payments->count() > 0) {
             foreach ($this->payments as $payment) {
-                // Nếu payment có payment_usd thì cộng trực tiếp
+                // Cộng payment_usd
                 if ($payment->payment_usd > 0) {
                     $totalPaidUsd += $payment->payment_usd;
                 }
                 
-                // Nếu payment có payment_vnd thì quy đổi theo tỉ giá tại thời điểm thanh toán
-                if ($payment->payment_vnd > 0) {
+                // Quy đổi payment_vnd → USD CHỈ KHI:
+                // - Hóa đơn CHỈ có USD (thanh toán chéo VND → USD)
+                if ($hasUsdTotal && !$hasVndTotal && $payment->payment_vnd > 0) {
                     $exchangeRate = $payment->payment_exchange_rate ?? $this->exchange_rate;
-                    $totalPaidUsd += $payment->payment_vnd / $exchangeRate;
+                    if ($exchangeRate > 0) {
+                        $totalPaidUsd += $payment->payment_vnd / $exchangeRate;
+                    }
                 }
             }
         } else {
-            // Nếu chưa có payment records (phiếu pending), đọc từ field payment_usd/payment_vnd
+            // Nếu chưa có payment records (phiếu pending), đọc từ field
             if (isset($this->attributes['payment_usd']) && $this->attributes['payment_usd'] > 0) {
                 $totalPaidUsd += $this->attributes['payment_usd'];
             }
             
-            if (isset($this->attributes['payment_vnd']) && $this->attributes['payment_vnd'] > 0) {
-                $totalPaidUsd += $this->attributes['payment_vnd'] / $this->exchange_rate;
+            // Quy đổi payment_vnd → USD CHỈ KHI hóa đơn CHỈ có USD
+            if ($hasUsdTotal && !$hasVndTotal && isset($this->attributes['payment_vnd']) && $this->attributes['payment_vnd'] > 0) {
+                if ($this->exchange_rate > 0) {
+                    $totalPaidUsd += $this->attributes['payment_vnd'] / $this->exchange_rate;
+                }
             }
         }
         
         return round($totalPaidUsd, 2);
     }
+    
+    // Accessor để tính paid_vnd từ các payments
+    public function getPaidVndAttribute()
+    {
+        // Xác định loại hóa đơn
+        $hasUsdTotal = $this->total_usd > 0;
+        $hasVndTotal = $this->total_vnd > 0;
+        
+        // Tính tổng VND đã trả từ tất cả payments
+        $totalPaidVnd = 0;
+        
+        // Nếu có payment records, tính từ payments
+        if ($this->payments && $this->payments->count() > 0) {
+            foreach ($this->payments as $payment) {
+                // Cộng payment_vnd
+                if ($payment->payment_vnd > 0) {
+                    $totalPaidVnd += $payment->payment_vnd;
+                }
+                
+                // Quy đổi payment_usd → VND CHỈ KHI:
+                // - Hóa đơn CHỈ có VND (thanh toán chéo USD → VND)
+                if ($hasVndTotal && !$hasUsdTotal && $payment->payment_usd > 0) {
+                    $exchangeRate = $payment->payment_exchange_rate ?? $this->exchange_rate;
+                    if ($exchangeRate > 0) {
+                        $totalPaidVnd += $payment->payment_usd * $exchangeRate;
+                    }
+                }
+            }
+        } else {
+            // Nếu chưa có payment records (phiếu pending), đọc từ field
+            if (isset($this->attributes['payment_vnd']) && $this->attributes['payment_vnd'] > 0) {
+                $totalPaidVnd += $this->attributes['payment_vnd'];
+            }
+            
+            // Quy đổi payment_usd → VND CHỈ KHI hóa đơn CHỈ có VND
+            if ($hasVndTotal && !$hasUsdTotal && isset($this->attributes['payment_usd']) && $this->attributes['payment_usd'] > 0) {
+                if ($this->exchange_rate > 0) {
+                    $totalPaidVnd += $this->attributes['payment_usd'] * $this->exchange_rate;
+                }
+            }
+        }
+        
+        return round($totalPaidVnd, 2);
+    }
 
     // Accessor để tính debt_usd (công nợ theo USD)
     public function getDebtUsdAttribute()
     {
-        if (!$this->exchange_rate || $this->exchange_rate == 0) {
+        // CHỈ dùng khi tổng hóa đơn có USD
+        if ($this->total_usd <= 0) {
             return 0;
         }
         
@@ -307,5 +401,19 @@ class Sale extends Model
         $debtUsd = $this->total_usd - $this->paid_usd;
         
         return round(max(0, $debtUsd), 2);
+    }
+    
+    // Accessor để tính debt_vnd (công nợ theo VND)
+    public function getDebtVndAttribute()
+    {
+        // CHỈ dùng khi tổng hóa đơn có VND
+        if ($this->total_vnd <= 0) {
+            return 0;
+        }
+        
+        // Công nợ VND = Tổng hóa đơn VND - Tổng đã trả VND
+        $debtVnd = $this->total_vnd - $this->paid_vnd;
+        
+        return round(max(0, $debtVnd), 2);
     }
 }
