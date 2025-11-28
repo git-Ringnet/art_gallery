@@ -499,40 +499,124 @@ function calculatePayment() {
     // Tránh chia cho 0 với phiếu VND (exchange_rate = 0)
     if (rate <= 0) rate = 1;
     
-    // Tính toán
-    // 1. Tổng USD = USD nhập + (VND nhập / Tỷ giá hiện tại)
-    const totalUsd = usd + (vnd / rate);
+    // Xác định loại hóa đơn
+    const invoiceTotalUsd = {{ $debt->sale->total_usd }};
+    const invoiceTotalVnd = {{ $debt->sale->total_vnd }};
+    const isUsdInvoice = invoiceTotalUsd > 0 && invoiceTotalVnd == 0;
+    const isVndInvoice = invoiceTotalVnd > 0 && invoiceTotalUsd == 0;
+    const isMixedInvoice = invoiceTotalUsd > 0 && invoiceTotalVnd > 0;
     
-    // 2. Tổng VND = (USD nhập * Tỷ giá hiện tại) + VND nhập
-    const totalVnd = (usd * rate) + vnd;
-    
-    // Hiển thị
-    totalUsdDisplay.value = '$' + totalUsd.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2});
-    totalVndDisplay.value = totalVnd.toLocaleString('vi-VN') + 'đ';
+    // Tính toán và hiển thị theo quy tắc
+    if (isUsdInvoice) {
+        // Hóa đơn USD
+        if (usd > 0 && vnd == 0) {
+            // Trả USD → Chỉ hiển thị USD
+            totalUsdDisplay.value = '$' + usd.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2});
+            totalVndDisplay.value = '-';
+        } else if (vnd > 0 && usd == 0) {
+            // Trả VND → Quy đổi sang USD (thanh toán chéo)
+            const convertedUsd = vnd / rate;
+            totalUsdDisplay.value = '$' + convertedUsd.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2});
+            totalVndDisplay.value = vnd.toLocaleString('vi-VN') + 'đ (quy đổi)';
+        } else if (usd > 0 && vnd > 0) {
+            // Trả cả hai
+            const totalUsd = usd + (vnd / rate);
+            totalUsdDisplay.value = '$' + totalUsd.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2});
+            totalVndDisplay.value = vnd.toLocaleString('vi-VN') + 'đ (+ $' + usd.toFixed(2) + ')';
+        } else {
+            totalUsdDisplay.value = '$0.00';
+            totalVndDisplay.value = '-';
+        }
+    } else if (isVndInvoice) {
+        // Hóa đơn VND
+        if (vnd > 0 && usd == 0) {
+            // Trả VND → Chỉ hiển thị VND
+            totalUsdDisplay.value = '-';
+            totalVndDisplay.value = vnd.toLocaleString('vi-VN') + 'đ';
+        } else if (usd > 0 && vnd == 0) {
+            // Trả USD → Quy đổi sang VND (thanh toán chéo)
+            const convertedVnd = usd * rate;
+            totalUsdDisplay.value = '$' + usd.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2}) + ' (quy đổi)';
+            totalVndDisplay.value = convertedVnd.toLocaleString('vi-VN') + 'đ';
+        } else if (usd > 0 && vnd > 0) {
+            // Trả cả hai
+            const totalVnd = vnd + (usd * rate);
+            totalUsdDisplay.value = '$' + usd.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2}) + ' (+ ' + vnd.toLocaleString('vi-VN') + 'đ)';
+            totalVndDisplay.value = totalVnd.toLocaleString('vi-VN') + 'đ';
+        } else {
+            totalUsdDisplay.value = '-';
+            totalVndDisplay.value = '0đ';
+        }
+    } else {
+        // Hóa đơn hỗn hợp - hiển thị cả hai
+        const totalUsd = usd + (vnd / rate);
+        const totalVnd = (usd * rate) + vnd;
+        totalUsdDisplay.value = '$' + totalUsd.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2});
+        totalVndDisplay.value = totalVnd.toLocaleString('vi-VN') + 'đ';
+    }
     
     // Cảnh báo real-time
     warningDiv.classList.add('hidden');
+    warningDiv.className = 'mt-2 text-xs p-2 rounded'; // Reset classes
     
-    // Logic check vượt quá nợ (tương tự edit.blade.php)
-    const tolerance = 0.01; // Sai số cho phép của USD
-    const vndTolerance = 1000; // Sai số cho phép của VND
+    // 1. Cảnh báo thanh toán chéo cần tỷ giá
+    const originalRate = {{ $debt->sale->exchange_rate }};
+    let hasWarning = false;
     
-    let isOverPayment = false;
-    
-    if (totalUsd > maxDebtUsd + tolerance) {
-        // Nếu USD vượt quá, kiểm tra xem có phải do trả đủ VND gốc không
-        // Nếu tổng VND trả <= tổng nợ VND (có sai số), thì vẫn chấp nhận
-        if (totalVnd <= maxDebtVnd + vndTolerance) {
-            // Hợp lệ: Khách trả đủ VND, nhưng do tỷ giá thay đổi nên USD quy đổi tăng lên
-            // Không cảnh báo
+    if (isUsdInvoice && vnd > 0 && usd == 0) {
+        // Hóa đơn USD, trả VND - cần tỷ giá
+        if (rate <= 1 || (rate == originalRate && originalRate == 0)) {
+            warningDiv.className += ' text-orange-600 bg-orange-100 border border-orange-300';
+            warningDiv.innerHTML = '<i class="fas fa-exclamation-triangle mr-1"></i> <strong>Thanh toán chéo:</strong> Hóa đơn USD nhưng trả VND. Vui lòng nhập tỷ giá hiện tại!';
+            warningDiv.classList.remove('hidden');
+            hasWarning = true;
         } else {
-            isOverPayment = true;
+            warningDiv.className += ' text-blue-600 bg-blue-100 border border-blue-300';
+            warningDiv.innerHTML = '<i class="fas fa-info-circle mr-1"></i> Thanh toán chéo: Hóa đơn USD, trả VND. Tỷ giá áp dụng: ' + rate.toLocaleString('vi-VN') + ' VND/USD';
+            warningDiv.classList.remove('hidden');
+            hasWarning = true;
+        }
+    } else if (isVndInvoice && usd > 0 && vnd == 0) {
+        // Hóa đơn VND, trả USD - cần tỷ giá
+        if (rate <= 1 || (rate == originalRate && originalRate == 0)) {
+            warningDiv.className += ' text-orange-600 bg-orange-100 border border-orange-300';
+            warningDiv.innerHTML = '<i class="fas fa-exclamation-triangle mr-1"></i> <strong>Thanh toán chéo:</strong> Hóa đơn VND nhưng trả USD. Vui lòng nhập tỷ giá hiện tại!';
+            warningDiv.classList.remove('hidden');
+            hasWarning = true;
+        } else {
+            warningDiv.className += ' text-blue-600 bg-blue-100 border border-blue-300';
+            warningDiv.innerHTML = '<i class="fas fa-info-circle mr-1"></i> Thanh toán chéo: Hóa đơn VND, trả USD. Tỷ giá áp dụng: ' + rate.toLocaleString('vi-VN') + ' VND/USD';
+            warningDiv.classList.remove('hidden');
+            hasWarning = true;
         }
     }
     
-    if (isOverPayment) {
-        warningDiv.innerHTML = `<i class="fas fa-exclamation-triangle mr-1"></i> Số tiền vượt quá nợ còn lại ($${maxDebtUsd.toLocaleString('en-US', {minimumFractionDigits: 2})})`;
-        warningDiv.classList.remove('hidden');
+    // 2. Cảnh báo vượt quá nợ (chỉ khi không có cảnh báo tỷ giá)
+    if (!hasWarning) {
+        const tolerance = 0.01;
+        const vndTolerance = 1000;
+        let isOverPayment = false;
+        
+        if (isUsdInvoice || isMixedInvoice) {
+            const totalUsd = usd + (vnd / rate);
+            if (totalUsd > maxDebtUsd + tolerance) {
+                const totalVnd = (usd * rate) + vnd;
+                if (totalVnd > maxDebtVnd + vndTolerance) {
+                    isOverPayment = true;
+                }
+            }
+        } else if (isVndInvoice) {
+            const totalVnd = vnd + (usd * rate);
+            if (totalVnd > maxDebtVnd + vndTolerance) {
+                isOverPayment = true;
+            }
+        }
+        
+        if (isOverPayment) {
+            warningDiv.className += ' text-red-600 bg-red-100 border border-red-300';
+            warningDiv.innerHTML = `<i class="fas fa-exclamation-triangle mr-1"></i> Số tiền vượt quá nợ còn lại!`;
+            warningDiv.classList.remove('hidden');
+        }
     }
 }
 
