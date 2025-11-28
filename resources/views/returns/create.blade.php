@@ -315,7 +315,7 @@ function displayInvoiceInfo(sale) {
     document.getElementById('inv-date').textContent = new Date(sale.sale_date).toLocaleDateString('vi-VN');
     document.getElementById('inv-customer').textContent = sale.customer.name;
     
-    // LOGIC MỚI: Detect currency từ sale (giống Sales module)
+    // Lấy giá trị USD và VND
     const totalUsd = parseFloat(sale.total_usd || 0);
     const paidUsd = parseFloat(sale.paid_usd || 0);
     const debtUsd = parseFloat(sale.debt_usd || 0);
@@ -326,51 +326,66 @@ function displayInvoiceInfo(sale) {
     
     const exchangeRate = parseFloat(sale.exchange_rate || 25000);
     
-    // Detect primary currency
-    let isUsdPrimary = false;
-    let isVndPrimary = false;
+    // Detect currency từ items (dùng currency field)
+    let hasUsd = false;
+    let hasVnd = false;
     
     if (sale.items) {
-        const hasUsd = sale.items.some(item => parseFloat(item.price_usd || 0) > 0);
-        const hasVnd = sale.items.some(item => parseFloat(item.price_vnd || 0) > 0);
-        
-        if (hasUsd && !hasVnd) {
-            isUsdPrimary = true;
-        } else if (hasVnd && !hasUsd) {
-            isVndPrimary = true;
-        } else {
-            isVndPrimary = true; // Default VND for mixed
-        }
-    } else {
-        isVndPrimary = true; // Default VND
+        sale.items.forEach(item => {
+            const currency = item.currency || 'VND';
+            if (currency === 'USD') {
+                hasUsd = true;
+            } else {
+                hasVnd = true;
+            }
+        });
     }
     
-    // Display based on primary currency
-    if (isUsdPrimary) {
-        // USD primary
+    const isMixed = hasUsd && hasVnd;
+    const isUsdOnly = hasUsd && !hasVnd;
+    const isVndOnly = hasVnd && !hasUsd;
+    
+    // HIỂN THỊ MỚI: Phiếu hỗn hợp hiển thị riêng USD và VND, kích thước bằng nhau
+    if (isMixed) {
+        // Mixed: Hiển thị cả USD và VND riêng biệt
+        document.getElementById('inv-total-usd').innerHTML = '<div class="font-bold text-blue-600">USD: $' + totalUsd.toLocaleString('en-US', {minimumFractionDigits: 2}) + '</div>' +
+            '<div class="font-bold text-blue-600">VND: ' + totalVnd.toLocaleString('vi-VN') + 'đ</div>';
+        document.getElementById('inv-total-vnd').textContent = '';
+        
+        document.getElementById('inv-paid-usd').innerHTML = '<div class="font-bold text-green-600">USD: $' + paidUsd.toLocaleString('en-US', {minimumFractionDigits: 2}) + '</div>' +
+            '<div class="font-bold text-green-600">VND: ' + paidVnd.toLocaleString('vi-VN') + 'đ</div>';
+        document.getElementById('inv-paid-vnd').textContent = '';
+        
+        document.getElementById('inv-debt-usd').innerHTML = '<div class="font-bold text-red-600">USD: $' + debtUsd.toLocaleString('en-US', {minimumFractionDigits: 2}) + '</div>' +
+            '<div class="font-bold text-red-600">VND: ' + debtVnd.toLocaleString('vi-VN') + 'đ</div>';
+        document.getElementById('inv-debt-vnd').textContent = '';
+    } else if (isUsdOnly) {
+        // USD only
         document.getElementById('inv-total-usd').innerHTML = '<strong>$' + totalUsd.toLocaleString('en-US', {minimumFractionDigits: 2}) + '</strong>';
-        document.getElementById('inv-total-vnd').textContent = totalVnd > 0 ? '≈ ' + totalVnd.toLocaleString('vi-VN') + 'đ' : '';
+        document.getElementById('inv-total-vnd').textContent = '';
         
         document.getElementById('inv-paid-usd').innerHTML = '<strong>$' + paidUsd.toLocaleString('en-US', {minimumFractionDigits: 2}) + '</strong>';
-        document.getElementById('inv-paid-vnd').textContent = paidVnd > 0 ? '≈ ' + paidVnd.toLocaleString('vi-VN') + 'đ' : '';
+        document.getElementById('inv-paid-vnd').textContent = '';
         
         document.getElementById('inv-debt-usd').innerHTML = '<strong>$' + debtUsd.toLocaleString('en-US', {minimumFractionDigits: 2}) + '</strong>';
-        document.getElementById('inv-debt-vnd').textContent = debtVnd > 0 ? '≈ ' + debtVnd.toLocaleString('vi-VN') + 'đ' : '';
+        document.getElementById('inv-debt-vnd').textContent = '';
     } else {
-        // VND primary
+        // VND only
         document.getElementById('inv-total-usd').innerHTML = '<strong>' + totalVnd.toLocaleString('vi-VN') + 'đ</strong>';
-        document.getElementById('inv-total-vnd').textContent = totalUsd > 0 ? '≈ $' + totalUsd.toLocaleString('en-US', {minimumFractionDigits: 2}) : '';
+        document.getElementById('inv-total-vnd').textContent = '';
         
         document.getElementById('inv-paid-usd').innerHTML = '<strong>' + paidVnd.toLocaleString('vi-VN') + 'đ</strong>';
-        document.getElementById('inv-paid-vnd').textContent = paidUsd > 0 ? '≈ $' + paidUsd.toLocaleString('en-US', {minimumFractionDigits: 2}) : '';
+        document.getElementById('inv-paid-vnd').textContent = '';
         
         document.getElementById('inv-debt-usd').innerHTML = '<strong>' + debtVnd.toLocaleString('vi-VN') + 'đ</strong>';
-        document.getElementById('inv-debt-vnd').textContent = debtUsd > 0 ? '≈ $' + debtUsd.toLocaleString('en-US', {minimumFractionDigits: 2}) : '';
+        document.getElementById('inv-debt-vnd').textContent = '';
     }
     
     // Exchange rate
-    if (exchangeRate > 0) {
+    if (exchangeRate > 0 && isMixed) {
         document.getElementById('inv-exchange-rate').textContent = '1 USD = ' + exchangeRate.toLocaleString('vi-VN') + 'đ';
+    } else {
+        document.getElementById('inv-exchange-rate').textContent = ''; // Clear if not mixed
     }
     
     document.getElementById('sale-id').value = sale.id;
@@ -381,27 +396,6 @@ function displayProducts(items, returnedQty) {
     const container = document.getElementById('products-container');
     container.innerHTML = '';
     
-    const exchangeRate = saleData ? parseFloat(saleData.exchange_rate || 25000) : 25000;
-    
-    // Detect primary currency từ sale
-    let isUsdPrimary = false;
-    let isVndPrimary = false;
-    
-    if (saleData && saleData.items) {
-        const hasUsd = saleData.items.some(i => parseFloat(i.price_usd || 0) > 0);
-        const hasVnd = saleData.items.some(i => parseFloat(i.price_vnd || 0) > 0);
-        
-        if (hasUsd && !hasVnd) {
-            isUsdPrimary = true;
-        } else if (hasVnd && !hasUsd) {
-            isVndPrimary = true;
-        } else {
-            isVndPrimary = true; // Default VND
-        }
-    } else {
-        isVndPrimary = true; // Default VND
-    }
-    
     let hasItems = false;
     items.forEach(item => {
         const available = item.quantity - (returnedQty[item.id] || 0);
@@ -411,32 +405,19 @@ function displayProducts(items, returnedQty) {
         const div = document.createElement('div');
         div.className = 'border rounded-lg p-3 mb-2';
         
-        // LOGIC MỚI: Lấy giá từ price_usd và price_vnd
+        // Lấy currency gốc của item
+        const currency = item.currency || 'VND';
         const priceUsd = parseFloat(item.price_usd || 0);
         const priceVnd = parseFloat(item.price_vnd || 0);
         
-        // Fallback nếu thiếu
-        let displayPriceUsd = priceUsd;
-        let displayPriceVnd = priceVnd;
-        
-        if (priceUsd === 0 && priceVnd > 0) {
-            displayPriceUsd = priceVnd / exchangeRate;
-        } else if (priceVnd === 0 && priceUsd > 0) {
-            displayPriceVnd = priceUsd * exchangeRate;
-        }
-        
-        // Build price display based on primary currency
+        // KHÔNG QUY ĐỔI - Hiển thị theo currency gốc
         let priceHtml = '';
-        if (isUsdPrimary) {
-            priceHtml = `
-                <div class="font-bold text-blue-600">Đơn giá: $${displayPriceUsd.toLocaleString('en-US', {minimumFractionDigits: 2})}</div>
-                ${displayPriceVnd > 0 ? `<div class="text-gray-500 text-[10px]">≈ ${displayPriceVnd.toLocaleString('vi-VN')}đ</div>` : ''}
-            `;
+        if (currency === 'USD') {
+            // Item USD - chỉ hiển thị USD
+            priceHtml = `<div class="font-bold text-blue-600">Đơn giá: $${priceUsd.toLocaleString('en-US', {minimumFractionDigits: 2})}</div>`;
         } else {
-            priceHtml = `
-                <div class="font-bold text-blue-600">Đơn giá: ${displayPriceVnd.toLocaleString('vi-VN')}đ</div>
-                ${displayPriceUsd > 0 ? `<div class="text-gray-500 text-[10px]">≈ $${displayPriceUsd.toLocaleString('en-US', {minimumFractionDigits: 2})}</div>` : ''}
-            `;
+            // Item VND - chỉ hiển thị VND
+            priceHtml = `<div class="font-bold text-blue-600">Đơn giá: ${priceVnd.toLocaleString('vi-VN')}đ</div>`;
         }
         
         // Build image HTML
@@ -463,6 +444,9 @@ function displayProducts(items, returnedQty) {
                            max="${available}" 
                            value="0"
                            data-price="${item.unit_price}"
+                           data-currency="${currency}"
+                           data-price-usd="${priceUsd}"
+                           data-price-vnd="${priceVnd}"
                            onchange="updateSummary()">
                     <input type="hidden" name="items[${item.id}][sale_item_id]" value="${item.id}">
                 </div>
@@ -765,7 +749,7 @@ function updateSummary() {
         isVndPrimary = true;
     }
     
-    // Calculate return amount (RIÊNG USD VÀ VND)
+    // Calculate return amount (RIÊNG USD VÀ VND theo currency của từng item)
     const returnInputs = document.querySelectorAll('.return-qty');
     let returnQty = 0;
     let returnValueUsd = 0;
@@ -773,26 +757,22 @@ function updateSummary() {
     
     returnInputs.forEach(input => {
         const qty = parseInt(input.value) || 0;
-        const itemId = input.name.match(/items\[(\d+)\]/)[1];
+        if (qty === 0) return;
         
-        // Tìm item trong saleData
-        const item = saleData.items.find(i => i.id == itemId);
-        if (item) {
-            const priceUsd = parseFloat(item.price_usd || 0);
-            const priceVnd = parseFloat(item.price_vnd || 0);
-            
-            returnQty += qty;
+        // Lấy currency từ data attribute
+        const currency = input.dataset.currency || 'VND';
+        const priceUsd = parseFloat(input.dataset.priceUsd || 0);
+        const priceVnd = parseFloat(input.dataset.priceVnd || 0);
+        
+        returnQty += qty;
+        
+        // Tính theo currency gốc
+        if (currency === 'USD') {
             returnValueUsd += qty * priceUsd;
+        } else {
             returnValueVnd += qty * priceVnd;
         }
     });
-    
-    // Fallback nếu thiếu giá
-    if (returnValueUsd === 0 && returnValueVnd > 0) {
-        returnValueUsd = returnValueVnd / exchangeRate;
-    } else if (returnValueVnd === 0 && returnValueUsd > 0) {
-        returnValueVnd = returnValueUsd * exchangeRate;
-    }
     
     // LOGIC MỚI: Tính theo tỷ lệ đã trả (RIÊNG USD VÀ VND)
     const paidUsd = parseFloat(saleData.paid_usd || 0);
@@ -804,7 +784,7 @@ function updateSummary() {
     const paidRatioUsd = totalUsd > 0 ? (paidUsd / totalUsd) : 0;
     const paidRatioVnd = totalVnd > 0 ? (paidVnd / totalVnd) : 0;
     
-    // Tính số tiền đã trả cho các sản phẩm đang trả
+    // Tính số tiền đã trả cho các sản phẩm đang trả (RIÊNG USD VÀ VND)
     const paidForReturnedItemsUsd = returnValueUsd * paidRatioUsd;
     const paidForReturnedItemsVnd = returnValueVnd * paidRatioVnd;
     
@@ -817,27 +797,36 @@ function updateSummary() {
     if (type === 'exchange') {
         let exchangeQty = 0;
         let totalExchangeVnd = 0;
+        let totalExchangeUsd = 0;
         
         exchangeProducts.forEach(product => {
             exchangeQty += product.quantity;
             const finalPrice = product.price * (1 - (product.discount || 0) / 100);
-            totalExchangeVnd += product.quantity * finalPrice;
+            const finalPriceUsd = product.priceUsd * (1 - (product.discount || 0) / 100);
+
+            if (product.isUsd) {
+                totalExchangeUsd += product.quantity * finalPriceUsd;
+            } else {
+                totalExchangeVnd += product.quantity * finalPrice;
+            }
         });
         
-        const totalExchangeUsd = totalExchangeVnd / exchangeRate;
-        
-        // Tính chênh lệch giữa giá SP mới và số tiền đã trả cho SP cũ (USD)
+        // Convert totalExchangeVnd to USD and totalExchangeUsd to VND for comparison
+        const totalExchangeVndConvertedToUsd = totalExchangeVnd / exchangeRate;
+        const totalExchangeUsdConvertedToVnd = totalExchangeUsd * exchangeRate;
+
+        // Calculate differences based on their respective currencies
         const differenceUsd = totalExchangeUsd - paidForReturnedItemsUsd;
-        const differenceVnd = differenceUsd * exchangeRate;
+        const differenceVnd = totalExchangeVnd - paidForReturnedItemsVnd;
         
-        if (differenceUsd > 0) {
-            // Khách trả thêm
-            exchangeAmountUsd = differenceUsd;
-            exchangeAmountVnd = differenceVnd;
+        if (differenceUsd > 0 || differenceVnd > 0) {
+            // Khách trả thêm (if either currency has a positive difference)
+            exchangeAmountUsd = differenceUsd > 0 ? differenceUsd : 0;
+            exchangeAmountVnd = differenceVnd > 0 ? differenceVnd : 0;
             actualRefundUsd = 0;
             actualRefundVnd = 0;
         } else {
-            // Hoàn lại khách
+            // Hoàn lại khách (if both currencies have negative or zero difference)
             exchangeAmountUsd = 0;
             exchangeAmountVnd = 0;
             actualRefundUsd = Math.abs(differenceUsd);
@@ -846,42 +835,58 @@ function updateSummary() {
         
         document.getElementById('exchange-summary').classList.remove('hidden');
         document.getElementById('summary-exchange-qty').textContent = exchangeQty;
-        // Display exchange amount based on primary currency
-        if (isUsdPrimary) {
-            document.getElementById('summary-exchange-amount-usd').textContent = '$' + totalExchangeUsd.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2});
-        } else {
-            document.getElementById('summary-exchange-amount-usd').textContent = totalExchangeVnd.toLocaleString('vi-VN') + 'đ';
-        }
-        // Removed conversion line
         
-        // Update difference display (based on primary currency)
-        if (actualRefundUsd > 0) {
+        // Display exchange amount (USD and VND separately)
+        let totalExchangeHtml = '';
+        if (totalExchangeUsd > 0 && totalExchangeVnd > 0) {
+            totalExchangeHtml = '<div class="font-bold text-blue-600">USD: $' + totalExchangeUsd.toLocaleString('en-US', {minimumFractionDigits: 2}) + '</div>' +
+                                '<div class="font-bold text-blue-600">VND: ' + totalExchangeVnd.toLocaleString('vi-VN') + 'đ</div>';
+        } else if (totalExchangeUsd > 0) {
+            totalExchangeHtml = '<div class="font-bold text-blue-600">$' + totalExchangeUsd.toLocaleString('en-US', {minimumFractionDigits: 2}) + '</div>';
+        } else if (totalExchangeVnd > 0) {
+            totalExchangeHtml = '<div class="font-bold text-blue-600">' + totalExchangeVnd.toLocaleString('vi-VN') + 'đ</div>';
+        } else {
+            totalExchangeHtml = '<div class="font-bold text-blue-600">$0.00</div>';
+        }
+        document.getElementById('summary-exchange-amount-usd').innerHTML = totalExchangeHtml;
+        
+        // Update difference display
+        let differenceHtml = '';
+        if (actualRefundUsd > 0 || actualRefundVnd > 0) {
             // Hoàn lại khách
             document.getElementById('summary-difference-label').textContent = 'Hoàn lại khách:';
             document.getElementById('summary-difference-formula').textContent = '= Đã TT (SP cũ) - SP mới';
             document.getElementById('summary-difference-usd').className = 'font-bold text-lg text-green-600';
-            if (isUsdPrimary) {
-                document.getElementById('summary-difference-usd').textContent = '$' + actualRefundUsd.toLocaleString('en-US', {minimumFractionDigits: 2});
+            if (actualRefundUsd > 0 && actualRefundVnd > 0) {
+                differenceHtml = '<div>USD: $' + actualRefundUsd.toLocaleString('en-US', {minimumFractionDigits: 2}) + '</div>' +
+                                 '<div>VND: ' + actualRefundVnd.toLocaleString('vi-VN') + 'đ</div>';
+            } else if (actualRefundUsd > 0) {
+                differenceHtml = '$' + actualRefundUsd.toLocaleString('en-US', {minimumFractionDigits: 2});
             } else {
-                document.getElementById('summary-difference-usd').textContent = actualRefundVnd.toLocaleString('vi-VN') + 'đ';
+                differenceHtml = actualRefundVnd.toLocaleString('vi-VN') + 'đ';
             }
-        } else if (exchangeAmountUsd > 0) {
+        } else if (exchangeAmountUsd > 0 || exchangeAmountVnd > 0) {
             // Khách trả thêm
             document.getElementById('summary-difference-label').textContent = 'Khách trả thêm:';
             document.getElementById('summary-difference-formula').textContent = '= SP mới - Đã TT (SP cũ)';
             document.getElementById('summary-difference-usd').className = 'font-bold text-lg text-red-600';
-            if (isUsdPrimary) {
-                document.getElementById('summary-difference-usd').textContent = '+$' + exchangeAmountUsd.toLocaleString('en-US', {minimumFractionDigits: 2});
+            if (exchangeAmountUsd > 0 && exchangeAmountVnd > 0) {
+                differenceHtml = '<div>USD: +$' + exchangeAmountUsd.toLocaleString('en-US', {minimumFractionDigits: 2}) + '</div>' +
+                                 '<div>VND: +' + exchangeAmountVnd.toLocaleString('vi-VN') + 'đ</div>';
+            } else if (exchangeAmountUsd > 0) {
+                differenceHtml = '+$' + exchangeAmountUsd.toLocaleString('en-US', {minimumFractionDigits: 2});
             } else {
-                document.getElementById('summary-difference-usd').textContent = '+' + exchangeAmountVnd.toLocaleString('vi-VN') + 'đ';
+                differenceHtml = '+' + exchangeAmountVnd.toLocaleString('vi-VN') + 'đ';
             }
         } else {
             // Ngang giá
             document.getElementById('summary-difference-label').textContent = 'Chênh lệch:';
             document.getElementById('summary-difference-formula').textContent = 'Ngang giá';
             document.getElementById('summary-difference-usd').className = 'font-bold text-lg text-gray-600';
-            document.getElementById('summary-difference-usd').textContent = isUsdPrimary ? '$0.00' : '0đ';
+            differenceHtml = '$0.00 / 0đ';
         }
+        document.getElementById('summary-difference-usd').innerHTML = differenceHtml;
+
     } else {
         // Trả hàng thuần túy: Hoàn số tiền đã trả cho SP này
         actualRefundUsd = paidForReturnedItemsUsd;
@@ -889,17 +894,42 @@ function updateSummary() {
         document.getElementById('exchange-summary').classList.add('hidden');
     }
     
-    // Update summary display (theo primary currency)
+    // Update summary display (RIÊNG USD và VND)
     document.getElementById('summary-return-qty').textContent = returnQty;
     
-    // Display values based on primary currency (no conversion)
-    if (isUsdPrimary) {
-        document.getElementById('summary-return-value-usd').textContent = '$' + returnValueUsd.toLocaleString('en-US', {minimumFractionDigits: 2});
-        document.getElementById('summary-return-amount-usd').textContent = '$' + paidForReturnedItemsUsd.toLocaleString('en-US', {minimumFractionDigits: 2});
+    // Hiển thị giá trị SP trả (riêng USD và VND)
+    let returnValueHtml = '';
+    if (returnValueUsd > 0 && returnValueVnd > 0) {
+        // Mixed
+        returnValueHtml = '<div class="font-bold text-blue-600">USD: $' + returnValueUsd.toLocaleString('en-US', {minimumFractionDigits: 2}) + '</div>' +
+                         '<div class="font-bold text-blue-600">VND: ' + returnValueVnd.toLocaleString('vi-VN') + 'đ</div>';
+    } else if (returnValueUsd > 0) {
+        // USD only
+        returnValueHtml = '<div class="font-bold text-blue-600">$' + returnValueUsd.toLocaleString('en-US', {minimumFractionDigits: 2}) + '</div>';
+    } else if (returnValueVnd > 0) {
+        // VND only
+        returnValueHtml = '<div class="font-bold text-blue-600">' + returnValueVnd.toLocaleString('vi-VN') + 'đ</div>';
     } else {
-        document.getElementById('summary-return-value-usd').textContent = returnValueVnd.toLocaleString('vi-VN') + 'đ';
-        document.getElementById('summary-return-amount-usd').textContent = paidForReturnedItemsVnd.toLocaleString('vi-VN') + 'đ';
+        returnValueHtml = '<div class="font-bold text-blue-600">$0.00</div>';
     }
+    document.getElementById('summary-return-value-usd').innerHTML = returnValueHtml;
+    
+    // Hiển thị số tiền đã trả (riêng USD và VND)
+    let paidAmountHtml = '';
+    if (paidForReturnedItemsUsd > 0 && paidForReturnedItemsVnd > 0) {
+        // Mixed
+        paidAmountHtml = '<div class="font-bold text-green-600">USD: $' + paidForReturnedItemsUsd.toLocaleString('en-US', {minimumFractionDigits: 2}) + '</div>' +
+                        '<div class="font-bold text-green-600">VND: ' + paidForReturnedItemsVnd.toLocaleString('vi-VN') + 'đ</div>';
+    } else if (paidForReturnedItemsUsd > 0) {
+        // USD only
+        paidAmountHtml = '<div class="font-bold text-green-600">$' + paidForReturnedItemsUsd.toLocaleString('en-US', {minimumFractionDigits: 2}) + '</div>';
+    } else if (paidForReturnedItemsVnd > 0) {
+        // VND only
+        paidAmountHtml = '<div class="font-bold text-green-600">' + paidForReturnedItemsVnd.toLocaleString('vi-VN') + 'đ</div>';
+    } else {
+        paidAmountHtml = '<div class="font-bold text-green-600">$0.00</div>';
+    }
+    document.getElementById('summary-return-amount-usd').innerHTML = paidAmountHtml;
     
     // Update refund note
     const paidPercent = (paidRatioUsd * 100).toFixed(1);
@@ -915,13 +945,9 @@ function updateSummary() {
             document.getElementById('refund-note').className = 'text-xs text-green-600 italic font-medium';
         }
     } else {
-        if (actualRefundUsd > 0) {
-            document.getElementById('refund-note').textContent = `Hoàn $${actualRefundUsd.toLocaleString('en-US', {minimumFractionDigits: 2})} (Đã trả ${paidPercent}% × $${returnValueUsd.toLocaleString('en-US', {minimumFractionDigits: 2})})`;
-            document.getElementById('refund-note').className = 'text-xs text-green-600 italic font-medium';
-        } else {
-            document.getElementById('refund-note').textContent = 'Ch ua thanh toán trước đó';
-            document.getElementById('refund-note').className = 'text-xs text-gray-500 italic';
-        }
+        // Trả hàng thuần túy: ẩn note
+        document.getElementById('refund-note').textContent = '';
+        document.getElementById('refund-note').className = 'text-xs text-gray-500 italic hidden';
     }
     
     // Hiển thị payment section nếu đổi hàng và khách phải trả thêm

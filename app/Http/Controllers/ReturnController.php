@@ -336,27 +336,45 @@ class ReturnController extends Controller
                 }
                 
                 // Calculate unit price after applying discounts (CẢ USD VÀ VND)
-                $unitPriceUsd = $saleItem->price_usd;
-                $unitPriceVnd = $saleItem->price_vnd;
                 $currency = $saleItem->currency;
+                $exchangeRate = ($sale->exchange_rate && $sale->exchange_rate > 0) ? $sale->exchange_rate : 25000;
+                
+                // Lấy giá gốc dựa trên currency - KHÔNG QUY ĐỔI
+                if ($currency === 'USD') {
+                    $unitPriceUsd = $saleItem->price_usd;
+                    $unitPriceVnd = 0; // Không tính VND cho USD items
+                } else {
+                    $unitPriceVnd = $saleItem->price_vnd;
+                    $unitPriceUsd = 0; // Không tính USD cho VND items
+                }
                 
                 // Apply item-level discount if exists
                 if ($saleItem->discount_percent > 0) {
-                    $unitPriceUsd = $unitPriceUsd * (1 - $saleItem->discount_percent / 100);
-                    $unitPriceVnd = $unitPriceVnd * (1 - $saleItem->discount_percent / 100);
+                    if ($currency === 'USD') {
+                        $unitPriceUsd = $unitPriceUsd * (1 - $saleItem->discount_percent / 100);
+                    } else {
+                        $unitPriceVnd = $unitPriceVnd * (1 - $saleItem->discount_percent / 100);
+                    }
                 }
                 
                 // Apply sale-level discount if exists
                 if ($sale->discount_percent > 0) {
-                    $unitPriceUsd = $unitPriceUsd * (1 - $sale->discount_percent / 100);
-                    $unitPriceVnd = $unitPriceVnd * (1 - $sale->discount_percent / 100);
+                    if ($currency === 'USD') {
+                        $unitPriceUsd = $unitPriceUsd * (1 - $sale->discount_percent / 100);
+                    } else {
+                        $unitPriceVnd = $unitPriceVnd * (1 - $sale->discount_percent / 100);
+                    }
                 }
                 
                 $subtotalUsd = $itemData['quantity'] * $unitPriceUsd;
                 $subtotalVnd = $itemData['quantity'] * $unitPriceVnd;
                 
-                $totalReturnValueUsd += $subtotalUsd;
-                $totalReturnValueVnd += $subtotalVnd;
+                // Chỉ cộng vào tổng theo currency gốc
+                if ($currency === 'USD') {
+                    $totalReturnValueUsd += $subtotalUsd;
+                } else {
+                    $totalReturnValueVnd += $subtotalVnd;
+                }
 
                 $returnItems[] = [
                     'sale_item_id' => $saleItem->id,
@@ -422,23 +440,32 @@ class ReturnController extends Controller
                     if (!isset($item['quantity']) || $item['quantity'] <= 0) continue;
                     
                     // Validate inventory and get currency
-                    $currency = 'VND';
+                    $currency = $item['currency'] ?? 'VND';
+                    $exchangeRate = $sale->exchange_rate ?? 25000;
+                    
                     if ($item['item_type'] === 'painting') {
                         $painting = Painting::find($item['item_id']);
                         if (!$painting || $painting->quantity < $item['quantity']) {
                             throw new \Exception("Không đủ tồn kho cho sản phẩm");
                         }
-                        $currency = $item['currency'] ?? 'VND';
                     } else {
                         $supply = Supply::find($item['item_id']);
                         if (!$supply || $supply->quantity < $item['quantity']) {
                             throw new \Exception("Không đủ tồn kho cho vật tư");
                         }
-                        $currency = $item['currency'] ?? 'VND';
                     }
                     
-                    $subtotalUsd = $item['quantity'] * ($item['unit_price_usd'] ?? 0);
-                    $subtotalVnd = $item['quantity'] * $item['unit_price'];
+                    // Tính giá dựa trên currency
+                    if ($currency === 'USD') {
+                        $unitPriceUsd = $item['unit_price_usd'] ?? 0;
+                        $unitPriceVnd = $unitPriceUsd * $exchangeRate;
+                    } else {
+                        $unitPriceVnd = $item['unit_price'] ?? 0;
+                        $unitPriceUsd = $unitPriceVnd / $exchangeRate;
+                    }
+                    
+                    $subtotalUsd = $item['quantity'] * $unitPriceUsd;
+                    $subtotalVnd = $item['quantity'] * $unitPriceVnd;
                     
                     $totalExchangeUsd += $subtotalUsd;
                     $totalExchangeVnd += $subtotalVnd;
@@ -449,8 +476,8 @@ class ReturnController extends Controller
                         'supply_id' => $item['supply_id'] ?? null,
                         'supply_length' => $item['supply_length'] ?? null,
                         'quantity' => $item['quantity'],
-                        'unit_price' => $item['unit_price'],
-                        'unit_price_usd' => $item['unit_price_usd'] ?? 0,
+                        'unit_price' => $unitPriceVnd,
+                        'unit_price_usd' => $unitPriceUsd,
                         'discount_percent' => $item['discount_percent'] ?? 0,
                         'subtotal' => $subtotalVnd,
                         'subtotal_usd' => $subtotalUsd,
@@ -524,7 +551,7 @@ class ReturnController extends Controller
             'items.painting',
             'items.supply',
             'items.frameSupply',
-            'items.saleItem.sale',
+            'items.saleItem',
             'exchangeItems.painting',
             'exchangeItems.supply',
             'exchangeItems.frameSupply'
@@ -635,27 +662,46 @@ class ReturnController extends Controller
                 }
                 
                 // Calculate unit price after applying discounts (RIÊNG USD VÀ VND)
-                $unitPriceUsd = $saleItem->price_usd;
-                $unitPriceVnd = $saleItem->price_vnd;
+                $currency = $saleItem->currency;
+                $exchangeRate = $sale->exchange_rate ?? 25000;
+                
+                // Lấy giá gốc dựa trên currency - KHÔNG QUY ĐỔI
+                if ($currency === 'USD') {
+                    $unitPriceUsd = $saleItem->price_usd;
+                    $unitPriceVnd = 0; // Không tính VND cho USD items
+                } else {
+                    $unitPriceVnd = $saleItem->price_vnd;
+                    $unitPriceUsd = 0; // Không tính USD cho VND items
+                }
                 
                 // Apply item-level discount if exists
                 if ($saleItem->discount_percent > 0) {
-                    $unitPriceUsd = $unitPriceUsd * (1 - $saleItem->discount_percent / 100);
-                    $unitPriceVnd = $unitPriceVnd * (1 - $saleItem->discount_percent / 100);
+                    if ($currency === 'USD') {
+                        $unitPriceUsd = $unitPriceUsd * (1 - $saleItem->discount_percent / 100);
+                    } else {
+                        $unitPriceVnd = $unitPriceVnd * (1 - $saleItem->discount_percent / 100);
+                    }
                 }
                 
                 // Apply sale-level discount if exists
                 if ($sale->discount_percent > 0) {
-                    $unitPriceUsd = $unitPriceUsd * (1 - $sale->discount_percent / 100);
-                    $unitPriceVnd = $unitPriceVnd * (1 - $sale->discount_percent / 100);
+                    if ($currency === 'USD') {
+                        $unitPriceUsd = $unitPriceUsd * (1 - $sale->discount_percent / 100);
+                    } else {
+                        $unitPriceVnd = $unitPriceVnd * (1 - $sale->discount_percent / 100);
+                    }
                 }
                 
                 $subtotalUsd = $itemData['quantity'] * $unitPriceUsd;
                 $subtotalVnd = $itemData['quantity'] * $unitPriceVnd;
                 $subtotal = $subtotalVnd; // Backward compatibility
                 
-                $totalReturnValueUsd += $subtotalUsd;
-                $totalReturnValueVnd += $subtotalVnd;
+                // Chỉ cộng vào tổng theo currency gốc
+                if ($currency === 'USD') {
+                    $totalReturnValueUsd += $subtotalUsd;
+                } else {
+                    $totalReturnValueVnd += $subtotalVnd;
+                }
                 $totalReturnValue += $subtotal;
 
                 $return->items()->create([
@@ -695,24 +741,33 @@ class ReturnController extends Controller
                     if (!isset($item['quantity']) || $item['quantity'] <= 0) continue;
                     
                     // Validate inventory and get currency
-                    $currency = 'VND';
+                    $currency = $item['currency'] ?? 'VND';
+                    $exchangeRate = $sale->exchange_rate ?? 25000;
+                    
                     if ($item['item_type'] === 'painting') {
                         $painting = Painting::find($item['item_id']);
                         if (!$painting || $painting->quantity < $item['quantity']) {
                             throw new \Exception("Không đủ tồn kho cho sản phẩm");
                         }
-                        $currency = $item['currency'] ?? 'VND';
                     } else {
                         $supply = Supply::find($item['item_id']);
                         if (!$supply || $supply->quantity < $item['quantity']) {
                             throw new \Exception("Không đủ tồn kho cho vật tư");
                         }
-                        $currency = $item['currency'] ?? 'VND';
+                    }
+                    
+                    // Tính giá dựa trên currency
+                    if ($currency === 'USD') {
+                        $unitPriceUsd = $item['unit_price_usd'] ?? 0;
+                        $unitPriceVnd = $unitPriceUsd * $exchangeRate;
+                    } else {
+                        $unitPriceVnd = $item['unit_price'] ?? 0;
+                        $unitPriceUsd = $unitPriceVnd / $exchangeRate;
                     }
                     
                     // Tính subtotal (RIÊNG USD VÀ VND)
-                    $subtotalUsd = $item['quantity'] * ($item['unit_price_usd'] ?? 0);
-                    $subtotalVnd = $item['quantity'] * $item['unit_price'];
+                    $subtotalUsd = $item['quantity'] * $unitPriceUsd;
+                    $subtotalVnd = $item['quantity'] * $unitPriceVnd;
                     $subtotal = $subtotalVnd; // Backward compatibility
                     
                     $totalExchangeUsd += $subtotalUsd;
@@ -725,8 +780,8 @@ class ReturnController extends Controller
                         'supply_id' => $item['supply_id'] ?? null,
                         'supply_length' => $item['supply_length'] ?? null,
                         'quantity' => $item['quantity'],
-                        'unit_price' => $item['unit_price'],
-                        'unit_price_usd' => $item['unit_price_usd'] ?? 0,
+                        'unit_price' => $unitPriceVnd,
+                        'unit_price_usd' => $unitPriceUsd,
                         'discount_percent' => $item['discount_percent'] ?? 0,
                         'subtotal' => $subtotal,
                         'subtotal_usd' => $subtotalUsd,

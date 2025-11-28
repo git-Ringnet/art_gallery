@@ -17,7 +17,10 @@ class ReturnItem extends Model
         'supply_id',
         'supply_length',
         'unit_price',
+        'unit_price_usd',
         'subtotal',
+        'subtotal_usd',
+        'currency',
         'reason',
     ];
 
@@ -25,7 +28,9 @@ class ReturnItem extends Model
         'quantity' => 'integer',
         'supply_length' => 'decimal:2',
         'unit_price' => 'decimal:2',
+        'unit_price_usd' => 'decimal:2',
         'subtotal' => 'decimal:2',
+        'subtotal_usd' => 'decimal:2',
     ];
 
     public function return(): BelongsTo

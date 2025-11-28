@@ -15,14 +15,19 @@ class ExchangeItem extends Model
         'supply_length',
         'quantity',
         'unit_price',
+        'unit_price_usd',
         'discount_percent',
         'subtotal',
+        'subtotal_usd',
+        'currency',
     ];
 
     protected $casts = [
         'quantity' => 'integer',
         'unit_price' => 'decimal:2',
+        'unit_price_usd' => 'decimal:2',
         'subtotal' => 'decimal:2',
+        'subtotal_usd' => 'decimal:2',
         'supply_length' => 'decimal:2',
         'discount_percent' => 'decimal:2',
     ];
