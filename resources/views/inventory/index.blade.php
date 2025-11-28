@@ -65,6 +65,23 @@
                 {{ session('error') }}
             </div>
         @endif
+
+        @if(session('warning'))
+            <div class="bg-yellow-100 border border-yellow-400 text-yellow-700 px-4 py-3 rounded mb-4">
+                {{ session('warning') }}
+            </div>
+        @endif
+
+        @if(session('import_errors'))
+            <div class="bg-orange-100 border border-orange-400 text-orange-700 px-4 py-3 rounded mb-4">
+                <p class="font-semibold mb-2">Chi tiết lỗi import:</p>
+                <ul class="list-disc list-inside text-sm space-y-1">
+                    @foreach(session('import_errors') as $error)
+                        <li>{{ $error }}</li>
+                    @endforeach
+                </ul>
+            </div>
+        @endif
         <!-- Search and Filter -->
         <div class="bg-gray-50 p-3 rounded-lg mb-4">
             <form method="GET" action="{{ route('inventory.index') }}">

@@ -164,6 +164,10 @@ class PaintingImportWithImages implements ToCollection
 
     /**
      * Copy image from file path to storage
+     * Supports multiple path formats:
+     * 1. Absolute path: C:\path\to\image.jpg or /path/to/image.jpg
+     * 2. Relative to public/temp-imports: image.jpg or subfolder/image.jpg
+     * 3. Just filename: image.jpg (looks in public/temp-imports)
      * 
      * @param string $imagePath Path to the image file
      * @param string $code Painting code for naming
@@ -175,23 +179,28 @@ class PaintingImportWithImages implements ToCollection
             // Clean up the path
             $imagePath = trim($imagePath);
             
-            // Check if file exists
-            if (!file_exists($imagePath)) {
-                Log::warning('Image file not found', ['path' => $imagePath, 'code' => $code]);
+            // Try to resolve the actual file path
+            $resolvedPath = $this->resolveImagePath($imagePath);
+            
+            if (!$resolvedPath) {
+                Log::warning('Image file not found after trying all paths', [
+                    'original_path' => $imagePath, 
+                    'code' => $code
+                ]);
                 $this->errors[] = "Không tìm thấy file ảnh: {$imagePath} cho mã {$code}";
                 return null;
             }
             
             // Validate it's an image file
-            $imageInfo = @getimagesize($imagePath);
+            $imageInfo = @getimagesize($resolvedPath);
             if ($imageInfo === false) {
-                Log::warning('Invalid image file', ['path' => $imagePath, 'code' => $code]);
+                Log::warning('Invalid image file', ['path' => $resolvedPath, 'code' => $code]);
                 $this->errors[] = "File không phải là ảnh hợp lệ: {$imagePath} cho mã {$code}";
                 return null;
             }
             
             // Get file extension
-            $extension = pathinfo($imagePath, PATHINFO_EXTENSION);
+            $extension = pathinfo($resolvedPath, PATHINFO_EXTENSION);
             if (empty($extension)) {
                 // Determine extension from mime type
                 $mimeToExt = [
@@ -208,9 +217,9 @@ class PaintingImportWithImages implements ToCollection
             $storagePath = 'paintings/' . $uniqueName;
             
             // Copy file to storage
-            $imageContent = file_get_contents($imagePath);
+            $imageContent = file_get_contents($resolvedPath);
             if ($imageContent === false) {
-                Log::error('Failed to read image file', ['path' => $imagePath, 'code' => $code]);
+                Log::error('Failed to read image file', ['path' => $resolvedPath, 'code' => $code]);
                 $this->errors[] = "Không thể đọc file ảnh: {$imagePath} cho mã {$code}";
                 return null;
             }
@@ -218,7 +227,8 @@ class PaintingImportWithImages implements ToCollection
             Storage::disk('public')->put($storagePath, $imageContent);
             
             Log::info('Copied image from path', [
-                'source' => $imagePath,
+                'original_path' => $imagePath,
+                'resolved_path' => $resolvedPath,
                 'destination' => $storagePath,
                 'code' => $code
             ]);
@@ -234,6 +244,47 @@ class PaintingImportWithImages implements ToCollection
             $this->errors[] = "Lỗi khi copy ảnh {$imagePath} cho mã {$code}: " . $e->getMessage();
             return null;
         }
+    }
+
+    /**
+     * Resolve image path from various formats
+     * 
+     * @param string $path Original path from Excel
+     * @return string|null Resolved absolute path or null if not found
+     */
+    protected function resolveImagePath($path)
+    {
+        // Try 1: Direct absolute path (as-is)
+        if (file_exists($path)) {
+            return $path;
+        }
+        
+        // Try 2: Relative to public/temp-imports
+        $tempImportsPath = public_path('temp-imports/' . $path);
+        if (file_exists($tempImportsPath)) {
+            return $tempImportsPath;
+        }
+        
+        // Try 3: Just filename in public/temp-imports
+        $filename = basename($path);
+        $tempImportsFilePath = public_path('temp-imports/' . $filename);
+        if (file_exists($tempImportsFilePath)) {
+            return $tempImportsFilePath;
+        }
+        
+        // Try 4: Relative to storage/app/public/temp-imports
+        $storageTempPath = storage_path('app/public/temp-imports/' . $path);
+        if (file_exists($storageTempPath)) {
+            return $storageTempPath;
+        }
+        
+        // Try 5: Just filename in storage/app/public/temp-imports
+        $storageTempFilePath = storage_path('app/public/temp-imports/' . $filename);
+        if (file_exists($storageTempFilePath)) {
+            return $storageTempFilePath;
+        }
+        
+        return null;
     }
 
     protected function parseDate($date)
