@@ -374,6 +374,9 @@ let exchangeProducts = [];
             image: '{{ $item->item_type === "painting" ? ($item->painting->image ?? "") : "" }}',
             price: {{ $item->unit_price }},
             defaultPrice: {{ $item->unit_price }},
+            priceUsd: {{ $item->unit_price_usd ?? 0 }},
+            defaultPriceUsd: {{ $item->unit_price_usd ?? 0 }},
+            isUsd: {{ ($item->currency ?? 'VND') === 'USD' ? 'true' : 'false' }},
             maxQty: {{ $item->item_type === 'painting' ? ($item->painting->quantity ?? 0) : ($item->supply->quantity ?? 0) }},
             quantity: {{ $item->quantity }},
             discount: {{ $item->discount_percent ?? 0 }},
@@ -554,7 +557,7 @@ function renderExchangeProducts() {
                        step="0.01"
                        value="${product.priceUsd}"
                        onchange="updateExchangePriceUsd(${index}, this.value)">`;
-            priceDisplayHtml = `<div class="text-xs text-gray-500 mt-0.5">≈ ${finalPrice.toLocaleString('vi-VN')}đ</div>`;
+            priceDisplayHtml = ``;
         } else {
             const finalPriceUsd = finalPrice / exchangeRate;
             priceInputHtml = `<input type="number" 
@@ -563,7 +566,7 @@ function renderExchangeProducts() {
                        step="1000"
                        value="${product.price}"
                        onchange="updateExchangePrice(${index}, this.value)">`;
-            priceDisplayHtml = `<div class="text-xs text-gray-500 mt-0.5">≈ $${finalPriceUsd.toLocaleString('en-US', {minimumFractionDigits: 2})}</div>`;
+            priceDisplayHtml = ``;
         }
         
         return `
@@ -615,6 +618,8 @@ function renderExchangeProducts() {
         <input type="hidden" name="exchange_items[${index}][item_id]" value="${product.id}">
         <input type="hidden" name="exchange_items[${index}][quantity]" value="${product.quantity}">
         <input type="hidden" name="exchange_items[${index}][unit_price]" value="${finalPrice}">
+        <input type="hidden" name="exchange_items[${index}][unit_price_usd]" value="${product.isUsd ? (product.priceUsd * (1 - (product.discount || 0) / 100)) : (finalPrice / exchangeRate)}">
+        <input type="hidden" name="exchange_items[${index}][currency]" value="${product.isUsd ? 'USD' : 'VND'}">
         <input type="hidden" name="exchange_items[${index}][discount_percent]" value="${product.discount || 0}">
         `;
     }).join('');

@@ -9,7 +9,32 @@
 
 <div class="bg-white rounded-xl shadow-lg p-4 glass-effect">
     @php
-        $exchangeRate = $return->exchange_rate ?? 25000;
+        $exchangeRate = ($return->exchange_rate && $return->exchange_rate > 0) ? $return->exchange_rate : 25000;
+        
+        // LOGIC MỚI: Detect currency từ sale gốc (giống Sales module)
+        $sale = $return->sale;
+        $isUsdPrimary = false;
+        $isVndPrimary = false;
+        $isMixed = false;
+        
+        // Detect từ sale items
+        if ($sale) {
+            $hasUsd = $sale->items->where('price_usd', '>', 0)->count() > 0;
+            $hasVnd = $sale->items->where('price_vnd', '>', 0)->count() > 0;
+            
+            if ($hasUsd && !$hasVnd) {
+                $isUsdPrimary = true;
+            } elseif ($hasVnd && !$hasUsd) {
+                $isVndPrimary = true;
+            } elseif ($hasUsd && $hasVnd) {
+                $isMixed = true;
+            }
+        }
+        
+        // Fallback: nếu không detect được, dùng total_usd
+        if (!$isUsdPrimary && !$isVndPrimary && !$isMixed) {
+            $isVndPrimary = true; // Default VND
+        }
     @endphp
     <!-- Header Actions -->
     <div class="flex justify-between items-center mb-4">
@@ -271,8 +296,23 @@
                                 </td>
                                 <td class="px-1 py-1.5 text-center text-xs font-medium">{{ $item->quantity }}</td>
                                 <td class="px-1 py-1.5 text-right text-xs whitespace-nowrap">
-                                    <div class="font-medium">${{ number_format($item->unit_price / $exchangeRate, 2) }}</div>
-                                    <div class="text-[10px] text-gray-500">{{ number_format($item->unit_price, 0, ',', '.') }}đ</div>
+                                    @php
+                                        $unitPriceUsd = $item->unit_price_usd ?? 0;
+                                        $unitPriceVnd = $item->unit_price ?? 0;
+                                        
+                                        // Use sale's primary currency
+                                        if ($isUsdPrimary) {
+                                            // Calculate USD price if not saved
+                                            if ($unitPriceUsd == 0 && $unitPriceVnd > 0) {
+                                                $unitPriceUsd = $unitPriceVnd / $exchangeRate;
+                                            }
+                                        }
+                                    @endphp
+                                    @if($isUsdPrimary)
+                                        <div class="font-bold">${{ number_format($unitPriceUsd, 2) }}</div>
+                                    @else
+                                        <div class="font-bold">{{ number_format($unitPriceVnd, 0, ',', '.') }}đ</div>
+                                    @endif
                                 </td>
                                 <td class="px-1 py-1.5 text-center text-xs">
                                     @php
@@ -286,8 +326,20 @@
                                     @endif
                                 </td>
                                 <td class="px-1 py-1.5 text-right text-xs font-semibold text-red-600 whitespace-nowrap">
-                                    <div>${{ number_format($item->subtotal / $exchangeRate, 2) }}</div>
-                                    <div class="text-[10px] text-gray-500">{{ number_format($item->subtotal, 0, ',', '.') }}đ</div>
+                                    @php
+                                        $subtotalUsd = $item->subtotal_usd ?? 0;
+                                        $subtotalVnd = $item->subtotal ?? 0;
+                                        
+                                        // Calculate subtotal if not saved
+                                        if ($isUsdPrimary && $subtotalUsd == 0 && $subtotalVnd > 0) {
+                                            $subtotalUsd = $subtotalVnd / $exchangeRate;
+                                        }
+                                    @endphp
+                                    @if($isUsdPrimary)
+                                        <div class="font-bold">${{ number_format($subtotalUsd, 2) }}</div>
+                                    @else
+                                        <div class="font-bold">{{ number_format($subtotalVnd, 0, ',', '.') }}đ</div>
+                                    @endif
                                 </td>
                             </tr>
                             @endforeach
@@ -299,13 +351,33 @@
                         <span>Tổng trả:</span>
                         <div class="text-right">
                             @php
-                                $calculatedTotalRefund = $return->items->sum('subtotal');
-                                $finalTotalRefund = $return->total_refund > 0 ? $return->total_refund : $calculatedTotalRefund;
-                                $totalRefundUsd = $return->total_refund_usd > 0 ? $return->total_refund_usd : ($finalTotalRefund / $exchangeRate);
+                                $calculatedTotalRefundVnd = $return->items->sum('subtotal');
+                                $calculatedTotalRefundUsd = $return->items->sum('subtotal_usd');
+                                $finalTotalRefundVnd = $return->total_refund > 0 ? $return->total_refund : $calculatedTotalRefundVnd;
+                                $finalTotalRefundUsd = $return->total_refund_usd > 0 ? $return->total_refund_usd : $calculatedTotalRefundUsd;
+                                
+                                // Fallback nếu không có USD
+                                if ($finalTotalRefundUsd == 0 && $finalTotalRefundVnd > 0) {
+                                    $finalTotalRefundUsd = $finalTotalRefundVnd / $exchangeRate;
+                                }
                             @endphp
-                            <div class="text-green-600 font-bold">${{ number_format($totalRefundUsd, 2) }}</div>
-                            <div class="text-xs text-gray-500">≈ {{ number_format($finalTotalRefund, 0, ',', '.') }}đ</div>
-                            <div class="text-[10px] text-gray-400 mt-0.5">Tỷ giá: {{ number_format($exchangeRate, 0, ',', '.') }}</div>
+                            @if($isUsdPrimary)
+                                <div class="text-green-600 font-bold">${{ number_format($finalTotalRefundUsd, 2) }}</div>
+                                @if($finalTotalRefundVnd > 0)
+                                    <div class="text-xs text-gray-500">≈ {{ number_format($finalTotalRefundVnd, 0, ',', '.') }}đ</div>
+                                @endif
+                            @elseif($isVndPrimary)
+                                <div class="text-green-600 font-bold">{{ number_format($finalTotalRefundVnd, 0, ',', '.') }}đ</div>
+                                @if($finalTotalRefundUsd > 0)
+                                    <div class="text-xs text-gray-500">≈ ${{ number_format($finalTotalRefundUsd, 2) }}</div>
+                                @endif
+                            @else
+                                <div class="text-green-600 font-bold">${{ number_format($finalTotalRefundUsd, 2) }}</div>
+                                <div class="text-green-600 font-bold">{{ number_format($finalTotalRefundVnd, 0, ',', '.') }}đ</div>
+                            @endif
+                            @if($exchangeRate > 0)
+                                <div class="text-[10px] text-gray-400 mt-0.5">Tỷ giá: {{ number_format($exchangeRate, 0, ',', '.') }}</div>
+                            @endif
                         </div>
                     </div>
                     @if($return->type == 'exchange')
@@ -352,9 +424,9 @@
                                 <th class="px-1 py-1.5 text-left text-xs">Vật tư</th>
                                 <th class="px-1 py-1.5 text-center text-xs">Mét</th>
                                 <th class="px-1 py-1.5 text-center text-xs">Số lượng</th>
-                                <th class="px-1 py-1.5 text-right text-xs">Đơn giá (USD)</th>
+                                <th class="px-1 py-1.5 text-right text-xs">Đơn giá</th>
                                 <th class="px-1 py-1.5 text-center text-xs">Giảm giá</th>
-                                <th class="px-1 py-1.5 text-right text-xs">Thành tiền (USD)</th>
+                                <th class="px-1 py-1.5 text-right text-xs">Thành tiền</th>
                             </tr>
                         </thead>
                         <tbody class="bg-white">
@@ -403,8 +475,23 @@
                                 </td>
                                 <td class="px-1 py-1.5 text-center text-xs font-medium">{{ $item->quantity }}</td>
                                 <td class="px-1 py-1.5 text-right text-xs whitespace-nowrap">
-                                    <div class="font-medium">${{ number_format($item->unit_price / $exchangeRate, 2) }}</div>
-                                    <div class="text-[10px] text-gray-500">{{ number_format($item->unit_price, 0, ',', '.') }}đ</div>
+                                    @php
+                                        $unitPriceUsd = $item->unit_price_usd ?? 0;
+                                        $unitPriceVnd = $item->unit_price ?? 0;
+                                        
+                                        // Use sale's primary currency
+                                        if ($isUsdPrimary) {
+                                            // Calculate USD price if not saved
+                                            if ($unitPriceUsd == 0 && $unitPriceVnd > 0) {
+                                                $unitPriceUsd = $unitPriceVnd / $exchangeRate;
+                                            }
+                                        }
+                                    @endphp
+                                    @if($isUsdPrimary)
+                                        <div class="font-bold">${{ number_format($unitPriceUsd, 2) }}</div>
+                                    @else
+                                        <div class="font-bold">{{ number_format($unitPriceVnd, 0, ',', '.') }}đ</div>
+                                    @endif
                                 </td>
                                 <td class="px-1 py-1.5 text-center text-xs">
                                     @if($item->discount_percent > 0)
@@ -414,8 +501,20 @@
                                     @endif
                                 </td>
                                 <td class="px-1 py-1.5 text-right text-xs font-semibold text-green-600 whitespace-nowrap">
-                                    <div>${{ number_format($item->subtotal / $exchangeRate, 2) }}</div>
-                                    <div class="text-[10px] text-gray-500">{{ number_format($item->subtotal, 0, ',', '.') }}đ</div>
+                                    @php
+                                        $subtotalUsd = $item->subtotal_usd ?? 0;
+                                        $subtotalVnd = $item->subtotal ?? 0;
+                                        
+                                        // Calculate subtotal if not saved
+                                        if ($isUsdPrimary && $subtotalUsd == 0 && $subtotalVnd > 0) {
+                                            $subtotalUsd = $subtotalVnd / $exchangeRate;
+                                        }
+                                    @endphp
+                                    @if($isUsdPrimary)
+                                        <div class="font-bold">${{ number_format($subtotalUsd, 2) }}</div>
+                                    @else
+                                        <div class="font-bold">{{ number_format($subtotalVnd, 0, ',', '.') }}đ</div>
+                                    @endif
                                 </td>
                             </tr>
                             @endforeach
@@ -426,9 +525,35 @@
                     <div class="flex justify-between text-xs font-semibold">
                         <span>Tổng đổi:</span>
                         <div class="text-right">
-                            <span class="text-green-600">${{ number_format($return->exchangeItems->sum('subtotal') / $exchangeRate, 2) }}</span>
-                            <div class="text-[10px] text-gray-500">≈ {{ number_format($return->exchangeItems->sum('subtotal'), 0, ',', '.') }}đ</div>
-                            <div class="text-[10px] text-gray-400 mt-0.5">Tỷ giá: {{ number_format($exchangeRate, 0, ',', '.') }}</div>
+                            @php
+                                // Tính tổng theo từng loại tiền
+                                $totalExchangeUsd = 0;
+                                $totalExchangeVnd = 0;
+                                $hasUsdItems = false;
+                                $hasVndItems = false;
+                                
+                                foreach ($return->exchangeItems as $exItem) {
+                                    $exUsd = $exItem->subtotal_usd ?? 0;
+                                    $exVnd = $exItem->subtotal ?? 0;
+                                    $exCurrency = $exItem->currency ?? ($exUsd > 0 ? 'USD' : 'VND');
+                                    
+                                    if ($exCurrency === 'USD') {
+                                        $totalExchangeUsd += ($exUsd > 0 ? $exUsd : ($exVnd / $exchangeRate));
+                                        $hasUsdItems = true;
+                                    } else {
+                                        $totalExchangeVnd += $exVnd;
+                                        $hasVndItems = true;
+                                    }
+                                }
+                            @endphp
+                            @if($hasUsdItems && !$hasVndItems)
+                                <div class="text-green-600 font-bold">${{ number_format($totalExchangeUsd, 2) }}</div>
+                            @elseif($hasVndItems && !$hasUsdItems)
+                                <div class="text-green-600 font-bold">{{ number_format($totalExchangeVnd, 0, ',', '.') }}đ</div>
+                            @else
+                                <div class="text-green-600 font-bold">${{ number_format($totalExchangeUsd, 2) }}</div>
+                                <div class="text-green-600 font-bold">{{ number_format($totalExchangeVnd, 0, ',', '.') }}đ</div>
+                            @endif
                         </div>
                     </div>
                     @php
@@ -460,32 +585,51 @@
         @if($return->exchange_amount != 0)
         <div class="mt-3 p-3 bg-blue-50 rounded-lg border border-blue-200">
             <div class="flex justify-between items-center">
-                <span class="font-semibold text-sm">Chênh lệch:</span>
-                <span class="font-bold text-base">
-                    @if($return->exchange_amount > 0)
-                        <span class="text-red-600">+${{ number_format($return->exchange_amount / $exchangeRate, 2) }}</span>
-                        <span class="text-xs font-normal text-gray-500 block text-right">≈ {{ number_format($return->exchange_amount, 0, ',', '.') }}đ (KH trả thêm)</span>
-                    @else
-                        <span class="text-green-600">${{ number_format(abs($return->exchange_amount) / $exchangeRate, 2) }}</span>
-                        <span class="text-xs font-normal text-gray-500 block text-right">≈ {{ number_format(abs($return->exchange_amount), 0, ',', '.') }}đ (Hoàn lại)</span>
-                    @endif
-                    <span class="text-[10px] font-normal text-gray-400 block text-right mt-0.5">Tỷ giá: {{ number_format($exchangeRate, 0, ',', '.') }}</span>
-                </span>
+                @php
+                    $exchangeAmountUsd = $return->exchange_amount_usd ?? 0;
+                    $exchangeAmountVnd = $return->exchange_amount ?? 0;
+                @endphp
+                
+                @if($exchangeAmountUsd > 0 || $exchangeAmountVnd > 0)
+                    <span class="font-semibold text-sm">Khách trả thêm:</span>
+                    <span class="font-bold text-base">
+                        @if($isUsdPrimary)
+                            <span class="text-red-600">+${{ number_format($exchangeAmountUsd, 2) }}</span>
+                        @else
+                            <span class="text-red-600">+{{ number_format($exchangeAmountVnd, 0, ',', '.') }}đ</span>
+                        @endif
+                    </span>
+                @elseif($return->total_refund_usd > 0 || $return->total_refund > 0)
+                    <span class="font-semibold text-sm">Hoàn lại khách:</span>
+                    <span class="font-bold text-base">
+                        @if($isUsdPrimary)
+                            <span class="text-green-600">${{ number_format($return->total_refund_usd, 2) }}</span>
+                        @else
+                            <span class="text-green-600">{{ number_format($return->total_refund, 0, ',', '.') }}đ</span>
+                        @endif
+                    </span>
+                @else
+                    <span class="font-semibold text-sm">Chênh lệch:</span>
+                    <span class="font-bold text-base text-gray-600">Ngang giá</span>
+                @endif
             </div>
             
-            @if($return->exchange_amount > 0)
+            @if($exchangeAmountUsd > 0 || $exchangeAmountVnd > 0)
             @php
                 // Tính số tiền đã trả cho phiếu đổi hàng này
                 $exchangePayments = $return->sale->payments()
                     ->where('transaction_type', 'exchange_payment')
                     ->where('notes', 'like', "%{$return->return_code}%")
                     ->sum('amount');
-                $remainingDebt = $return->exchange_amount - $exchangePayments;
                 
-                // Tính USD
-                $exchangeAmountUsd = $return->exchange_amount_usd ?? ($return->exchange_amount / $exchangeRate);
-                $exchangePaymentsUsd = $exchangePayments / $exchangeRate;
-                $remainingDebtUsd = $remainingDebt / $exchangeRate;
+                // Calculate remaining debt based on primary currency
+                if ($isUsdPrimary) {
+                    $remainingDebtUsd = $exchangeAmountUsd - ($exchangePayments / $exchangeRate);
+                    $remainingDebt = $exchangeAmountVnd - $exchangePayments;
+                } else {
+                    $remainingDebt = $exchangeAmountVnd - $exchangePayments;
+                    $remainingDebtUsd = $exchangeAmountUsd - ($exchangePayments / $exchangeRate);
+                }
             @endphp
             
             <!-- Removed duplicate display block -->
@@ -494,17 +638,23 @@
             <div class="mt-2 pt-2 border-t border-blue-300">
                 <div class="flex justify-between text-xs">
                     <span class="text-gray-600">Đã trả:</span>
-                    <div class="text-right">
-                        <span class="font-semibold text-green-600">${{ number_format($exchangePayments / $exchangeRate, 2) }}</span>
-                        <div class="text-[10px] text-gray-500">≈ {{ number_format($exchangePayments, 0, ',', '.') }}đ</div>
-                    </div>
+                    <span class="font-semibold text-green-600">
+                        @if($isUsdPrimary)
+                            ${{ number_format($exchangePayments / $exchangeRate, 2) }}
+                        @else
+                            {{ number_format($exchangePayments, 0, ',', '.') }}đ
+                        @endif
+                    </span>
                 </div>
                 <div class="flex justify-between text-xs mt-1">
                     <span class="text-gray-600">Còn nợ:</span>
-                    <div class="text-right">
-                        <span class="font-semibold text-red-600">${{ number_format($remainingDebt / $exchangeRate, 2) }}</span>
-                        <div class="text-[10px] text-gray-500">≈ {{ number_format($remainingDebt, 0, ',', '.') }}đ</div>
-                    </div>
+                    <span class="font-semibold text-red-600">
+                        @if($isUsdPrimary)
+                            ${{ number_format($remainingDebtUsd, 2) }}
+                        @else
+                            {{ number_format($remainingDebt, 0, ',', '.') }}đ
+                        @endif
+                    </span>
                 </div>
             </div>
             @endif
@@ -558,8 +708,46 @@
                             @endif
                         </td>
                         <td class="px-2 py-2 text-xs text-right">{{ $item->quantity }}</td>
-                        <td class="px-2 py-2 text-xs text-right whitespace-nowrap">{{ number_format($item->unit_price, 0, ',', '.') }}đ</td>
-                        <td class="px-2 py-2 text-xs text-right font-medium whitespace-nowrap">{{ number_format($item->subtotal, 0, ',', '.') }}đ</td>
+                        <td class="px-2 py-2 text-xs text-right whitespace-nowrap">
+                            @php
+                                $unitPriceUsd = $item->unit_price_usd ?? ($item->unit_price / $exchangeRate);
+                                $unitPriceVnd = $item->unit_price;
+                            @endphp
+                            @if($isUsdPrimary)
+                                <div class="font-bold">${{ number_format($unitPriceUsd, 2) }}</div>
+                                @if($unitPriceVnd > 0)
+                                    <div class="text-[10px] text-gray-500">≈ {{ number_format($unitPriceVnd, 0, ',', '.') }}đ</div>
+                                @endif
+                            @elseif($isVndPrimary)
+                                <div class="font-bold">{{ number_format($unitPriceVnd, 0, ',', '.') }}đ</div>
+                                @if($unitPriceUsd > 0)
+                                    <div class="text-[10px] text-gray-500">≈ ${{ number_format($unitPriceUsd, 2) }}</div>
+                                @endif
+                            @else
+                                <div class="font-bold">${{ number_format($unitPriceUsd, 2) }}</div>
+                                <div class="font-bold">{{ number_format($unitPriceVnd, 0, ',', '.') }}đ</div>
+                            @endif
+                        </td>
+                        <td class="px-2 py-2 text-xs text-right font-medium whitespace-nowrap">
+                            @php
+                                $subtotalUsd = $item->subtotal_usd ?? ($item->subtotal / $exchangeRate);
+                                $subtotalVnd = $item->subtotal;
+                            @endphp
+                            @if($isUsdPrimary)
+                                <div class="font-bold">${{ number_format($subtotalUsd, 2) }}</div>
+                                @if($subtotalVnd > 0)
+                                    <div class="text-[10px] text-gray-500">≈ {{ number_format($subtotalVnd, 0, ',', '.') }}đ</div>
+                                @endif
+                            @elseif($isVndPrimary)
+                                <div class="font-bold">{{ number_format($subtotalVnd, 0, ',', '.') }}đ</div>
+                                @if($subtotalUsd > 0)
+                                    <div class="text-[10px] text-gray-500">≈ ${{ number_format($subtotalUsd, 2) }}</div>
+                                @endif
+                            @else
+                                <div class="font-bold">${{ number_format($subtotalUsd, 2) }}</div>
+                                <div class="font-bold">{{ number_format($subtotalVnd, 0, ',', '.') }}đ</div>
+                            @endif
+                        </td>
                         <td class="px-2 py-2 text-xs text-gray-600 truncate max-w-[100px]">{{ $item->reason ?? '-' }}</td>
                     </tr>
                     @endforeach
@@ -569,8 +757,29 @@
                         <td colspan="3" class="px-2 py-2 text-right text-xs font-semibold">Tổng:</td>
                         <td class="px-2 py-2 text-right text-xs font-semibold">{{ $return->items->sum('quantity') }}</td>
                         <td colspan="3" class="px-2 py-2 text-right text-sm font-semibold whitespace-nowrap">
-                            <div class="text-green-600 font-bold">${{ number_format($return->total_refund_usd ?? 0, 2) }}</div>
-                            <div class="text-xs text-gray-500">≈ {{ number_format($return->total_refund, 0, ',', '.') }}đ</div>
+                            @php
+                                $totalRefundUsd = $return->total_refund_usd ?? 0;
+                                $totalRefundVnd = $return->total_refund ?? 0;
+                                
+                                // Fallback
+                                if ($totalRefundUsd == 0 && $totalRefundVnd > 0) {
+                                    $totalRefundUsd = $totalRefundVnd / $exchangeRate;
+                                }
+                            @endphp
+                            @if($isUsdPrimary)
+                                <div class="text-green-600 font-bold">${{ number_format($totalRefundUsd, 2) }}</div>
+                                @if($totalRefundVnd > 0)
+                                    <div class="text-xs text-gray-500">≈ {{ number_format($totalRefundVnd, 0, ',', '.') }}đ</div>
+                                @endif
+                            @elseif($isVndPrimary)
+                                <div class="text-green-600 font-bold">{{ number_format($totalRefundVnd, 0, ',', '.') }}đ</div>
+                                @if($totalRefundUsd > 0)
+                                    <div class="text-xs text-gray-500">≈ ${{ number_format($totalRefundUsd, 2) }}</div>
+                                @endif
+                            @else
+                                <div class="text-green-600 font-bold">${{ number_format($totalRefundUsd, 2) }}</div>
+                                <div class="text-green-600 font-bold">{{ number_format($totalRefundVnd, 0, ',', '.') }}đ</div>
+                            @endif
                         </td>
                     </tr>
                 </tfoot>

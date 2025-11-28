@@ -193,30 +193,50 @@ class ReturnController extends Controller
                 $item->painting_image = null;
             }
             
-            // Calculate unit price after applying discounts
-            $unitPrice = $item->price_vnd;
+            // Calculate unit price after applying discounts (CẢ USD VÀ VND)
+            $unitPriceUsd = $item->price_usd;
+            $unitPriceVnd = $item->price_vnd;
             
             // Apply item-level discount if exists
             if ($item->discount_percent > 0) {
-                $unitPrice = $unitPrice * (1 - $item->discount_percent / 100);
+                $unitPriceUsd = $unitPriceUsd * (1 - $item->discount_percent / 100);
+                $unitPriceVnd = $unitPriceVnd * (1 - $item->discount_percent / 100);
             }
             
             // Apply sale-level discount if exists
             if ($sale->discount_percent > 0) {
-                $unitPrice = $unitPrice * (1 - $sale->discount_percent / 100);
+                $unitPriceUsd = $unitPriceUsd * (1 - $sale->discount_percent / 100);
+                $unitPriceVnd = $unitPriceVnd * (1 - $sale->discount_percent / 100);
             }
             
-            $item->unit_price = $unitPrice;
+            $item->unit_price = $unitPriceVnd;
+            $item->unit_price_usd = $unitPriceUsd;
+            $item->currency = $item->currency;
         }
 
-        // Calculate USD values for display
-        $sale->paid_usd = $sale->paid_amount / ($sale->exchange_rate ?? 25000);
-        $sale->debt_usd = $sale->debt_amount / ($sale->exchange_rate ?? 25000);
-        $sale->total_usd = $sale->total_vnd / ($sale->exchange_rate ?? 25000);
+        // Sử dụng accessor từ Sale model (logic đúng)
+        $saleData = [
+            'id' => $sale->id,
+            'invoice_code' => $sale->invoice_code,
+            'customer' => $sale->customer,
+            'sale_date' => $sale->sale_date,
+            'exchange_rate' => $sale->exchange_rate,
+            'discount_percent' => $sale->discount_percent,
+            'items' => $sale->items,
+            'total_usd' => $sale->total_usd,
+            'total_vnd' => $sale->total_vnd,
+            'paid_usd' => $sale->paid_usd,
+            'paid_vnd' => $sale->paid_vnd,
+            'debt_usd' => $sale->debt_usd,
+            'debt_vnd' => $sale->debt_vnd,
+            'is_usd_invoice' => $sale->saleItems->where('currency', 'USD')->count() > 0 && $sale->saleItems->where('currency', 'VND')->count() == 0,
+            'is_vnd_invoice' => $sale->saleItems->where('currency', 'VND')->count() > 0 && $sale->saleItems->where('currency', 'USD')->count() == 0,
+            'is_mixed_invoice' => $sale->saleItems->where('currency', 'USD')->count() > 0 && $sale->saleItems->where('currency', 'VND')->count() > 0,
+        ];
 
         return response()->json([
             'success' => true,
-            'sale' => $sale,
+            'sale' => $saleData,
             'returned_quantities' => $returnedQuantities
         ]);
     }
@@ -277,8 +297,9 @@ class ReturnController extends Controller
                 throw new \Exception('Phải có ít nhất một sản phẩm với số lượng trả > 0');
             }
             
-            // Calculate total value of returned items
-            $totalReturnValue = 0;
+            // Calculate total value of returned items (USD + VND)
+            $totalReturnValueUsd = 0;
+            $totalReturnValueVnd = 0;
             $returnItems = [];
 
             foreach ($request->items as $itemData) {
@@ -314,21 +335,28 @@ class ReturnController extends Controller
                     $itemId = $saleItem->supply_id;
                 }
                 
-                // Calculate unit price after applying discounts
-                $unitPrice = $saleItem->price_vnd;
+                // Calculate unit price after applying discounts (CẢ USD VÀ VND)
+                $unitPriceUsd = $saleItem->price_usd;
+                $unitPriceVnd = $saleItem->price_vnd;
+                $currency = $saleItem->currency;
                 
                 // Apply item-level discount if exists
                 if ($saleItem->discount_percent > 0) {
-                    $unitPrice = $unitPrice * (1 - $saleItem->discount_percent / 100);
+                    $unitPriceUsd = $unitPriceUsd * (1 - $saleItem->discount_percent / 100);
+                    $unitPriceVnd = $unitPriceVnd * (1 - $saleItem->discount_percent / 100);
                 }
                 
                 // Apply sale-level discount if exists
                 if ($sale->discount_percent > 0) {
-                    $unitPrice = $unitPrice * (1 - $sale->discount_percent / 100);
+                    $unitPriceUsd = $unitPriceUsd * (1 - $sale->discount_percent / 100);
+                    $unitPriceVnd = $unitPriceVnd * (1 - $sale->discount_percent / 100);
                 }
                 
-                $subtotal = $itemData['quantity'] * $unitPrice;
-                $totalReturnValue += $subtotal;
+                $subtotalUsd = $itemData['quantity'] * $unitPriceUsd;
+                $subtotalVnd = $itemData['quantity'] * $unitPriceVnd;
+                
+                $totalReturnValueUsd += $subtotalUsd;
+                $totalReturnValueVnd += $subtotalVnd;
 
                 $returnItems[] = [
                     'sale_item_id' => $saleItem->id,
@@ -337,114 +365,122 @@ class ReturnController extends Controller
                     'quantity' => $itemData['quantity'],
                     'supply_id' => $saleItem->supply_id ?? null,
                     'supply_length' => $saleItem->supply_length ?? 0,
-                    'unit_price' => $unitPrice,
-                    'subtotal' => $subtotal,
+                    'unit_price' => $unitPriceVnd,
+                    'unit_price_usd' => $unitPriceUsd,
+                    'subtotal' => $subtotalVnd,
+                    'subtotal_usd' => $subtotalUsd,
+                    'currency' => $currency,
                     'reason' => $itemData['reason'] ?? null,
                 ];
             }
 
-            // LOGIC ĐÚNG: Tính theo tỷ lệ đã trả
-            $paidAmount = $sale->paid_amount;
-            $currentTotal = $sale->total_vnd;
+            // Get type from request
             $type = $request->input('type', 'return');
             
-            // Tính tỷ lệ đã trả của hóa đơn
-            $paidRatio = $currentTotal > 0 ? ($paidAmount / $currentTotal) : 0;
+            // Tính tỷ lệ đã trả của hóa đơn (riêng từng loại tiền)
+            $paidRatioUsd = $sale->total_usd > 0 ? ($sale->paid_usd / $sale->total_usd) : 0;
+            $paidRatioVnd = $sale->total_vnd > 0 ? ($sale->paid_vnd / $sale->total_vnd) : 0;
             
-            // Tính số tiền đã trả cho các sản phẩm đang trả
-            $paidForReturnedItems = $totalReturnValue * $paidRatio;
+            // Tính số tiền hoàn trả (theo tỷ lệ đã trả)
+            $totalRefundUsd = $totalReturnValueUsd * $paidRatioUsd;
+            $totalRefundVnd = $totalReturnValueVnd * $paidRatioVnd;
             
-            $totalRefund = 0;
-            $exchangeAmount = null;
-            $exchangeItemsData = [];
+            $exchangeAmountUsd = 0;
+            $exchangeAmount = 0;
             
+            // Generate return code
+            $returnCode = 'RT-' . date('Ymd') . '-' . str_pad(ReturnModel::whereDate('created_at', today())->count() + 1, 4, '0', STR_PAD_LEFT);
+            
+            // Create return record
+            $return = ReturnModel::create([
+                'return_code' => $returnCode,
+                'sale_id' => $sale->id,
+                'customer_id' => $sale->customer_id,
+                'return_date' => $request->return_date,
+                'type' => $type,
+                'total_refund' => $totalRefundVnd,
+                'total_refund_usd' => $totalRefundUsd,
+                'exchange_amount' => $exchangeAmount,
+                'exchange_amount_usd' => $exchangeAmountUsd,
+                'exchange_rate' => $sale->exchange_rate ?? 0,
+                'reason' => $request->reason,
+                'notes' => $request->notes,
+                'status' => 'pending',
+            ]);
+            
+            // Create return items
+            foreach ($returnItems as $itemData) {
+                $return->items()->create($itemData);
+            }
+            
+            // Handle exchange items if type is exchange
             if ($type === 'exchange' && $request->has('exchange_items')) {
-                $totalExchange = 0;
+                $totalExchangeUsd = 0;
+                $totalExchangeVnd = 0;
+                
                 foreach ($request->exchange_items as $item) {
                     if (!isset($item['quantity']) || $item['quantity'] <= 0) continue;
                     
-                    // Validate inventory availability
+                    // Validate inventory and get currency
+                    $currency = 'VND';
                     if ($item['item_type'] === 'painting') {
                         $painting = Painting::find($item['item_id']);
-                        if (!$painting) {
-                            throw new \Exception("Không tìm thấy sản phẩm");
+                        if (!$painting || $painting->quantity < $item['quantity']) {
+                            throw new \Exception("Không đủ tồn kho cho sản phẩm");
                         }
-                        if ($painting->quantity < $item['quantity']) {
-                            throw new \Exception("Không đủ tồn kho cho sản phẩm '{$painting->name}'. Tồn kho: {$painting->quantity}, Yêu cầu: {$item['quantity']}");
-                        }
+                        $currency = $item['currency'] ?? 'VND';
                     } else {
                         $supply = Supply::find($item['item_id']);
-                        if (!$supply) {
-                            throw new \Exception("Không tìm thấy vật tư");
+                        if (!$supply || $supply->quantity < $item['quantity']) {
+                            throw new \Exception("Không đủ tồn kho cho vật tư");
                         }
-                        if ($supply->quantity < $item['quantity']) {
-                            throw new \Exception("Không đủ tồn kho cho vật tư '{$supply->name}'. Tồn kho: {$supply->quantity}, Yêu cầu: {$item['quantity']}");
-                        }
+                        $currency = $item['currency'] ?? 'VND';
                     }
                     
-                    $subtotal = $item['quantity'] * $item['unit_price'];
-                    $totalExchange += $subtotal;
+                    $subtotalUsd = $item['quantity'] * ($item['unit_price_usd'] ?? 0);
+                    $subtotalVnd = $item['quantity'] * $item['unit_price'];
                     
-                    $exchangeItemsData[] = [
+                    $totalExchangeUsd += $subtotalUsd;
+                    $totalExchangeVnd += $subtotalVnd;
+                    
+                    $return->exchangeItems()->create([
                         'item_type' => $item['item_type'],
                         'item_id' => $item['item_id'],
                         'supply_id' => $item['supply_id'] ?? null,
                         'supply_length' => $item['supply_length'] ?? null,
                         'quantity' => $item['quantity'],
                         'unit_price' => $item['unit_price'],
+                        'unit_price_usd' => $item['unit_price_usd'] ?? 0,
                         'discount_percent' => $item['discount_percent'] ?? 0,
-                        'subtotal' => $subtotal,
-                    ];
+                        'subtotal' => $subtotalVnd,
+                        'subtotal_usd' => $subtotalUsd,
+                        'currency' => $currency,
+                    ]);
                 }
                 
-                // Tính chênh lệch giữa giá SP mới và số tiền đã trả cho SP cũ
-                $difference = $totalExchange - $paidForReturnedItems;
+                // Tính chênh lệch
+                $differenceUsd = $totalExchangeUsd - $totalRefundUsd;
+                $differenceVnd = $totalExchangeVnd - $totalRefundVnd;
                 
-                if ($difference > 0) {
+                if ($differenceUsd > 0 || $differenceVnd > 0) {
                     // Khách trả thêm
-                    $exchangeAmount = $difference;
-                    $totalRefund = 0;
+                    $exchangeAmountUsd = $differenceUsd;
+                    $exchangeAmount = $differenceVnd;
+                    $totalRefundUsd = 0;
+                    $totalRefundVnd = 0;
                 } else {
                     // Hoàn lại khách
-                    $exchangeAmount = 0;
-                    $totalRefund = abs($difference);
+                    $totalRefundUsd = abs($differenceUsd);
+                    $totalRefundVnd = abs($differenceVnd);
                 }
-            } else {
-                // Trả hàng thuần túy: Hoàn số tiền đã trả cho SP này
-                $totalRefund = $paidForReturnedItems;
-            }
-
-            // Tính USD cho return dựa vào tỷ giá của sale
-            $exchangeRate = $sale->exchange_rate ?? 25000;
-            $totalRefundUsd = $totalRefund / $exchangeRate;
-            $exchangeAmountUsd = $exchangeAmount ? ($exchangeAmount / $exchangeRate) : null;
-
-            // Create return record
-            $return = ReturnModel::create([
-                'return_code' => ReturnModel::generateReturnCode(),
-                'type' => $type,
-                'sale_id' => $sale->id,
-                'customer_id' => $sale->customer_id,
-                'return_date' => $request->return_date,
-                'total_refund' => $totalRefund,
-                'total_refund_usd' => $totalRefundUsd,
-                'exchange_amount' => $exchangeAmount,
-                'exchange_amount_usd' => $exchangeAmountUsd,
-                'exchange_rate' => $exchangeRate,
-                'reason' => $request->reason,
-                'status' => 'pending',
-                'processed_by' => Auth::id(),
-                'notes' => $request->notes,
-            ]);
-
-            // Create return items (không update inventory ngay, chờ duyệt)
-            foreach ($returnItems as $itemData) {
-                $return->items()->create($itemData);
-            }
-
-            // Create exchange items if any
-            foreach ($exchangeItemsData as $itemData) {
-                $return->exchangeItems()->create($itemData);
+                
+                // Update return with final amounts
+                $return->update([
+                    'total_refund' => $totalRefundVnd,
+                    'total_refund_usd' => $totalRefundUsd,
+                    'exchange_amount' => $exchangeAmount,
+                    'exchange_amount_usd' => $exchangeAmountUsd,
+                ]);
             }
             
             // LƯU Ý: KHÔNG tạo payment ngay khi tạo phiếu đổi hàng
@@ -482,13 +518,13 @@ class ReturnController extends Controller
     public function show($id)
     {
         $return = ReturnModel::with([
-            'sale',
+            'sale.items',
             'customer',
             'processedBy',
             'items.painting',
             'items.supply',
             'items.frameSupply',
-            'items.saleItem',
+            'items.saleItem.sale',
             'exchangeItems.painting',
             'exchangeItems.supply',
             'exchangeItems.frameSupply'
@@ -574,8 +610,11 @@ class ReturnController extends Controller
             $return->items()->delete();
             $return->exchangeItems()->delete();
 
-            // Calculate new total for return items
+            // Calculate new total for return items (RIÊNG USD VÀ VND)
             $totalReturnValue = 0;
+            $totalReturnValueUsd = 0;
+            $totalReturnValueVnd = 0;
+            
             foreach ($request->items as $itemData) {
                 if (!isset($itemData['quantity']) || $itemData['quantity'] <= 0) {
                     continue;
@@ -595,20 +634,28 @@ class ReturnController extends Controller
                     $itemId = $saleItem->supply_id;
                 }
                 
-                // Calculate unit price after applying discounts
-                $unitPrice = $saleItem->price_vnd;
+                // Calculate unit price after applying discounts (RIÊNG USD VÀ VND)
+                $unitPriceUsd = $saleItem->price_usd;
+                $unitPriceVnd = $saleItem->price_vnd;
                 
                 // Apply item-level discount if exists
                 if ($saleItem->discount_percent > 0) {
-                    $unitPrice = $unitPrice * (1 - $saleItem->discount_percent / 100);
+                    $unitPriceUsd = $unitPriceUsd * (1 - $saleItem->discount_percent / 100);
+                    $unitPriceVnd = $unitPriceVnd * (1 - $saleItem->discount_percent / 100);
                 }
                 
                 // Apply sale-level discount if exists
                 if ($sale->discount_percent > 0) {
-                    $unitPrice = $unitPrice * (1 - $sale->discount_percent / 100);
+                    $unitPriceUsd = $unitPriceUsd * (1 - $sale->discount_percent / 100);
+                    $unitPriceVnd = $unitPriceVnd * (1 - $sale->discount_percent / 100);
                 }
                 
-                $subtotal = $itemData['quantity'] * $unitPrice;
+                $subtotalUsd = $itemData['quantity'] * $unitPriceUsd;
+                $subtotalVnd = $itemData['quantity'] * $unitPriceVnd;
+                $subtotal = $subtotalVnd; // Backward compatibility
+                
+                $totalReturnValueUsd += $subtotalUsd;
+                $totalReturnValueVnd += $subtotalVnd;
                 $totalReturnValue += $subtotal;
 
                 $return->items()->create([
@@ -616,45 +663,60 @@ class ReturnController extends Controller
                     'item_type' => $itemType,
                     'item_id' => $itemId,
                     'quantity' => $itemData['quantity'],
-                    'unit_price' => $unitPrice,
-                    'subtotal' => $subtotal,
+                    'unit_price' => $unitPriceVnd,
+                    'unit_price_usd' => $unitPriceUsd,
+                    'subtotal' => $subtotalVnd,
+                    'subtotal_usd' => $subtotalUsd,
                     'reason' => $itemData['reason'] ?? null,
                 ]);
             }
 
-            // LOGIC ĐÚNG: Tính theo tỷ lệ đã trả
-            $paidAmount = $sale->paid_amount;
-            $currentTotal = $sale->total_vnd;
+            // LOGIC MỚI: Tính theo tỷ lệ đã trả (RIÊNG USD VÀ VND)
             $type = $request->input('type', 'return');
             
-            // Tính tỷ lệ đã trả của hóa đơn
-            $paidRatio = $currentTotal > 0 ? ($paidAmount / $currentTotal) : 0;
+            // Tính tỷ lệ đã trả của hóa đơn (riêng từng loại tiền)
+            $paidRatioUsd = $sale->total_usd > 0 ? ($sale->paid_usd / $sale->total_usd) : 0;
+            $paidRatioVnd = $sale->total_vnd > 0 ? ($sale->paid_vnd / $sale->total_vnd) : 0;
             
-            // Tính số tiền đã trả cho các sản phẩm đang trả
-            $paidForReturnedItems = $totalReturnValue * $paidRatio;
+            // Tính số tiền hoàn trả (theo tỷ lệ đã trả)
+            $totalRefundUsd = $totalReturnValueUsd * $paidRatioUsd;
+            $totalRefundVnd = $totalReturnValueVnd * $paidRatioVnd;
             
-            $totalRefund = 0;
+            $totalRefund = $totalRefundVnd; // Backward compatibility
             $exchangeAmount = null;
+            $exchangeAmountUsd = null;
             
             if ($type === 'exchange' && $request->has('exchange_items')) {
                 $totalExchange = 0;
+                $totalExchangeUsd = 0;
+                $totalExchangeVnd = 0;
+                
                 foreach ($request->exchange_items as $item) {
                     if (!isset($item['quantity']) || $item['quantity'] <= 0) continue;
                     
-                    // Validate inventory
+                    // Validate inventory and get currency
+                    $currency = 'VND';
                     if ($item['item_type'] === 'painting') {
                         $painting = Painting::find($item['item_id']);
                         if (!$painting || $painting->quantity < $item['quantity']) {
                             throw new \Exception("Không đủ tồn kho cho sản phẩm");
                         }
+                        $currency = $item['currency'] ?? 'VND';
                     } else {
                         $supply = Supply::find($item['item_id']);
                         if (!$supply || $supply->quantity < $item['quantity']) {
                             throw new \Exception("Không đủ tồn kho cho vật tư");
                         }
+                        $currency = $item['currency'] ?? 'VND';
                     }
                     
-                    $subtotal = $item['quantity'] * $item['unit_price'];
+                    // Tính subtotal (RIÊNG USD VÀ VND)
+                    $subtotalUsd = $item['quantity'] * ($item['unit_price_usd'] ?? 0);
+                    $subtotalVnd = $item['quantity'] * $item['unit_price'];
+                    $subtotal = $subtotalVnd; // Backward compatibility
+                    
+                    $totalExchangeUsd += $subtotalUsd;
+                    $totalExchangeVnd += $subtotalVnd;
                     $totalExchange += $subtotal;
                     
                     $return->exchangeItems()->create([
@@ -664,26 +726,34 @@ class ReturnController extends Controller
                         'supply_length' => $item['supply_length'] ?? null,
                         'quantity' => $item['quantity'],
                         'unit_price' => $item['unit_price'],
+                        'unit_price_usd' => $item['unit_price_usd'] ?? 0,
                         'discount_percent' => $item['discount_percent'] ?? 0,
                         'subtotal' => $subtotal,
+                        'subtotal_usd' => $subtotalUsd,
+                        'currency' => $currency,
                     ]);
                 }
                 
-                // Tính chênh lệch giữa giá SP mới và số tiền đã trả cho SP cũ
-                $difference = $totalExchange - $paidForReturnedItems;
+                // Tính chênh lệch (RIÊNG USD VÀ VND)
+                $differenceUsd = $totalExchangeUsd - $totalRefundUsd;
+                $differenceVnd = $totalExchangeVnd - $totalRefundVnd;
                 
-                if ($difference > 0) {
+                if ($differenceUsd > 0 || $differenceVnd > 0) {
                     // Khách trả thêm
-                    $exchangeAmount = $difference;
-                    $totalRefund = 0;
+                    $exchangeAmountUsd = $differenceUsd;
+                    $exchangeAmount = $differenceVnd;
+                    $totalRefundUsd = 0;
+                    $totalRefundVnd = 0;
                 } else {
                     // Hoàn lại khách
+                    $exchangeAmountUsd = 0;
                     $exchangeAmount = 0;
-                    $totalRefund = abs($difference);
+                    $totalRefundUsd = abs($differenceUsd);
+                    $totalRefundVnd = abs($differenceVnd);
                 }
             } else {
-                // Trả hàng thuần túy: Hoàn số tiền đã trả cho SP này
-                $totalRefund = $paidForReturnedItems;
+                // Trả hàng thuần túy: Hoàn số tiền đã trả cho SP này (đã tính ở trên)
+                // $totalRefundUsd và $totalRefundVnd đã được tính
             }
 
             // LƯU Ý: KHÔNG tạo payment ngay khi update phiếu đổi hàng
@@ -717,10 +787,13 @@ class ReturnController extends Controller
                 }
             }
             
-            // Tính USD cho return dựa vào tỷ giá của sale
-            $exchangeRate = $sale->exchange_rate ?? 25000;
-            $totalRefundUsd = $totalRefund / $exchangeRate;
-            $exchangeAmountUsd = $exchangeAmount ? ($exchangeAmount / $exchangeRate) : null;
+            // Lưu tỷ giá của sale (đã tính $totalRefundUsd ở trên)
+            $exchangeRate = $sale->exchange_rate ?? 0;
+            // $totalRefundUsd và $exchangeAmountUsd đã được tính ở trên theo logic mới
+            
+            // Backward compatibility
+            $totalRefund = $totalRefundVnd;
+            $exchangeAmount = $exchangeAmount ?? 0;
             
             // Update return
             $return->update([
@@ -997,12 +1070,13 @@ class ReturnController extends Controller
                     $sale->original_total_usd = $sale->total_usd;
                 }
                 
-                // Tính giá trị hàng trả lần này
-                $returnedValue = $return->items->sum('subtotal');
+                // Tính giá trị hàng trả lần này (RIÊNG USD VÀ VND)
+                $returnedValueUsd = $return->items->sum('subtotal_usd');
+                $returnedValueVnd = $return->items->sum('subtotal');
                 
                 // Giảm total hiện tại
-                $newTotalVnd = $sale->total_vnd - $returnedValue;
-                $newTotalUsd = $newTotalVnd / $sale->exchange_rate;
+                $newTotalUsd = $sale->total_usd - $returnedValueUsd;
+                $newTotalVnd = $sale->total_vnd - $returnedValueVnd;
                 
                 $sale->update([
                     'total_vnd' => $newTotalVnd,
@@ -1011,20 +1085,29 @@ class ReturnController extends Controller
                     'original_total_usd' => $sale->original_total_usd,
                 ]);
                 
-                // Tính số tiền cần hoàn
-                $paidAmount = $sale->payments()->sum('amount');
-                $refundAmount = 0;
+                // Tính số tiền cần hoàn (RIÊNG USD VÀ VND)
+                $paidUsd = $sale->paid_usd;
+                $paidVnd = $sale->paid_vnd;
+                $refundUsd = 0;
+                $refundVnd = 0;
                 
                 // Chỉ hoàn nếu đã trả > total mới
-                if ($paidAmount > $newTotalVnd) {
-                    $refundAmount = $paidAmount - $newTotalVnd;
+                if ($paidUsd > $newTotalUsd) {
+                    $refundUsd = $paidUsd - $newTotalUsd;
+                }
+                if ($paidVnd > $newTotalVnd) {
+                    $refundVnd = $paidVnd - $newTotalVnd;
                 }
                 
-                if ($refundAmount > 0) {
+                // Tạo payment hoàn tiền (nếu có)
+                if ($refundUsd > 0 || $refundVnd > 0) {
                     Payment::create([
                         'sale_id' => $return->sale_id,
                         'payment_date' => now(),
-                        'amount' => -$refundAmount,
+                        'amount' => -$refundVnd, // Backward compatibility
+                        'amount_usd' => -$refundUsd,
+                        'amount_vnd' => -$refundVnd,
+                        'exchange_rate' => $sale->exchange_rate,
                         'payment_method' => 'cash',
                         'transaction_type' => 'return',
                         'notes' => "Hoàn tiền cho phiếu trả {$return->return_code}",
@@ -1049,7 +1132,7 @@ class ReturnController extends Controller
                     $saleItem->save();
                 }
                 
-                // 2. Thêm sản phẩm mới vào sale_items
+                // 2. Thêm sản phẩm mới vào sale_items (với USD)
                 foreach ($return->exchangeItems as $exchangeItem) {
                     $newSaleItem = SaleItem::create([
                         'sale_id' => $sale->id,
@@ -1060,8 +1143,8 @@ class ReturnController extends Controller
                             : ($exchangeItem->supply->name ?? 'N/A'),
                         'quantity' => $exchangeItem->quantity,
                         'supply_length' => $exchangeItem->supply_length ?? 0,
-                        'currency' => 'VND',
-                        'price_usd' => 0,
+                        'currency' => $exchangeItem->currency ?? 'VND',
+                        'price_usd' => $exchangeItem->unit_price_usd ?? 0,
                         'price_vnd' => $exchangeItem->unit_price,
                         'discount_percent' => $exchangeItem->discount_percent ?? 0,
                     ]);
@@ -1184,13 +1267,17 @@ class ReturnController extends Controller
                 $paymentInfo = json_decode($paymentInfoJson, true);
                 
                 if ($paymentInfo && isset($paymentInfo['payment_amount']) && $paymentInfo['payment_amount'] > 0) {
-                    // Tạo payment record
+                    $paymentUsd = $paymentInfo['payment_usd'] ?? 0;
+                    $paymentVnd = $paymentInfo['payment_vnd'] ?? 0;
+                    $exchangeRate = $paymentInfo['payment_exchange_rate'] ?? 25000;
+                    
+                    // Tạo payment record (với USD/VND riêng)
                     Payment::create([
                         'sale_id' => $sale->id,
-                        'amount' => $paymentInfo['payment_amount'],
-                        'payment_usd' => $paymentInfo['payment_usd'] ?? 0,
-                        'payment_vnd' => $paymentInfo['payment_vnd'] ?? 0,
-                        'payment_exchange_rate' => $paymentInfo['payment_exchange_rate'] ?? 25000,
+                        'amount' => $paymentInfo['payment_amount'], // Backward compatibility
+                        'amount_usd' => $paymentUsd,
+                        'amount_vnd' => $paymentVnd,
+                        'exchange_rate' => $exchangeRate,
                         'payment_date' => $paymentInfo['payment_date'] ?? now(),
                         'payment_method' => $paymentInfo['payment_method'] ?? 'cash',
                         'transaction_type' => 'exchange_payment',
@@ -1198,8 +1285,10 @@ class ReturnController extends Controller
                         'created_by' => Auth::id(),
                     ]);
                     
-                    // Update sale paid_amount
-                    $sale->increment('paid_amount', $paymentInfo['payment_amount']);
+                    // Update sale paid amounts (RIÊNG USD VÀ VND)
+                    $sale->increment('paid_usd', $paymentUsd);
+                    $sale->increment('paid_vnd', $paymentVnd);
+                    $sale->increment('paid_amount', $paymentInfo['payment_amount']); // Backward compatibility
                     
                     // Dọn dẹp notes - xóa thông tin payment
                     $cleanNotes = trim($parts[0]);
