@@ -67,33 +67,51 @@
                 </div>
             </div>
 
-            <!-- Amount Summary -->
-            @php
-                // Tính toán real-time từ bảng sales và payments (giống như trang index)
-                $totalAmount = $debt->sale->total_vnd;
-                $paidAmount = $debt->sale->payments()->sum('amount');
-                $remainingDebt = $totalAmount - $paidAmount;
-            @endphp
+            <!-- Amount Summary - LOGIC MỚI -->
             <div class="mt-4 pt-4 border-t-2 space-y-3">
                 <div class="flex justify-between items-center">
                     <span class="text-gray-700 font-medium text-sm">Tổng tiền HĐ:</span>
                     <div class="text-right">
-                        <div class="font-bold text-gray-900 text-base">${{ number_format($debt->sale->total_usd, 2) }}</div>
-                        <div class="text-xs text-gray-600">{{ number_format($totalAmount, 0, ',', '.') }}đ</div>
+                        @if($debt->sale->total_usd > 0 && $debt->sale->total_vnd > 0)
+                            {{-- Mixed: Hiển thị cả USD và VND --}}
+                            <div class="font-bold text-gray-900 text-base">${{ number_format($debt->sale->total_usd, 2) }} + {{ number_format($debt->sale->total_vnd, 0, ',', '.') }}đ</div>
+                        @elseif($debt->sale->total_usd > 0)
+                            {{-- USD only --}}
+                            <div class="font-bold text-gray-900 text-base">${{ number_format($debt->sale->total_usd, 2) }}</div>
+                        @else
+                            {{-- VND only --}}
+                            <div class="font-bold text-gray-900 text-base">{{ number_format($debt->sale->total_vnd, 0, ',', '.') }}đ</div>
+                        @endif
                     </div>
                 </div>
                 <div class="flex justify-between items-center bg-green-50 p-2 rounded-lg">
                     <span class="text-green-700 font-medium text-sm">Đã trả:</span>
                     <div class="text-right">
-                        <div class="font-bold text-green-700 text-base">${{ number_format($debt->sale->paid_usd, 2) }}</div>
-                        <div class="text-xs text-green-600">{{ number_format($paidAmount, 0, ',', '.') }}đ</div>
+                        @if($debt->sale->total_usd > 0 && $debt->sale->total_vnd > 0)
+                            {{-- Mixed: Hiển thị cả USD và VND --}}
+                            <div class="font-bold text-green-700 text-base">${{ number_format($debt->sale->paid_usd, 2) }} + {{ number_format($debt->sale->paid_vnd, 0, ',', '.') }}đ</div>
+                        @elseif($debt->sale->total_usd > 0)
+                            {{-- USD only --}}
+                            <div class="font-bold text-green-700 text-base">${{ number_format($debt->sale->paid_usd, 2) }}</div>
+                        @else
+                            {{-- VND only --}}
+                            <div class="font-bold text-green-700 text-base">{{ number_format($debt->sale->paid_vnd, 0, ',', '.') }}đ</div>
+                        @endif
                     </div>
                 </div>
                 <div class="flex justify-between items-center pt-2 border-t-2 bg-red-50 p-3 rounded-lg border-2 border-red-200">
                     <span class="text-red-700 font-bold text-base">Còn nợ:</span>
                     <div class="text-right">
-                        <div class="font-bold text-red-600 text-xl">${{ number_format($debt->sale->debt_usd, 2) }}</div>
-                        <div class="text-xs text-red-600">{{ number_format($remainingDebt, 0, ',', '.') }}đ</div>
+                        @if($debt->sale->total_usd > 0 && $debt->sale->total_vnd > 0)
+                            {{-- Mixed: Hiển thị cả USD và VND --}}
+                            <div class="font-bold text-red-600 text-xl">${{ number_format($debt->sale->debt_usd, 2) }} + {{ number_format($debt->sale->debt_vnd, 0, ',', '.') }}đ</div>
+                        @elseif($debt->sale->total_usd > 0)
+                            {{-- USD only --}}
+                            <div class="font-bold text-red-600 text-xl">${{ number_format($debt->sale->debt_usd, 2) }}</div>
+                        @else
+                            {{-- VND only --}}
+                            <div class="font-bold text-red-600 text-xl">{{ number_format($debt->sale->debt_vnd, 0, ',', '.') }}đ</div>
+                        @endif
                     </div>
                 </div>
             </div>
@@ -180,6 +198,8 @@
                                     $hasUsd = $payment->payment_usd > 0;
                                     $hasVnd = $payment->payment_vnd > 0;
                                     $exchangeRate = $payment->payment_exchange_rate ?? $payment->sale->exchange_rate;
+                                    // Tránh chia cho 0 với phiếu VND
+                                    if ($exchangeRate <= 0) $exchangeRate = 1;
                                     $isRefund = $payment->amount < 0;
                                 @endphp
 
@@ -191,11 +211,27 @@
                                 @elseif($hasUsd && !$hasVnd)
                                     {{-- Chỉ trả USD --}}
                                     <div class="font-bold text-blue-600">${{ number_format($payment->payment_usd, 2) }}</div>
-                                    <div class="text-xs text-gray-500">≈ {{ number_format($payment->payment_usd * $exchangeRate, 0, ',', '.') }}đ (Tỷ giá: {{ number_format($exchangeRate, 0, ',', '.') }})</div>
+                                    @php
+                                        // Kiểm tra xem có phải thanh toán chéo không (hóa đơn VND, trả USD)
+                                        $isVndInvoice = $payment->sale->saleItems->where('currency', 'VND')->count() > 0;
+                                        $isUsdInvoice = $payment->sale->saleItems->where('currency', 'USD')->count() > 0;
+                                        $isCrossCurrency = $isVndInvoice && !$isUsdInvoice; // Hóa đơn VND, trả USD
+                                    @endphp
+                                    @if($isCrossCurrency && $exchangeRate > 1)
+                                        <div class="text-xs text-gray-500">≈ {{ number_format($payment->payment_usd * $exchangeRate, 0, ',', '.') }}đ (Tỷ giá: {{ number_format($exchangeRate, 0, ',', '.') }})</div>
+                                    @endif
                                 @elseif($hasVnd && !$hasUsd)
                                     {{-- Chỉ trả VND --}}
                                     <div class="font-bold text-green-600">{{ number_format($payment->payment_vnd, 0, ',', '.') }}đ</div>
-                                    <div class="text-xs text-gray-500">≈ ${{ number_format($payment->payment_vnd / $exchangeRate, 2) }} (Tỷ giá: {{ number_format($exchangeRate, 0, ',', '.') }})</div>
+                                    @php
+                                        // Kiểm tra xem có phải thanh toán chéo không (hóa đơn USD, trả VND)
+                                        $isVndInvoice = $payment->sale->saleItems->where('currency', 'VND')->count() > 0;
+                                        $isUsdInvoice = $payment->sale->saleItems->where('currency', 'USD')->count() > 0;
+                                        $isCrossCurrency = $isUsdInvoice && !$isVndInvoice; // Hóa đơn USD, trả VND
+                                    @endphp
+                                    @if($isCrossCurrency && $exchangeRate > 1)
+                                        <div class="text-xs text-gray-500">≈ ${{ number_format($payment->payment_vnd / $exchangeRate, 2) }} (Tỷ giá: {{ number_format($exchangeRate, 0, ',', '.') }})</div>
+                                    @endif
                                 @elseif($hasUsd && $hasVnd)
                                     {{-- Trả cả hai --}}
                                     <div class="font-bold">
@@ -209,7 +245,15 @@
                                 @else
                                     {{-- Fallback cho dữ liệu cũ --}}
                                     <div class="font-medium text-green-600">{{ number_format($payment->amount, 0, ',', '.') }}đ</div>
-                                    <div class="text-xs text-gray-500">≈ ${{ number_format($payment->amount / $exchangeRate, 2) }} (Tỷ giá: {{ number_format($exchangeRate, 0, ',', '.') }})</div>
+                                    @php
+                                        // Kiểm tra xem có phải thanh toán chéo không (hóa đơn USD, trả VND)
+                                        $isVndInvoice = $payment->sale->saleItems->where('currency', 'VND')->count() > 0;
+                                        $isUsdInvoice = $payment->sale->saleItems->where('currency', 'USD')->count() > 0;
+                                        $isCrossCurrency = $isUsdInvoice && !$isVndInvoice; // Hóa đơn USD, trả VND
+                                    @endphp
+                                    @if($isCrossCurrency && $exchangeRate > 1)
+                                        <div class="text-xs text-gray-500">≈ ${{ number_format($payment->amount / $exchangeRate, 2) }} (Tỷ giá: {{ number_format($exchangeRate, 0, ',', '.') }})</div>
+                                    @endif
                                 @endif
                             </td>
                             <td class="px-2 py-2 text-center">
@@ -291,8 +335,16 @@
                     <!-- Số tiền còn nợ hiển thị rõ -->
                     <div class="bg-red-50 border border-red-200 rounded-lg p-3">
                         <p class="text-sm text-gray-700 mb-1 font-medium">Số tiền còn thanh toán:</p>
-                        <div class="text-2xl font-bold text-red-600">${{ number_format($debt->sale->debt_usd, 2) }}</div>
-                        <div class="text-sm text-red-600">{{ number_format($remainingDebt, 0, ',', '.') }}đ</div>
+                        @if($debt->sale->total_usd > 0 && $debt->sale->total_vnd > 0)
+                            {{-- Mixed: Hiển thị cả USD và VND --}}
+                            <div class="text-2xl font-bold text-red-600">${{ number_format($debt->sale->debt_usd, 2) }} + {{ number_format($debt->sale->debt_vnd, 0, ',', '.') }}đ</div>
+                        @elseif($debt->sale->total_usd > 0)
+                            {{-- USD only --}}
+                            <div class="text-2xl font-bold text-red-600">${{ number_format($debt->sale->debt_usd, 2) }}</div>
+                        @else
+                            {{-- VND only --}}
+                            <div class="text-2xl font-bold text-red-600">{{ number_format($debt->sale->debt_vnd, 0, ',', '.') }}đ</div>
+                        @endif
                     </div>
 
                     <!-- Tỉ giá hiện tại -->
@@ -399,7 +451,7 @@
 </div>
 
 <script>
-const maxDebtVnd = {{ $remainingDebt }};
+const maxDebtVnd = {{ $debt->sale->debt_vnd }};
 const maxDebtUsd = {{ $debt->sale->debt_usd }};
 
 function showCollectModal() {
@@ -442,7 +494,10 @@ function calculatePayment() {
     // Lấy giá trị
     const usd = parseFloat(usdInput.value.replace(/[^\d.]/g, '')) || 0;
     const vnd = parseFloat(vndInput.value.replace(/[^\d]/g, '')) || 0;
-    const rate = parseFloat(rateInput.value.replace(/[^\d]/g, '')) || {{ $debt->sale->exchange_rate }};
+    let rate = parseFloat(rateInput.value.replace(/[^\d]/g, '')) || {{ $debt->sale->exchange_rate }};
+    
+    // Tránh chia cho 0 với phiếu VND (exchange_rate = 0)
+    if (rate <= 0) rate = 1;
     
     // Tính toán
     // 1. Tổng USD = USD nhập + (VND nhập / Tỷ giá hiện tại)
@@ -489,7 +544,10 @@ function validatePayment(event) {
     
     const usd = parseFloat(usdInput.value.replace(/[^\d.]/g, '')) || 0;
     const vnd = parseFloat(vndInput.value.replace(/[^\d]/g, '')) || 0;
-    const rate = parseFloat(rateInput.value.replace(/[^\d]/g, '')) || {{ $debt->sale->exchange_rate }};
+    let rate = parseFloat(rateInput.value.replace(/[^\d]/g, '')) || {{ $debt->sale->exchange_rate }};
+    
+    // Tránh chia cho 0 với phiếu VND (exchange_rate = 0)
+    if (rate <= 0) rate = 1;
     
     // Validate cơ bản
     if (usd === 0 && vnd === 0) {

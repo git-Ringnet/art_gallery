@@ -1375,14 +1375,26 @@ function calcDebt() {
         
         // LOGIC MỚI: Tính nợ theo loại hóa đơn
         if (hasUsdTotal && !hasVndTotal) {
-            // A. Chỉ có USD - CHỈ tính USD, KHÔNG quy đổi VND
-            totalPaidInUsd = totalPaidUsd;
+            // A. Hóa đơn USD: CHỈ quy đổi tiền TRẢ THÊM (additionalPaidVnd), KHÔNG quy đổi tiền cũ
+            // Tiền cũ đã được lưu đúng theo tỷ giá lúc trả
+            const additionalPaidInUsd = additionalPaidUsd + (rate > 0 && additionalPaidVnd > 0 ? additionalPaidVnd / rate : 0);
+            totalPaidInUsd = currentPaidUsd + additionalPaidInUsd;
             const debtUsd = Math.max(0, totalUsd - totalPaidInUsd);
+            console.log('🔍 DEBUG Debt Calculation (Completed):');
+            console.log('  Total USD:', totalUsd);
+            console.log('  Current Paid USD (from DB):', currentPaidUsd);
+            console.log('  Additional Paid USD:', additionalPaidUsd);
+            console.log('  Additional Paid VND:', additionalPaidVnd);
+            console.log('  Rate:', rate);
+            console.log('  Additional VND → USD:', additionalPaidVnd > 0 ? (additionalPaidVnd / rate) : 0);
+            console.log('  Total Paid in USD:', totalPaidInUsd);
+            console.log('  Remaining Debt USD:', debtUsd);
             debtEl.value = '$' + debtUsd.toFixed(2);
             
         } else if (hasVndTotal && !hasUsdTotal) {
-            // B. Chỉ có VND - CHỈ tính VND, KHÔNG quy đổi USD
-            totalPaidInVnd = totalPaidVnd;
+            // B. Hóa đơn VND: CHỈ quy đổi tiền TRẢ THÊM (additionalPaidUsd), KHÔNG quy đổi tiền cũ
+            const additionalPaidInVnd = additionalPaidVnd + (rate > 0 && additionalPaidUsd > 0 ? additionalPaidUsd * rate : 0);
+            totalPaidInVnd = currentPaidVnd + additionalPaidInVnd;
             const debtVnd = Math.max(0, totalVnd - totalPaidInVnd);
             debtEl.value = Math.round(debtVnd).toLocaleString('vi-VN') + 'đ';
             
@@ -1429,14 +1441,22 @@ function calcDebt() {
         
         // LOGIC MỚI: Tính nợ theo loại hóa đơn
         if (hasUsdTotal && !hasVndTotal) {
-            // A. Chỉ có USD - CHỈ tính USD, KHÔNG quy đổi VND
-            totalPaidInUsd = paidUsdValue;
+            // A. Hóa đơn USD: Quy đổi VND → USD nếu có thanh toán chéo
+            totalPaidInUsd = paidUsdValue + (rate > 0 && paidVndValue > 0 ? paidVndValue / rate : 0);
             const debtUsd = Math.max(0, totalUsd - totalPaidInUsd);
+            console.log('🔍 DEBUG Debt Calculation (Pending):');
+            console.log('  Total USD:', totalUsd);
+            console.log('  Paid USD:', paidUsdValue);
+            console.log('  Paid VND:', paidVndValue);
+            console.log('  Rate:', rate);
+            console.log('  VND converted to USD:', paidVndValue > 0 ? (paidVndValue / rate) : 0);
+            console.log('  Total Paid in USD:', totalPaidInUsd);
+            console.log('  Remaining Debt USD:', debtUsd);
             debtEl.value = '$' + debtUsd.toFixed(2);
             
         } else if (hasVndTotal && !hasUsdTotal) {
-            // B. Chỉ có VND - CHỈ tính VND, KHÔNG quy đổi USD
-            totalPaidInVnd = paidVndValue;
+            // B. Hóa đơn VND: Quy đổi USD → VND nếu có thanh toán chéo
+            totalPaidInVnd = paidVndValue + (rate > 0 && paidUsdValue > 0 ? paidUsdValue * rate : 0);
             const debtVnd = Math.max(0, totalVnd - totalPaidInVnd);
             debtEl.value = Math.round(debtVnd).toLocaleString('vi-VN') + 'đ';
             
