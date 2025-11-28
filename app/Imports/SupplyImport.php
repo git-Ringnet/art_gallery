@@ -64,10 +64,18 @@ class SupplyImport implements ToModel, WithHeadingRow, WithValidation, SkipsOnEr
 
             $this->importedCount++;
 
-            // Check if image exists for this code
+            // Determine image path - priority order:
+            // 1. Uploaded images (by code)
+            // 2. Image path from Excel column
             $imagePath = $this->uploadedImages[$normalizedRow['ma_vat_tu']] ?? null;
+            
+            if (!$imagePath && !empty($normalizedRow['duong_dan_hinh_anh'])) {
+                // Try to copy image from the path specified in Excel
+                $imagePath = $this->copyImageFromPath($normalizedRow['duong_dan_hinh_anh'], $normalizedRow['ma_vat_tu']);
+            }
+            
             if ($imagePath) {
-                Log::info('Using uploaded supply image', ['code' => $normalizedRow['ma_vat_tu'], 'path' => $imagePath]);
+                Log::info('Using supply image', ['code' => $normalizedRow['ma_vat_tu'], 'path' => $imagePath]);
             }
 
             return new Supply([
@@ -110,6 +118,7 @@ class SupplyImport implements ToModel, WithHeadingRow, WithValidation, SkipsOnEr
                 'so_luong_cay' => 'so_luong_cay',
                 'ton_kho_toi_thieu' => 'ton_kho_toi_thieu',
                 'ghi_chu' => 'ghi_chu',
+                'duong_dan_hinh_anh' => 'duong_dan_hinh_anh',
             ];
             
             $finalKey = $keyMap[$normalizedKey] ?? $normalizedKey;
@@ -143,6 +152,80 @@ class SupplyImport implements ToModel, WithHeadingRow, WithValidation, SkipsOnEr
         ];
 
         return $typeMap[strtolower($type)] ?? 'other';
+    }
+
+    /**
+     * Copy image from file path to storage
+     * 
+     * @param string $imagePath Path to the image file
+     * @param string $code Supply code for naming
+     * @return string|null Stored image path or null if failed
+     */
+    protected function copyImageFromPath($imagePath, $code)
+    {
+        try {
+            // Clean up the path
+            $imagePath = trim($imagePath);
+            
+            // Check if file exists
+            if (!file_exists($imagePath)) {
+                Log::warning('Image file not found', ['path' => $imagePath, 'code' => $code]);
+                $this->errors[] = "Không tìm thấy file ảnh: {$imagePath} cho mã {$code}";
+                return null;
+            }
+            
+            // Validate it's an image file
+            $imageInfo = @getimagesize($imagePath);
+            if ($imageInfo === false) {
+                Log::warning('Invalid image file', ['path' => $imagePath, 'code' => $code]);
+                $this->errors[] = "File không phải là ảnh hợp lệ: {$imagePath} cho mã {$code}";
+                return null;
+            }
+            
+            // Get file extension
+            $extension = pathinfo($imagePath, PATHINFO_EXTENSION);
+            if (empty($extension)) {
+                // Determine extension from mime type
+                $mimeToExt = [
+                    'image/jpeg' => 'jpg',
+                    'image/png' => 'png',
+                    'image/gif' => 'gif',
+                    'image/webp' => 'webp',
+                ];
+                $extension = $mimeToExt[$imageInfo['mime']] ?? 'jpg';
+            }
+            
+            // Generate unique filename
+            $uniqueName = uniqid() . '_' . time() . '.' . $extension;
+            $storagePath = 'supplies/' . $uniqueName;
+            
+            // Copy file to storage
+            $imageContent = file_get_contents($imagePath);
+            if ($imageContent === false) {
+                Log::error('Failed to read image file', ['path' => $imagePath, 'code' => $code]);
+                $this->errors[] = "Không thể đọc file ảnh: {$imagePath} cho mã {$code}";
+                return null;
+            }
+            
+            \Illuminate\Support\Facades\Storage::disk('public')->put($storagePath, $imageContent);
+            
+            Log::info('Copied image from path', [
+                'source' => $imagePath,
+                'destination' => $storagePath,
+                'code' => $code
+            ]);
+            
+            return $storagePath;
+            
+        } catch (\Exception $e) {
+            Log::error('Error copying image from path', [
+                'path' => $imagePath,
+                'code' => $code,
+                'error' => $e->getMessage()
+            ]);
+            $this->errors[] = "Lỗi khi copy ảnh {$imagePath} cho mã {$code}: " . $e->getMessage();
+            return null;
+        }
     }
 
     public function getImportedCount()

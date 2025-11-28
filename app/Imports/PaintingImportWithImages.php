@@ -79,16 +79,21 @@ class PaintingImportWithImages implements ToCollection
                     continue;
                 }
 
-                // Get image for this row
+                // Get image for this row - Priority order:
+                // 1. Uploaded images (by code)
+                // 2. Embedded images (by row)
+                // 3. Image path from Excel column (index 11)
                 $imagePath = null;
                 
-                // Priority 1: Uploaded images
                 if (isset($this->uploadedImages[$code])) {
                     $imagePath = $this->uploadedImages[$code];
                 }
-                // Priority 2: Embedded images
                 elseif (isset($this->excelImages[$excelRow])) {
                     $imagePath = $this->excelImages[$excelRow];
+                }
+                elseif (isset($row[11]) && !empty(trim((string)$row[11]))) {
+                    // Try to copy image from the path specified in Excel
+                    $imagePath = $this->copyImageFromPath(trim((string)$row[11]), $code);
                 }
                 
                 // Parse numeric fields safely
@@ -155,6 +160,80 @@ class PaintingImportWithImages implements ToCollection
             'skipped' => $this->skippedCount,
             'errors' => count($this->errors)
         ]);
+    }
+
+    /**
+     * Copy image from file path to storage
+     * 
+     * @param string $imagePath Path to the image file
+     * @param string $code Painting code for naming
+     * @return string|null Stored image path or null if failed
+     */
+    protected function copyImageFromPath($imagePath, $code)
+    {
+        try {
+            // Clean up the path
+            $imagePath = trim($imagePath);
+            
+            // Check if file exists
+            if (!file_exists($imagePath)) {
+                Log::warning('Image file not found', ['path' => $imagePath, 'code' => $code]);
+                $this->errors[] = "Không tìm thấy file ảnh: {$imagePath} cho mã {$code}";
+                return null;
+            }
+            
+            // Validate it's an image file
+            $imageInfo = @getimagesize($imagePath);
+            if ($imageInfo === false) {
+                Log::warning('Invalid image file', ['path' => $imagePath, 'code' => $code]);
+                $this->errors[] = "File không phải là ảnh hợp lệ: {$imagePath} cho mã {$code}";
+                return null;
+            }
+            
+            // Get file extension
+            $extension = pathinfo($imagePath, PATHINFO_EXTENSION);
+            if (empty($extension)) {
+                // Determine extension from mime type
+                $mimeToExt = [
+                    'image/jpeg' => 'jpg',
+                    'image/png' => 'png',
+                    'image/gif' => 'gif',
+                    'image/webp' => 'webp',
+                ];
+                $extension = $mimeToExt[$imageInfo['mime']] ?? 'jpg';
+            }
+            
+            // Generate unique filename
+            $uniqueName = uniqid() . '_' . time() . '.' . $extension;
+            $storagePath = 'paintings/' . $uniqueName;
+            
+            // Copy file to storage
+            $imageContent = file_get_contents($imagePath);
+            if ($imageContent === false) {
+                Log::error('Failed to read image file', ['path' => $imagePath, 'code' => $code]);
+                $this->errors[] = "Không thể đọc file ảnh: {$imagePath} cho mã {$code}";
+                return null;
+            }
+            
+            Storage::disk('public')->put($storagePath, $imageContent);
+            
+            Log::info('Copied image from path', [
+                'source' => $imagePath,
+                'destination' => $storagePath,
+                'code' => $code
+            ]);
+            
+            return $storagePath;
+            
+        } catch (\Exception $e) {
+            Log::error('Error copying image from path', [
+                'path' => $imagePath,
+                'code' => $code,
+                'error' => $e->getMessage()
+            ]);
+            $this->errors[] = "Lỗi khi copy ảnh {$imagePath} cho mã {$code}: " . $e->getMessage();
+            return null;
+        }
     }
 
     protected function parseDate($date)
