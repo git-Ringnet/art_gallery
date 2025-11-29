@@ -285,29 +285,33 @@
                         <div class="flex justify-between items-center">
                             <div class="flex-1">
                                 @php
-                                    $hasUsd = $payment->payment_usd > 0;
-                                    $hasVnd = $payment->payment_vnd > 0;
+                                    // Xử lý cả số dương (payment) và số âm (refund)
+                                    $hasUsd = $payment->payment_usd != 0;
+                                    $hasVnd = $payment->payment_vnd != 0;
                                     $exchangeRate = $payment->payment_exchange_rate ?? $sale->exchange_rate;
+                                    $isRefund = $payment->payment_usd < 0 || $payment->payment_vnd < 0;
+                                    $colorClass = $isRefund ? 'text-red-600' : 'text-blue-600';
+                                    $colorClassVnd = $isRefund ? 'text-red-600' : 'text-green-600';
                                 @endphp
                                 
                                 @if($hasUsd && !$hasVnd)
-                                    {{-- Chỉ trả USD: Hiển thị USD to, VND nhỏ (tham khảo) --}}
-                                    <p class="font-bold text-lg text-blue-600">${{ number_format($payment->payment_usd, 2) }}</p>
+                                    {{-- Chỉ USD (hoặc refund USD): Hiển thị USD to, VND nhỏ (tham khảo) --}}
+                                    <p class="font-bold text-lg {{ $colorClass }}">${{ number_format($payment->payment_usd, 2) }}</p>
                                     @if($exchangeRate > 0)
                                     <p class="text-xs text-gray-500 mt-0.5">≈ {{ number_format($payment->payment_usd * $exchangeRate) }}đ (tham khảo)</p>
                                     @endif
                                 @elseif($hasVnd && !$hasUsd)
-                                    {{-- Chỉ trả VND: Hiển thị VND to, USD nhỏ (quy đổi) --}}
-                                    <p class="font-bold text-lg text-green-600">{{ number_format($payment->payment_vnd) }}đ</p>
+                                    {{-- Chỉ VND (hoặc refund VND): Hiển thị VND to, USD nhỏ (quy đổi) --}}
+                                    <p class="font-bold text-lg {{ $colorClassVnd }}">{{ number_format($payment->payment_vnd) }}đ</p>
                                     @if($exchangeRate > 0)
                                     <p class="text-xs text-gray-500 mt-0.5">≈ ${{ number_format($payment->payment_vnd / $exchangeRate, 2) }} (tỷ giá {{ number_format($exchangeRate) }})</p>
                                     @endif
                                 @elseif($hasUsd && $hasVnd)
                                     {{-- Trả cả USD và VND: Hiển thị cả hai --}}
                                     <p class="font-bold text-base">
-                                        <span class="text-blue-600">${{ number_format($payment->payment_usd, 2) }}</span>
+                                        <span class="{{ $colorClass }}">${{ number_format($payment->payment_usd, 2) }}</span>
                                         <span class="text-gray-400 mx-1">+</span>
-                                        <span class="text-green-600">{{ number_format($payment->payment_vnd) }}đ</span>
+                                        <span class="{{ $colorClassVnd }}">{{ number_format($payment->payment_vnd) }}đ</span>
                                     </p>
                                     @if($exchangeRate > 0)
                                     <p class="text-xs text-gray-500 mt-0.5">
@@ -418,8 +422,16 @@
             <h3 class="font-semibold text-base mb-3">Tổng kết</h3>
             <div class="space-y-2">
                 @php
+                    // Detect currency dựa trên original_total (trước khi trả hàng) hoặc items hiện tại
+                    $originalHasUsd = ($sale->original_total_usd ?? $sale->total_usd) > 0;
+                    $originalHasVnd = ($sale->original_total_vnd ?? $sale->total_vnd) > 0;
+                    
+                    // Detect currency hiện tại (sau khi trả hàng)
                     $hasUsdTotal = $sale->total_usd > 0;
                     $hasVndTotal = $sale->total_vnd > 0;
+                    
+                    // Nếu ban đầu có cả USD và VND, giữ nguyên flag này
+                    $isMixedCurrency = $originalHasUsd && $originalHasVnd;
                 @endphp
                 
                 <div class="flex justify-between text-sm">
@@ -518,17 +530,12 @@
                     <div class="flex justify-between">
                         <span class="text-blue-700 font-medium">Đã trả:</span>
                         <div class="text-right">
-                            @if($hasUsdTotal && !$hasVndTotal)
-                                {{-- Chỉ USD --}}
-                                <div class="font-bold text-blue-700">${{ number_format($sale->paid_usd, 2) }}</div>
-                            @elseif($hasVndTotal && !$hasUsdTotal)
-                                {{-- Chỉ VND --}}
-                                <div class="font-bold text-blue-700">{{ number_format($sale->paid_vnd) }}đ</div>
-                            @else
-                                {{-- Cả USD và VND - Hiển thị riêng từng loại --}}
+                            @if($isMixedCurrency)
+                                {{-- Hóa đơn ban đầu có cả USD và VND - Hiển thị riêng từng loại --}}
                                 @php
-                                    $paidUsdOnly = $sale->payments->sum('payment_usd');
-                                    $paidVndOnly = $sale->payments->sum('payment_vnd');
+                                    // Tính tổng payments thực tế (không bao gồm refund)
+                                    $paidUsdOnly = $sale->payments->where('payment_usd', '>', 0)->sum('payment_usd');
+                                    $paidVndOnly = $sale->payments->where('payment_vnd', '>', 0)->sum('payment_vnd');
                                 @endphp
                                 @if($paidUsdOnly > 0 && $paidVndOnly > 0)
                                     <div class="font-bold text-sm">
@@ -544,6 +551,12 @@
                                 @else
                                     <div class="font-bold text-blue-700">$0.00 / 0đ</div>
                                 @endif
+                            @elseif($originalHasUsd && !$originalHasVnd)
+                                {{-- Chỉ USD --}}
+                                <div class="font-bold text-blue-700">${{ number_format($sale->paid_usd, 2) }}</div>
+                            @elseif($originalHasVnd && !$originalHasUsd)
+                                {{-- Chỉ VND --}}
+                                <div class="font-bold text-blue-700">{{ number_format($sale->paid_vnd) }}đ</div>
                             @endif
                         </div>
                     </div>
@@ -587,8 +600,8 @@
                     </span>
                     <span class="font-bold">Không nợ</span>
                 </div>
-                @elseif($hasUsdTotal && $hasVndTotal && ($sale->debt_usd > 0.01 || $sale->debt_vnd > 1))
-                {{-- Hóa đơn có CẢ USD VÀ VND - Hiển thị riêng từng loại nợ --}}
+                @elseif($isMixedCurrency && ($sale->debt_usd > 0.01 || $sale->debt_vnd > 1))
+                {{-- Hóa đơn ban đầu có CẢ USD VÀ VND - Hiển thị riêng từng loại nợ còn lại --}}
                 <div class="flex justify-between text-red-600 bg-red-50 p-2 rounded border border-red-200 text-sm">
                     <span class="font-bold">Còn thiếu:</span>
                     <div class="text-right">

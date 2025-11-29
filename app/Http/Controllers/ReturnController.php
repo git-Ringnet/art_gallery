@@ -1125,11 +1125,19 @@ class ReturnController extends Controller
                     $sale->original_total_usd = $sale->total_usd;
                 }
                 
-                // Tính giá trị hàng trả lần này (RIÊNG USD VÀ VND)
-                $returnedValueUsd = $return->items->sum('subtotal_usd');
-                $returnedValueVnd = $return->items->sum('subtotal');
+                // Tính giá trị hàng trả (RIÊNG USD VÀ VND theo currency gốc của từng item)
+                $returnedValueUsd = 0;
+                $returnedValueVnd = 0;
                 
-                // Giảm total hiện tại
+                foreach ($return->items as $item) {
+                    if ($item->currency === 'USD') {
+                        $returnedValueUsd += $item->subtotal_usd;
+                    } else {
+                        $returnedValueVnd += $item->subtotal;
+                    }
+                }
+                
+                // Giảm total hiện tại (RIÊNG USD VÀ VND)
                 $newTotalUsd = $sale->total_usd - $returnedValueUsd;
                 $newTotalVnd = $sale->total_vnd - $returnedValueVnd;
                 
@@ -1154,15 +1162,21 @@ class ReturnController extends Controller
                     $refundVnd = $paidVnd - $newTotalVnd;
                 }
                 
+                // Cập nhật total_refund vào return record
+                $return->update([
+                    'total_refund_usd' => $refundUsd,
+                    'total_refund' => $refundVnd,
+                ]);
+                
                 // Tạo payment hoàn tiền (nếu có)
                 if ($refundUsd > 0 || $refundVnd > 0) {
                     Payment::create([
                         'sale_id' => $return->sale_id,
                         'payment_date' => now(),
-                        'amount' => -$refundVnd, // Backward compatibility
-                        'amount_usd' => -$refundUsd,
-                        'amount_vnd' => -$refundVnd,
-                        'exchange_rate' => $sale->exchange_rate,
+                        'amount' => -($refundUsd * $sale->exchange_rate + $refundVnd), // Backward compatibility (VND total)
+                        'payment_usd' => -$refundUsd,
+                        'payment_vnd' => -$refundVnd,
+                        'payment_exchange_rate' => $sale->exchange_rate,
                         'payment_method' => 'cash',
                         'transaction_type' => 'return',
                         'notes' => "Hoàn tiền cho phiếu trả {$return->return_code}",

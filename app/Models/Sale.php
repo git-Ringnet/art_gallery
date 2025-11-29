@@ -221,17 +221,33 @@ class Sale extends Model
             
         } else {
             // Có cả USD và VND - Kiểm tra RIÊNG từng loại
-            $debtUsd = $this->total_usd - $this->paid_usd;
-            $debtVnd = $this->total_vnd - $this->paid_vnd;
+            // CHỈ tính debt cho loại tiền có total > 0
+            $hasUsdDebt = false;
+            $hasVndDebt = false;
             
-            // Xác định trạng thái: Chỉ "paid" khi CẢ HAI đều trả đủ
-            if ($debtUsd <= 0.01 && $debtVnd <= 1) {
+            if ($this->total_usd > 0.01) {
+                $debtUsd = $this->total_usd - $this->paid_usd;
+                if ($debtUsd > 0.01) {
+                    $hasUsdDebt = true;
+                }
+            }
+            
+            if ($this->total_vnd > 1) {
+                $debtVnd = $this->total_vnd - $this->paid_vnd;
+                if ($debtVnd > 1) {
+                    $hasVndDebt = true;
+                }
+            }
+            
+            // Xác định trạng thái: Chỉ "paid" khi KHÔNG còn nợ cả USD và VND
+            if (!$hasUsdDebt && !$hasVndDebt) {
                 $this->payment_status = 'paid';
                 $this->debt_amount = 0;
             } elseif ($this->paid_usd > 0.01 || $this->paid_vnd > 1) {
                 $this->payment_status = 'partial';
                 // debt_amount chỉ để tham khảo, không dùng để tính toán
-                $this->debt_amount = round($debtVnd, 2);
+                $debtVndValue = $this->total_vnd > 0 ? max(0, $this->total_vnd - $this->paid_vnd) : 0;
+                $this->debt_amount = round($debtVndValue, 2);
             } else {
                 $this->payment_status = 'unpaid';
                 $this->debt_amount = round($this->total_vnd, 2);
@@ -304,9 +320,12 @@ class Sale extends Model
     // Accessor để tính paid_usd từ các payments
     public function getPaidUsdAttribute()
     {
-        // Xác định loại hóa đơn
-        $hasUsdTotal = $this->total_usd > 0;
-        $hasVndTotal = $this->total_vnd > 0;
+        // Xác định loại hóa đơn dựa trên ORIGINAL total (trước khi trả hàng)
+        $originalUsd = $this->original_total_usd ?? $this->total_usd;
+        $originalVnd = $this->original_total_vnd ?? $this->total_vnd;
+        
+        $hasUsdTotal = $originalUsd > 0;
+        $hasVndTotal = $originalVnd > 0;
         
         // Tính tổng USD đã trả từ tất cả payments
         $totalPaidUsd = 0;
@@ -348,9 +367,12 @@ class Sale extends Model
     // Accessor để tính paid_vnd từ các payments
     public function getPaidVndAttribute()
     {
-        // Xác định loại hóa đơn
-        $hasUsdTotal = $this->total_usd > 0;
-        $hasVndTotal = $this->total_vnd > 0;
+        // Xác định loại hóa đơn dựa trên ORIGINAL total (trước khi trả hàng)
+        $originalUsd = $this->original_total_usd ?? $this->total_usd;
+        $originalVnd = $this->original_total_vnd ?? $this->total_vnd;
+        
+        $hasUsdTotal = $originalUsd > 0;
+        $hasVndTotal = $originalVnd > 0;
         
         // Tính tổng VND đã trả từ tất cả payments
         $totalPaidVnd = 0;
