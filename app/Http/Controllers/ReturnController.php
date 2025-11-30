@@ -1348,19 +1348,25 @@ class ReturnController extends Controller
             
             // Kiểm tra nếu trả hết hàng
             if ($return->type === 'return') {
-                $totalSaleItems = $sale->items->sum('quantity');
-                $totalReturnedItems = ReturnItem::whereHas('return', function($q) use ($sale) {
-                    $q->where('sale_id', $sale->id)
-                      ->where('status', 'completed')
-                      ->where('type', 'return');
-                })->sum('quantity');
+                // Refresh sale để lấy dữ liệu mới nhất
+                $sale->refresh();
+                
+                // Kiểm tra xem tất cả items đã được trả chưa (dựa trên is_returned flag)
+                $totalItems = $sale->saleItems->count();
+                $returnedItems = $sale->saleItems->where('is_returned', true)->count();
+                
+                // Hoặc kiểm tra total_usd và total_vnd = 0
+                $allReturned = ($totalItems > 0 && $returnedItems >= $totalItems) || 
+                               ($sale->total_usd == 0 && $sale->total_vnd == 0 && $totalItems > 0);
 
-                if ($totalReturnedItems >= $totalSaleItems) {
+                if ($allReturned) {
                     // Trả hết hàng - set cancelled
                     $sale->update([
                         'sale_status' => 'cancelled',
                         'payment_status' => 'cancelled',
                         'debt_amount' => 0,
+                        'debt_usd' => 0,
+                        'debt_vnd' => 0,
                     ]);
                     
                     if ($sale->debt) {

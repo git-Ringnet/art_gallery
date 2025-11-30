@@ -533,14 +533,18 @@
                             } else {
                                 // Tính từ items (cho dữ liệu cũ)
                                 $originalTotal = $sale->saleItems->sum('total_vnd');
-                                $originalTotalUsd = $originalTotal / $sale->exchange_rate;
+                                $exchangeRateCalc = $sale->exchange_rate ?: 1;
+                                $originalTotalUsd = $originalTotal / $exchangeRateCalc;
                             }
                             
                             // Kiểm tra xem có thay đổi tổng tiền không
-                            $totalChanged = ($hasReturns || $hasExchanges) && $originalTotal != $sale->total_vnd;
+                            $totalChanged = ($hasReturns || $hasExchanges) && ($originalTotal != $sale->total_vnd || $originalTotalUsd != $sale->total_usd);
+                            
+                            // Kiểm tra trả hết (tất cả items đã returned)
+                            $allReturnedShow = $sale->saleItems->where('is_returned', true)->count() == $sale->saleItems->count() && $sale->saleItems->count() > 0;
                         @endphp
                         
-                        @if($hasReturns && $sale->total_vnd == 0)
+                        @if($allReturnedShow || ($hasReturns && $sale->total_vnd == 0 && $sale->total_usd == 0))
                             <!-- Trả hết - hiển thị giá gốc không gạch ngang -->
                             <div class="font-bold text-base text-gray-900">${{ number_format($originalTotalUsd, 2) }}</div>
                             <div class="text-xs text-gray-500">{{ number_format($originalTotal) }}đ</div>
@@ -720,17 +724,21 @@
                 <div>
                     <p class="text-sm text-gray-600 mb-2 font-medium">Tình trạng phiếu:</p>
                     <div class="text-center">
-                        @if($sale->sale_status == 'pending')
+                        @php
+                            // Kiểm tra trả hết (tất cả items đã returned)
+                            $allReturnedStatus = $sale->saleItems->where('is_returned', true)->count() == $sale->saleItems->count() && $sale->saleItems->count() > 0;
+                        @endphp
+                        @if($sale->sale_status == 'cancelled' || $allReturnedStatus)
+                            <span class="inline-block px-4 py-2 text-sm font-semibold rounded-full bg-gray-100 text-gray-800">
+                                <i class="fas fa-ban mr-1"></i>Đã hủy
+                            </span>
+                        @elseif($sale->sale_status == 'pending')
                             <span class="inline-block px-4 py-2 text-sm font-semibold rounded-full bg-yellow-100 text-yellow-800">
                                 <i class="fas fa-clock mr-1"></i>Chờ duyệt
                             </span>
                         @elseif($sale->sale_status == 'completed')
                             <span class="inline-block px-4 py-2 text-sm font-semibold rounded-full bg-green-100 text-green-800">
                                 <i class="fas fa-check-circle mr-1"></i>Đã hoàn thành
-                            </span>
-                        @elseif($sale->sale_status == 'cancelled')
-                            <span class="inline-block px-4 py-2 text-sm font-semibold rounded-full bg-gray-100 text-gray-800">
-                                <i class="fas fa-ban mr-1"></i>Đã hủy
                             </span>
                         @endif
                     </div>
@@ -743,7 +751,7 @@
                         @php
                             $hasExchange = $sale->returns->where('type', 'exchange')->where('status', 'completed')->count() > 0;
                         @endphp
-                        @if($sale->payment_status == 'cancelled')
+                        @if($sale->payment_status == 'cancelled' || $allReturnedStatus)
                             <span class="inline-block px-4 py-2 text-sm font-semibold rounded-full bg-gray-100 text-gray-800">
                                 <i class="fas fa-ban mr-1"></i>Đã hủy (Trả hàng)
                             </span>

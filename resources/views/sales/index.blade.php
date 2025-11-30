@@ -350,9 +350,15 @@
                             $hasReturns = $sale->returns()->where('status', 'completed')->where('type', 'return')->exists();
                             $hasExchanges = $sale->returns()->where('status', 'completed')->where('type', 'exchange')->exists();
                             
-                            // Kiểm tra xem hóa đơn có items nào dùng USD/VND
-                            $hasUsdItems = $sale->saleItems->where('currency', 'USD')->where('is_returned', '!=', true)->count() > 0;
-                            $hasVndItems = $sale->saleItems->where('currency', 'VND')->where('is_returned', '!=', true)->count() > 0;
+                            // Kiểm tra xem hóa đơn GỐC có items nào dùng USD/VND (không filter is_returned)
+                            $hasUsdItems = $sale->saleItems->where('currency', 'USD')->count() > 0;
+                            $hasVndItems = $sale->saleItems->where('currency', 'VND')->count() > 0;
+                            
+                            // Fallback: nếu không có currency field, check từ price
+                            if (!$hasUsdItems && !$hasVndItems) {
+                                $hasUsdItems = $sale->saleItems->where('price_usd', '>', 0)->count() > 0;
+                                $hasVndItems = $sale->saleItems->where('price_vnd', '>', 0)->count() > 0;
+                            }
                             
                             // Lấy original_total, nếu không có thì tính từ items
                             if ($sale->original_total_vnd) {
@@ -361,16 +367,20 @@
                             } else {
                                 // Tính từ items (cho dữ liệu cũ)
                                 $originalTotal = $sale->saleItems->sum('total_vnd');
-                                $originalTotalUsd = $originalTotal / $sale->exchange_rate;
+                                $exchangeRate = $sale->exchange_rate ?: 1;
+                                $originalTotalUsd = $originalTotal / $exchangeRate;
                             }
                             
                             // Kiểm tra xem có thay đổi tổng tiền không (do return hoặc exchange)
                             // Check cả USD và VND
                             $totalChanged = ($hasReturns || $hasExchanges) && 
                                             ($originalTotal != $sale->total_vnd || $originalTotalUsd != $sale->total_usd);
+                            
+                            // Kiểm tra trả hết (tất cả items đã returned)
+                            $allReturned = $sale->saleItems->where('is_returned', true)->count() == $sale->saleItems->count() && $sale->saleItems->count() > 0;
                         @endphp
                         
-                        @if($hasReturns && $sale->total_usd == 0)
+                        @if($allReturned || ($hasReturns && $sale->total_usd == 0 && $sale->total_vnd == 0))
                             <!-- Trả hết - hiển thị giá gốc không gạch ngang -->
                             @if($hasUsdItems)
                                 <div class="font-medium text-gray-900 text-xs whitespace-nowrap">${{ number_format($originalTotalUsd, 2) }}</div>
@@ -415,12 +425,23 @@
                         @endif
                     </td>
                     <td class="px-2 py-2 text-right text-xs whitespace-nowrap">
-                        @if($hasUsdItems && $hasVndItems)
+                        @php
+                            $paidUsdOnly = $sale->payments->sum('payment_usd');
+                            $paidVndOnly = $sale->payments->sum('payment_vnd');
+                        @endphp
+                        @if($allReturned)
+                            {{-- Trả hết - hiển thị số tiền đã trả (sẽ được hoàn lại) --}}
+                            @if($paidUsdOnly > 0)
+                                <div class="text-green-600 font-bold text-xs">${{ number_format($paidUsdOnly, 2) }}</div>
+                            @endif
+                            @if($paidVndOnly > 0)
+                                <div class="text-green-600 font-bold text-xs">{{ number_format($paidVndOnly) }}đ</div>
+                            @endif
+                            @if($paidUsdOnly == 0 && $paidVndOnly == 0)
+                                <div class="text-gray-500">0</div>
+                            @endif
+                        @elseif($hasUsdItems && $hasVndItems)
                             {{-- Cả USD và VND - Hiển thị riêng --}}
-                            @php
-                                $paidUsdOnly = $sale->payments->sum('payment_usd');
-                                $paidVndOnly = $sale->payments->sum('payment_vnd');
-                            @endphp
                             @if($paidUsdOnly > 0)
                                 <div class="text-blue-600 font-bold text-xs">USD: ${{ number_format($paidUsdOnly, 2) }}</div>
                             @endif
@@ -436,11 +457,16 @@
                         @elseif($hasVndItems)
                             {{-- Chỉ VND --}}
                             <div class="text-green-600 font-bold">{{ number_format($sale->paid_vnd) }}đ</div>
+                        @else
+                            <div class="text-gray-500">0</div>
                         @endif
                     </td>
                     <td class="px-2 py-2 text-right text-xs whitespace-nowrap">
                         @if($sale->sale_status == 'cancelled')
                             <span class="text-gray-500">(Hủy)</span>
+                        @elseif($allReturned)
+                            {{-- Trả hết - còn nợ = 0 --}}
+                            <div class="text-gray-500">0</div>
                         @elseif($hasUsdItems && $hasVndItems)
                             {{-- Cả USD và VND - Hiển thị riêng --}}
                             @if($sale->debt_usd > 0.01 || $sale->debt_vnd > 1)
@@ -467,10 +493,16 @@
                             @else
                                 <div class="text-gray-500">0</div>
                             @endif
+                        @else
+                            <div class="text-gray-500">0</div>
                         @endif
                     </td>
                     <td class="px-2 py-2 text-center">
-                        @if($sale->sale_status == 'pending')
+                        @if($sale->sale_status == 'cancelled' || $allReturned)
+                            <span class="px-2 py-1 text-xs font-bold rounded-lg bg-gray-100 text-gray-800 whitespace-nowrap">
+                                <i class="fas fa-ban"></i> Hủy
+                            </span>
+                        @elseif($sale->sale_status == 'pending')
                             <span class="px-2 py-1 text-xs font-bold rounded-lg bg-yellow-100 text-yellow-800 whitespace-nowrap">
                                 <i class="fas fa-clock"></i> Chờ
                             </span>
@@ -478,14 +510,10 @@
                             <span class="px-2 py-1 text-xs font-bold rounded-lg bg-green-100 text-green-800 whitespace-nowrap">
                                 <i class="fas fa-check-circle"></i> Duyệt
                             </span>
-                        @elseif($sale->sale_status == 'cancelled')
-                            <span class="px-2 py-1 text-xs font-bold rounded-lg bg-gray-100 text-gray-800 whitespace-nowrap">
-                                <i class="fas fa-ban"></i> Hủy
-                            </span>
                         @endif
                     </td>
                     <td class="px-2 py-2 text-center">
-                        @if($sale->sale_status == 'cancelled')
+                        @if($sale->sale_status == 'cancelled' || $allReturned)
                             <span class="px-2 py-1 text-xs font-bold rounded-lg bg-gray-100 text-gray-800 whitespace-nowrap">Hủy</span>
                         @elseif($sale->payment_status == 'paid')
                             <span class="px-2 py-1 text-xs font-bold rounded-lg bg-green-100 text-green-800 whitespace-nowrap">Đã TT</span>
@@ -532,15 +560,15 @@
                             </a>
                             @endhasPermission
                             
-                            <!-- Edit button - chỉ hiện khi có quyền và chờ duyệt -->
+                            <!-- Edit button - chỉ hiện khi có quyền và chờ duyệt, ẩn khi đã hủy/trả hết -->
                             @hasPermission('sales', 'can_edit')
-                                @if($sale->canEdit())
+                                @if($sale->canEdit() && !$allReturned && $sale->sale_status != 'cancelled')
                                 <a href="{{ route('sales.edit', $sale->id) }}" 
                                    class="w-7 h-7 flex items-center justify-center bg-yellow-100 text-yellow-600 rounded-lg hover:bg-yellow-200 transition-colors text-xs" 
                                    title="Chỉnh sửa">
                                     <i class="fas fa-edit"></i>
                                 </a>
-                                @else
+                                @elseif(!$allReturned && $sale->sale_status != 'cancelled')
                                 <span class="w-7 h-7 flex items-center justify-center bg-gray-100 text-gray-400 rounded-lg cursor-not-allowed text-xs" 
                                       title="Không thể sửa">
                                     <i class="fas fa-lock"></i>
@@ -548,9 +576,9 @@
                                 @endif
                             @endhasPermission
                             
-                            <!-- Print button - ẩn khi đã hủy hoặc không có quyền -->
+                            <!-- Print button - ẩn khi đã hủy/trả hết hoặc không có quyền -->
                             @hasPermission('sales', 'can_print')
-                                @if($sale->payment_status != 'cancelled')
+                                @if($sale->payment_status != 'cancelled' && !$allReturned && $sale->sale_status != 'cancelled')
                                 <a href="{{ route('sales.print', $sale->id) }}" 
                                    target="_blank" 
                                    class="w-7 h-7 flex items-center justify-center bg-green-100 text-green-600 rounded-lg hover:bg-green-200 transition-colors text-xs" 
