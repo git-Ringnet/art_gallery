@@ -65,7 +65,17 @@
                         <span>Doanh số</span>
                         <span class="px-1.5 py-0.5 bg-green-100 text-green-700 text-xs rounded-full whitespace-nowrap">Theo bộ lọc</span>
                     </p>
-                    <p id="dashboard-sales" class="text-xl font-bold text-green-600 truncate">{{ number_format($stats['sales']) }}đ</p>
+                    <div id="dashboard-sales">
+                        @if(($stats['sales_usd'] ?? 0) > 0)
+                            <p class="text-lg font-bold text-green-600">${{ number_format($stats['sales_usd'], 2) }}</p>
+                        @endif
+                        @if(($stats['sales_vnd'] ?? 0) > 0)
+                            <p class="text-lg font-bold text-green-600">{{ number_format($stats['sales_vnd'], 0, ',', '.') }}đ</p>
+                        @endif
+                        @if(($stats['sales_usd'] ?? 0) == 0 && ($stats['sales_vnd'] ?? 0) == 0)
+                            <p class="text-lg font-bold text-gray-400">0đ</p>
+                        @endif
+                    </div>
                 </div>
                 <div class="w-10 h-10 bg-green-100 rounded-lg flex items-center justify-center flex-shrink-0 ml-2">
                     <i class="fas fa-chart-line text-green-600 text-lg"></i>
@@ -80,7 +90,17 @@
                         <span>Công nợ còn lại</span>
                         <span class="px-1.5 py-0.5 bg-green-100 text-green-700 text-xs rounded-full whitespace-nowrap">Theo bộ lọc</span>
                     </p>
-                    <p id="dashboard-debt" class="text-xl font-bold text-red-600 truncate">{{ number_format($stats['debt']) }}đ</p>
+                    <div id="dashboard-debt">
+                        @if(($stats['debt_usd'] ?? 0) > 0)
+                            <p class="text-lg font-bold text-red-600">${{ number_format($stats['debt_usd'], 2) }}</p>
+                        @endif
+                        @if(($stats['debt_vnd'] ?? 0) > 0)
+                            <p class="text-lg font-bold text-red-600">{{ number_format($stats['debt_vnd'], 0, ',', '.') }}đ</p>
+                        @endif
+                        @if(($stats['debt_usd'] ?? 0) == 0 && ($stats['debt_vnd'] ?? 0) == 0)
+                            <p class="text-lg font-bold text-gray-400">0đ</p>
+                        @endif
+                    </div>
                 </div>
                 <div class="w-10 h-10 bg-red-100 rounded-lg flex items-center justify-center flex-shrink-0 ml-2">
                     <i class="fas fa-exclamation-triangle text-red-600 text-lg"></i>
@@ -215,7 +235,15 @@
                     <img src="{{ $product['image'] }}" alt="{{ $product['name'] }}" class="w-10 h-10 rounded-lg object-cover flex-shrink-0">
                     <div class="flex-1 min-w-0">
                         <p class="font-medium text-sm truncate">{{ $product['name'] }}</p>
-                        <p class="text-xs text-gray-600">Bán: {{ $product['quantity'] }} | DT: {{ number_format($product['revenue']/1000000, 1) }}M</p>
+                        <p class="text-xs text-gray-600">
+                            Bán: {{ $product['quantity'] }} | DT: 
+                            @if(($product['revenue_usd'] ?? 0) > 0)
+                                ${{ number_format($product['revenue_usd'], 2) }}
+                            @endif
+                            @if(($product['revenue'] ?? 0) > 0)
+                                {{ number_format($product['revenue']/1000000, 1) }}M
+                            @endif
+                        </p>
                     </div>
                 </div>
                 @empty
@@ -233,31 +261,82 @@
 <script>
     const statsData = @json($stats);
     
+    // Check if has USD or VND data
+    const hasUsdData = statsData.revenue_chart.data_usd && statsData.revenue_chart.data_usd.some(v => v > 0);
+    const hasVndData = statsData.revenue_chart.data_vnd && statsData.revenue_chart.data_vnd.some(v => v > 0);
+    
+    // Build datasets
+    const datasets = [];
+    if (hasVndData) {
+        datasets.push({
+            label: 'Doanh thu (VNĐ)',
+            data: statsData.revenue_chart.data_vnd,
+            borderColor: 'rgb(37, 99, 235)',
+            backgroundColor: 'rgba(37, 99, 235, 0.12)',
+            tension: 0.4,
+            fill: true,
+            yAxisID: 'yVnd'
+        });
+    }
+    if (hasUsdData) {
+        datasets.push({
+            label: 'Doanh thu (USD)',
+            data: statsData.revenue_chart.data_usd,
+            borderColor: 'rgb(16, 185, 129)',
+            backgroundColor: 'rgba(16, 185, 129, 0.12)',
+            tension: 0.4,
+            fill: true,
+            yAxisID: 'yUsd'
+        });
+    }
+    
     // Revenue Chart
     const revenueCtx = document.getElementById('revenueChart');
     new Chart(revenueCtx, {
         type: 'line',
         data: {
             labels: statsData.revenue_chart.labels,
-            datasets: [{
-                label: 'Doanh thu (VNĐ)',
-                data: statsData.revenue_chart.data,
-                borderColor: 'rgb(37, 99, 235)',
-                backgroundColor: 'rgba(37, 99, 235, 0.12)',
-                tension: 0.4,
-                fill: true
-            }]
+            datasets: datasets
         },
         options: {
             responsive: true,
-            plugins: { legend: { display: false } },
+            interaction: {
+                mode: 'index',
+                intersect: false,
+            },
+            plugins: { 
+                legend: { 
+                    display: hasUsdData && hasVndData,
+                    position: 'top'
+                } 
+            },
             scales: { 
-                y: { 
+                yVnd: { 
+                    type: 'linear',
+                    display: hasVndData,
+                    position: 'left',
                     beginAtZero: true, 
                     ticks: { 
-                        callback: v => (v/1000000).toFixed(1)+'M' 
-                    } 
-                } 
+                        callback: v => (v/1000000).toFixed(1)+'M',
+                        color: 'rgb(37, 99, 235)'
+                    },
+                    grid: {
+                        drawOnChartArea: true
+                    }
+                },
+                yUsd: { 
+                    type: 'linear',
+                    display: hasUsdData,
+                    position: 'right',
+                    beginAtZero: true, 
+                    ticks: { 
+                        callback: v => '$' + v.toLocaleString(),
+                        color: 'rgb(16, 185, 129)'
+                    },
+                    grid: {
+                        drawOnChartArea: false
+                    }
+                }
             }
         }
     });

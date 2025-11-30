@@ -64,18 +64,30 @@ class DashboardController extends Controller
         // Determine date range
         $dateRange = $this->getDateRange($period, $fromDate, $toDate);
         
-        // Calculate sales revenue (excluding cancelled sales)
-        $totalSales = Sale::whereBetween('sale_date', [$dateRange['start'], $dateRange['end']])
+        // Calculate sales revenue (CHỈ phiếu đã duyệt - completed)
+        $totalSalesUsd = Sale::whereBetween('sale_date', [$dateRange['start'], $dateRange['end']])
+            ->where('sale_status', 'completed')
+            ->where('payment_status', '!=', 'cancelled')
+            ->sum('total_usd');
+            
+        $totalSalesVnd = Sale::whereBetween('sale_date', [$dateRange['start'], $dateRange['end']])
+            ->where('sale_status', 'completed')
             ->where('payment_status', '!=', 'cancelled')
             ->sum('total_vnd');
 
-        // Calculate remaining debt from Sales in the selected date range
-        // Only count debt from sales within the date range that are not cancelled
-        $totalDebt = Sale::whereBetween('sale_date', [$dateRange['start'], $dateRange['end']])
+        // Calculate remaining debt (RIÊNG USD và VND)
+        $sales = Sale::whereBetween('sale_date', [$dateRange['start'], $dateRange['end']])
             ->where('sale_status', 'completed')
             ->where('payment_status', '!=', 'cancelled')
-            ->where('debt_amount', '>', 0)
-            ->sum('debt_amount');
+            ->get();
+            
+        $totalDebtUsd = $sales->sum(function($sale) {
+            return $sale->debt_usd ?? 0;
+        });
+        
+        $totalDebtVnd = $sales->sum(function($sale) {
+            return $sale->debt_vnd ?? 0;
+        });
 
         // Count stock - filter by created_at within date range
         // Tồn tranh: số lượng tranh được tạo trong khoảng thời gian
@@ -104,8 +116,10 @@ class DashboardController extends Controller
         $topProducts = $this->getTopSellingProducts($dateRange);
 
         return [
-            'sales' => $totalSales,
-            'debt' => $totalDebt,
+            'sales_usd' => $totalSalesUsd,
+            'sales_vnd' => $totalSalesVnd,
+            'debt_usd' => $totalDebtUsd,
+            'debt_vnd' => $totalDebtVnd,
             'stock_paintings' => $stockPaintings,
             'stock_supplies' => $stockSupplies,
             'revenue_chart' => $revenueChart,
@@ -157,60 +171,82 @@ class DashboardController extends Controller
         
         if ($period === 'week') {
             $labels = ['T2', 'T3', 'T4', 'T5', 'T6', 'T7', 'CN'];
-            $data = [];
+            $dataVnd = [];
+            $dataUsd = [];
             
             for ($i = 0; $i < 7; $i++) {
                 $date = $dateRange['start']->copy()->addDays($i);
-                $revenue = Sale::whereDate('sale_date', $date)
+                $revenueVnd = Sale::whereDate('sale_date', $date)
+                    ->where('sale_status', 'completed')
                     ->where('payment_status', '!=', 'cancelled')
                     ->sum('total_vnd');
-                $data[] = $revenue;
+                $revenueUsd = Sale::whereDate('sale_date', $date)
+                    ->where('sale_status', 'completed')
+                    ->where('payment_status', '!=', 'cancelled')
+                    ->sum('total_usd');
+                $dataVnd[] = $revenueVnd;
+                $dataUsd[] = $revenueUsd;
             }
             
-            return ['labels' => $labels, 'data' => $data];
+            return ['labels' => $labels, 'data_vnd' => $dataVnd, 'data_usd' => $dataUsd];
         }
 
         if ($period === 'month') {
             $labels = [];
-            $data = [];
+            $dataVnd = [];
+            $dataUsd = [];
             $daysInMonth = $dateRange['start']->daysInMonth;
             
             for ($i = 1; $i <= $daysInMonth; $i++) {
                 $labels[] = "Ngày {$i}";
                 $date = $dateRange['start']->copy()->day($i);
-                $revenue = Sale::whereDate('sale_date', $date)
+                $revenueVnd = Sale::whereDate('sale_date', $date)
+                    ->where('sale_status', 'completed')
                     ->where('payment_status', '!=', 'cancelled')
                     ->sum('total_vnd');
-                $data[] = $revenue;
+                $revenueUsd = Sale::whereDate('sale_date', $date)
+                    ->where('sale_status', 'completed')
+                    ->where('payment_status', '!=', 'cancelled')
+                    ->sum('total_usd');
+                $dataVnd[] = $revenueVnd;
+                $dataUsd[] = $revenueUsd;
             }
             
-            return ['labels' => $labels, 'data' => $data];
+            return ['labels' => $labels, 'data_vnd' => $dataVnd, 'data_usd' => $dataUsd];
         }
 
         // year - group by month
         $labels = [];
-        $data = [];
+        $dataVnd = [];
+        $dataUsd = [];
         
         for ($i = 1; $i <= 12; $i++) {
             $labels[] = "T{$i}";
             $monthStart = $dateRange['start']->copy()->month($i)->startOfMonth();
             $monthEnd = $dateRange['start']->copy()->month($i)->endOfMonth();
             
-            $revenue = Sale::whereBetween('sale_date', [$monthStart, $monthEnd])
+            $revenueVnd = Sale::whereBetween('sale_date', [$monthStart, $monthEnd])
+                ->where('sale_status', 'completed')
                 ->where('payment_status', '!=', 'cancelled')
                 ->sum('total_vnd');
-            $data[] = $revenue;
+            $revenueUsd = Sale::whereBetween('sale_date', [$monthStart, $monthEnd])
+                ->where('sale_status', 'completed')
+                ->where('payment_status', '!=', 'cancelled')
+                ->sum('total_usd');
+            $dataVnd[] = $revenueVnd;
+            $dataUsd[] = $revenueUsd;
         }
         
-        return ['labels' => $labels, 'data' => $data];
+        return ['labels' => $labels, 'data_vnd' => $dataVnd, 'data_usd' => $dataUsd];
     }
 
     private function getProductDistribution($dateRange)
     {
-        // Get sales items grouped by type
+        // Get sales items grouped by type (CHỈ phiếu đã duyệt - completed)
         $paintingSales = SaleItem::whereNotNull('painting_id')
             ->whereHas('sale', function($query) use ($dateRange) {
                 $query->whereBetween('sale_date', [$dateRange['start'], $dateRange['end']])
+                    ->where('sale_status', 'completed')
                     ->where('payment_status', '!=', 'cancelled');
             })
             ->sum('quantity');
@@ -218,6 +254,7 @@ class DashboardController extends Controller
         $supplySales = SaleItem::whereNotNull('supply_id')
             ->whereHas('sale', function($query) use ($dateRange) {
                 $query->whereBetween('sale_date', [$dateRange['start'], $dateRange['end']])
+                    ->where('sale_status', 'completed')
                     ->where('payment_status', '!=', 'cancelled');
             })
             ->sum(DB::raw('CAST(supply_length as UNSIGNED)'));
@@ -272,9 +309,10 @@ class DashboardController extends Controller
         $importsThisMonth = Painting::whereBetween('created_at', [$monthStart, $monthEnd])->count() +
                            Supply::whereBetween('created_at', [$monthStart, $monthEnd])->count();
 
-        // Count items sold this month
+        // Count items sold this month (CHỈ phiếu đã duyệt - completed)
         $exportsThisMonth = SaleItem::whereHas('sale', function($query) use ($monthStart, $monthEnd) {
             $query->whereBetween('sale_date', [$monthStart, $monthEnd])
+                ->where('sale_status', 'completed')
                 ->where('payment_status', '!=', 'cancelled');
         })->sum('quantity');
 
@@ -286,11 +324,12 @@ class DashboardController extends Controller
 
     private function getTopSellingProducts($dateRange)
     {
-        // Get top selling paintings
-        $topPaintings = SaleItem::select('painting_id', DB::raw('SUM(quantity) as total_quantity'), DB::raw('SUM(total_vnd) as total_revenue'))
+        // Get top selling paintings (CHỈ phiếu đã duyệt - completed)
+        $topPaintings = SaleItem::select('painting_id', DB::raw('SUM(quantity) as total_quantity'), DB::raw('SUM(total_vnd) as total_revenue'), DB::raw('SUM(total_usd) as total_revenue_usd'))
             ->whereNotNull('painting_id')
             ->whereHas('sale', function($query) use ($dateRange) {
                 $query->whereBetween('sale_date', [$dateRange['start'], $dateRange['end']])
+                    ->where('sale_status', 'completed')
                     ->where('payment_status', '!=', 'cancelled');
             })
             ->groupBy('painting_id')
@@ -307,6 +346,7 @@ class DashboardController extends Controller
                     'type' => 'Tranh',
                     'quantity' => $item->total_quantity,
                     'revenue' => $item->total_revenue,
+                    'revenue_usd' => $item->total_revenue_usd,
                     'image' => $painting->image ? asset('storage/' . $painting->image) : 'https://via.placeholder.com/100'
                 ];
             }
@@ -314,10 +354,11 @@ class DashboardController extends Controller
 
         // If less than 2 paintings, add supplies
         if (count($products) < 2) {
-            $topSupplies = SaleItem::select('supply_id', DB::raw('SUM(supply_length) as total_quantity'), DB::raw('SUM(total_vnd) as total_revenue'))
+            $topSupplies = SaleItem::select('supply_id', DB::raw('SUM(supply_length) as total_quantity'), DB::raw('SUM(total_vnd) as total_revenue'), DB::raw('SUM(total_usd) as total_revenue_usd'))
                 ->whereNotNull('supply_id')
                 ->whereHas('sale', function($query) use ($dateRange) {
                     $query->whereBetween('sale_date', [$dateRange['start'], $dateRange['end']])
+                        ->where('sale_status', 'completed')
                         ->where('payment_status', '!=', 'cancelled');
                 })
                 ->groupBy('supply_id')
@@ -333,6 +374,7 @@ class DashboardController extends Controller
                         'type' => 'Vật tư',
                         'quantity' => round($item->total_quantity, 2),
                         'revenue' => $item->total_revenue,
+                        'revenue_usd' => $item->total_revenue_usd,
                         'image' => 'https://via.placeholder.com/100'
                     ];
                 }
