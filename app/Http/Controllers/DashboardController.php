@@ -289,7 +289,9 @@ class DashboardController extends Controller
         $newCustomers = Customer::whereBetween('created_at', [$dateRange['start'], $dateRange['end']])
             ->count();
 
+        // CHỈ đếm phiếu đã duyệt (completed)
         $totalTransactions = Sale::whereBetween('sale_date', [$dateRange['start'], $dateRange['end']])
+            ->where('sale_status', 'completed')
             ->where('payment_status', '!=', 'cancelled')
             ->count();
 
