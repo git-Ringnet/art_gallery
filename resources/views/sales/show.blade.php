@@ -627,7 +627,7 @@
                         <div class="mt-1 text-xs text-blue-800 bg-blue-100 px-2 py-1 rounded border border-blue-200">
                             <i class="fas fa-info-circle mr-1"></i>
                             Gồm: ${{ number_format($sale->total_usd, 2) }} gốc
-                            <span class="block text-right">+ ${{ number_format($overpaidUsd, 2) }} chênh lệch tỷ giá</span>
+                            <span class="block text-right">+ ${{ number_format($overpaidUsd, 2) }}</span>
                         </div>
                     @endif
 

@@ -220,6 +220,7 @@
                            class="w-full px-3 py-1.5 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500" 
                            value="{{ round($sale->exchange_rate) }}" 
                            placeholder="25000"
+                           oninput="calcTotalPaid(); calcDebt()"
                            onchange="calc()">
                     <div class="mt-1 text-xs text-blue-600">
                         <i class="fas fa-info-circle mr-1"></i>Tỷ giá gốc: {{ number_format(round($sale->exchange_rate)) }}
@@ -1202,22 +1203,40 @@ function calcTotalPaid() {
     if (warningDiv && warningText) {
         let showWarning = false;
         let warningMessage = '';
+        let isError = false;
         
         // Trường hợp 1: Hóa đơn USD, trả VND (USD-VND)
         if (hasUsdTotal && !hasVndTotal && paidVnd > 0) {
             showWarning = true;
-            warningMessage = '⚠️ Thanh toán chéo: Hóa đơn USD, trả VND. Tỷ giá áp dụng: ' + rate.toLocaleString('vi-VN') + ' VND/USD';
+            if (rate <= 0) {
+                isError = true;
+                warningMessage = '⚠️ Vui lòng nhập tỷ giá để quy đổi VND → USD!';
+            } else {
+                warningMessage = '⚠️ Thanh toán chéo: Hóa đơn USD, trả VND. Tỷ giá áp dụng: ' + rate.toLocaleString('vi-VN') + ' VND/USD';
+            }
         }
         
         // Trường hợp 2: Hóa đơn VND, trả USD (VND-USD)
         if (hasVndTotal && !hasUsdTotal && paidUsd > 0) {
             showWarning = true;
-            warningMessage = '⚠️ Thanh toán chéo: Hóa đơn VND, trả USD. Tỷ giá áp dụng: ' + rate.toLocaleString('vi-VN') + ' VND/USD';
+            if (rate <= 0) {
+                isError = true;
+                warningMessage = '⚠️ Vui lòng nhập tỷ giá để quy đổi USD → VND!';
+            } else {
+                warningMessage = '⚠️ Thanh toán chéo: Hóa đơn VND, trả USD. Tỷ giá áp dụng: ' + rate.toLocaleString('vi-VN') + ' VND/USD';
+            }
         }
         
         if (showWarning) {
             warningText.textContent = warningMessage;
             warningDiv.classList.remove('hidden');
+            if (isError) {
+                warningDiv.classList.remove('text-red-600', 'bg-red-100');
+                warningDiv.classList.add('text-orange-600', 'bg-orange-100');
+            } else {
+                warningDiv.classList.remove('text-orange-600', 'bg-orange-100');
+                warningDiv.classList.add('text-red-600', 'bg-red-100');
+            }
         } else {
             warningDiv.classList.add('hidden');
         }
