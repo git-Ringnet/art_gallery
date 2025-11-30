@@ -1212,8 +1212,49 @@ function loadCurrentDebt(customerId) {
     }
 }
 
-// Before form submit, remove formatting
+// Before form submit, validate and remove formatting
 document.getElementById('sales-form').addEventListener('submit', function(e) {
+    // VALIDATION: Kiểm tra có ít nhất 1 sản phẩm với tranh/khung được chọn
+    const rows = document.querySelectorAll('#items-body tr');
+    let hasValidProduct = false;
+    let errorMessages = [];
+    
+    rows.forEach((row, index) => {
+        const paintingInput = row.querySelector('input[name*="[painting_id]"]');
+        const paintingId = paintingInput ? paintingInput.value : '';
+        const qtyInput = row.querySelector('input[name*="[quantity]"]');
+        const qty = qtyInput ? (parseInt(qtyInput.value) || 0) : 0;
+        
+        if (paintingId && qty > 0) {
+            hasValidProduct = true;
+        }
+    });
+    
+    if (!hasValidProduct) {
+        e.preventDefault();
+        showNotification('Vui lòng chọn ít nhất 1 sản phẩm (tranh/khung) trước khi lưu!', 'error');
+        // Scroll to products section
+        document.querySelector('#items-body')?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        return false;
+    }
+    
+    // Kiểm tra các trường bắt buộc khác
+    const showroomEl = document.getElementById('showroom_id');
+    if (showroomEl && !showroomEl.value) {
+        e.preventDefault();
+        showNotification('Vui lòng chọn Showroom!', 'error');
+        showroomEl.focus();
+        return false;
+    }
+    
+    const customerNameEl = document.getElementById('customer_name');
+    if (customerNameEl && !customerNameEl.value.trim()) {
+        e.preventDefault();
+        showNotification('Vui lòng nhập tên khách hàng!', 'error');
+        customerNameEl.focus();
+        return false;
+    }
+    
     document.getElementById('rate').value = unformatNumber(document.getElementById('rate').value);
     document.getElementById('paid').value = unformatNumber(document.getElementById('paid').value);
     
@@ -1362,6 +1403,34 @@ document.addEventListener('keydown', function(event) {
 });
 
 // Form validation không cần thiết nữa vì số tiền đã tự động điều chỉnh
+
+// Show notification function
+function showNotification(message, type = 'info') {
+    const notification = document.createElement('div');
+    notification.className = `fixed top-4 right-4 z-50 px-6 py-4 rounded-lg shadow-lg transform transition-all duration-300 ${
+        type === 'error' ? 'bg-red-500 text-white' :
+        type === 'success' ? 'bg-green-500 text-white' :
+        type === 'warning' ? 'bg-yellow-500 text-white' :
+        'bg-blue-500 text-white'
+    }`;
+    notification.innerHTML = `
+        <div class="flex items-center">
+            <i class="fas ${
+                type === 'error' ? 'fa-exclamation-circle' :
+                type === 'success' ? 'fa-check-circle' :
+                type === 'warning' ? 'fa-exclamation-triangle' :
+                'fa-info-circle'
+            } mr-2"></i>
+            <span>${message}</span>
+        </div>
+    `;
+    document.body.appendChild(notification);
+    
+    setTimeout(() => {
+        notification.classList.add('opacity-0', 'translate-x-full');
+        setTimeout(() => notification.remove(), 300);
+    }, 4000);
+}
 </script>
 
 
