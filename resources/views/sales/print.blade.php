@@ -234,7 +234,7 @@
                                     <label class="block text-sm font-medium text-gray-700 mb-2">Logo công ty</label>
                                     <div class="flex items-start space-x-3">
                                         <div class="flex-shrink-0">
-                                            <img id="logo-preview" src="https://via.placeholder.com/80x80/4F46E5/FFFFFF?text=Logo" alt="Logo preview" class="w-20 h-20 rounded-lg border-2 border-gray-300 object-cover">
+                                            <img id="logo-preview" src="{{ $sale->showroom->logo_url }}" alt="Logo preview" class="w-20 h-20 rounded-lg border-2 border-gray-300 object-cover">
                                         </div>
                                         <div class="flex-1">
                                             <input type="file" id="edit-logo-file" accept="image/*" class="hidden">
@@ -316,7 +316,7 @@
             <div class="flex justify-between items-start mb-3">
                 <!-- Left: Logo + Showroom -->
                 <div class="flex items-start space-x-3">
-                    <img id="invoice-logo" src="https://via.placeholder.com/80x80/4F46E5/FFFFFF?text=Logo" alt="logo" class="w-16 h-16 rounded-lg field-logo" data-field="logo" />
+                    <img id="invoice-logo" src="{{ $sale->showroom->logo_url }}" alt="logo" class="w-16 h-16 rounded-lg field-logo object-cover" data-field="logo" />
                     <div>
                         <p class="font-bold text-base">{{ $sale->showroom->name }}</p>
                         <div class="field-showroom-info" data-field="showroom-info">
@@ -630,7 +630,7 @@
 
         // Default content configuration
         const defaultContentConfig = {
-            'logoUrl': 'https://via.placeholder.com/80x80/4F46E5/FFFFFF?text=Logo',
+            'logoUrl': '{{ $sale->showroom->logo_url }}',
             'hotline': 'Hotline: 0987 654 321',
             'email': 'Email: info@benthanhart.com',
             'bankInfo': 'Ngân hàng: Vietcombank 0123456789',
@@ -681,7 +681,11 @@
         // Apply content configuration to page
         function applyContentToPage(config) {
             const logo = document.getElementById('invoice-logo');
-            if (logo && config.logoUrl) logo.src = config.logoUrl;
+            // Chỉ apply logo từ localStorage nếu không phải placeholder cũ
+            // Ưu tiên logo showroom thật
+            if (logo && config.logoUrl && !config.logoUrl.includes('via.placeholder.com')) {
+                logo.src = config.logoUrl;
+            }
             
             // Don't override title, seller label, and customer label as they have multi-language support
             // Only apply if user has customized them
