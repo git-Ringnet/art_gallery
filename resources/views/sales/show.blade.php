@@ -202,8 +202,10 @@
                                     @foreach($return->items as $returnItem)
                                         @php
                                             $oldItemName = $returnItem->saleItem->description ?? 'N/A';
-                                            // Giá của sản phẩm cũ (từ return_items)
-                                            $oldItemPrice = $returnItem->subtotal ?? 0;
+                                            // Giá của sản phẩm cũ (từ return_items) - Hiển thị đúng currency
+                                            $oldCurrency = $returnItem->saleItem->currency ?? 'VND';
+                                            $oldItemPriceUsd = $returnItem->subtotal_usd ?? 0;
+                                            $oldItemPriceVnd = $returnItem->subtotal ?? 0;
                                         @endphp
                                         @foreach($return->exchangeItems as $exchangeItem)
                                             @php
@@ -212,16 +214,30 @@
                                                 } else {
                                                     $newItemName = $exchangeItem->supply->name ?? 'N/A';
                                                 }
-                                                // Giá của sản phẩm mới (từ exchange_items)
-                                                $newItemPrice = $exchangeItem->subtotal ?? 0;
+                                                // Giá của sản phẩm mới (từ exchange_items) - Hiển thị đúng currency
+                                                $newCurrency = $exchangeItem->currency ?? 'VND';
+                                                $newItemPriceUsd = $exchangeItem->subtotal_usd ?? 0;
+                                                $newItemPriceVnd = $exchangeItem->subtotal ?? 0;
                                             @endphp
                                             <div class="text-gray-700 space-y-1">
                                                 <div class="flex items-center gap-2">
                                                     <span class="line-through text-gray-500">{{ $oldItemName }}</span>
-                                                    <span class="text-gray-500 text-xs">({{ number_format($oldItemPrice) }}đ)</span>
+                                                    <span class="text-gray-500 text-xs">
+                                                        @if($oldCurrency === 'USD')
+                                                            (${{ number_format($oldItemPriceUsd, 2) }})
+                                                        @else
+                                                            ({{ number_format($oldItemPriceVnd) }}đ)
+                                                        @endif
+                                                    </span>
                                                     <i class="fas fa-arrow-right text-blue-500"></i>
                                                     <span class="font-medium text-blue-700">{{ $newItemName }}</span>
-                                                    <span class="text-blue-600 text-xs font-medium">({{ number_format($newItemPrice) }}đ)</span>
+                                                    <span class="text-blue-600 text-xs font-medium">
+                                                        @if($newCurrency === 'USD')
+                                                            (${{ number_format($newItemPriceUsd, 2) }})
+                                                        @else
+                                                            ({{ number_format($newItemPriceVnd) }}đ)
+                                                        @endif
+                                                    </span>
                                                 </div>
                                             </div>
                                         @endforeach
@@ -246,16 +262,54 @@
                     @if($return->type == 'exchange')
                         <p class="text-sm text-gray-700 mt-2 pt-2 border-t">
                             Chênh lệch: 
-                            @if($return->exchange_amount > 0)
-                                <span class="text-green-600 font-medium">+{{ number_format($return->exchange_amount) }}đ (Khách trả thêm)</span>
-                            @elseif($return->exchange_amount < 0)
-                                <span class="text-red-600 font-medium">{{ number_format(abs($return->exchange_amount)) }}đ (Hoàn lại)</span>
+                            @php
+                                $exchangeAmountUsd = $return->exchange_amount_usd ?? 0;
+                                $exchangeAmountVnd = $return->exchange_amount ?? 0;
+                                $hasExchangeAmount = $exchangeAmountUsd != 0 || $exchangeAmountVnd != 0;
+                            @endphp
+                            @if($hasExchangeAmount)
+                                @if($exchangeAmountUsd > 0 || $exchangeAmountVnd > 0)
+                                    <span class="text-green-600 font-medium">
+                                        @if($exchangeAmountUsd > 0 && $exchangeAmountVnd > 0)
+                                            +${{ number_format($exchangeAmountUsd, 2) }} + {{ number_format($exchangeAmountVnd) }}đ
+                                        @elseif($exchangeAmountUsd > 0)
+                                            +${{ number_format($exchangeAmountUsd, 2) }}
+                                        @else
+                                            +{{ number_format($exchangeAmountVnd) }}đ
+                                        @endif
+                                        (Khách trả thêm)
+                                    </span>
+                                @else
+                                    <span class="text-red-600 font-medium">
+                                        @if($exchangeAmountUsd < 0 && $exchangeAmountVnd < 0)
+                                            ${{ number_format(abs($exchangeAmountUsd), 2) }} + {{ number_format(abs($exchangeAmountVnd)) }}đ
+                                        @elseif($exchangeAmountUsd < 0)
+                                            ${{ number_format(abs($exchangeAmountUsd), 2) }}
+                                        @else
+                                            {{ number_format(abs($exchangeAmountVnd)) }}đ
+                                        @endif
+                                        (Hoàn lại)
+                                    </span>
+                                @endif
                             @else
                                 <span class="text-gray-600">Không có chênh lệch</span>
                             @endif
                         </p>
                     @else
-                        <p class="text-sm text-red-600 font-medium mt-2 pt-2 border-t">Hoàn tiền: {{ number_format($return->total_refund) }}đ</p>
+                        <p class="text-sm text-red-600 font-medium mt-2 pt-2 border-t">
+                            Hoàn tiền: 
+                            @php
+                                $refundUsd = $return->total_refund_usd ?? 0;
+                                $refundVnd = $return->total_refund ?? 0;
+                            @endphp
+                            @if($refundUsd > 0 && $refundVnd > 0)
+                                ${{ number_format($refundUsd, 2) }} + {{ number_format($refundVnd) }}đ
+                            @elseif($refundUsd > 0)
+                                ${{ number_format($refundUsd, 2) }}
+                            @else
+                                {{ number_format($refundVnd) }}đ
+                            @endif
+                        </p>
                     @endif
                 </div>
                 @endforeach

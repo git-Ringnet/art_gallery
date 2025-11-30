@@ -148,21 +148,70 @@
 
                         @if($return->type == 'exchange')
                             @php
-                                $amountVnd = $return->exchange_amount;
-                                $amountUsd = $return->exchange_amount_usd ?? ($amountVnd / $exchangeRate);
-                                $colorClass = $amountVnd > 0 ? 'text-red-600' : ($amountVnd < 0 ? 'text-green-600' : 'text-gray-600');
-                                $sign = $amountVnd > 0 ? '+' : '';
+                                $origAmountVnd = $return->exchange_amount ?? 0;
+                                $origAmountUsd = $return->exchange_amount_usd ?? 0;
+                                
+                                // Lấy số tiền đã trả (riêng USD và VND)
+                                $paidUsdIdx = $return->sale->payments()
+                                    ->where('transaction_type', 'exchange_payment')
+                                    ->where('notes', 'like', "%{$return->return_code}%")
+                                    ->sum('payment_usd');
+                                $paidVndIdx = $return->sale->payments()
+                                    ->where('transaction_type', 'exchange_payment')
+                                    ->where('notes', 'like', "%{$return->return_code}%")
+                                    ->sum('payment_vnd');
+                                
+                                // Lấy tỷ giá từ payment
+                                $paymentRateIdx = $return->sale->payments()
+                                    ->where('transaction_type', 'exchange_payment')
+                                    ->where('notes', 'like', "%{$return->return_code}%")
+                                    ->value('payment_exchange_rate') ?? $exchangeRate;
+                                
+                                // Xử lý thanh toán chéo để tính còn nợ đúng
+                                $effectivePaidUsd = $paidUsdIdx;
+                                $effectivePaidVnd = $paidVndIdx;
+                                
+                                // Nợ USD, trả VND → quy đổi VND sang USD
+                                if ($origAmountUsd > 0 && $origAmountVnd == 0 && $paidUsdIdx == 0 && $paidVndIdx > 0 && $paymentRateIdx > 0) {
+                                    $effectivePaidUsd = $paidVndIdx / $paymentRateIdx;
+                                }
+                                // Nợ VND, trả USD hoặc phiếu cũ đã quy đổi
+                                elseif ($origAmountVnd > 0 && $origAmountUsd == 0) {
+                                    if ($paidVndIdx > 0 && $paidUsdIdx == 0 && $paymentRateIdx > 0 && ($return->sale->exchange_rate ?? 0) == 0) {
+                                        // Phiếu cũ: VND đã quy đổi từ USD
+                                        $effectivePaidVnd = $paidVndIdx;
+                                    } elseif ($paidUsdIdx > 0 && $paidVndIdx == 0 && $paymentRateIdx > 0) {
+                                        $effectivePaidVnd = $paidUsdIdx * $paymentRateIdx;
+                                    }
+                                }
+                                
+                                // Tính còn nợ
+                                $amountUsd = max(0, $origAmountUsd - $effectivePaidUsd);
+                                $amountVnd = max(0, $origAmountVnd - $effectivePaidVnd);
+                                
+                                // Xác định màu dựa trên currency chính
+                                if ($isUsdPrimary) {
+                                    $colorClass = $amountUsd > 0 ? 'text-red-600' : 'text-gray-600';
+                                    $sign = $amountUsd > 0 ? '+' : '';
+                                } else {
+                                    $colorClass = $amountVnd > 0 ? 'text-red-600' : 'text-gray-600';
+                                    $sign = $amountVnd > 0 ? '+' : '';
+                                }
                             @endphp
                             
-                            @if($amountVnd == 0)
-                                <span class="text-gray-600">0đ</span>
+                            @if($amountVnd == 0 && $amountUsd == 0)
+                                <span class="text-green-600 font-bold">Đã TT</span>
                             @else
                                 @if($isUsdPrimary)
                                     <div class="font-bold {{ $colorClass }}">{{ $sign }}${{ number_format($amountUsd, 2) }}</div>
+                                    @if($amountVnd > 0)
                                     <div class="text-[10px] text-gray-500">≈ {{ number_format($amountVnd, 0, ',', '.') }}đ</div>
+                                    @endif
                                 @else
                                     <div class="font-bold {{ $colorClass }}">{{ $sign }}{{ number_format($amountVnd, 0, ',', '.') }}đ</div>
+                                    @if($amountUsd > 0)
                                     <div class="text-[10px] text-gray-500">≈ ${{ number_format($amountUsd, 2) }}</div>
+                                    @endif
                                 @endif
                             @endif
                         @else
@@ -180,21 +229,78 @@
                         @endif
                     </td>
                     <td class="px-2 py-2 whitespace-nowrap text-xs text-right">
-                        @if($return->type == 'exchange' && $return->exchange_amount > 0)
+                        @if($return->type == 'exchange' && (($return->exchange_amount ?? 0) > 0 || ($return->exchange_amount_usd ?? 0) > 0))
                             @php
-                                $exchangePayments = $return->sale->payments()
+                                // Lấy payment riêng USD và VND
+                                $paidUsd = $return->sale->payments()
                                     ->where('transaction_type', 'exchange_payment')
                                     ->where('notes', 'like', "%{$return->return_code}%")
-                                    ->sum('amount');
-                                $exchangePaymentsUsd = $exchangePayments / $exchangeRate;
+                                    ->sum('payment_usd');
+                                $paidVnd = $return->sale->payments()
+                                    ->where('transaction_type', 'exchange_payment')
+                                    ->where('notes', 'like', "%{$return->return_code}%")
+                                    ->sum('payment_vnd');
+                                
+                                // Lấy tỷ giá từ payment
+                                $paymentRate = $return->sale->payments()
+                                    ->where('transaction_type', 'exchange_payment')
+                                    ->where('notes', 'like', "%{$return->return_code}%")
+                                    ->value('payment_exchange_rate') ?? $exchangeRate;
+                                
+                                $exchangeAmountUsd = $return->exchange_amount_usd ?? 0;
+                                $exchangeAmountVnd = $return->exchange_amount ?? 0;
+                                
+                                // Xử lý thanh toán chéo
+                                $displayPaidUsd = $paidUsd;
+                                $displayPaidVnd = $paidVnd;
+                                $isCrossPayment = false;
+                                $convertedAmount = 0;
+                                
+                                // Nợ USD, trả VND
+                                if ($exchangeAmountUsd > 0 && $exchangeAmountVnd == 0 && $paidUsd == 0 && $paidVnd > 0 && $paymentRate > 0) {
+                                    $convertedAmount = $paidVnd / $paymentRate;
+                                    $displayPaidUsd = $convertedAmount;
+                                    $isCrossPayment = true;
+                                }
+                                // Nợ VND, trả USD (hoặc phiếu cũ đã quy đổi)
+                                elseif ($exchangeAmountVnd > 0 && $exchangeAmountUsd == 0 && $paidVnd > 0 && $paidUsd == 0 && $paymentRate > 0) {
+                                    $saleRate = $return->sale->exchange_rate ?? 0;
+                                    if ($saleRate == 0) {
+                                        // Phiếu cũ: tính ngược USD từ VND
+                                        $displayPaidUsd = $paidVnd / $paymentRate;
+                                        $displayPaidVnd = 0;
+                                        $convertedAmount = $paidVnd;
+                                        $isCrossPayment = true;
+                                    }
+                                }
+                                elseif ($exchangeAmountVnd > 0 && $exchangeAmountUsd == 0 && $paidUsd > 0 && $paidVnd == 0 && $paymentRate > 0) {
+                                    $convertedAmount = $paidUsd * $paymentRate;
+                                    $displayPaidVnd = $convertedAmount;
+                                    $isCrossPayment = true;
+                                }
+                                
+                                $hasPaid = $paidUsd > 0 || $paidVnd > 0;
                             @endphp
-                            @if($exchangePayments > 0)
-                                @if($isUsdPrimary)
-                                    <div class="font-bold text-green-600">${{ number_format($exchangePaymentsUsd, 2) }}</div>
-                                    <div class="text-[10px] text-gray-500">≈ {{ number_format($exchangePayments, 0, ',', '.') }}đ</div>
+                            @if($hasPaid)
+                                @if($isCrossPayment && $convertedAmount > 0)
+                                    @if($exchangeAmountUsd > 0 && $exchangeAmountVnd == 0)
+                                        {{-- Nợ USD, trả VND --}}
+                                        <div class="font-bold text-green-600">{{ number_format($paidVnd, 0, ',', '.') }}đ</div>
+                                        <div class="text-[10px] text-gray-500">≈ ${{ number_format($convertedAmount, 2) }}</div>
+                                    @else
+                                        {{-- Nợ VND, trả USD --}}
+                                        <div class="font-bold text-green-600">${{ number_format($displayPaidUsd, 2) }}</div>
+                                        <div class="text-[10px] text-gray-500">≈ {{ number_format($convertedAmount, 0, ',', '.') }}đ</div>
+                                    @endif
                                 @else
-                                    <div class="font-bold text-green-600">{{ number_format($exchangePayments, 0, ',', '.') }}đ</div>
-                                    <div class="text-[10px] text-gray-500">≈ ${{ number_format($exchangePaymentsUsd, 2) }}</div>
+                                    @if($displayPaidUsd > 0 && $displayPaidVnd > 0)
+                                        <div class="font-bold text-green-600">${{ number_format($displayPaidUsd, 2) }}</div>
+                                        <div class="font-bold text-green-600">{{ number_format($displayPaidVnd, 0, ',', '.') }}đ</div>
+                                    @elseif($displayPaidUsd > 0)
+                                        <div class="font-bold text-green-600">${{ number_format($displayPaidUsd, 2) }}</div>
+                                    @else
+                                        <div class="font-bold text-green-600">{{ number_format($displayPaidVnd, 0, ',', '.') }}đ</div>
+                                    @endif
                                 @endif
                             @else
                                 <span class="text-gray-400">-</span>

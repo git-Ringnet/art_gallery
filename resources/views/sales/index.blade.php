@@ -365,7 +365,9 @@
                             }
                             
                             // Kiểm tra xem có thay đổi tổng tiền không (do return hoặc exchange)
-                            $totalChanged = ($hasReturns || $hasExchanges) && $originalTotal != $sale->total_vnd;
+                            // Check cả USD và VND
+                            $totalChanged = ($hasReturns || $hasExchanges) && 
+                                            ($originalTotal != $sale->total_vnd || $originalTotalUsd != $sale->total_usd);
                         @endphp
                         
                         @if($hasReturns && $sale->total_usd == 0)

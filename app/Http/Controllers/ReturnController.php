@@ -395,13 +395,10 @@ class ReturnController extends Controller
             // Get type from request
             $type = $request->input('type', 'return');
             
-            // Tính tỷ lệ đã trả của hóa đơn (riêng từng loại tiền)
-            $paidRatioUsd = $sale->total_usd > 0 ? ($sale->paid_usd / $sale->total_usd) : 0;
-            $paidRatioVnd = $sale->total_vnd > 0 ? ($sale->paid_vnd / $sale->total_vnd) : 0;
-            
-            // Tính số tiền hoàn trả (theo tỷ lệ đã trả)
-            $totalRefundUsd = $totalReturnValueUsd * $paidRatioUsd;
-            $totalRefundVnd = $totalReturnValueVnd * $paidRatioVnd;
+            // Tính số tiền hoàn lại = MIN(Đã trả, Giá trị SP trả)
+            // Logic: Chỉ hoàn lại số tiền thực tế đã trả, không vượt quá giá trị SP
+            $totalRefundUsd = min($sale->paid_usd, $totalReturnValueUsd);
+            $totalRefundVnd = min($sale->paid_vnd, $totalReturnValueVnd);
             
             $exchangeAmountUsd = 0;
             $exchangeAmount = 0;
@@ -436,12 +433,23 @@ class ReturnController extends Controller
                 $totalExchangeUsd = 0;
                 $totalExchangeVnd = 0;
                 
+                // VALIDATION: Kiểm tra currency phải giống nhau
+                $returnedCurrency = null;
+                if (count($returnItems) > 0) {
+                    $returnedCurrency = $returnItems[0]['currency'];
+                }
+                
                 foreach ($request->exchange_items as $item) {
                     if (!isset($item['quantity']) || $item['quantity'] <= 0) continue;
                     
                     // Validate inventory and get currency
                     $currency = $item['currency'] ?? 'VND';
                     $exchangeRate = $sale->exchange_rate ?? 25000;
+                    
+                    // VALIDATION: Kiểm tra currency phải giống SP trả
+                    if ($returnedCurrency && $returnedCurrency !== $currency) {
+                        throw new \Exception("Không thể đổi chéo loại tiền! Sản phẩm cũ là {$returnedCurrency}, sản phẩm mới phải cùng loại tiền.");
+                    }
                     
                     if ($item['item_type'] === 'painting') {
                         $painting = Painting::find($item['item_id']);
@@ -455,21 +463,22 @@ class ReturnController extends Controller
                         }
                     }
                     
-                    // Tính giá dựa trên currency
+                    // Tính giá dựa trên currency (KHÔNG quy đổi chéo)
                     if ($currency === 'USD') {
                         $unitPriceUsd = $item['unit_price_usd'] ?? 0;
-                        $unitPriceVnd = $unitPriceUsd * $exchangeRate;
+                        $unitPriceVnd = 0; // Không quy đổi
+                        $subtotalUsd = $item['quantity'] * $unitPriceUsd;
+                        $subtotalVnd = 0;
+                        $totalExchangeUsd += $subtotalUsd;
                     } else {
                         $unitPriceVnd = $item['unit_price'] ?? 0;
-                        $unitPriceUsd = $unitPriceVnd / $exchangeRate;
+                        $unitPriceUsd = 0; // Không quy đổi
+                        $subtotalUsd = 0;
+                        $subtotalVnd = $item['quantity'] * $unitPriceVnd;
+                        $totalExchangeVnd += $subtotalVnd;
                     }
                     
-                    $subtotalUsd = $item['quantity'] * $unitPriceUsd;
-                    $subtotalVnd = $item['quantity'] * $unitPriceVnd;
-                    
-                    $totalExchangeUsd += $subtotalUsd;
-                    $totalExchangeVnd += $subtotalVnd;
-                    
+                    // Lưu exchange item với giá đúng currency (không quy đổi chéo)
                     $return->exchangeItems()->create([
                         'item_type' => $item['item_type'],
                         'item_id' => $item['item_id'],
@@ -485,19 +494,31 @@ class ReturnController extends Controller
                     ]);
                 }
                 
-                // Tính chênh lệch
+                // Tính chênh lệch (RIÊNG USD VÀ VND)
+                // Chênh lệch = SP mới - Số tiền đã trả cho SP cũ (không phải giá gốc SP cũ)
                 $differenceUsd = $totalExchangeUsd - $totalRefundUsd;
                 $differenceVnd = $totalExchangeVnd - $totalRefundVnd;
                 
-                if ($differenceUsd > 0 || $differenceVnd > 0) {
+                // Xử lý từng loại tiền riêng biệt (không gộp chung)
+                // USD
+                if ($differenceUsd > 0) {
                     // Khách trả thêm
                     $exchangeAmountUsd = $differenceUsd;
-                    $exchangeAmount = $differenceVnd;
                     $totalRefundUsd = 0;
+                } else {
+                    // Hoàn lại khách
+                    $exchangeAmountUsd = 0;
+                    $totalRefundUsd = abs($differenceUsd);
+                }
+                
+                // VND
+                if ($differenceVnd > 0) {
+                    // Khách trả thêm
+                    $exchangeAmount = $differenceVnd;
                     $totalRefundVnd = 0;
                 } else {
                     // Hoàn lại khách
-                    $totalRefundUsd = abs($differenceUsd);
+                    $exchangeAmount = 0;
                     $totalRefundVnd = abs($differenceVnd);
                 }
                 
@@ -513,21 +534,66 @@ class ReturnController extends Controller
             // LƯU Ý: KHÔNG tạo payment ngay khi tạo phiếu đổi hàng
             // Payment sẽ được tạo khi phiếu được duyệt và hoàn thành
             // Lưu thông tin payment để xử lý sau
-            if ($type === 'exchange' && $request->payment_amount > 0) {
-                // Lưu thông tin payment vào notes của return để xử lý khi complete
-                $paymentInfo = [
-                    'payment_amount' => $request->payment_amount,
-                    'payment_usd' => $request->payment_usd,
-                    'payment_vnd' => $request->payment_vnd,
-                    'payment_exchange_rate' => $request->payment_exchange_rate,
-                    'payment_method' => $request->payment_method ?? 'cash',
-                    'payment_date' => $request->return_date
-                ];
+            if ($type === 'exchange') {
+                // Parse payment amounts (xử lý cả USD và VND)
+                $paymentUsd = 0;
+                $paymentVnd = 0;
                 
-                $currentNotes = $return->notes ?? '';
-                $return->update([
-                    'notes' => $currentNotes . "\n[PAYMENT_INFO]" . json_encode($paymentInfo)
-                ]);
+                if ($request->has('payment_usd') && $request->payment_usd) {
+                    $paymentUsd = (float) str_replace(',', '', $request->payment_usd);
+                }
+                
+                if ($request->has('payment_vnd') && $request->payment_vnd) {
+                    $paymentVnd = (float) str_replace(',', '', $request->payment_vnd);
+                }
+                
+                // Chỉ lưu nếu có thanh toán (USD hoặc VND)
+                if ($paymentUsd > 0 || $paymentVnd > 0) {
+                    $exchangeRate = $request->payment_exchange_rate ? 
+                        (float) str_replace(',', '', $request->payment_exchange_rate) : 
+                        ($sale->exchange_rate ?? 1);
+                    
+                    // Xác định loại nợ (USD hay VND)
+                    $dueUsd = $return->exchange_amount_usd ?? 0;
+                    $dueVnd = $return->exchange_amount ?? 0;
+                    
+                    // Quy đổi thanh toán chéo
+                    $finalPaymentUsd = $paymentUsd;
+                    $finalPaymentVnd = $paymentVnd;
+                    
+                    if ($dueUsd > 0 && $dueVnd == 0 && $paymentVnd > 0 && $exchangeRate > 0) {
+                        // Nợ USD only, trả VND → Quy đổi VND sang USD
+                        $convertedUsd = $paymentVnd / $exchangeRate;
+                        $finalPaymentUsd += $convertedUsd;
+                        $finalPaymentVnd = 0; // Đã quy đổi hết sang USD
+                    } elseif ($dueVnd > 0 && $dueUsd == 0 && $paymentUsd > 0 && $exchangeRate > 0) {
+                        // Nợ VND only, trả USD → Quy đổi USD sang VND
+                        $convertedVnd = $paymentUsd * $exchangeRate;
+                        $finalPaymentVnd += $convertedVnd;
+                        $finalPaymentUsd = 0; // Đã quy đổi hết sang VND
+                    }
+                    
+                    // Tính tổng payment amount (backward compatibility)
+                    $paymentAmount = ($finalPaymentUsd * $exchangeRate) + $finalPaymentVnd;
+                    
+                    // Lưu thông tin payment vào notes của return để xử lý khi complete
+                    $paymentInfo = [
+                        'payment_amount' => $paymentAmount,
+                        'payment_usd' => $finalPaymentUsd,
+                        'payment_vnd' => $finalPaymentVnd,
+                        'payment_exchange_rate' => $exchangeRate,
+                        'payment_method' => $request->payment_method ?? 'cash',
+                        'payment_date' => $request->return_date,
+                        // Lưu thêm số tiền gốc để hiển thị
+                        'original_payment_usd' => $paymentUsd,
+                        'original_payment_vnd' => $paymentVnd,
+                    ];
+                    
+                    $currentNotes = $return->notes ?? '';
+                    $return->update([
+                        'notes' => $currentNotes . "\n[PAYMENT_INFO]" . json_encode($paymentInfo)
+                    ]);
+                }
             }
 
             DB::commit();
@@ -721,12 +787,16 @@ class ReturnController extends Controller
             $type = $request->input('type', 'return');
             
             // Tính tỷ lệ đã trả của hóa đơn (riêng từng loại tiền)
-            $paidRatioUsd = $sale->total_usd > 0 ? ($sale->paid_usd / $sale->total_usd) : 0;
-            $paidRatioVnd = $sale->total_vnd > 0 ? ($sale->paid_vnd / $sale->total_vnd) : 0;
+            // QUAN TRỌNG: Dùng original_total (trước khi trả hàng) để tính tỷ lệ
+            $originalTotalUsd = $sale->original_total_usd ?? $sale->total_usd;
+            $originalTotalVnd = $sale->original_total_vnd ?? $sale->total_vnd;
             
-            // Tính số tiền hoàn trả (theo tỷ lệ đã trả)
-            $totalRefundUsd = $totalReturnValueUsd * $paidRatioUsd;
-            $totalRefundVnd = $totalReturnValueVnd * $paidRatioVnd;
+            $paidRatioUsd = $originalTotalUsd > 0 ? ($sale->paid_usd / $originalTotalUsd) : 0;
+            
+            // Tính số tiền hoàn lại = MIN(Đã trả, Giá trị SP trả)
+            // Logic: Chỉ hoàn lại số tiền thực tế đã trả, không vượt quá giá trị SP
+            $totalRefundUsd = min($sale->paid_usd, $totalReturnValueUsd);
+            $totalRefundVnd = min($sale->paid_vnd, $totalReturnValueVnd);
             
             $totalRefund = $totalRefundVnd; // Backward compatibility
             $exchangeAmount = null;
@@ -793,17 +863,22 @@ class ReturnController extends Controller
                 $differenceUsd = $totalExchangeUsd - $totalRefundUsd;
                 $differenceVnd = $totalExchangeVnd - $totalRefundVnd;
                 
-                if ($differenceUsd > 0 || $differenceVnd > 0) {
-                    // Khách trả thêm
+                // Xử lý từng loại tiền riêng biệt (không gộp chung)
+                // USD
+                if ($differenceUsd > 0) {
                     $exchangeAmountUsd = $differenceUsd;
-                    $exchangeAmount = $differenceVnd;
                     $totalRefundUsd = 0;
+                } else {
+                    $exchangeAmountUsd = 0;
+                    $totalRefundUsd = abs($differenceUsd);
+                }
+                
+                // VND
+                if ($differenceVnd > 0) {
+                    $exchangeAmount = $differenceVnd;
                     $totalRefundVnd = 0;
                 } else {
-                    // Hoàn lại khách
-                    $exchangeAmountUsd = 0;
                     $exchangeAmount = 0;
-                    $totalRefundUsd = abs($differenceUsd);
                     $totalRefundVnd = abs($differenceVnd);
                 }
             } else {
@@ -815,14 +890,45 @@ class ReturnController extends Controller
             // Payment sẽ được tạo khi phiếu được duyệt và hoàn thành
             // Lưu thông tin payment để xử lý sau
             // Update payment info in notes if exists
-            if ($request->type === 'exchange' && $request->payment_amount > 0) {
+            $paymentUsd = $request->filled('payment_usd') ? (float)str_replace(',', '', $request->payment_usd) : 0;
+            $paymentVnd = $request->filled('payment_vnd') ? (float)str_replace(',', '', $request->payment_vnd) : 0;
+            
+            if ($request->type === 'exchange' && ($paymentUsd > 0 || $paymentVnd > 0)) {
+                $paymentExchangeRate = $request->filled('payment_exchange_rate') ? 
+                    (float)str_replace(',', '', $request->payment_exchange_rate) : 
+                    ($sale->exchange_rate ?? 1);
+                
+                // Xác định loại nợ (USD hay VND)
+                $dueUsd = $exchangeAmountUsd ?? 0;
+                $dueVnd = $exchangeAmount ?? 0;
+                
+                // Quy đổi thanh toán chéo
+                $finalPaymentUsd = $paymentUsd;
+                $finalPaymentVnd = $paymentVnd;
+                
+                if ($dueUsd > 0 && $dueVnd == 0 && $paymentVnd > 0 && $paymentExchangeRate > 0) {
+                    // Nợ USD only, trả VND → Quy đổi VND sang USD
+                    $convertedUsd = $paymentVnd / $paymentExchangeRate;
+                    $finalPaymentUsd += $convertedUsd;
+                    $finalPaymentVnd = 0;
+                } elseif ($dueVnd > 0 && $dueUsd == 0 && $paymentUsd > 0 && $paymentExchangeRate > 0) {
+                    // Nợ VND only, trả USD → Quy đổi USD sang VND
+                    $convertedVnd = $paymentUsd * $paymentExchangeRate;
+                    $finalPaymentVnd += $convertedVnd;
+                    $finalPaymentUsd = 0;
+                }
+                
+                $paymentAmount = ($finalPaymentUsd * $paymentExchangeRate) + $finalPaymentVnd;
+                
                 $paymentInfo = [
-                    'payment_amount' => $request->payment_amount,
-                    'payment_usd' => $request->payment_usd,
-                    'payment_vnd' => $request->payment_vnd,
-                    'payment_exchange_rate' => $request->payment_exchange_rate,
+                    'payment_amount' => $paymentAmount,
+                    'payment_usd' => $finalPaymentUsd,
+                    'payment_vnd' => $finalPaymentVnd,
+                    'payment_exchange_rate' => $paymentExchangeRate,
                     'payment_method' => $request->payment_method ?? 'cash',
-                    'payment_date' => $request->return_date
+                    'payment_date' => $request->return_date,
+                    'original_payment_usd' => $paymentUsd,
+                    'original_payment_vnd' => $paymentVnd,
                 ];
                 
                 // Remove old payment info if exists
@@ -1340,24 +1446,29 @@ class ReturnController extends Controller
                     $paymentVnd = $paymentInfo['payment_vnd'] ?? 0;
                     $exchangeRate = $paymentInfo['payment_exchange_rate'] ?? 25000;
                     
+                    // Lấy original values (số tiền gốc trước quy đổi)
+                    $originalUsd = $paymentInfo['original_payment_usd'] ?? $paymentUsd;
+                    $originalVnd = $paymentInfo['original_payment_vnd'] ?? $paymentVnd;
+                    
+                    // Tạo notes với thông tin original (để hiển thị đúng thanh toán chéo)
+                    $paymentNotes = "Thanh toán đổi hàng - Phiếu {$return->return_code}";
+                    if ($originalUsd != $paymentUsd || $originalVnd != $paymentVnd) {
+                        $paymentNotes .= " [ORIGINAL:{$originalUsd},{$originalVnd}]";
+                    }
+                    
                     // Tạo payment record (với USD/VND riêng)
                     Payment::create([
                         'sale_id' => $sale->id,
                         'amount' => $paymentInfo['payment_amount'], // Backward compatibility
-                        'amount_usd' => $paymentUsd,
-                        'amount_vnd' => $paymentVnd,
-                        'exchange_rate' => $exchangeRate,
+                        'payment_usd' => $paymentUsd,
+                        'payment_vnd' => $paymentVnd,
+                        'payment_exchange_rate' => $exchangeRate,
                         'payment_date' => $paymentInfo['payment_date'] ?? now(),
                         'payment_method' => $paymentInfo['payment_method'] ?? 'cash',
                         'transaction_type' => 'exchange_payment',
-                        'notes' => "Thanh toán đổi hàng - Phiếu {$return->return_code}",
+                        'notes' => $paymentNotes,
                         'created_by' => Auth::id(),
                     ]);
-                    
-                    // Update sale paid amounts (RIÊNG USD VÀ VND)
-                    $sale->increment('paid_usd', $paymentUsd);
-                    $sale->increment('paid_vnd', $paymentVnd);
-                    $sale->increment('paid_amount', $paymentInfo['payment_amount']); // Backward compatibility
                     
                     // Dọn dẹp notes - xóa thông tin payment
                     $cleanNotes = trim($parts[0]);

@@ -79,15 +79,39 @@
     </div>
 
     <!-- Payment Status Alert for Exchange -->
-    @if($return->type == 'exchange' && $return->exchange_amount > 0)
+    @if($return->type == 'exchange' && ($return->exchange_amount > 0 || $return->exchange_amount_usd > 0))
         @php
             // Kiểm tra xem có thông tin payment trong notes không
             $hasPendingPayment = strpos($return->notes, '[PAYMENT_INFO]') !== false;
             
-            // Tính số tiền đã trả cho phiếu đổi hàng này (dựa vào notes chứa return_code)
-            $exchangePayments = $return->sale->payments()
+            // Lấy exchange amount (riêng USD và VND)
+            $exchangeAmountUsd = $return->exchange_amount_usd ?? 0;
+            $exchangeAmountVnd = $return->exchange_amount ?? 0;
+            
+            // Tính số tiền đã trả cho phiếu đổi hàng này (riêng USD và VND)
+            $exchangePaymentsUsd = $return->sale->payments()
+                ->where('transaction_type', 'exchange_payment')
                 ->where('notes', 'like', "%{$return->return_code}%")
-                ->sum('amount');
+                ->sum('payment_usd');
+            $exchangePaymentsVnd = $return->sale->payments()
+                ->where('transaction_type', 'exchange_payment')
+                ->where('notes', 'like', "%{$return->return_code}%")
+                ->sum('payment_vnd');
+            
+            // Lấy tỷ giá từ payment
+            $topPaymentExchangeRate = $return->sale->payments()
+                ->where('transaction_type', 'exchange_payment')
+                ->where('notes', 'like', "%{$return->return_code}%")
+                ->value('payment_exchange_rate') ?? ($return->sale->exchange_rate ?? 1);
+            
+            // Xử lý thanh toán chéo (backward compatibility)
+            if ($exchangeAmountUsd > 0 && $exchangeAmountVnd == 0 && $exchangePaymentsUsd == 0 && $exchangePaymentsVnd > 0 && $topPaymentExchangeRate > 0) {
+                $exchangePaymentsUsd = $exchangePaymentsVnd / $topPaymentExchangeRate;
+                $exchangePaymentsVnd = 0;
+            } elseif ($exchangeAmountVnd > 0 && $exchangeAmountUsd == 0 && $exchangePaymentsVnd == 0 && $exchangePaymentsUsd > 0 && $topPaymentExchangeRate > 0) {
+                $exchangePaymentsVnd = $exchangePaymentsUsd * $topPaymentExchangeRate;
+                $exchangePaymentsUsd = 0;
+            }
         @endphp
         
         @if($return->status == 'pending' && $hasPendingPayment)
@@ -97,10 +121,39 @@
                 <div>
                     <h4 class="font-semibold text-sm text-yellow-800">Thông báo về thanh toán</h4>
                     <p class="text-xs text-yellow-700 mt-1">
-                        Khách hàng cần trả thêm <strong>${{ number_format($return->exchange_amount / $exchangeRate, 2) }}</strong> ({{ number_format($return->exchange_amount, 0, ',', '.') }}đ) cho đơn đổi hàng này.
-                        @if($exchangePayments > 0)
-                        <br><strong>Đã trả:</strong> ${{ number_format($exchangePayments / $exchangeRate, 2) }} ({{ number_format($exchangePayments, 0, ',', '.') }}đ) cho sản phẩm mới.
-                        <br>Còn lại: <strong>${{ number_format(($return->exchange_amount - $exchangePayments) / $exchangeRate, 2) }}</strong> ({{ number_format($return->exchange_amount - $exchangePayments, 0, ',', '.') }}đ)
+                        Khách hàng cần trả thêm 
+                        @if($exchangeAmountUsd > 0 && $exchangeAmountVnd > 0)
+                            <strong>${{ number_format($exchangeAmountUsd, 2) }}</strong> + <strong>{{ number_format($exchangeAmountVnd, 0, ',', '.') }}đ</strong>
+                        @elseif($exchangeAmountUsd > 0)
+                            <strong>${{ number_format($exchangeAmountUsd, 2) }}</strong>
+                        @else
+                            <strong>{{ number_format($exchangeAmountVnd, 0, ',', '.') }}đ</strong>
+                        @endif
+                        cho đơn đổi hàng này.
+                        @if($exchangePaymentsUsd > 0 || $exchangePaymentsVnd > 0)
+                        <br><strong>Đã trả:</strong> 
+                        @if($exchangePaymentsUsd > 0 && $exchangePaymentsVnd > 0)
+                            ${{ number_format($exchangePaymentsUsd, 2) }} + {{ number_format($exchangePaymentsVnd, 0, ',', '.') }}đ
+                        @elseif($exchangePaymentsUsd > 0)
+                            ${{ number_format($exchangePaymentsUsd, 2) }}
+                        @else
+                            {{ number_format($exchangePaymentsVnd, 0, ',', '.') }}đ
+                        @endif
+                        cho sản phẩm mới.
+                        <br>Còn lại: 
+                        @php
+                            $remainingUsd = $exchangeAmountUsd - $exchangePaymentsUsd;
+                            $remainingVnd = $exchangeAmountVnd - $exchangePaymentsVnd;
+                        @endphp
+                        @if($remainingUsd > 0 && $remainingVnd > 0)
+                            <strong>${{ number_format($remainingUsd, 2) }}</strong> + <strong>{{ number_format($remainingVnd, 0, ',', '.') }}đ</strong>
+                        @elseif($remainingUsd > 0)
+                            <strong>${{ number_format($remainingUsd, 2) }}</strong>
+                        @elseif($remainingVnd > 0)
+                            <strong>{{ number_format($remainingVnd, 0, ',', '.') }}đ</strong>
+                        @else
+                            <strong>$0.00</strong>
+                        @endif
                         @endif
                         <br>Số tiền sẽ được cập nhật vào phiếu bán hàng khi phiếu đổi hàng được <strong>duyệt và hoàn thành</strong>.
                     </p>
@@ -114,24 +167,61 @@
                 <div>
                     <h4 class="font-semibold text-sm text-blue-800">Phiếu đã được duyệt</h4>
                     <p class="text-xs text-blue-700 mt-1">
-                        Khách hàng cần trả thêm <strong>${{ number_format($return->exchange_amount / $exchangeRate, 2) }}</strong> ({{ number_format($return->exchange_amount, 0, ',', '.') }}đ) cho đơn đổi hàng này.
-                        @if($exchangePayments > 0)
-                        <br><strong>Đã trả:</strong> ${{ number_format($exchangePayments / $exchangeRate, 2) }} ({{ number_format($exchangePayments, 0, ',', '.') }}đ) cho sản phẩm mới.
-                        <br>Còn lại: <strong>${{ number_format(($return->exchange_amount - $exchangePayments) / $exchangeRate, 2) }}</strong> ({{ number_format($return->exchange_amount - $exchangePayments, 0, ',', '.') }}đ)
+                        Khách hàng cần trả thêm 
+                        @if($exchangeAmountUsd > 0 && $exchangeAmountVnd > 0)
+                            <strong>${{ number_format($exchangeAmountUsd, 2) }}</strong> + <strong>{{ number_format($exchangeAmountVnd, 0, ',', '.') }}đ</strong>
+                        @elseif($exchangeAmountUsd > 0)
+                            <strong>${{ number_format($exchangeAmountUsd, 2) }}</strong>
+                        @else
+                            <strong>{{ number_format($exchangeAmountVnd, 0, ',', '.') }}đ</strong>
+                        @endif
+                        cho đơn đổi hàng này.
+                        @if($exchangePaymentsUsd > 0 || $exchangePaymentsVnd > 0)
+                        <br><strong>Đã trả:</strong> 
+                        @if($exchangePaymentsUsd > 0 && $exchangePaymentsVnd > 0)
+                            ${{ number_format($exchangePaymentsUsd, 2) }} + {{ number_format($exchangePaymentsVnd, 0, ',', '.') }}đ
+                        @elseif($exchangePaymentsUsd > 0)
+                            ${{ number_format($exchangePaymentsUsd, 2) }}
+                        @else
+                            {{ number_format($exchangePaymentsVnd, 0, ',', '.') }}đ
+                        @endif
+                        cho sản phẩm mới.
+                        <br>Còn lại: 
+                        @php
+                            $remainingUsd = $exchangeAmountUsd - $exchangePaymentsUsd;
+                            $remainingVnd = $exchangeAmountVnd - $exchangePaymentsVnd;
+                        @endphp
+                        @if($remainingUsd > 0 && $remainingVnd > 0)
+                            <strong>${{ number_format($remainingUsd, 2) }}</strong> + <strong>{{ number_format($remainingVnd, 0, ',', '.') }}đ</strong>
+                        @elseif($remainingUsd > 0)
+                            <strong>${{ number_format($remainingUsd, 2) }}</strong>
+                        @elseif($remainingVnd > 0)
+                            <strong>{{ number_format($remainingVnd, 0, ',', '.') }}đ</strong>
+                        @else
+                            <strong>$0.00</strong>
+                        @endif
                         @endif
                         <br>Số tiền sẽ được cập nhật vào phiếu bán hàng khi phiếu đổi hàng được <strong>hoàn thành</strong>.
                     </p>
                 </div>
             </div>
         </div>
-        @elseif($return->status == 'completed' && $exchangePayments > 0)
+        @elseif($return->status == 'completed' && ($exchangePaymentsUsd > 0 || $exchangePaymentsVnd > 0))
         <div class="mb-4 p-3 bg-green-50 border border-green-200 rounded-lg">
             <div class="flex items-center">
                 <i class="fas fa-check-double text-green-600 mr-2"></i>
                 <div>
                     <h4 class="font-semibold text-sm text-green-800">Đã hoàn thành thanh toán</h4>
                     <p class="text-xs text-green-700 mt-1">
-                        Số tiền <strong>${{ number_format($exchangePayments / $exchangeRate, 2) }}</strong> ({{ number_format($exchangePayments, 0, ',', '.') }}đ) đã được cập nhật vào phiếu bán hàng.
+                        Số tiền 
+                        @if($exchangePaymentsUsd > 0 && $exchangePaymentsVnd > 0)
+                            <strong>${{ number_format($exchangePaymentsUsd, 2) }}</strong> + <strong>{{ number_format($exchangePaymentsVnd, 0, ',', '.') }}đ</strong>
+                        @elseif($exchangePaymentsUsd > 0)
+                            <strong>${{ number_format($exchangePaymentsUsd, 2) }}</strong>
+                        @else
+                            <strong>{{ number_format($exchangePaymentsVnd, 0, ',', '.') }}đ</strong>
+                        @endif
+                        đã được cập nhật vào phiếu bán hàng.
                     </p>
                 </div>
             </div>
@@ -242,12 +332,10 @@
                             <tr>
                                 <th class="px-1 py-1.5 text-left text-xs">Hình ảnh</th>
                                 <th class="px-1 py-1.5 text-left text-xs">Sản phẩm</th>
-                                <th class="px-1 py-1.5 text-left text-xs">Vật tư</th>
-                                <th class="px-1 py-1.5 text-center text-xs">Mét</th>
                                 <th class="px-1 py-1.5 text-center text-xs">Số lượng</th>
-                                <th class="px-1 py-1.5 text-right text-xs">Giá (USD)</th>
+                                <th class="px-1 py-1.5 text-right text-xs">Giá</th>
                                 <th class="px-1 py-1.5 text-center text-xs">Giảm giá</th>
-                                <th class="px-1 py-1.5 text-right text-xs">Thành tiền (USD)</th>
+                                <th class="px-1 py-1.5 text-right text-xs">Thành tiền</th>
                             </tr>
                         </thead>
                         <tbody class="bg-white">
@@ -280,24 +368,9 @@
                                         @endif
                                     </p>
                                 </td>
-                                <td class="px-1 py-1.5 text-xs truncate max-w-[80px]">
-                                    @if($item->supply_id)
-                                        {{ $item->frameSupply->name ?? 'N/A' }}
-                                    @else
-                                        <span class="text-gray-400">-</span>
-                                    @endif
-                                </td>
-                                <td class="px-1 py-1.5 text-center text-xs">
-                                    @if($item->supply_length)
-                                        {{ $item->supply_length }}
-                                    @else
-                                        <span class="text-gray-400">-</span>
-                                    @endif
-                                </td>
                                 <td class="px-1 py-1.5 text-center text-xs font-medium">{{ $item->quantity }}</td>
                                 <td class="px-1 py-1.5 text-right text-xs whitespace-nowrap">
                                     @php
-                                        // Lấy giá từ return item, không quy đổi tự động
                                         $currency = $item->saleItem->currency ?? 'VND';
                                         $unitPriceUsd = $item->unit_price_usd ?? 0;
                                         $unitPriceVnd = $item->unit_price ?? 0;
@@ -321,7 +394,6 @@
                                 </td>
                                 <td class="px-1 py-1.5 text-right text-xs font-semibold text-red-600 whitespace-nowrap">
                                     @php
-                                        // Lấy subtotal từ return item, không quy đổi
                                         $currency = $item->saleItem->currency ?? 'VND';
                                         $subtotalUsd = $item->subtotal_usd ?? 0;
                                         $subtotalVnd = $item->subtotal ?? 0;
@@ -338,11 +410,11 @@
                     </table>
                 </div>
                 <div class="mt-2 pt-2 border-t">
-                    <div class="flex justify-between text-xs font-semibold">
-                        <span>Tổng giá trị hàng trả:</span>
+                    <div class="flex justify-between text-xs">
+                        <span class="text-gray-600">Giá gốc SP trả:</span>
                         <div class="text-right">
                             @php
-                                // Tính tổng giá trị hàng trả (chưa trừ tỷ lệ)
+                                // Tính tổng giá trị hàng trả (giá gốc)
                                 $totalValueUsd = 0;
                                 $totalValueVnd = 0;
                                 
@@ -400,19 +472,45 @@
                     
                     @if($return->type == 'exchange')
                     @php
-                        // Lấy tổng số tiền đã trả ban đầu cho hóa đơn gốc (trước khi đổi hàng)
+                        // Tính số tiền đã trả cho SP cũ (theo tỷ lệ)
                         $sale = $return->sale;
-                        $initialPayments = $sale->payments()
+                        
+                        // Lấy số tiền đã trả TRƯỚC KHI đổi hàng (không bao gồm exchange_payment)
+                        $initialPaidUsd = $sale->payments()
                             ->where('transaction_type', '!=', 'exchange_payment')
-                            ->where('created_at', '<', $return->created_at)
-                            ->sum('amount');
+                            ->sum('payment_usd');
+                        $initialPaidVnd = $sale->payments()
+                            ->where('transaction_type', '!=', 'exchange_payment')
+                            ->sum('payment_vnd');
+                        
+                        // Tính tỷ lệ đã trả (riêng USD và VND) - dựa trên số tiền trả ban đầu
+                        $originalTotalUsd = $sale->original_total_usd ?? $sale->total_usd;
+                        $originalTotalVnd = $sale->original_total_vnd ?? $sale->total_vnd;
+                        
+                        $paidRatioUsd = $originalTotalUsd > 0 ? ($initialPaidUsd / $originalTotalUsd) : 0;
+                        $paidRatioVnd = $originalTotalVnd > 0 ? ($initialPaidVnd / $originalTotalVnd) : 0;
+                        
+                        // Số tiền đã trả cho SP cũ = Giá gốc SP * Tỷ lệ đã trả (TRƯỚC KHI đổi hàng)
+                        $paidForReturnedUsd = $totalValueUsd * $paidRatioUsd;
+                        $paidForReturnedVnd = $totalValueVnd * $paidRatioVnd;
                     @endphp
-                    @if($initialPayments > 0)
-                    <div class="flex justify-between text-xs mt-1">
-                        <span class="text-gray-600">Đã trả (ban đầu):</span>
+                    @if($paidForReturnedUsd > 0 || $paidForReturnedVnd > 0)
+                    <div class="flex justify-between text-sm font-bold mt-2 pt-2 border-t border-green-200">
+                        <span class="text-green-700">Đã trả cho SP cũ:</span>
                         <div class="text-right">
-                            <span class="font-semibold text-green-600">${{ number_format($initialPayments / $exchangeRate, 2) }}</span>
-                            <div class="text-[10px] text-gray-500">≈ {{ number_format($initialPayments, 0, ',', '.') }}đ</div>
+                            @if($paidForReturnedUsd > 0 && $paidForReturnedVnd == 0)
+                                <div class="text-green-600 font-bold text-base">${{ number_format($paidForReturnedUsd, 2) }}</div>
+                            @elseif($paidForReturnedVnd > 0 && $paidForReturnedUsd == 0)
+                                <div class="text-green-600 font-bold text-base">{{ number_format($paidForReturnedVnd, 0, ',', '.') }}đ</div>
+                            @else
+                                @if($paidForReturnedUsd > 0)
+                                    <div class="text-green-600 font-bold text-base">${{ number_format($paidForReturnedUsd, 2) }}</div>
+                                @endif
+                                @if($paidForReturnedVnd > 0)
+                                    <div class="text-green-600 font-bold text-base">{{ number_format($paidForReturnedVnd, 0, ',', '.') }}đ</div>
+                                @endif
+                            @endif
+                            <div class="text-xs text-gray-500 mt-1">({{ number_format($paidRatioUsd * 100, 1) }}% đã thanh toán)</div>
                         </div>
                     </div>
                     @endif
@@ -439,8 +537,6 @@
                             <tr>
                                 <th class="px-1 py-1.5 text-left text-xs">Hình ảnh</th>
                                 <th class="px-1 py-1.5 text-left text-xs">Sản phẩm</th>
-                                <th class="px-1 py-1.5 text-left text-xs">Vật tư</th>
-                                <th class="px-1 py-1.5 text-center text-xs">Mét</th>
                                 <th class="px-1 py-1.5 text-center text-xs">Số lượng</th>
                                 <th class="px-1 py-1.5 text-right text-xs">Đơn giá</th>
                                 <th class="px-1 py-1.5 text-center text-xs">Giảm giá</th>
@@ -476,20 +572,6 @@
                                             <span class="px-1 py-0.5 rounded-full bg-blue-100 text-blue-800">Vật tư</span>
                                         @endif
                                     </p>
-                                </td>
-                                <td class="px-1 py-1.5 text-xs truncate max-w-[80px]">
-                                    @if($item->supply_id)
-                                        {{ $item->frameSupply->name ?? 'N/A' }}
-                                    @else
-                                        <span class="text-gray-400">-</span>
-                                    @endif
-                                </td>
-                                <td class="px-1 py-1.5 text-center text-xs">
-                                    @if($item->supply_length)
-                                        {{ $item->supply_length }}
-                                    @else
-                                        <span class="text-gray-400">-</span>
-                                    @endif
                                 </td>
                                 <td class="px-1 py-1.5 text-center text-xs font-medium">{{ $item->quantity }}</td>
                                 <td class="px-1 py-1.5 text-right text-xs whitespace-nowrap">
@@ -564,18 +646,28 @@
                         </div>
                     </div>
                     @php
-                        // Tính số tiền đã trả cho phiếu đổi hàng này
-                        $exchangePayments = $return->sale->payments()
+                        // Tính số tiền đã trả cho phiếu đổi hàng này (RIÊNG USD và VND)
+                        $paidUsdItems = $return->sale->payments()
                             ->where('transaction_type', 'exchange_payment')
                             ->where('notes', 'like', "%{$return->return_code}%")
-                            ->sum('amount');
+                            ->sum('payment_usd');
+                            
+                        $paidVndItems = $return->sale->payments()
+                            ->where('transaction_type', 'exchange_payment')
+                            ->where('notes', 'like', "%{$return->return_code}%")
+                            ->sum('payment_vnd');
                     @endphp
-                    @if($exchangePayments > 0)
+                    @if($paidUsdItems > 0 || $paidVndItems > 0)
                     <div class="flex justify-between text-xs mt-1">
                         <span class="text-gray-600">Đã trả:</span>
                         <div class="text-right">
-                            <span class="font-semibold text-green-600">${{ number_format($exchangePayments / $exchangeRate, 2) }}</span>
-                            <div class="text-[10px] text-gray-500">≈ {{ number_format($exchangePayments, 0, ',', '.') }}đ</div>
+                            @if($paidUsdItems > 0 && $paidVndItems > 0)
+                                <span class="font-semibold text-green-600">${{ number_format($paidUsdItems, 2) }} + {{ number_format($paidVndItems, 0, ',', '.') }}đ</span>
+                            @elseif($paidUsdItems > 0)
+                                <span class="font-semibold text-green-600">${{ number_format($paidUsdItems, 2) }}</span>
+                            @else
+                                <span class="font-semibold text-green-600">{{ number_format($paidVndItems, 0, ',', '.') }}đ</span>
+                            @endif
                         </div>
                     </div>
                     @endif
@@ -589,24 +681,57 @@
         </div>
         
         <!-- Exchange Summary -->
-        @if($return->exchange_amount != 0)
+        @if($return->exchange_amount != 0 || $return->exchange_amount_usd != 0 || $return->total_refund != 0 || $return->total_refund_usd != 0)
         <div class="mt-3 p-3 bg-blue-50 rounded-lg border border-blue-200">
             <div class="flex justify-between items-center">
                 @php
                     $exchangeAmountUsd = $return->exchange_amount_usd ?? 0;
                     $exchangeAmountVnd = $return->exchange_amount ?? 0;
                     
-                    // Xác định currency chính từ exchange amount đã lưu
-                    $hasExchangeUsd = $exchangeAmountUsd > 0;
-                    $hasExchangeVnd = $exchangeAmountVnd > 0;
-                    
                     $totalRefundUsd = $return->total_refund_usd ?? 0;
                     $totalRefundVnd = $return->total_refund ?? 0;
+                    
+                    // Xác định xem có phải khách trả thêm hay hoàn lại (xử lý mixed currency)
+                    $hasExchangeUsd = $exchangeAmountUsd > 0;
+                    $hasExchangeVnd = $exchangeAmountVnd > 0;
                     $hasRefundUsd = $totalRefundUsd > 0;
                     $hasRefundVnd = $totalRefundVnd > 0;
+                    
+                    // Trường hợp mixed: có cả trả thêm và hoàn lại
+                    $isMixed = ($hasExchangeUsd || $hasExchangeVnd) && ($hasRefundUsd || $hasRefundVnd);
                 @endphp
                 
-                @if($hasExchangeUsd || $hasExchangeVnd)
+                @if($isMixed)
+                    {{-- Mixed: Hiển thị cả 2 --}}
+                    <div class="space-y-2">
+                        @if($hasExchangeUsd || $hasExchangeVnd)
+                        <div class="flex justify-between items-center">
+                            <span class="font-semibold text-sm">Khách trả thêm:</span>
+                            <span class="font-bold text-base">
+                                @if($hasExchangeUsd)
+                                    <span class="text-red-600">+${{ number_format($exchangeAmountUsd, 2) }}</span>
+                                @endif
+                                @if($hasExchangeVnd)
+                                    <span class="text-red-600">+{{ number_format($exchangeAmountVnd, 0, ',', '.') }}đ</span>
+                                @endif
+                            </span>
+                        </div>
+                        @endif
+                        @if($hasRefundUsd || $hasRefundVnd)
+                        <div class="flex justify-between items-center">
+                            <span class="font-semibold text-sm">Hoàn lại khách:</span>
+                            <span class="font-bold text-base">
+                                @if($hasRefundUsd)
+                                    <span class="text-green-600">${{ number_format($totalRefundUsd, 2) }}</span>
+                                @endif
+                                @if($hasRefundVnd)
+                                    <span class="text-green-600">{{ number_format($totalRefundVnd, 0, ',', '.') }}đ</span>
+                                @endif
+                            </span>
+                        </div>
+                        @endif
+                    </div>
+                @elseif($hasExchangeUsd || $hasExchangeVnd)
                     <span class="font-semibold text-sm">Khách trả thêm:</span>
                     <span class="font-bold text-base">
                         @if($hasExchangeUsd && !$hasExchangeVnd)
@@ -646,46 +771,142 @@
             
             @if($exchangeAmountUsd > 0 || $exchangeAmountVnd > 0)
             @php
-                // Tính số tiền đã trả cho phiếu đổi hàng này
-                $exchangePayments = $return->sale->payments()
+                // Tính số tiền đã trả cho phiếu đổi hàng này (RIÊNG USD và VND)
+                $paidUsdForExchange = $return->sale->payments()
                     ->where('transaction_type', 'exchange_payment')
                     ->where('notes', 'like', "%{$return->return_code}%")
-                    ->sum('amount');
+                    ->sum('payment_usd');
+                    
+                $paidVndForExchange = $return->sale->payments()
+                    ->where('transaction_type', 'exchange_payment')
+                    ->where('notes', 'like', "%{$return->return_code}%")
+                    ->sum('payment_vnd');
                 
-                // Calculate remaining debt based on primary currency
-                if ($isUsdPrimary) {
-                    $remainingDebtUsd = $exchangeAmountUsd - ($exchangePayments / $exchangeRate);
-                    $remainingDebt = $exchangeAmountVnd - $exchangePayments;
-                } else {
-                    $remainingDebt = $exchangeAmountVnd - $exchangePayments;
-                    $remainingDebtUsd = $exchangeAmountUsd - ($exchangePayments / $exchangeRate);
+                // Lấy tỷ giá từ payment hoặc sale
+                $paymentExchangeRate = $return->sale->payments()
+                    ->where('transaction_type', 'exchange_payment')
+                    ->where('notes', 'like', "%{$return->return_code}%")
+                    ->value('payment_exchange_rate') ?? $exchangeRate;
+                
+                // Lưu số tiền gốc trước khi quy đổi (để hiển thị)
+                $originalPaidUsd = $paidUsdForExchange;
+                $originalPaidVnd = $paidVndForExchange;
+                $isCrossPayment = false;
+                $convertedAmount = 0;
+                $crossPaymentType = null; // 'usd_to_vnd' hoặc 'vnd_to_usd'
+                
+                // Lấy thông tin original từ Payment notes (format: [ORIGINAL:usd,vnd])
+                $paymentNotes = $return->sale->payments()
+                    ->where('transaction_type', 'exchange_payment')
+                    ->where('notes', 'like', "%{$return->return_code}%")
+                    ->value('notes') ?? '';
+                
+                $originalFromPayment = null;
+                if (preg_match('/\[ORIGINAL:([\d.]+),([\d.]+)\]/', $paymentNotes, $matches)) {
+                    $originalFromPayment = [
+                        'usd' => (float)$matches[1],
+                        'vnd' => (float)$matches[2]
+                    ];
                 }
+                
+                // Xử lý thanh toán chéo
+                // Case 1: Nợ USD, có original từ Payment notes
+                if ($exchangeAmountUsd > 0 && $exchangeAmountVnd == 0 && $paidUsdForExchange > 0 && $originalFromPayment) {
+                    if ($originalFromPayment['vnd'] > 0 && $originalFromPayment['usd'] == 0) {
+                        // Thanh toán chéo: trả VND, đã quy đổi sang USD
+                        $originalPaidVnd = $originalFromPayment['vnd'];
+                        $originalPaidUsd = 0;
+                        $convertedAmount = $paidUsdForExchange;
+                        $isCrossPayment = true;
+                        $crossPaymentType = 'vnd_to_usd';
+                    }
+                }
+                // Case 1b: Nợ USD nhưng chỉ có payment VND (phiếu cũ chưa quy đổi)
+                elseif ($exchangeAmountUsd > 0 && $exchangeAmountVnd == 0 && $paidUsdForExchange == 0 && $paidVndForExchange > 0 && $paymentExchangeRate > 0) {
+                    $convertedAmount = $paidVndForExchange / $paymentExchangeRate;
+                    $paidUsdForExchange = $convertedAmount;
+                    $isCrossPayment = true;
+                    $crossPaymentType = 'vnd_to_usd';
+                }
+                // Case 2: Nợ VND, có original từ Payment notes
+                elseif ($exchangeAmountVnd > 0 && $exchangeAmountUsd == 0 && $paidVndForExchange > 0 && $originalFromPayment) {
+                    if ($originalFromPayment['usd'] > 0 && $originalFromPayment['vnd'] == 0) {
+                        // Thanh toán chéo: trả USD, đã quy đổi sang VND
+                        $originalPaidUsd = $originalFromPayment['usd'];
+                        $originalPaidVnd = 0;
+                        $convertedAmount = $paidVndForExchange;
+                        $isCrossPayment = true;
+                        $crossPaymentType = 'usd_to_vnd';
+                    }
+                }
+                // Case 2b: Nợ VND, phiếu cũ (Sale VND không có exchange_rate)
+                elseif ($exchangeAmountVnd > 0 && $exchangeAmountUsd == 0 && $paidVndForExchange > 0 && $paidUsdForExchange == 0) {
+                    $saleExchangeRate = $return->sale->exchange_rate ?? 0;
+                    if ($paymentExchangeRate > 0 && $saleExchangeRate == 0) {
+                        $originalPaidUsd = $paidVndForExchange / $paymentExchangeRate;
+                        $originalPaidVnd = 0;
+                        $convertedAmount = $paidVndForExchange;
+                        $isCrossPayment = true;
+                        $crossPaymentType = 'usd_to_vnd';
+                    }
+                }
+                // Case 2c: Nợ VND nhưng chỉ có payment USD (phiếu cũ chưa quy đổi)
+                elseif ($exchangeAmountVnd > 0 && $exchangeAmountUsd == 0 && $paidVndForExchange == 0 && $paidUsdForExchange > 0 && $paymentExchangeRate > 0) {
+                    $convertedAmount = $paidUsdForExchange * $paymentExchangeRate;
+                    $paidVndForExchange = $convertedAmount;
+                    $isCrossPayment = true;
+                    $crossPaymentType = 'usd_to_vnd';
+                }
+                
+                // Tính còn nợ (riêng USD và VND)
+                $remainingDebtUsd = max(0, $exchangeAmountUsd - $paidUsdForExchange);
+                $remainingDebtVnd = max(0, $exchangeAmountVnd - $paidVndForExchange);
+                
+                $hasPaidSomething = $originalPaidUsd > 0 || $originalPaidVnd > 0;
             @endphp
             
-            <!-- Removed duplicate display block -->
-            
-            @if($exchangePayments > 0)
+            @if($hasPaidSomething)
             <div class="mt-2 pt-2 border-t border-blue-300">
                 <div class="flex justify-between text-xs">
                     <span class="text-gray-600">Đã trả:</span>
-                    <span class="font-semibold text-green-600">
-                        @if($isUsdPrimary)
-                            ${{ number_format($exchangePayments / $exchangeRate, 2) }}
+                    <div class="text-right">
+                        @if($isCrossPayment && $convertedAmount > 0)
+                            {{-- Thanh toán chéo: Hiển thị số tiền gốc trước, quy đổi ở dưới --}}
+                            @if($crossPaymentType == 'vnd_to_usd')
+                                {{-- Nợ USD, trả VND → Hiển thị VND trước, USD quy đổi ở dưới --}}
+                                <span class="font-semibold text-green-600">{{ number_format($originalPaidVnd, 0, ',', '.') }}đ</span>
+                                <div class="text-[10px] text-gray-500">≈ ${{ number_format($convertedAmount, 2) }}</div>
+                            @elseif($crossPaymentType == 'usd_to_vnd')
+                                {{-- Nợ VND, trả USD → Hiển thị USD trước, VND quy đổi ở dưới --}}
+                                <span class="font-semibold text-green-600">${{ number_format($originalPaidUsd, 2) }}</span>
+                                <div class="text-[10px] text-gray-500">≈ {{ number_format($convertedAmount, 0, ',', '.') }}đ</div>
+                            @endif
                         @else
-                            {{ number_format($exchangePayments, 0, ',', '.') }}đ
+                            {{-- Thanh toán song song: Hiển thị số tiền gốc --}}
+                            @if($originalPaidUsd > 0 && $originalPaidVnd > 0)
+                                <span class="font-semibold text-green-600">${{ number_format($originalPaidUsd, 2) }} + {{ number_format($originalPaidVnd, 0, ',', '.') }}đ</span>
+                            @elseif($originalPaidUsd > 0)
+                                <span class="font-semibold text-green-600">${{ number_format($originalPaidUsd, 2) }}</span>
+                            @else
+                                <span class="font-semibold text-green-600">{{ number_format($originalPaidVnd, 0, ',', '.') }}đ</span>
+                            @endif
                         @endif
-                    </span>
+                    </div>
                 </div>
+                @if($remainingDebtUsd > 0 || $remainingDebtVnd > 0)
                 <div class="flex justify-between text-xs mt-1">
                     <span class="text-gray-600">Còn nợ:</span>
                     <span class="font-semibold text-red-600">
-                        @if($isUsdPrimary)
+                        @if($remainingDebtUsd > 0 && $remainingDebtVnd > 0)
+                            ${{ number_format($remainingDebtUsd, 2) }} + {{ number_format($remainingDebtVnd, 0, ',', '.') }}đ
+                        @elseif($remainingDebtUsd > 0)
                             ${{ number_format($remainingDebtUsd, 2) }}
                         @else
-                            {{ number_format($remainingDebt, 0, ',', '.') }}đ
+                            {{ number_format($remainingDebtVnd, 0, ',', '.') }}đ
                         @endif
                     </span>
                 </div>
+                @endif
             </div>
             @endif
             @endif
@@ -860,8 +1081,35 @@
                     if ($jsonPart) {
                         $paymentInfo = json_decode($jsonPart, true);
                         if ($paymentInfo) {
-                            $displayNotes = 'Khách hàng đã trả $' . number_format(($paymentInfo['payment_usd'] ?? ($paymentInfo['payment_amount'] / $exchangeRate)), 2);
-                            $displayNotes .= ' (≈ ' . number_format($paymentInfo['payment_amount'], 0, ',', '.') . 'đ)';
+                            // Lấy số tiền gốc (trước quy đổi) nếu có
+                            $origUsd = $paymentInfo['original_payment_usd'] ?? $paymentInfo['payment_usd'] ?? 0;
+                            $origVnd = $paymentInfo['original_payment_vnd'] ?? $paymentInfo['payment_vnd'] ?? 0;
+                            $finalUsd = $paymentInfo['payment_usd'] ?? 0;
+                            $finalVnd = $paymentInfo['payment_vnd'] ?? 0;
+                            
+                            $displayNotes = 'Khách hàng đã trả: ';
+                            
+                            // Hiển thị số tiền gốc
+                            if ($origUsd > 0 && $origVnd > 0) {
+                                $displayNotes .= '$' . number_format($origUsd, 2) . ' + ' . number_format($origVnd, 0, ',', '.') . 'đ';
+                            } elseif ($origUsd > 0) {
+                                $displayNotes .= '$' . number_format($origUsd, 2);
+                            } elseif ($origVnd > 0) {
+                                $displayNotes .= number_format($origVnd, 0, ',', '.') . 'đ';
+                            }
+                            
+                            // Nếu có quy đổi, hiển thị thêm
+                            if (($origUsd != $finalUsd || $origVnd != $finalVnd) && ($finalUsd > 0 || $finalVnd > 0)) {
+                                $displayNotes .= ' (quy đổi: ';
+                                if ($finalUsd > 0) {
+                                    $displayNotes .= '$' . number_format($finalUsd, 2);
+                                }
+                                if ($finalVnd > 0) {
+                                    $displayNotes .= ($finalUsd > 0 ? ' + ' : '') . number_format($finalVnd, 0, ',', '.') . 'đ';
+                                }
+                                $displayNotes .= ')';
+                            }
+                            
                             $displayNotes .= ' bằng ' . ($paymentInfo['payment_method'] == 'cash' ? 'tiền mặt' : 'chuyển khoản');
                             $displayNotes .= ' vào ngày ' . date('d/m/Y', strtotime($paymentInfo['payment_date']));
                         }
