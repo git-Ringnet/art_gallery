@@ -1518,9 +1518,22 @@ function loadCurrentDebt(customerId) {
         fetch(`/sales/api/customers/${customerId}/debt`)
             .then(response => response.json())
             .then(data => {
-                const currentDebt = data.total_debt || 0;
-                const formattedDebt = Math.round(currentDebt).toLocaleString('en-US').replace(/,/g, '.');
-                document.getElementById('current_debt').value = formattedDebt + 'đ';
+                const debtUsd = data.total_debt_usd || 0;
+                const debtVnd = data.total_debt_vnd || 0;
+                
+                // Hiển thị riêng USD và VND
+                let debtDisplay = '';
+                if (debtUsd > 0 && debtVnd > 0) {
+                    debtDisplay = '$' + debtUsd.toLocaleString('en-US', {minimumFractionDigits: 2}) + ' + ' + Math.round(debtVnd).toLocaleString('vi-VN') + 'đ';
+                } else if (debtUsd > 0) {
+                    debtDisplay = '$' + debtUsd.toLocaleString('en-US', {minimumFractionDigits: 2});
+                } else if (debtVnd > 0) {
+                    debtDisplay = Math.round(debtVnd).toLocaleString('vi-VN') + 'đ';
+                } else {
+                    debtDisplay = '0đ';
+                }
+                
+                document.getElementById('current_debt').value = debtDisplay;
             })
             .catch(error => {
                 console.error('Error loading customer debt:', error);

@@ -77,16 +77,27 @@
                     <td class="px-2 py-2 text-xs text-gray-600 truncate max-w-[150px]">
                         {{ Str::limit($customer->address, 30) ?: '-' }}
                     </td>
-                    <td class="px-2 py-2 text-right text-xs font-medium text-green-600">
-                        <div>${{ number_format($customer->total_purchased_usd, 2) }}</div>
-                        <div class="text-[10px] text-gray-500">{{ number_format($customer->total_purchased, 0, ',', '.') }}đ</div>
+                    <td class="px-2 py-2 text-right text-xs font-medium">
+                        @if($customer->total_purchased_usd > 0)
+                            <div class="text-green-600">${{ number_format($customer->total_purchased_usd, 2) }}</div>
+                        @endif
+                        @if($customer->total_purchased_vnd > 0)
+                            <div class="text-green-600">{{ number_format($customer->total_purchased_vnd, 0, ',', '.') }}đ</div>
+                        @endif
+                        @if($customer->total_purchased_usd == 0 && $customer->total_purchased_vnd == 0)
+                            <span class="text-gray-400">-</span>
+                        @endif
                     </td>
-                    <td class="px-2 py-2 text-right">
-                        @if($customer->total_debt > 0)
-                            <div class="text-red-600 font-bold">${{ number_format($customer->total_debt_usd, 2) }}</div>
-                            <div class="text-[10px] text-red-500">{{ number_format($customer->total_debt, 0, ',', '.') }}đ</div>
+                    <td class="px-2 py-2 text-right text-xs font-bold">
+                        @if($customer->total_debt_usd > 0 || $customer->total_debt_vnd > 0)
+                            @if($customer->total_debt_usd > 0)
+                                <div class="text-red-600">${{ number_format($customer->total_debt_usd, 2) }}</div>
+                            @endif
+                            @if($customer->total_debt_vnd > 0)
+                                <div class="text-red-600">{{ number_format($customer->total_debt_vnd, 0, ',', '.') }}đ</div>
+                            @endif
                         @else
-                            <span class="text-gray-400 text-xs">0đ</span>
+                            <span class="text-gray-400 font-normal">0đ</span>
                         @endif
                     </td>
                     <td class="px-2 py-2">

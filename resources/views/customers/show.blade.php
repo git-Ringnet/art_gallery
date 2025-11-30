@@ -66,17 +66,28 @@
             <!-- Stats -->
             <div class="mt-4 pt-4 border-t grid grid-cols-2 gap-3">
                 <div class="text-center">
-                    <p class="text-xs text-gray-500">Tổng mua</p>
-                    <p class="text-base font-bold text-green-600">${{ number_format($customer->total_purchased_usd, 2) }}</p>
-                    <p class="text-xs text-gray-500">{{ number_format($customer->total_purchased, 0, ',', '.') }}đ</p>
+                    <p class="text-xs text-gray-500 mb-1">Tổng mua</p>
+                    @if($customer->total_purchased_usd > 0)
+                        <p class="text-sm font-bold text-green-600">${{ number_format($customer->total_purchased_usd, 2) }}</p>
+                    @endif
+                    @if($customer->total_purchased_vnd > 0)
+                        <p class="text-sm font-bold text-green-600">{{ number_format($customer->total_purchased_vnd, 0, ',', '.') }}đ</p>
+                    @endif
+                    @if($customer->total_purchased_usd == 0 && $customer->total_purchased_vnd == 0)
+                        <p class="text-sm font-bold text-gray-400">-</p>
+                    @endif
                 </div>
                 <div class="text-center">
-                    <p class="text-xs text-gray-500">Công nợ</p>
-                    @if($customer->total_debt > 0)
-                        <p class="text-base font-bold text-red-600">${{ number_format($customer->total_debt_usd, 2) }}</p>
-                        <p class="text-xs text-red-500">{{ number_format($customer->total_debt, 0, ',', '.') }}đ</p>
+                    <p class="text-xs text-gray-500 mb-1">Công nợ</p>
+                    @if($customer->total_debt_usd > 0 || $customer->total_debt_vnd > 0)
+                        @if($customer->total_debt_usd > 0)
+                            <p class="text-sm font-bold text-red-600">${{ number_format($customer->total_debt_usd, 2) }}</p>
+                        @endif
+                        @if($customer->total_debt_vnd > 0)
+                            <p class="text-sm font-bold text-red-600">{{ number_format($customer->total_debt_vnd, 0, ',', '.') }}đ</p>
+                        @endif
                     @else
-                        <p class="text-base font-bold text-gray-400">$0.00</p>
+                        <p class="text-sm font-bold text-gray-400">0đ</p>
                     @endif
                 </div>
             </div>

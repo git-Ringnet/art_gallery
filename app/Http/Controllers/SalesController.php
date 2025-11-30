@@ -926,16 +926,29 @@ class SalesController extends Controller
     {
         $customer = Customer::findOrFail($id);
         
-        // Tính tổng công nợ hiện tại của khách hàng
-        // Lấy từ tất cả các sales chưa thanh toán hết
-        $totalDebt = $customer->sales()
+        // LOGIC MỚI: Tính tổng công nợ riêng USD và VND
+        $sales = $customer->sales()
             ->whereIn('payment_status', ['unpaid', 'partial'])
-            ->sum('debt_amount');
+            ->where('sale_status', 'completed')
+            ->get();
+        
+        $totalDebtUsd = $sales->sum(function($sale) {
+            return $sale->debt_usd ?? 0;
+        });
+        
+        $totalDebtVnd = $sales->sum(function($sale) {
+            return $sale->debt_vnd ?? 0;
+        });
+        
+        // Backward compatibility: total_debt = VND (cũ)
+        $totalDebt = $sales->sum('debt_amount');
         
         return response()->json([
             'customer_id' => $customer->id,
             'customer_name' => $customer->name,
-            'total_debt' => $totalDebt
+            'total_debt' => $totalDebt,
+            'total_debt_usd' => $totalDebtUsd,
+            'total_debt_vnd' => $totalDebtVnd
         ]);
     }
 

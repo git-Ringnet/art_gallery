@@ -60,11 +60,38 @@ class Customer extends Model
         return $this->sales()->where('sale_status', 'completed')->sum('total_usd');
     }
 
+    public function getTotalPurchasedVndAttribute()
+    {
+        return $this->sales()->where('sale_status', 'completed')->sum('total_vnd');
+    }
+
+    // LOGIC MỚI: Tính công nợ riêng USD và VND
     public function getTotalDebtUsdAttribute()
     {
-        return $this->debts()->where('status', '!=', 'paid')->with('sale')->get()->sum(function($debt) {
-            return $debt->sale ? $debt->sale->debt_usd : 0;
-        });
+        // Tính tổng nợ USD từ các phiếu có item USD
+        return $this->sales()
+            ->where('sale_status', 'completed')
+            ->get()
+            ->sum(function($sale) {
+                return $sale->debt_usd ?? 0;
+            });
+    }
+
+    public function getTotalDebtVndAttribute()
+    {
+        // Tính tổng nợ VND từ các phiếu có item VND
+        return $this->sales()
+            ->where('sale_status', 'completed')
+            ->get()
+            ->sum(function($sale) {
+                return $sale->debt_vnd ?? 0;
+            });
+    }
+
+    // Kiểm tra có nợ không (USD hoặc VND)
+    public function getHasAnyDebtAttribute()
+    {
+        return $this->total_debt_usd > 0 || $this->total_debt_vnd > 0;
     }
 
     public function scopeWithDebt($query)
