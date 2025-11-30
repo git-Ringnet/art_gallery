@@ -217,7 +217,7 @@
                         @else
                             @php
                                 $amountVnd = $return->total_refund;
-                                $amountUsd = $return->total_refund_usd ?? ($amountVnd / $exchangeRate);
+                                $amountUsd = $return->total_refund_usd ?? ($exchangeRate > 0 ? ($amountVnd / $exchangeRate) : 0);
                             @endphp
                             @if($isUsdPrimary)
                                 <div class="font-bold text-red-600">${{ number_format($amountUsd, 2) }}</div>

@@ -832,7 +832,7 @@ class ReturnController extends Controller
                         $unitPriceVnd = $unitPriceUsd * $exchangeRate;
                     } else {
                         $unitPriceVnd = $item['unit_price'] ?? 0;
-                        $unitPriceUsd = $unitPriceVnd / $exchangeRate;
+                        $unitPriceUsd = $exchangeRate > 0 ? ($unitPriceVnd / $exchangeRate) : 0;
                     }
                     
                     // Tính subtotal (RIÊNG USD VÀ VND)

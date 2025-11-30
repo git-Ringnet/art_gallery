@@ -516,7 +516,7 @@ function displaySuggestions(products) {
             // Supply or item with VND price - show VND first (bold)
             isUsd = false;
             priceVnd = parseFloat(product.price_vnd);
-            priceUsdVal = priceVnd / exchangeRate;
+            priceUsdVal = exchangeRate > 0 ? (priceVnd / exchangeRate) : 0;
             priceDisplay = `${priceVnd.toLocaleString('vi-VN')}đ`;
         }
         
@@ -657,7 +657,7 @@ function renderExchangeProducts() {
                        onchange="updateExchangePriceUsd(${index}, this.value)">`;
             priceDisplayHtml = ``;
         } else {
-            const finalPriceUsd = finalPrice / exchangeRate;
+            const finalPriceUsd = exchangeRate > 0 ? (finalPrice / exchangeRate) : 0;
             priceInputHtml = `<input type="number" 
                        class="w-28 px-2 py-1.5 border border-gray-300 rounded text-right text-xs font-medium focus:ring-2 focus:ring-blue-500"
                        min="0" 
@@ -716,7 +716,7 @@ function renderExchangeProducts() {
         <input type="hidden" name="exchange_items[${index}][item_id]" value="${product.id}">
         <input type="hidden" name="exchange_items[${index}][quantity]" value="${product.quantity}">
         <input type="hidden" name="exchange_items[${index}][unit_price]" value="${finalPrice}">
-        <input type="hidden" name="exchange_items[${index}][unit_price_usd]" value="${product.isUsd ? (product.priceUsd * (1 - (product.discount || 0) / 100)) : (finalPrice / exchangeRate)}">
+        <input type="hidden" name="exchange_items[${index}][unit_price_usd]" value="${product.isUsd ? (product.priceUsd * (1 - (product.discount || 0) / 100)) : (exchangeRate > 0 ? (finalPrice / exchangeRate) : 0)}">
         <input type="hidden" name="exchange_items[${index}][currency]" value="${product.isUsd ? 'USD' : 'VND'}">
         <input type="hidden" name="exchange_items[${index}][discount_percent]" value="${product.discount || 0}">
         `;
@@ -733,7 +733,7 @@ function updateExchangePrice(index, price) {
     exchangeProducts[index].price = parseFloat(price) || 0;
     // Also update USD price for reference if needed
     const exchangeRate = saleData ? parseFloat(saleData.exchange_rate || 25000) : 25000;
-    exchangeProducts[index].priceUsd = exchangeProducts[index].price / exchangeRate;
+    exchangeProducts[index].priceUsd = exchangeRate > 0 ? (exchangeProducts[index].price / exchangeRate) : 0;
     
     renderExchangeProducts();
     updateSummary();
@@ -849,7 +849,7 @@ function updateSummary() {
         });
         
         // Convert totalExchangeVnd to USD and totalExchangeUsd to VND for comparison
-        const totalExchangeVndConvertedToUsd = totalExchangeVnd / exchangeRate;
+        const totalExchangeVndConvertedToUsd = exchangeRate > 0 ? (totalExchangeVnd / exchangeRate) : 0;
         const totalExchangeUsdConvertedToVnd = totalExchangeUsd * exchangeRate;
 
         // Calculate differences based on their respective currencies
@@ -1071,7 +1071,7 @@ function updatePaymentCalculations() {
             totalVndDisplay.textContent = '-';
         } else if (vndAmount > 0 && usdAmount == 0) {
             // Trả VND → Quy đổi sang USD (thanh toán chéo)
-            const convertedUsd = vndAmount / exchangeRate;
+            const convertedUsd = exchangeRate > 0 ? (vndAmount / exchangeRate) : 0;
             totalUsdDisplay.textContent = '$' + convertedUsd.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2});
             totalVndDisplay.textContent = vndAmount.toLocaleString('vi-VN') + 'đ (quy đổi)';
             // Cảnh báo thanh toán chéo
@@ -1080,7 +1080,7 @@ function updatePaymentCalculations() {
             warningDiv.classList.remove('hidden');
         } else if (usdAmount > 0 && vndAmount > 0) {
             // Trả cả hai
-            const totalUsd = usdAmount + (vndAmount / exchangeRate);
+            const totalUsd = usdAmount + (exchangeRate > 0 ? (vndAmount / exchangeRate) : 0);
             totalUsdDisplay.textContent = '$' + totalUsd.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2});
             totalVndDisplay.textContent = vndAmount.toLocaleString('vi-VN') + 'đ (+ $' + usdAmount.toFixed(2) + ')';
         } else {

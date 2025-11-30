@@ -1,4 +1,4 @@
-@extends('layouts.app')
+﻿@extends('layouts.app')
 
 @section('title', 'Chỉnh sửa phiếu đổi/trả hàng')
 @section('page-title', 'Chỉnh sửa phiếu đổi/trả hàng')
@@ -23,36 +23,63 @@
                         <div><span class="text-gray-600">Ngày:</span> <span>{{ $return->sale->sale_date->format('d/m/Y') }}</span></div>
                         <div colspan="2"><span class="text-gray-600">Khách hàng:</span> <span class="font-medium">{{ $return->customer->name }}</span></div>
                         <div class="border-t pt-1.5 mt-1.5 col-span-2">
+                            @php
+                                // Detect currency từ items
+                                $hasUsd = $return->sale->items->contains(fn($i) => ($i->currency ?? 'VND') === 'USD');
+                                $hasVnd = $return->sale->items->contains(fn($i) => ($i->currency ?? 'VND') === 'VND');
+                                $isMixed = $hasUsd && $hasVnd;
+                                $isUsdOnly = $hasUsd && !$hasVnd;
+                            @endphp
                             <div class="bg-white p-2 rounded border border-gray-200">
                                 <!-- Tổng HD -->
                                 <div class="flex justify-between mb-1">
                                     <span class="text-gray-600 font-medium">Tổng cộng:</span>
                                     <div class="text-right">
-                                        <div class="font-bold text-blue-600">${{ number_format($return->sale->total_usd ?? 0, 2) }}</div>
-                                        <div class="text-xs text-gray-500">≈ {{ number_format($return->sale->total_vnd, 0, ',', '.') }}đ</div>
+                                        @if($isMixed)
+                                            <div class="font-bold text-blue-600">USD: ${{ number_format($return->sale->total_usd ?? 0, 2) }}</div>
+                                            <div class="font-bold text-blue-600">VND: {{ number_format($return->sale->total_vnd ?? 0, 0, ',', '.') }}đ</div>
+                                        @elseif($isUsdOnly)
+                                            <div class="font-bold text-blue-600">${{ number_format($return->sale->total_usd ?? 0, 2) }}</div>
+                                        @else
+                                            <div class="font-bold text-blue-600">{{ number_format($return->sale->total_vnd ?? 0, 0, ',', '.') }}đ</div>
+                                        @endif
                                     </div>
                                 </div>
                                 <!-- Đã thanh toán -->
                                 <div class="flex justify-between mb-1 border-t pt-1">
                                     <span class="text-green-600 font-medium">Đã Thanh toán:</span>
                                     <div class="text-right">
-                                        <div class="font-bold text-green-600">${{ number_format($return->sale->paid_usd ?? 0, 2) }}</div>
-                                        <div class="text-xs text-gray-500">≈ {{ number_format($return->sale->paid_amount, 0, ',', '.') }}đ</div>
+                                        @if($isMixed)
+                                            <div class="font-bold text-green-600">USD: ${{ number_format($return->sale->paid_usd ?? 0, 2) }}</div>
+                                            <div class="font-bold text-green-600">VND: {{ number_format($return->sale->paid_vnd ?? 0, 0, ',', '.') }}đ</div>
+                                        @elseif($isUsdOnly)
+                                            <div class="font-bold text-green-600">${{ number_format($return->sale->paid_usd ?? 0, 2) }}</div>
+                                        @else
+                                            <div class="font-bold text-green-600">{{ number_format($return->sale->paid_vnd ?? 0, 0, ',', '.') }}đ</div>
+                                        @endif
                                     </div>
                                 </div>
                                 <!-- Còn nợ -->
                                 <div class="flex justify-between border-t pt-1">
                                     <span class="text-red-600 font-medium">Còn nợ:</span>
                                     <div class="text-right">
-                                        <div class="font-bold text-red-600">${{ number_format($return->sale->debt_usd ?? 0, 2) }}</div>
-                                        <div class="text-xs text-gray-500">≈ {{ number_format($return->sale->debt_amount, 0, ',', '.') }}đ</div>
+                                        @if($isMixed)
+                                            <div class="font-bold text-red-600">USD: ${{ number_format($return->sale->debt_usd ?? 0, 2) }}</div>
+                                            <div class="font-bold text-red-600">VND: {{ number_format($return->sale->debt_vnd ?? 0, 0, ',', '.') }}đ</div>
+                                        @elseif($isUsdOnly)
+                                            <div class="font-bold text-red-600">${{ number_format($return->sale->debt_usd ?? 0, 2) }}</div>
+                                        @else
+                                            <div class="font-bold text-red-600">{{ number_format($return->sale->debt_vnd ?? 0, 0, ',', '.') }}đ</div>
+                                        @endif
                                     </div>
                                 </div>
-                                <!-- Tỷ giá -->
+                                <!-- Tỷ giá - chỉ hiện khi mixed -->
+                                @if($isMixed && ($return->sale->exchange_rate ?? 0) > 0)
                                 <div class="mt-2 pt-2 border-t border-gray-200 text-xs text-gray-500">
                                     <i class="fas fa-exchange-alt mr-1"></i>
-                                    Tỷ giá: <span class="font-medium">1 USD = {{ number_format($return->sale->exchange_rate ?? 25000, 0, ',', '.') }}đ</span>
+                                    Tỷ giá: <span class="font-medium">1 USD = {{ number_format($return->sale->exchange_rate, 0, ',', '.') }}đ</span>
                                 </div>
+                                @endif
                             </div>
                         </div>
                     </div>
@@ -79,13 +106,23 @@
                             $currentQty = $return->items->where('sale_item_id', $item->id)->first()->quantity ?? 0;
                             $itemName = $item->painting_id ? ($item->painting->name ?? 'N/A') : ($item->supply->name ?? 'N/A');
                             
-                            $unitPrice = $item->price_vnd;
+                            // Lấy currency gốc của item
+                            $itemCurrency = $item->currency ?? 'VND';
+                            $priceUsd = $item->price_usd ?? 0;
+                            $priceVnd = $item->price_vnd ?? 0;
+                            
+                            // Tính giá sau giảm giá
                             if ($item->discount_percent > 0) {
-                                $unitPrice = $unitPrice * (1 - $item->discount_percent / 100);
+                                $priceUsd = $priceUsd * (1 - $item->discount_percent / 100);
+                                $priceVnd = $priceVnd * (1 - $item->discount_percent / 100);
                             }
                             if ($return->sale->discount_percent > 0) {
-                                $unitPrice = $unitPrice * (1 - $return->sale->discount_percent / 100);
+                                $priceUsd = $priceUsd * (1 - $return->sale->discount_percent / 100);
+                                $priceVnd = $priceVnd * (1 - $return->sale->discount_percent / 100);
                             }
+                            
+                            // Giữ unitPrice cho data-price (dùng VND để tương thích)
+                            $unitPrice = $priceVnd;
                         @endphp
                         
                         @if($available > 0 || $currentQty > 0)
@@ -104,8 +141,11 @@
                                     <h4 class="font-medium text-sm">{{ $itemName }}</h4>
                                     <p class="text-xs text-gray-600">Đã mua: {{ $item->quantity }} | Đã trả: {{ $returnedQty }} | Còn lại: {{ $available }}</p>
                                     <div class="text-xs mt-1">
-                                        <div class="font-bold text-blue-600">Đơn giá: ${{ number_format($unitPrice / ($return->sale->exchange_rate ?? 25000), 2) }}</div>
-                                        <div class="text-gray-500">≈ {{ number_format($unitPrice, 0, ',', '.') }}đ</div>
+                                        @if($itemCurrency === 'USD')
+                                            <div class="font-bold text-blue-600">Đơn giá: ${{ number_format($priceUsd, 2) }}</div>
+                                        @else
+                                            <div class="font-bold text-blue-600">Đơn giá: {{ number_format($priceVnd, 0, ',', '.') }}đ</div>
+                                        @endif
                                     </div>
                                 </div>
                                 <div class="text-right flex-shrink-0">
@@ -117,6 +157,9 @@
                                            max="{{ $available + $currentQty }}" 
                                            value="{{ $currentQty }}"
                                            data-price="{{ $unitPrice }}"
+                                           data-currency="{{ $itemCurrency }}"
+                                           data-price-usd="{{ $priceUsd }}"
+                                           data-price-vnd="{{ $priceVnd }}"
                                            onchange="updateSummary()">
                                     <input type="hidden" name="items[{{ $item->id }}][sale_item_id]" value="{{ $item->id }}">
                                 </div>
@@ -232,41 +275,32 @@
                                 <span id="summary-return-qty" class="font-medium">0</span>
                             </div>
                             <div class="flex justify-between">
-                                <span class="text-gray-600">Giá trị:</span>
-                                <div class="text-right">
-                                    <div id="summary-return-value-usd" class="font-bold text-blue-600">$0.00</div>
-                                    <div id="summary-return-value-vnd" class="text-xs text-gray-500">≈ 0đ</div>
-                                </div>
+                                <span class="text-gray-600 text-xs">Giá trị SP cũ (trả lại):</span>
+                                <div id="summary-return-value-usd" class="font-bold text-blue-600">$0.00</div>
                             </div>
                             <div class="flex justify-between border-t pt-1.5">
-                                <span class="text-gray-700 font-semibold text-xs">Tiền hoàn:</span>
-                                <div class="text-right">
-                                    <div id="summary-return-amount-usd" class="font-bold text-green-600">$0.00</div>
-                                    <div id="summary-return-amount-vnd" class="text-xs text-gray-500">≈ 0đ</div>
-                                </div>
+                                <span class="text-gray-600 text-xs">Đã thanh toán (SP cũ):</span>
+                                <div id="summary-return-amount-usd" class="font-bold text-green-600">$0.00</div>
                             </div>
-                            <div class="text-xs text-gray-500 italic">
+                            <div class="text-xs text-gray-500 italic mt-1">
                                 <i class="fas fa-info-circle mr-1"></i>
-                                <span id="refund-note">Tối đa = đã TT (USD)</span>
+                                <span id="refund-note">Hoàn tiền = Đã thanh toán × Giá trị trả</span>
                             </div>
                             <div id="exchange-summary" class="hidden">
                                 <div class="flex justify-between border-t pt-1.5 mt-1.5">
-                                    <span class="text-gray-600">SL đổi:</span>
+                                    <span class="text-gray-600 text-xs">SL đổi:</span>
                                     <span id="summary-exchange-qty" class="font-medium">0</span>
                                 </div>
                                 <div class="flex justify-between">
-                                    <span class="text-gray-600">Tiền đổi:</span>
-                                    <div class="text-right">
-                                        <div id="summary-exchange-amount-usd" class="font-bold text-blue-600">$0.00</div>
-                                        <div id="summary-exchange-amount-vnd" class="text-xs text-gray-500">≈ 0đ</div>
-                                    </div>
+                                    <span class="text-gray-600 text-xs">Giá trị SP mới (đổi):</span>
+                                    <div id="summary-exchange-amount-usd" class="font-bold text-blue-600">$0.00</div>
                                 </div>
-                                <div class="flex justify-between border-t pt-1.5 mt-1.5">
-                                    <span class="text-gray-700 font-medium">Chênh lệch:</span>
-                                    <div class="text-right">
-                                        <div id="summary-difference-usd" class="font-bold text-sm">$0.00</div>
-                                        <div id="summary-difference-vnd" class="text-xs text-gray-500">≈ 0đ</div>
+                                <div class="flex justify-between border-t pt-1.5 mt-1.5 bg-yellow-50 -mx-3 px-3 py-2 rounded">
+                                    <div class="text-xs text-gray-600">
+                                        <div id="summary-difference-label" class="font-semibold text-gray-800 mb-1">Khách trả thêm:</div>
+                                        <div id="summary-difference-formula" class="text-xs">= SP mới - Đã TT (SP cũ)</div>
                                     </div>
+                                    <div id="summary-difference-usd" class="font-bold text-lg text-red-600">$0.00</div>
                                 </div>
                             </div>
                         </div>
@@ -282,15 +316,14 @@
                     <div id="payment-section" class="hidden mt-4 border-t pt-4">
                         <h4 class="font-semibold text-gray-800 mb-3 text-sm">Thanh toán chênh lệch</h4>
                         
-                        <!-- Số tiền cần thanh toán -->
+                        <!-- Số tiền cần thanh toán - Hiển thị riêng USD và VND -->
                         <div class="bg-red-50 border border-red-100 rounded-lg p-3 mb-4">
-                            <div class="text-xs text-gray-600">Số tiền còn thanh toán:</div>
-                            <div class="text-lg font-bold text-red-600" id="payment-due-usd">$0.00</div>
-                            <div class="text-xs text-red-500" id="payment-due-vnd">0đ</div>
+                            <div class="text-xs text-gray-600 mb-1">Số tiền còn thanh toán:</div>
+                            <div id="payment-due-display"></div>
                         </div>
 
-                        <!-- Tỷ giá -->
-                        <div class="bg-yellow-50 border border-yellow-100 rounded-lg p-3 mb-4">
+                        <!-- Tỷ giá - Chỉ hiện khi thanh toán chéo -->
+                        <div id="exchange-rate-section" class="bg-yellow-50 border border-yellow-100 rounded-lg p-3 mb-4 hidden">
                             <label class="block text-xs font-medium text-gray-700 mb-1">
                                 <i class="fas fa-exchange-alt mr-1"></i>Tỷ giá hiện tại (VND/USD)
                             </label>
@@ -319,17 +352,18 @@
                             </div>
                         </div>
 
-                        <!-- Tổng quy đổi -->
+                        <!-- Tổng thanh toán - Logic mới: song song không quy đổi, chéo mới quy đổi -->
                         <div class="bg-blue-50 border border-blue-100 rounded-lg p-3 mb-3">
-                            <div class="text-xs font-medium text-blue-800 mb-2">Tổng thanh toán quy đổi</div>
+                            <div class="text-xs font-medium text-blue-800 mb-2">Tổng thanh toán</div>
                             <div class="flex justify-between items-center mb-1">
-                                <span class="text-xs text-gray-600">Quy đổi USD:</span>
-                                <span class="font-bold text-blue-700 text-sm" id="total-converted-usd">$0.00</span>
+                                <span class="text-xs text-gray-600">USD:</span>
+                                <span class="font-bold text-blue-700 text-sm" id="total-converted-usd">-</span>
                             </div>
                             <div class="flex justify-between items-center">
-                                <span class="text-xs text-gray-600">Quy đổi VND:</span>
-                                <span class="font-medium text-gray-700 text-xs" id="total-converted-vnd">0đ</span>
+                                <span class="text-xs text-gray-600">VND:</span>
+                                <span class="font-medium text-gray-700 text-xs" id="total-converted-vnd">-</span>
                             </div>
+                            <div id="payment-warning" class="hidden mt-2 text-xs p-2 rounded"></div>
                         </div>
                         
                         <!-- Phương thức thanh toán -->
@@ -456,7 +490,7 @@ function displaySuggestions(products) {
             // Supply or item with VND price - show VND first (bold)
             isUsd = false;
             priceVnd = parseFloat(product.price_vnd);
-            priceUsdVal = priceVnd / exchangeRate;
+            priceUsdVal = exchangeRate > 0 ? (priceVnd / exchangeRate) : 0;
             priceDisplay = `<strong>${priceVnd.toLocaleString('vi-VN')}đ</strong> (≈$${priceUsdVal.toLocaleString('en-US', {minimumFractionDigits: 2})})`;
         }
         
@@ -496,6 +530,41 @@ function addExchangeProduct(id, type, name, price, maxQty, code = '', image = ''
     const existing = exchangeProducts.find(p => p.id === id && p.type === type);
     if (existing) {
         showNotification('Sản phẩm đã được thêm', 'warning');
+        return;
+    }
+    
+    // VALIDATION: Kiểm tra currency phải giống nhau
+    // Lấy currency của SP trả (từ return quantity inputs)
+    let returnedCurrency = null;
+    const returnInputs = document.querySelectorAll('.return-qty');
+    
+    for (let input of returnInputs) {
+        const qty = parseInt(input.value) || 0;
+        if (qty > 0) {
+            // Lấy currency từ data attribute của input
+            const itemCurrency = input.dataset.currency;
+            if (itemCurrency) {
+                returnedCurrency = itemCurrency;
+                break; // Lấy currency của item đầu tiên được chọn
+            }
+        }
+    }
+    
+    // Kiểm tra currency của SP đổi mới
+    const newProductCurrency = isUsd ? 'USD' : 'VND';
+    
+    // Nếu đã có SP đổi, kiểm tra currency phải giống nhau
+    if (exchangeProducts.length > 0) {
+        const existingCurrency = exchangeProducts[0].isUsd ? 'USD' : 'VND';
+        if (existingCurrency !== newProductCurrency) {
+            showNotification('Không thể đổi chéo loại tiền! Vui lòng chọn sản phẩm cùng loại tiền (' + existingCurrency + ')', 'error');
+            return;
+        }
+    }
+    
+    // Nếu có SP trả, kiểm tra currency phải giống nhau
+    if (returnedCurrency && returnedCurrency !== newProductCurrency) {
+        showNotification('Không thể đổi chéo loại tiền! Sản phẩm cũ là ' + returnedCurrency + ', vui lòng chọn sản phẩm mới cũng là ' + returnedCurrency, 'error');
         return;
     }
     
@@ -559,7 +628,7 @@ function renderExchangeProducts() {
                        onchange="updateExchangePriceUsd(${index}, this.value)">`;
             priceDisplayHtml = ``;
         } else {
-            const finalPriceUsd = finalPrice / exchangeRate;
+            const finalPriceUsd = exchangeRate > 0 ? (finalPrice / exchangeRate) : 0;
             priceInputHtml = `<input type="number" 
                        class="w-28 px-2 py-1.5 border border-gray-300 rounded text-right text-xs font-medium focus:ring-2 focus:ring-blue-500"
                        min="0" 
@@ -618,7 +687,7 @@ function renderExchangeProducts() {
         <input type="hidden" name="exchange_items[${index}][item_id]" value="${product.id}">
         <input type="hidden" name="exchange_items[${index}][quantity]" value="${product.quantity}">
         <input type="hidden" name="exchange_items[${index}][unit_price]" value="${finalPrice}">
-        <input type="hidden" name="exchange_items[${index}][unit_price_usd]" value="${product.isUsd ? (product.priceUsd * (1 - (product.discount || 0) / 100)) : (finalPrice / exchangeRate)}">
+        <input type="hidden" name="exchange_items[${index}][unit_price_usd]" value="${product.isUsd ? (product.priceUsd * (1 - (product.discount || 0) / 100)) : (exchangeRate > 0 ? (finalPrice / exchangeRate) : 0)}">
         <input type="hidden" name="exchange_items[${index}][currency]" value="${product.isUsd ? 'USD' : 'VND'}">
         <input type="hidden" name="exchange_items[${index}][discount_percent]" value="${product.discount || 0}">
         `;
@@ -635,7 +704,7 @@ function updateExchangePrice(index, price) {
     exchangeProducts[index].price = parseFloat(price) || 0;
     // Also update USD price for reference if needed
     const exchangeRate = saleData ? parseFloat(saleData.exchange_rate || 25000) : 25000;
-    exchangeProducts[index].priceUsd = exchangeProducts[index].price / exchangeRate;
+    exchangeProducts[index].priceUsd = exchangeRate > 0 ? (exchangeProducts[index].price / exchangeRate) : 0;
     
     renderExchangeProducts();
     updateSummary();
@@ -661,34 +730,47 @@ function updateExchangeDiscount(index, discount) {
 function updateSummary() {
     if (!saleData) return;
     
-    // Get exchange rate from sale
-    const exchangeRate = parseFloat(saleData.exchange_rate || 25000);
+    // Get exchange rate from sale (dùng 1 nếu = 0 để tránh division by zero)
+    const exchangeRate = parseFloat(saleData.exchange_rate || 0) || 1;
     
-    // Calculate return amount in VND first (from sale items which are in VND)
+    // Calculate return amount (RIÊNG USD VÀ VND theo currency của từng item)
     const returnInputs = document.querySelectorAll('.return-qty');
     let returnQty = 0;
+    let returnValueUsd = 0;
     let returnValueVnd = 0;
     
     returnInputs.forEach(input => {
         const qty = parseInt(input.value) || 0;
-        const priceVnd = parseFloat(input.dataset.price) || 0;
+        if (qty === 0) return;
+        
+        // Lấy currency từ data attribute
+        const currency = input.dataset.currency || 'VND';
+        const priceUsd = parseFloat(input.dataset.priceUsd || 0);
+        const priceVnd = parseFloat(input.dataset.priceVnd || 0);
+        
         returnQty += qty;
-        returnValueVnd += qty * priceVnd;
+        
+        // Tính theo currency gốc
+        if (currency === 'USD') {
+            returnValueUsd += qty * priceUsd;
+        } else {
+            returnValueVnd += qty * priceVnd;
+        }
     });
     
-    // Convert return value to USD
-    const returnValueUsd = returnValueVnd / exchangeRate;
+    // LOGIC MỚI: Tính theo tỷ lệ đã trả (RIÊNG USD VÀ VND)
+    const paidUsd = parseFloat(saleData.paid_usd || 0);
+    const paidVnd = parseFloat(saleData.paid_vnd || 0);
+    const totalUsd = parseFloat(saleData.total_usd || 0);
+    const totalVnd = parseFloat(saleData.total_vnd || 0);
     
-    // LOGIC ĐÚNG: Tính theo tỷ lệ đã trả (dùng USD)
-    const paidUsd = saleData ? parseFloat(saleData.paid_usd || 0) : 0;
-    const totalUsd = saleData ? parseFloat(saleData.total_usd || 0) : 0;
+    // Tính tỷ lệ đã trả của hóa đơn (riêng từng loại tiền)
+    const paidRatioUsd = totalUsd > 0 ? (paidUsd / totalUsd) : 0;
+    const paidRatioVnd = totalVnd > 0 ? (paidVnd / totalVnd) : 0;
     
-    // Tính tỷ lệ đã trả của hóa đơn
-    const paidRatio = totalUsd > 0 ? (paidUsd / totalUsd) : 0;
-    
-    // Tính số tiền đã trả cho các sản phẩm đang trả (USD)
-    const paidForReturnedItemsUsd = returnValueUsd * paidRatio;
-    const paidForReturnedItemsVnd = paidForReturnedItemsUsd * exchangeRate;
+    // Tính số tiền đã trả cho các sản phẩm đang trả (RIÊNG USD VÀ VND)
+    const paidForReturnedItemsUsd = returnValueUsd * paidRatioUsd;
+    const paidForReturnedItemsVnd = returnValueVnd * paidRatioVnd;
     
     let actualRefundUsd = 0;
     let actualRefundVnd = 0;
@@ -699,27 +781,32 @@ function updateSummary() {
     if (type === 'exchange') {
         let exchangeQty = 0;
         let totalExchangeVnd = 0;
+        let totalExchangeUsd = 0;
         
         exchangeProducts.forEach(product => {
             exchangeQty += product.quantity;
             const finalPrice = product.price * (1 - (product.discount || 0) / 100);
-            totalExchangeVnd += product.quantity * finalPrice;
+            const finalPriceUsd = (product.priceUsd || 0) * (1 - (product.discount || 0) / 100);
+
+            if (product.isUsd) {
+                totalExchangeUsd += product.quantity * finalPriceUsd;
+            } else {
+                totalExchangeVnd += product.quantity * finalPrice;
+            }
         });
         
-        const totalExchangeUsd = totalExchangeVnd / exchangeRate;
-        
-        // Tính chênh lệch giữa giá SP mới và số tiền đã trả cho SP cũ (USD)
+        // Calculate differences based on their respective currencies
         const differenceUsd = totalExchangeUsd - paidForReturnedItemsUsd;
-        const differenceVnd = differenceUsd * exchangeRate;
+        const differenceVnd = totalExchangeVnd - paidForReturnedItemsVnd;
         
-        if (differenceUsd > 0) {
-            // Khách trả thêm
-            exchangeAmountUsd = differenceUsd;
-            exchangeAmountVnd = differenceVnd;
+        if (differenceUsd > 0 || differenceVnd > 0) {
+            // Khách trả thêm (if either currency has a positive difference)
+            exchangeAmountUsd = differenceUsd > 0 ? differenceUsd : 0;
+            exchangeAmountVnd = differenceVnd > 0 ? differenceVnd : 0;
             actualRefundUsd = 0;
             actualRefundVnd = 0;
         } else {
-            // Hoàn lại khách
+            // Hoàn lại khách (if both currencies have negative or zero difference)
             exchangeAmountUsd = 0;
             exchangeAmountVnd = 0;
             actualRefundUsd = Math.abs(differenceUsd);
@@ -728,22 +815,53 @@ function updateSummary() {
         
         document.getElementById('exchange-summary').classList.remove('hidden');
         document.getElementById('summary-exchange-qty').textContent = exchangeQty;
-        document.getElementById('summary-exchange-amount-usd').textContent = '$' + totalExchangeUsd.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2});
-        document.getElementById('summary-exchange-amount-vnd').textContent = '≈ ' + totalExchangeVnd.toLocaleString('vi-VN') + 'đ';
+        
+        // Display exchange amount (USD and VND separately)
+        let totalExchangeHtml = '';
+        if (totalExchangeUsd > 0 && totalExchangeVnd > 0) {
+            totalExchangeHtml = '<div class="font-bold text-blue-600">USD: $' + totalExchangeUsd.toLocaleString('en-US', {minimumFractionDigits: 2}) + '</div>' +
+                                '<div class="font-bold text-blue-600">VND: ' + totalExchangeVnd.toLocaleString('vi-VN') + 'đ</div>';
+        } else if (totalExchangeUsd > 0) {
+            totalExchangeHtml = '<div class="font-bold text-blue-600">$' + totalExchangeUsd.toLocaleString('en-US', {minimumFractionDigits: 2}) + '</div>';
+        } else if (totalExchangeVnd > 0) {
+            totalExchangeHtml = '<div class="font-bold text-blue-600">' + totalExchangeVnd.toLocaleString('vi-VN') + 'đ</div>';
+        } else {
+            totalExchangeHtml = '<div class="font-bold text-blue-600">$0.00</div>';
+        }
+        document.getElementById('summary-exchange-amount-usd').innerHTML = totalExchangeHtml;
         
         // Update difference display
-        if (actualRefundUsd > 0) {
+        let differenceHtml = '';
+        if (actualRefundUsd > 0 || actualRefundVnd > 0) {
+            // Hoàn lại khách
             document.getElementById('summary-difference-usd').className = 'font-bold text-sm text-green-600';
-            document.getElementById('summary-difference-usd').textContent = '$' + actualRefundUsd.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2}) + ' (Hoàn lại)';
-            document.getElementById('summary-difference-vnd').textContent = '≈ ' + actualRefundVnd.toLocaleString('vi-VN') + 'đ';
-        } else if (exchangeAmountUsd > 0) {
+            if (actualRefundUsd > 0 && actualRefundVnd > 0) {
+                differenceHtml = '<div>USD: $' + actualRefundUsd.toLocaleString('en-US', {minimumFractionDigits: 2}) + '</div>' +
+                                 '<div>VND: ' + actualRefundVnd.toLocaleString('vi-VN') + 'đ</div>';
+            } else if (actualRefundUsd > 0) {
+                differenceHtml = '$' + actualRefundUsd.toLocaleString('en-US', {minimumFractionDigits: 2}) + ' (Hoàn lại)';
+            } else {
+                differenceHtml = actualRefundVnd.toLocaleString('vi-VN') + 'đ (Hoàn lại)';
+            }
+        } else if (exchangeAmountUsd > 0 || exchangeAmountVnd > 0) {
+            // Khách trả thêm
             document.getElementById('summary-difference-usd').className = 'font-bold text-sm text-red-600';
-            document.getElementById('summary-difference-usd').textContent = '+$' + exchangeAmountUsd.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2}) + ' (Khách trả thêm)';
-            document.getElementById('summary-difference-vnd').textContent = '≈ ' + exchangeAmountVnd.toLocaleString('vi-VN') + 'đ';
+            if (exchangeAmountUsd > 0 && exchangeAmountVnd > 0) {
+                differenceHtml = '<div>USD: +$' + exchangeAmountUsd.toLocaleString('en-US', {minimumFractionDigits: 2}) + '</div>' +
+                                 '<div>VND: +' + exchangeAmountVnd.toLocaleString('vi-VN') + 'đ</div>';
+            } else if (exchangeAmountUsd > 0) {
+                differenceHtml = '+$' + exchangeAmountUsd.toLocaleString('en-US', {minimumFractionDigits: 2}) + ' (Khách trả thêm)';
+            } else {
+                differenceHtml = '+' + exchangeAmountVnd.toLocaleString('vi-VN') + 'đ (Khách trả thêm)';
+            }
         } else {
+            // Ngang giá
             document.getElementById('summary-difference-usd').className = 'font-bold text-sm text-gray-600';
-            document.getElementById('summary-difference-usd').textContent = '$0.00 (Ngang giá)';
-            document.getElementById('summary-difference-vnd').textContent = '≈ 0đ';
+            differenceHtml = '$0.00 / 0đ (Ngang giá)';
+        }
+        document.getElementById('summary-difference-usd').innerHTML = differenceHtml;
+        if (document.getElementById('summary-difference-vnd')) {
+            document.getElementById('summary-difference-vnd').textContent = '';
         }
     } else {
         // Trả hàng thuần túy: Hoàn số tiền đã trả cho SP này
@@ -752,21 +870,52 @@ function updateSummary() {
         document.getElementById('exchange-summary').classList.add('hidden');
     }
     
-    // Update summary display
+    // Update summary display (RIÊNG USD và VND)
     document.getElementById('summary-return-qty').textContent = returnQty;
-    document.getElementById('summary-return-value-usd').textContent = '$' + returnValueUsd.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2});
-    document.getElementById('summary-return-value-vnd').textContent = '≈ ' + returnValueVnd.toLocaleString('vi-VN') + 'đ';
-    document.getElementById('summary-return-amount-usd').textContent = '$' + actualRefundUsd.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2});
-    document.getElementById('summary-return-amount-vnd').textContent = '≈ ' + actualRefundVnd.toLocaleString('vi-VN') + 'đ';
+    
+    // Hiển thị giá trị SP trả (riêng USD và VND)
+    let returnValueHtml = '';
+    if (returnValueUsd > 0 && returnValueVnd > 0) {
+        returnValueHtml = '<div class="font-bold text-blue-600">USD: $' + returnValueUsd.toLocaleString('en-US', {minimumFractionDigits: 2}) + '</div>' +
+                         '<div class="font-bold text-blue-600">VND: ' + returnValueVnd.toLocaleString('vi-VN') + 'đ</div>';
+    } else if (returnValueUsd > 0) {
+        returnValueHtml = '<div class="font-bold text-blue-600">$' + returnValueUsd.toLocaleString('en-US', {minimumFractionDigits: 2}) + '</div>';
+    } else if (returnValueVnd > 0) {
+        returnValueHtml = '<div class="font-bold text-blue-600">' + returnValueVnd.toLocaleString('vi-VN') + 'đ</div>';
+    } else {
+        returnValueHtml = '<div class="font-bold text-blue-600">$0.00</div>';
+    }
+    document.getElementById('summary-return-value-usd').innerHTML = returnValueHtml;
+    if (document.getElementById('summary-return-value-vnd')) {
+        document.getElementById('summary-return-value-vnd').textContent = '';
+    }
+    
+    // Hiển thị số tiền đã trả (riêng USD và VND)
+    let paidAmountHtml = '';
+    if (paidForReturnedItemsUsd > 0 && paidForReturnedItemsVnd > 0) {
+        paidAmountHtml = '<div class="font-bold text-green-600">USD: $' + paidForReturnedItemsUsd.toLocaleString('en-US', {minimumFractionDigits: 2}) + '</div>' +
+                        '<div class="font-bold text-green-600">VND: ' + paidForReturnedItemsVnd.toLocaleString('vi-VN') + 'đ</div>';
+    } else if (paidForReturnedItemsUsd > 0) {
+        paidAmountHtml = '<div class="font-bold text-green-600">$' + paidForReturnedItemsUsd.toLocaleString('en-US', {minimumFractionDigits: 2}) + '</div>';
+    } else if (paidForReturnedItemsVnd > 0) {
+        paidAmountHtml = '<div class="font-bold text-green-600">' + paidForReturnedItemsVnd.toLocaleString('vi-VN') + 'đ</div>';
+    } else {
+        paidAmountHtml = '<div class="font-bold text-green-600">$0.00</div>';
+    }
+    document.getElementById('summary-return-amount-usd').innerHTML = paidAmountHtml;
+    if (document.getElementById('summary-return-amount-vnd')) {
+        document.getElementById('summary-return-amount-vnd').textContent = '';
+    }
     
     // Update refund note
-    const paidPercent = (paidRatio * 100).toFixed(1);
+    const paidPercentUsd = (paidRatioUsd * 100).toFixed(1);
+    const paidPercentVnd = (paidRatioVnd * 100).toFixed(1);
     if (type === 'exchange') {
-        if (actualRefundUsd > 0) {
-            document.getElementById('refund-note').textContent = `Hoàn $${actualRefundUsd.toLocaleString('en-US', {minimumFractionDigits: 2})} (Đã trả ${paidPercent}%)`;
+        if (actualRefundUsd > 0 || actualRefundVnd > 0) {
+            document.getElementById('refund-note').textContent = 'Hoàn lại khách';
             document.getElementById('refund-note').className = 'text-xs text-green-600 italic font-medium';
-        } else if (exchangeAmountUsd > 0) {
-            document.getElementById('refund-note').textContent = `Khách trả thêm $${exchangeAmountUsd.toLocaleString('en-US', {minimumFractionDigits: 2})} (Chênh lệch)`;
+        } else if (exchangeAmountUsd > 0 || exchangeAmountVnd > 0) {
+            document.getElementById('refund-note').textContent = 'Khách trả thêm (Chênh lệch)';
             document.getElementById('refund-note').className = 'text-xs text-blue-600 italic font-medium';
         } else {
             document.getElementById('refund-note').textContent = 'Ngang giá';
@@ -774,22 +923,30 @@ function updateSummary() {
         }
     } else {
         if (actualRefundUsd > 0) {
-            document.getElementById('refund-note').textContent = `Hoàn $${actualRefundUsd.toLocaleString('en-US', {minimumFractionDigits: 2})} (Đã trả ${paidPercent}% × $${returnValueUsd.toLocaleString('en-US', {minimumFractionDigits: 2})})`;
+            document.getElementById('refund-note').textContent = `Hoàn $${actualRefundUsd.toLocaleString('en-US', {minimumFractionDigits: 2})} (Đã trả ${paidPercentUsd}% × $${returnValueUsd.toLocaleString('en-US', {minimumFractionDigits: 2})})`;
             document.getElementById('refund-note').className = 'text-xs text-green-600 italic font-medium';
         } else {
-            document.getElementById('refund-note').textContent = 'Chưa thanh toán trước đó';
-            document.getElementById('refund-note').className = 'text-xs text-gray-500 italic';
+            document.getElementById('refund-note').textContent = '';
+            document.getElementById('refund-note').className = 'text-xs text-gray-500 italic hidden';
         }
     }
     
-    // Hiển thị payment section nếu đổi hàng và khách phải trả thêm
+    // Hiển thị payment section nếu đổi hàng VÀ khách phải trả thêm (USD hoặc VND)
     const paymentSection = document.getElementById('payment-section');
-    if (type === 'exchange' && exchangeAmountUsd > 0) {
+    if (type === 'exchange' && (exchangeAmountUsd > 0 || exchangeAmountVnd > 0)) {
         paymentSection.classList.remove('hidden');
         
-        // Update payment due display
-        document.getElementById('payment-due-usd').textContent = '$' + exchangeAmountUsd.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2});
-        document.getElementById('payment-due-vnd').textContent = exchangeAmountVnd.toLocaleString('vi-VN') + 'đ';
+        // Update payment due display - Hiển thị riêng USD và VND
+        let dueHtml = '';
+        if (exchangeAmountUsd > 0 && exchangeAmountVnd > 0) {
+            dueHtml = '<div class="text-lg font-bold text-red-600">$' + exchangeAmountUsd.toLocaleString('en-US', {minimumFractionDigits: 2}) + '</div>' +
+                      '<div class="text-lg font-bold text-red-600">' + exchangeAmountVnd.toLocaleString('vi-VN') + 'đ</div>';
+        } else if (exchangeAmountUsd > 0) {
+            dueHtml = '<div class="text-lg font-bold text-red-600">$' + exchangeAmountUsd.toLocaleString('en-US', {minimumFractionDigits: 2}) + '</div>';
+        } else {
+            dueHtml = '<div class="text-lg font-bold text-red-600">' + exchangeAmountVnd.toLocaleString('vi-VN') + 'đ</div>';
+        }
+        document.getElementById('payment-due-display').innerHTML = dueHtml;
         
         // Store the due amount for calculation reference
         paymentSection.dataset.dueUsd = exchangeAmountUsd;
@@ -797,6 +954,7 @@ function updateSummary() {
         
         // Update original exchange rate display
         document.getElementById('original-exchange-rate').textContent = exchangeRate.toLocaleString('vi-VN');
+        document.getElementById('payment-exchange-rate').value = exchangeRate.toLocaleString('en-US');
         
         // Call calculation update
         updatePaymentCalculations();
@@ -806,15 +964,96 @@ function updateSummary() {
 }
 
 function updatePaymentCalculations() {
-    const exchangeRate = parseFloat(document.getElementById('payment-exchange-rate').value.replace(/,/g, '')) || 25000;
-    const usdAmount = parseFloat(document.getElementById('payment-usd').value.replace(/,/g, '')) || 0;
-    const vndAmount = parseFloat(document.getElementById('payment-vnd').value.replace(/,/g, '')) || 0;
+    const paymentSection = document.getElementById('payment-section');
+    const dueUsd = parseFloat(paymentSection.dataset.dueUsd || 0);
+    const dueVnd = parseFloat(paymentSection.dataset.dueVnd || 0);
     
-    const convertedUsd = usdAmount + (vndAmount / exchangeRate);
-    const convertedVnd = (usdAmount * exchangeRate) + vndAmount;
+    // Lấy tỷ giá từ input, fallback về tỷ giá hóa đơn gốc
+    const originalRate = saleData ? parseFloat(saleData.exchange_rate || 0) : 0;
+    const exchangeRate = parseFloat(document.getElementById('payment-exchange-rate').value.replace(/,/g, '')) || originalRate || 1;
+    const usdAmount = parseFloat(document.getElementById('payment-usd').value.replace(/[^\d.]/g, '')) || 0;
+    const vndAmount = parseFloat(document.getElementById('payment-vnd').value.replace(/[^\d]/g, '')) || 0;
     
-    document.getElementById('total-converted-usd').textContent = '$' + convertedUsd.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2});
-    document.getElementById('total-converted-vnd').textContent = convertedVnd.toLocaleString('vi-VN') + 'đ';
+    const totalUsdDisplay = document.getElementById('total-converted-usd');
+    const totalVndDisplay = document.getElementById('total-converted-vnd');
+    const warningDiv = document.getElementById('payment-warning');
+    const exchangeRateSection = document.getElementById('exchange-rate-section');
+    
+    // Xác định loại nợ
+    const isUsdOnly = dueUsd > 0 && dueVnd == 0;
+    const isVndOnly = dueVnd > 0 && dueUsd == 0;
+    const isMixed = dueUsd > 0 && dueVnd > 0;
+    
+    // Reset warning
+    warningDiv.classList.add('hidden');
+    warningDiv.className = 'mt-2 text-xs p-2 rounded';
+    
+    // Kiểm tra thanh toán chéo để hiện/ẩn tỷ giá
+    let needExchangeRate = false;
+    if (isUsdOnly && vndAmount > 0) needExchangeRate = true;
+    if (isVndOnly && usdAmount > 0) needExchangeRate = true;
+    if (isMixed) needExchangeRate = true;
+    
+    if (needExchangeRate) {
+        exchangeRateSection.classList.remove('hidden');
+    } else {
+        exchangeRateSection.classList.add('hidden');
+    }
+    
+    // Tính toán và hiển thị theo quy tắc giống debt
+    if (isUsdOnly) {
+        // Nợ USD only
+        if (usdAmount > 0 && vndAmount == 0) {
+            // Trả USD → Trả thẳng, không quy đổi
+            totalUsdDisplay.textContent = '$' + usdAmount.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2});
+            totalVndDisplay.textContent = '-';
+        } else if (vndAmount > 0 && usdAmount == 0) {
+            // Trả VND → Quy đổi sang USD (thanh toán chéo)
+            const convertedUsd = exchangeRate > 0 ? (vndAmount / exchangeRate) : 0;
+            totalUsdDisplay.textContent = '$' + convertedUsd.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2});
+            totalVndDisplay.textContent = vndAmount.toLocaleString('vi-VN') + 'đ (quy đổi)';
+            // Cảnh báo thanh toán chéo
+            warningDiv.className += ' text-blue-600 bg-blue-100 border border-blue-300';
+            warningDiv.innerHTML = '<i class="fas fa-info-circle mr-1"></i> Thanh toán chéo: Nợ USD, trả VND. Tỷ giá: ' + exchangeRate.toLocaleString('vi-VN') + ' VND/USD';
+            warningDiv.classList.remove('hidden');
+        } else if (usdAmount > 0 && vndAmount > 0) {
+            // Trả cả hai
+            const totalUsd = usdAmount + (exchangeRate > 0 ? (vndAmount / exchangeRate) : 0);
+            totalUsdDisplay.textContent = '$' + totalUsd.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2});
+            totalVndDisplay.textContent = vndAmount.toLocaleString('vi-VN') + 'đ (+ $' + usdAmount.toFixed(2) + ')';
+        } else {
+            totalUsdDisplay.textContent = '$0.00';
+            totalVndDisplay.textContent = '-';
+        }
+    } else if (isVndOnly) {
+        // Nợ VND only
+        if (vndAmount > 0 && usdAmount == 0) {
+            // Trả VND → Trả thẳng, không quy đổi
+            totalUsdDisplay.textContent = '-';
+            totalVndDisplay.textContent = vndAmount.toLocaleString('vi-VN') + 'đ';
+        } else if (usdAmount > 0 && vndAmount == 0) {
+            // Trả USD → Quy đổi sang VND (thanh toán chéo)
+            const convertedVnd = usdAmount * exchangeRate;
+            totalUsdDisplay.textContent = '$' + usdAmount.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2}) + ' (quy đổi)';
+            totalVndDisplay.textContent = convertedVnd.toLocaleString('vi-VN') + 'đ';
+            // Cảnh báo thanh toán chéo
+            warningDiv.className += ' text-blue-600 bg-blue-100 border border-blue-300';
+            warningDiv.innerHTML = '<i class="fas fa-info-circle mr-1"></i> Thanh toán chéo: Nợ VND, trả USD. Tỷ giá: ' + exchangeRate.toLocaleString('vi-VN') + ' VND/USD';
+            warningDiv.classList.remove('hidden');
+        } else if (usdAmount > 0 && vndAmount > 0) {
+            // Trả cả hai
+            const totalVnd = vndAmount + (usdAmount * exchangeRate);
+            totalUsdDisplay.textContent = '$' + usdAmount.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2}) + ' (+ ' + vndAmount.toLocaleString('vi-VN') + 'đ)';
+            totalVndDisplay.textContent = totalVnd.toLocaleString('vi-VN') + 'đ';
+        } else {
+            totalUsdDisplay.textContent = '-';
+            totalVndDisplay.textContent = '0đ';
+        }
+    } else {
+        // Nợ hỗn hợp - hiển thị cả hai
+        totalUsdDisplay.textContent = '$' + usdAmount.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2});
+        totalVndDisplay.textContent = vndAmount.toLocaleString('vi-VN') + 'đ';
+    }
 }
 
 function formatNumber(input) {
@@ -962,3 +1201,6 @@ document.addEventListener('keydown', function(event) {
         <p id="modalImageTitle" class="text-white text-center mt-4 text-lg"></p>
     </div>
 </div>
+
+
+

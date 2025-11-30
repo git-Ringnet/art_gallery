@@ -9,6 +9,14 @@ class Sale extends Model
 {
     use HasFactory;
 
+    // Thêm các accessor vào JSON output
+    protected $appends = [
+        'paid_usd',
+        'paid_vnd',
+        'debt_usd',
+        'debt_vnd',
+    ];
+
     protected $fillable = [
         'year',
         'invoice_code',
