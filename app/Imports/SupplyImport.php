@@ -31,10 +31,39 @@ class SupplyImport implements ToModel, WithHeadingRow, WithValidation, SkipsOnEr
             // Normalize row keys
             $normalizedRow = $this->normalizeRow($row);
             
-            // Skip if code is empty
-            if (empty($normalizedRow['ma_vat_tu'])) {
+            // Clean and validate code
+            $code = $normalizedRow['ma_vat_tu'] ?? '';
+            $code = $this->cleanDuplicateText($code);
+            $code = preg_replace('/\s+/', ' ', $code);
+            $code = trim($code);
+            
+            if (empty($code)) {
                 $this->skippedCount++;
                 $this->errors[] = "Dòng bị bỏ qua: Thiếu mã vật tư";
+                return null;
+            }
+            
+            // Validate and clean other fields
+            $name = $normalizedRow['ten_vat_tu'] ?? '';
+            $name = $this->cleanDuplicateText($name);
+            $name = trim($name);
+            
+            if (empty($name)) {
+                $this->skippedCount++;
+                $this->errors[] = "Dòng mã '{$code}': Thiếu tên vật tư";
+                return null;
+            }
+            
+            // Validate field lengths
+            if (mb_strlen($code) > 50) {
+                $this->skippedCount++;
+                $this->errors[] = "Dòng mã '{$code}': Mã vật tư quá dài (tối đa 50 ký tự)";
+                return null;
+            }
+            
+            if (mb_strlen($name) > 255) {
+                $this->skippedCount++;
+                $this->errors[] = "Dòng mã '{$code}': Tên vật tư quá dài (tối đa 255 ký tự)";
                 return null;
             }
 
@@ -42,8 +71,8 @@ class SupplyImport implements ToModel, WithHeadingRow, WithValidation, SkipsOnEr
             $treeCount = !empty($normalizedRow['so_luong_cay']) ? (int)$normalizedRow['so_luong_cay'] : 1;
 
             // Check if supply with same code, name, and length exists
-            $existingSupply = Supply::where('code', $normalizedRow['ma_vat_tu'])
-                ->where('name', $normalizedRow['ten_vat_tu'])
+            $existingSupply = Supply::where('code', $code)
+                ->where('name', $name)
                 ->where('quantity', $lengthPerTree)
                 ->first();
 
@@ -56,9 +85,9 @@ class SupplyImport implements ToModel, WithHeadingRow, WithValidation, SkipsOnEr
             }
 
             // Check if code exists with different specs
-            if (Supply::where('code', $normalizedRow['ma_vat_tu'])->exists()) {
+            if (Supply::where('code', $code)->exists()) {
                 $this->skippedCount++;
-                $this->errors[] = "Mã vật tư '{$normalizedRow['ma_vat_tu']}' đã tồn tại với thông số khác";
+                $this->errors[] = "Mã vật tư '{$code}' đã tồn tại với thông số khác";
                 return null;
             }
 
@@ -70,13 +99,13 @@ class SupplyImport implements ToModel, WithHeadingRow, WithValidation, SkipsOnEr
             $imagePath = null;
             
             // Normalize code for comparison
-            $normalizedCode = $this->normalizeWhitespace($normalizedRow['ma_vat_tu']);
+            $normalizedCode = $this->normalizeWhitespace($code);
             
             // Try exact match first
-            if (isset($this->uploadedImages[$normalizedRow['ma_vat_tu']])) {
-                $imagePath = $this->uploadedImages[$normalizedRow['ma_vat_tu']];
+            if (isset($this->uploadedImages[$code])) {
+                $imagePath = $this->uploadedImages[$code];
                 Log::info('Found supply image by exact match', [
-                    'code' => $normalizedRow['ma_vat_tu'],
+                    'code' => $code,
                     'path' => $imagePath
                 ]);
             }
@@ -84,7 +113,7 @@ class SupplyImport implements ToModel, WithHeadingRow, WithValidation, SkipsOnEr
             elseif (isset($this->uploadedImages[$normalizedCode])) {
                 $imagePath = $this->uploadedImages[$normalizedCode];
                 Log::info('Found supply image by normalized exact match', [
-                    'code' => $normalizedRow['ma_vat_tu'],
+                    'code' => $code,
                     'normalized' => $normalizedCode,
                     'path' => $imagePath
                 ]);
@@ -99,7 +128,7 @@ class SupplyImport implements ToModel, WithHeadingRow, WithValidation, SkipsOnEr
                     if (stripos($normalizedFilename, $normalizedCode) === 0) {
                         $imagePath = $path;
                         Log::info('Found supply image by normalized prefix match', [
-                            'code' => $normalizedRow['ma_vat_tu'],
+                            'code' => $code,
                             'normalized_code' => $normalizedCode,
                             'filename' => $filename,
                             'normalized_filename' => $normalizedFilename,
@@ -113,27 +142,54 @@ class SupplyImport implements ToModel, WithHeadingRow, WithValidation, SkipsOnEr
             // If still no image, try path from Excel
             if (!$imagePath && !empty($normalizedRow['duong_dan_hinh_anh'])) {
                 // Try to copy image from the path specified in Excel
-                $imagePath = $this->copyImageFromPath($normalizedRow['duong_dan_hinh_anh'], $normalizedRow['ma_vat_tu']);
+                $imagePath = $this->copyImageFromPath($normalizedRow['duong_dan_hinh_anh'], $code);
             }
             
             if ($imagePath) {
-                Log::info('Using supply image', ['code' => $normalizedRow['ma_vat_tu'], 'path' => $imagePath]);
+                Log::info('Using supply image', ['code' => $code, 'path' => $imagePath]);
+            }
+            
+            // Clean notes
+            $notes = $normalizedRow['ghi_chu'] ?? null;
+            if ($notes) {
+                $notes = $this->cleanDuplicateText($notes);
+                $notes = trim($notes);
+                if (mb_strlen($notes) > 1000) {
+                    $notes = mb_substr($notes, 0, 1000);
+                }
             }
 
             return new Supply([
-                'code' => $normalizedRow['ma_vat_tu'],
-                'name' => $normalizedRow['ten_vat_tu'] ?? '',
+                'code' => $code,
+                'name' => $name,
                 'type' => $this->mapType($normalizedRow['loai'] ?? 'other'),
                 'unit' => $normalizedRow['don_vi'] ?? 'cm',
                 'quantity' => $lengthPerTree,
                 'tree_count' => $treeCount,
                 'min_quantity' => !empty($normalizedRow['ton_kho_toi_thieu']) ? (float)$normalizedRow['ton_kho_toi_thieu'] : 0,
-                'notes' => $normalizedRow['ghi_chu'] ?? null,
+                'notes' => $notes,
                 'image' => $imagePath,
             ]);
+        } catch (\Illuminate\Database\QueryException $e) {
+            $this->skippedCount++;
+            $code = $code ?? 'unknown';
+            // User-friendly error message without SQL details
+            if (str_contains($e->getMessage(), 'Duplicate entry')) {
+                $this->errors[] = "Dòng mã '{$code}': Mã vật tư đã tồn tại trong hệ thống";
+            } elseif (str_contains($e->getMessage(), 'Data too long')) {
+                $this->errors[] = "Dòng mã '{$code}': Dữ liệu quá dài (vui lòng kiểm tra lại tên, ghi chú)";
+            } else {
+                $this->errors[] = "Dòng mã '{$code}': Lỗi cơ sở dữ liệu - vui lòng kiểm tra lại dữ liệu";
+            }
+            Log::error('Database error importing supply', [
+                'row' => $row,
+                'error' => $e->getMessage(),
+                'code' => $code
+            ]);
+            return null;
         } catch (\Exception $e) {
             $this->skippedCount++;
-            $code = isset($normalizedRow['ma_vat_tu']) ? $normalizedRow['ma_vat_tu'] : 'unknown';
+            $code = $code ?? 'unknown';
             $this->errors[] = "Lỗi dòng mã '{$code}': " . $e->getMessage();
             Log::error('Import supply error', ['row' => $row, 'error' => $e->getMessage()]);
             return null;
@@ -171,6 +227,41 @@ class SupplyImport implements ToModel, WithHeadingRow, WithValidation, SkipsOnEr
     }
 
     /**
+     * Clean duplicate text patterns
+     * Example: "Vật tư 1Vật tư 1Vật tư 1" -> "Vật tư 1"
+     * 
+     * @param string $text
+     * @return string
+     */
+    protected function cleanDuplicateText($text)
+    {
+        if (empty($text)) {
+            return $text;
+        }
+        
+        $text = trim($text);
+        $originalLength = mb_strlen($text);
+        
+        // Try to detect repeating patterns
+        // Check if text is repeated 2+ times
+        for ($len = 1; $len <= mb_strlen($text) / 2; $len++) {
+            $pattern = mb_substr($text, 0, $len);
+            $repeated = str_repeat($pattern, (int)(mb_strlen($text) / $len));
+            
+            if ($repeated === $text) {
+                Log::info('Detected repeated pattern in supply', [
+                    'original' => $text,
+                    'pattern' => $pattern,
+                    'times' => (int)(mb_strlen($text) / $len)
+                ]);
+                return $pattern;
+            }
+        }
+        
+        return $text;
+    }
+
+    /**
      * Normalize whitespace in a string
      * Converts multiple spaces to single space and trims
      * 
@@ -188,32 +279,6 @@ class SupplyImport implements ToModel, WithHeadingRow, WithValidation, SkipsOnEr
         
         // Trim leading/trailing spaces
         return trim($text);
-    }
-
-    public function rules(): array
-    {
-        return [
-            'ma_vat_tu' => 'required|string|max:50',
-            'ten_vat_tu' => 'required|string|max:255',
-            'loai' => 'required|string',
-            'don_vi' => 'required|string|max:20',
-            'chieu_dai_moi_cay_cm' => 'required|numeric|min:0',
-            'so_luong_cay' => 'required|integer|min:1',
-        ];
-    }
-
-    protected function mapType($type)
-    {
-        $typeMap = [
-            'khung tranh' => 'frame',
-            'khung' => 'frame',
-            'frame' => 'frame',
-            'canvas' => 'canvas',
-            'khác' => 'other',
-            'other' => 'other',
-        ];
-
-        return $typeMap[strtolower($type)] ?? 'other';
     }
 
     /**
@@ -339,6 +404,32 @@ class SupplyImport implements ToModel, WithHeadingRow, WithValidation, SkipsOnEr
         }
         
         return null;
+    }
+
+    public function rules(): array
+    {
+        return [
+            'ma_vat_tu' => 'required|string|max:50',
+            'ten_vat_tu' => 'required|string|max:255',
+            'loai' => 'required|string',
+            'don_vi' => 'required|string|max:20',
+            'chieu_dai_moi_cay_cm' => 'required|numeric|min:0',
+            'so_luong_cay' => 'required|integer|min:1',
+        ];
+    }
+
+    protected function mapType($type)
+    {
+        $typeMap = [
+            'khung tranh' => 'frame',
+            'khung' => 'frame',
+            'frame' => 'frame',
+            'canvas' => 'canvas',
+            'khác' => 'other',
+            'other' => 'other',
+        ];
+
+        return $typeMap[strtolower($type)] ?? 'other';
     }
 
     public function getImportedCount()
