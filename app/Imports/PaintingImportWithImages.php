@@ -44,6 +44,9 @@ class PaintingImportWithImages implements ToCollection
                 }
                 
                 $code = isset($row[0]) ? trim((string)$row[0]) : null;
+                // Clean code: remove extra spaces
+                $code = preg_replace('/\s+/', ' ', $code);
+                $code = trim($code);
                 
                 if (empty($code)) {
                     continue;
@@ -56,14 +59,26 @@ class PaintingImportWithImages implements ToCollection
                     continue;
                 }
                 
-                // Validate required fields
+                // Validate required fields and clean data
                 $name = isset($row[1]) ? trim((string)$row[1]) : '';
                 $artist = isset($row[2]) ? trim((string)$row[2]) : '';
                 $material = isset($row[3]) ? trim((string)$row[3]) : '';
                 
+                // Clean duplicate text (e.g., "Tranh mẫu 1Tranh mẫu 1" -> "Tranh mẫu 1")
+                $name = $this->cleanDuplicateText($name);
+                $artist = $this->cleanDuplicateText($artist);
+                $material = $this->cleanDuplicateText($material);
+                
+                // Validate and truncate if too long
                 if (empty($name)) {
                     $this->skippedCount++;
                     $this->errors[] = "Dòng {$excelRow}: Thiếu tên tranh";
+                    continue;
+                }
+                
+                if (mb_strlen($name) > 500) {
+                    $this->skippedCount++;
+                    $this->errors[] = "Dòng {$excelRow}: Tên tranh quá dài (tối đa 500 ký tự, hiện tại: " . mb_strlen($name) . " ký tự)";
                     continue;
                 }
                 
@@ -73,25 +88,69 @@ class PaintingImportWithImages implements ToCollection
                     continue;
                 }
                 
+                if (mb_strlen($artist) > 255) {
+                    $artist = mb_substr($artist, 0, 255);
+                    Log::warning("Artist name truncated", ['row' => $excelRow, 'original_length' => mb_strlen($artist)]);
+                }
+                
                 if (empty($material)) {
                     $this->skippedCount++;
                     $this->errors[] = "Dòng {$excelRow}: Thiếu chất liệu";
                     continue;
                 }
+                
+                if (mb_strlen($material) > 100) {
+                    $material = mb_substr($material, 0, 100);
+                }
 
                 // Get image for this row - Priority order:
-                // 1. Uploaded images (by code)
+                // 1. Uploaded images (by code - exact match or starts with)
                 // 2. Embedded images (by row)
                 // 3. Image path from Excel column (index 11)
                 $imagePath = null;
                 
+                // Normalize code for comparison (remove extra spaces)
+                $normalizedCode = $this->normalizeWhitespace($code);
+                
+                // Try exact match first
                 if (isset($this->uploadedImages[$code])) {
                     $imagePath = $this->uploadedImages[$code];
+                    Log::info('Found image by exact match', ['code' => $code, 'path' => $imagePath]);
                 }
-                elseif (isset($this->excelImages[$excelRow])) {
+                // Try exact match with normalized code
+                elseif (isset($this->uploadedImages[$normalizedCode])) {
+                    $imagePath = $this->uploadedImages[$normalizedCode];
+                    Log::info('Found image by normalized exact match', ['code' => $code, 'normalized' => $normalizedCode, 'path' => $imagePath]);
+                }
+                // Try prefix match (e.g., "DMH 470" matches "DMH 470_80x80cm_1700$_resize")
+                else {
+                    foreach ($this->uploadedImages as $filename => $path) {
+                        // Normalize filename for comparison
+                        $normalizedFilename = $this->normalizeWhitespace($filename);
+                        
+                        // Check if normalized filename starts with normalized code
+                        if (stripos($normalizedFilename, $normalizedCode) === 0) {
+                            $imagePath = $path;
+                            Log::info('Found image by normalized prefix match', [
+                                'code' => $code,
+                                'normalized_code' => $normalizedCode,
+                                'filename' => $filename,
+                                'normalized_filename' => $normalizedFilename,
+                                'path' => $imagePath
+                            ]);
+                            break;
+                        }
+                    }
+                }
+                
+                // If still no image, try embedded images
+                if (!$imagePath && isset($this->excelImages[$excelRow])) {
                     $imagePath = $this->excelImages[$excelRow];
+                    Log::info('Using embedded image', ['row' => $excelRow, 'path' => $imagePath]);
                 }
-                elseif (isset($row[11]) && !empty(trim((string)$row[11]))) {
+                
+                // If still no image, try path from Excel
+                if (!$imagePath && isset($row[11]) && !empty(trim((string)$row[11]))) {
                     // Try to copy image from the path specified in Excel
                     $imagePath = $this->copyImageFromPath(trim((string)$row[11]), $code);
                 }
@@ -116,6 +175,12 @@ class PaintingImportWithImages implements ToCollection
                 if (isset($row[8]) && !empty($row[8])) {
                     $priceVnd = is_numeric($row[8]) ? (float)$row[8] : null;
                 }
+                
+                // Clean notes
+                $notes = isset($row[12]) ? trim((string)$row[12]) : null;
+                if ($notes && mb_strlen($notes) > 1000) {
+                    $notes = mb_substr($notes, 0, 1000);
+                }
 
                 // Create painting
                 $painting = Painting::create([
@@ -132,7 +197,7 @@ class PaintingImportWithImages implements ToCollection
                     'quantity' => 1,
                     'import_date' => !empty($row[9]) ? $this->parseDate($row[9]) : now(),
                     'export_date' => !empty($row[10]) ? $this->parseDate($row[10]) : null,
-                    'notes' => $row[12] ?? null,
+                    'notes' => $notes,
                     'status' => 'in_stock',
                 ]);
 
@@ -143,10 +208,24 @@ class PaintingImportWithImages implements ToCollection
                     'name' => $name
                 ]);
 
+            } catch (\Illuminate\Database\QueryException $e) {
+                $this->skippedCount++;
+                // User-friendly error message without SQL details
+                if (str_contains($e->getMessage(), 'Duplicate entry')) {
+                    $this->errors[] = "Dòng {$excelRow}: Mã tranh đã tồn tại trong hệ thống";
+                } elseif (str_contains($e->getMessage(), 'Data too long')) {
+                    $this->errors[] = "Dòng {$excelRow}: Dữ liệu quá dài (vui lòng kiểm tra lại tên tranh, họa sĩ)";
+                } else {
+                    $this->errors[] = "Dòng {$excelRow}: Lỗi cơ sở dữ liệu - vui lòng kiểm tra lại dữ liệu";
+                }
+                Log::error('Database error importing row', [
+                    'row' => $excelRow,
+                    'error' => $e->getMessage(),
+                    'code' => $code ?? 'unknown'
+                ]);
             } catch (\Exception $e) {
                 $this->skippedCount++;
-                $errorMsg = "Dòng {$excelRow}: " . $e->getMessage();
-                $this->errors[] = $errorMsg;
+                $this->errors[] = "Dòng {$excelRow}: " . $e->getMessage();
                 Log::error('Error importing row', [
                     'row' => $excelRow,
                     'error' => $e->getMessage(),
@@ -160,6 +239,61 @@ class PaintingImportWithImages implements ToCollection
             'skipped' => $this->skippedCount,
             'errors' => count($this->errors)
         ]);
+    }
+
+    /**
+     * Normalize whitespace in a string
+     * Converts multiple spaces to single space and trims
+     * 
+     * @param string $text
+     * @return string
+     */
+    protected function normalizeWhitespace($text)
+    {
+        if (empty($text)) {
+            return $text;
+        }
+        
+        // Replace multiple spaces with single space
+        $text = preg_replace('/\s+/', ' ', $text);
+        
+        // Trim leading/trailing spaces
+        return trim($text);
+    }
+
+    /**
+     * Clean duplicate text patterns
+     * Example: "Tranh mẫu 1Tranh mẫu 1Tranh mẫu 1" -> "Tranh mẫu 1"
+     * 
+     * @param string $text
+     * @return string
+     */
+    protected function cleanDuplicateText($text)
+    {
+        if (empty($text)) {
+            return $text;
+        }
+        
+        $text = trim($text);
+        $originalLength = mb_strlen($text);
+        
+        // Try to detect repeating patterns
+        // Check if text is repeated 2+ times
+        for ($len = 1; $len <= mb_strlen($text) / 2; $len++) {
+            $pattern = mb_substr($text, 0, $len);
+            $repeated = str_repeat($pattern, (int)(mb_strlen($text) / $len));
+            
+            if ($repeated === $text) {
+                Log::info('Detected repeated pattern', [
+                    'original' => $text,
+                    'pattern' => $pattern,
+                    'times' => (int)(mb_strlen($text) / $len)
+                ]);
+                return $pattern;
+            }
+        }
+        
+        return $text;
     }
 
     /**
@@ -290,11 +424,55 @@ class PaintingImportWithImages implements ToCollection
     protected function parseDate($date)
     {
         try {
+            if (empty($date)) {
+                return now()->format('Y-m-d');
+            }
+            
+            // If it's a numeric value, it's likely an Excel serial date
             if (is_numeric($date)) {
                 return \PhpOffice\PhpSpreadsheet\Shared\Date::excelToDateTimeObject($date)->format('Y-m-d');
             }
-            return date('Y-m-d', strtotime($date));
+            
+            // Convert to string and trim
+            $date = trim((string)$date);
+            
+            // Try to parse various date formats
+            // Format: dd.mm.yyyy (European format with dots)
+            if (preg_match('/^(\d{1,2})\.(\d{1,2})\.(\d{4})$/', $date, $matches)) {
+                $day = str_pad($matches[1], 2, '0', STR_PAD_LEFT);
+                $month = str_pad($matches[2], 2, '0', STR_PAD_LEFT);
+                $year = $matches[3];
+                return "{$year}-{$month}-{$day}";
+            }
+            
+            // Format: dd/mm/yyyy
+            if (preg_match('/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/', $date, $matches)) {
+                $day = str_pad($matches[1], 2, '0', STR_PAD_LEFT);
+                $month = str_pad($matches[2], 2, '0', STR_PAD_LEFT);
+                $year = $matches[3];
+                return "{$year}-{$month}-{$day}";
+            }
+            
+            // Format: dd-mm-yyyy
+            if (preg_match('/^(\d{1,2})-(\d{1,2})-(\d{4})$/', $date, $matches)) {
+                $day = str_pad($matches[1], 2, '0', STR_PAD_LEFT);
+                $month = str_pad($matches[2], 2, '0', STR_PAD_LEFT);
+                $year = $matches[3];
+                return "{$year}-{$month}-{$day}";
+            }
+            
+            // Try strtotime for other formats (yyyy-mm-dd, etc.)
+            $timestamp = strtotime($date);
+            if ($timestamp !== false) {
+                return date('Y-m-d', $timestamp);
+            }
+            
+            // If all else fails, return current date
+            Log::warning('Could not parse date, using current date', ['date' => $date]);
+            return now()->format('Y-m-d');
+            
         } catch (\Exception $e) {
+            Log::error('Error parsing date', ['date' => $date, 'error' => $e->getMessage()]);
             return now()->format('Y-m-d');
         }
     }

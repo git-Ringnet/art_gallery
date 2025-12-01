@@ -65,10 +65,52 @@ class SupplyImport implements ToModel, WithHeadingRow, WithValidation, SkipsOnEr
             $this->importedCount++;
 
             // Determine image path - priority order:
-            // 1. Uploaded images (by code)
+            // 1. Uploaded images (by code - exact match or starts with)
             // 2. Image path from Excel column
-            $imagePath = $this->uploadedImages[$normalizedRow['ma_vat_tu']] ?? null;
+            $imagePath = null;
             
+            // Normalize code for comparison
+            $normalizedCode = $this->normalizeWhitespace($normalizedRow['ma_vat_tu']);
+            
+            // Try exact match first
+            if (isset($this->uploadedImages[$normalizedRow['ma_vat_tu']])) {
+                $imagePath = $this->uploadedImages[$normalizedRow['ma_vat_tu']];
+                Log::info('Found supply image by exact match', [
+                    'code' => $normalizedRow['ma_vat_tu'],
+                    'path' => $imagePath
+                ]);
+            }
+            // Try exact match with normalized code
+            elseif (isset($this->uploadedImages[$normalizedCode])) {
+                $imagePath = $this->uploadedImages[$normalizedCode];
+                Log::info('Found supply image by normalized exact match', [
+                    'code' => $normalizedRow['ma_vat_tu'],
+                    'normalized' => $normalizedCode,
+                    'path' => $imagePath
+                ]);
+            }
+            // Try prefix match
+            else {
+                foreach ($this->uploadedImages as $filename => $path) {
+                    // Normalize filename for comparison
+                    $normalizedFilename = $this->normalizeWhitespace($filename);
+                    
+                    // Check if normalized filename starts with normalized code
+                    if (stripos($normalizedFilename, $normalizedCode) === 0) {
+                        $imagePath = $path;
+                        Log::info('Found supply image by normalized prefix match', [
+                            'code' => $normalizedRow['ma_vat_tu'],
+                            'normalized_code' => $normalizedCode,
+                            'filename' => $filename,
+                            'normalized_filename' => $normalizedFilename,
+                            'path' => $imagePath
+                        ]);
+                        break;
+                    }
+                }
+            }
+            
+            // If still no image, try path from Excel
             if (!$imagePath && !empty($normalizedRow['duong_dan_hinh_anh'])) {
                 // Try to copy image from the path specified in Excel
                 $imagePath = $this->copyImageFromPath($normalizedRow['duong_dan_hinh_anh'], $normalizedRow['ma_vat_tu']);
@@ -126,6 +168,26 @@ class SupplyImport implements ToModel, WithHeadingRow, WithValidation, SkipsOnEr
         }
         
         return $normalized;
+    }
+
+    /**
+     * Normalize whitespace in a string
+     * Converts multiple spaces to single space and trims
+     * 
+     * @param string $text
+     * @return string
+     */
+    protected function normalizeWhitespace($text)
+    {
+        if (empty($text)) {
+            return $text;
+        }
+        
+        // Replace multiple spaces with single space
+        $text = preg_replace('/\s+/', ' ', $text);
+        
+        // Trim leading/trailing spaces
+        return trim($text);
     }
 
     public function rules(): array

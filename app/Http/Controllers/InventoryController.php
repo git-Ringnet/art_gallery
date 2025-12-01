@@ -837,6 +837,7 @@ class InventoryController extends Controller
                     }
                     
                     // Map by code (filename without extension)
+                    // Support flexible matching: exact match or starts with code
                     $uploadedImages[$nameWithoutExt] = $filename;
                     
                     Log::info('Uploaded image', [
