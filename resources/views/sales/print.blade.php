@@ -536,10 +536,10 @@
                     {{-- Chi tiết các lần thanh toán --}}
                     @if($sale->payments->count() > 0)
                     <div class="py-1 border-t border-gray-200">
-                        <p class="text-xs text-gray-700 font-medium mb-1">
+                        <!-- <p class="text-xs text-gray-700 font-medium mb-1">
                             <span class="lang-vi">Lịch sử thanh toán:</span>
                             <span class="lang-en hidden">Payment History:</span>
-                        </p>
+                        </p> -->
                         @php
                             $totalPaidUsd = 0;
                             $totalPaidVnd = 0;
