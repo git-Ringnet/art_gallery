@@ -312,11 +312,11 @@
     <div class="print-area max-w-4xl mx-auto bg-white p-8">
         <!-- Header -->
         <div class="mb-4">
-            <!-- Logo và Showroom trên cùng một hàng -->
+            <!-- Logo ở trên cùng -->
             <div class="flex justify-between items-start mb-3">
-                <!-- Left: Logo + Showroom -->
-                <div class="flex items-start space-x-3">
-                    <div style="width: 180px; height: 90px;">
+                <!-- Left: Logo + Showroom info -->
+                <div>
+                    <div style="width: 180px; height: 65px; ">
                         <img id="invoice-logo" src="{{ $sale->showroom->logo_url }}" alt="logo" class="rounded-lg field-logo" style="width: 100%; height: 100%; object-fit: contain;" data-field="logo" />
                     </div>
                     <div>
