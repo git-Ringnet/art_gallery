@@ -316,7 +316,9 @@
             <div class="flex justify-between items-start mb-3">
                 <!-- Left: Logo + Showroom -->
                 <div class="flex items-start space-x-3">
-                    <img id="invoice-logo" src="{{ $sale->showroom->logo_url }}" alt="logo" class="w-16 h-16 rounded-lg field-logo object-cover" data-field="logo" />
+                    <div style="width: 180px; height: 90px;">
+                        <img id="invoice-logo" src="{{ $sale->showroom->logo_url }}" alt="logo" class="rounded-lg field-logo" style="width: 100%; height: 100%; object-fit: contain;" data-field="logo" />
+                    </div>
                     <div>
                         <p class="font-bold text-base">{{ $sale->showroom->name }}</p>
                         <div class="field-showroom-info" data-field="showroom-info">
