@@ -316,9 +316,7 @@
             <div class="flex justify-between items-start mb-3">
                 <!-- Left: Logo + Showroom -->
                 <div class="flex items-start space-x-3">
-                    <div class="w-16 h-16 rounded-lg field-logo object-cover">
-                    <img id="invoice-logo" src="{{ $sale->showroom->logo_url }}" alt="logo" class="w-full h-full" data-field="logo" />
-                    </div>
+                    <img id="invoice-logo" src="{{ $sale->showroom->logo_url }}" alt="logo" class="w-16 h-16 rounded-lg field-logo object-cover" data-field="logo" />
                     <div>
                         <p class="font-bold text-base">{{ $sale->showroom->name }}</p>
                         <div class="field-showroom-info" data-field="showroom-info">
@@ -535,26 +533,91 @@
                             @endif
                         </div>
                     </div>
+                    {{-- Chi tiết các lần thanh toán --}}
+                    @if($sale->payments->count() > 0)
+                    <div class="py-1 border-t border-gray-200">
+                        <p class="text-xs text-gray-700 font-medium mb-1">
+                            <span class="lang-vi">Lịch sử thanh toán:</span>
+                            <span class="lang-en hidden">Payment History:</span>
+                        </p>
+                        @php
+                            $totalPaidUsd = 0;
+                            $totalPaidVnd = 0;
+                        @endphp
+                        @foreach($sale->payments->sortBy('payment_date') as $payment)
+                        @php
+                            $totalPaidUsd += $payment->payment_usd ?? 0;
+                            $totalPaidVnd += $payment->payment_vnd ?? 0;
+                        @endphp
+                        <div class="flex justify-between text-[10px] py-0.5 text-gray-600">
+                            <span>{{ $payment->payment_date->format('d/m/Y') }}</span>
+                            <span>
+                                @if(($payment->payment_usd ?? 0) != 0)
+                                    ${{ number_format($payment->payment_usd, 2) }}
+                                @endif
+                                @if(($payment->payment_usd ?? 0) != 0 && ($payment->payment_vnd ?? 0) != 0)
+                                    +
+                                @endif
+                                @if(($payment->payment_vnd ?? 0) != 0)
+                                    {{ number_format($payment->payment_vnd) }}đ
+                                @endif
+                            </span>
+                        </div>
+                        @endforeach
+                        {{-- Tổng đã thanh toán --}}
+                        <div class="flex justify-between text-xs py-1 mt-1 border-t border-dashed border-gray-300">
+                            <span class="text-gray-700 font-medium">
+                                <span class="lang-vi">Tổng đã TT:</span>
+                                <span class="lang-en hidden">Total Paid:</span>
+                            </span>
+                            <div class="text-right font-medium text-gray-900">
+                                @if($totalPaidUsd > 0)
+                                    <span>${{ number_format($totalPaidUsd, 2) }}</span>
+                                @endif
+                                @if($totalPaidUsd > 0 && $totalPaidVnd > 0)
+                                    <span class="text-gray-500">+</span>
+                                @endif
+                                @if($totalPaidVnd > 0)
+                                    <span>{{ number_format($totalPaidVnd) }}đ</span>
+                                @endif
+                                @if($totalPaidUsd == 0 && $totalPaidVnd == 0)
+                                    <span>0đ</span>
+                                @endif
+                            </div>
+                        </div>
+                    </div>
+                    @else
+                    {{-- Nếu chưa có payment records, hiển thị từ sale --}}
                     <div class="flex justify-between text-xs py-1">
                         <span class="text-gray-700"><span class="lang-vi">Đã TT:</span><span class="lang-en hidden">Paid:</span></span>
-                        <div class="text-right">
-                            @if($hasUsdItems)
-                            <div class="font-medium text-gray-900">${{ number_format($sale->paid_usd, 2) }}</div>
+                        <div class="text-right font-medium text-gray-900">
+                            @if(($sale->paid_usd ?? 0) > 0)
+                                <span>${{ number_format($sale->paid_usd, 2) }}</span>
                             @endif
-                            @if($hasVndItems)
-                            <div class="{{ $hasUsdItems ? 'text-[10px] text-gray-700' : 'font-medium text-gray-900' }}">{{ number_format((float)$sale->paid_amount) }}đ</div>
+                            @if(($sale->paid_usd ?? 0) > 0 && ($sale->paid_amount ?? 0) > 0)
+                                <span class="text-gray-500">+</span>
+                            @endif
+                            @if(($sale->paid_amount ?? 0) > 0)
+                                <span>{{ number_format((float)$sale->paid_amount) }}đ</span>
+                            @endif
+                            @if(($sale->paid_usd ?? 0) == 0 && ($sale->paid_amount ?? 0) == 0)
+                                <span>0đ</span>
                             @endif
                         </div>
                     </div>
-                    @if($sale->debt_amount > 0)
+                    @endif
+                    @if(($sale->debt_usd ?? 0) > 0 || ($sale->debt_vnd ?? 0) > 0)
                     <div class="flex justify-between text-xs py-1 bg-red-50 px-2 rounded field-debt-amount" data-field="debt-amount">
                         <span class="text-red-700 font-medium"><span class="lang-vi">Còn nợ:</span><span class="lang-en hidden">Balance:</span></span>
-                        <div class="text-right">
-                            @if($hasUsdItems)
-                            <div class="font-bold text-red-600">${{ number_format($sale->debt_usd, 2) }}</div>
+                        <div class="text-right font-bold text-red-600">
+                            @if(($sale->debt_usd ?? 0) > 0)
+                                <span>${{ number_format($sale->debt_usd, 2) }}</span>
                             @endif
-                            @if($hasVndItems)
-                            <div class="{{ $hasUsdItems ? 'text-[10px] text-red-600' : 'font-bold text-red-600' }}">{{ number_format((float)$sale->debt_amount) }}đ</div>
+                            @if(($sale->debt_usd ?? 0) > 0 && ($sale->debt_vnd ?? 0) > 0)
+                                <span class="text-red-400">+</span>
+                            @endif
+                            @if(($sale->debt_vnd ?? 0) > 0)
+                                <span>{{ number_format($sale->debt_vnd) }}đ</span>
                             @endif
                         </div>
                     </div>
