@@ -100,9 +100,30 @@ class ReportsController extends Controller
         }
         
         // Lấy tỷ giá từ request, mặc định là 1 (không chuyển đổi)
-        $exchangeRate = $request->input('exchange_rate');
-        if (!$exchangeRate || $exchangeRate == '') {
+        $exchangeRateInput = $request->input('exchange_rate');
+        if (!$exchangeRateInput || $exchangeRateInput == '') {
             $exchangeRate = 1; // Mặc định là 1 nếu không nhập
+        } else {
+            // Xử lý tỷ giá: loại bỏ dấu phẩy ngăn cách hàng nghìn
+            // VD: "26,170" hoặc "26.170" → 26170
+            $cleanRate = str_replace(',', '', $exchangeRateInput); // Bỏ dấu phẩy
+            
+            // Kiểm tra nếu có dấu chấm (có thể là decimal hoặc separator)
+            if (strpos($cleanRate, '.') !== false) {
+                // Nếu phần sau dấu chấm có 3 chữ số → đây là separator (26.170 = 26170)
+                $parts = explode('.', $cleanRate);
+                if (count($parts) == 2 && strlen($parts[1]) == 3) {
+                    $cleanRate = $parts[0] . $parts[1]; // 26.170 → 26170
+                }
+                // Ngược lại giữ nguyên (có thể là decimal như 26.5)
+            }
+            
+            $exchangeRate = (float) $cleanRate;
+            
+            // Nếu tỷ giá vẫn quá nhỏ (< 1000), có thể user nhập sai
+            if ($exchangeRate > 0 && $exchangeRate < 1000) {
+                $exchangeRate = $exchangeRate * 1000; // Giả sử user nhập 26 thay vì 26000
+            }
         }
         
         
@@ -208,8 +229,8 @@ class ReportsController extends Controller
                 'deposit_vnd' => $saleDepositVnd,
                 'adjustment_usd' => $saleAdjustmentUsd,
                 'adjustment_vnd' => $saleAdjustmentVnd,
-                'collection_usd' => $payment->payment_usd,
-                'collection_vnd' => $payment->payment_usd > 0 ? 0 : $payment->amount, // Nếu trả USD thì VND = 0
+                'collection_usd' => $payment->payment_usd ?? 0,
+                'collection_vnd' => $payment->payment_vnd ?? 0, // Lấy đúng payment_vnd
                 'collection_adjustment_usd' => 0, // Để sau này mở rộng
                 'collection_adjustment_vnd' => 0,
             ];
@@ -221,14 +242,14 @@ class ReportsController extends Controller
             $totalDepositVnd += $saleDepositVnd;
             $totalAdjustmentUsd += $saleAdjustmentUsd;
             $totalAdjustmentVnd += $saleAdjustmentVnd;
-            $totalCollectionUsd += $payment->payment_usd;
-            $totalCollectionVnd += ($payment->payment_usd > 0 ? 0 : $payment->amount); // Nếu trả USD thì VND = 0
+            $totalCollectionUsd += ($payment->payment_usd ?? 0);
+            $totalCollectionVnd += ($payment->payment_vnd ?? 0); // Lấy đúng payment_vnd
             
             // Phân loại cash/card
-            // Tính VND cho cash/card: Nếu trả USD thì quy đổi, nếu trả VND thì lấy trực tiếp
-            $collectionVndForCashCard = $payment->payment_usd > 0 
-                ? ($payment->payment_usd * $exchangeRate) 
-                : $payment->amount;
+            // Tính VND cho cash/card: USD quy đổi + VND trực tiếp
+            $paymentUsd = $payment->payment_usd ?? 0;
+            $paymentVnd = $payment->payment_vnd ?? 0;
+            $collectionVndForCashCard = ($paymentUsd * $exchangeRate) + $paymentVnd;
             
             // CASH: Chỉ payment_method = 'cash'
             // CREDIT CARD: Tất cả còn lại (card, bank_transfer, ...)
