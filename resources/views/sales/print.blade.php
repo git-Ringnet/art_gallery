@@ -587,20 +587,25 @@
                         </div>
                     </div>
                     @else
-                    {{-- Nếu chưa có payment records, hiển thị từ sale --}}
+                    {{-- Nếu chưa có payment records (phiếu pending), hiển thị thanh toán ban đầu từ sale --}}
+                    @php
+                        // Với phiếu pending, dùng payment_usd và payment_vnd (thanh toán ban đầu)
+                        $initialPaidUsd = $sale->payment_usd ?? 0;
+                        $initialPaidVnd = $sale->payment_vnd ?? 0;
+                    @endphp
                     <div class="flex justify-between text-xs py-1">
                         <span class="text-gray-700"><span class="lang-vi">Đã TT:</span><span class="lang-en hidden">Paid:</span></span>
                         <div class="text-right font-medium text-gray-900">
-                            @if(($sale->paid_usd ?? 0) > 0)
-                                <span>${{ number_format($sale->paid_usd, 2) }}</span>
+                            @if($initialPaidUsd > 0)
+                                <span>${{ number_format($initialPaidUsd, 2) }}</span>
                             @endif
-                            @if(($sale->paid_usd ?? 0) > 0 && ($sale->paid_amount ?? 0) > 0)
+                            @if($initialPaidUsd > 0 && $initialPaidVnd > 0)
                                 <span class="text-gray-500">+</span>
                             @endif
-                            @if(($sale->paid_amount ?? 0) > 0)
-                                <span>{{ number_format((float)$sale->paid_amount) }}đ</span>
+                            @if($initialPaidVnd > 0)
+                                <span>{{ number_format($initialPaidVnd) }}đ</span>
                             @endif
-                            @if(($sale->paid_usd ?? 0) == 0 && ($sale->paid_amount ?? 0) == 0)
+                            @if($initialPaidUsd == 0 && $initialPaidVnd == 0)
                                 <span>0đ</span>
                             @endif
                         </div>

@@ -538,8 +538,8 @@
                             </form>
                             @endif
                             
-                            <!-- Cancel button - chỉ hiện khi chờ duyệt và chưa thanh toán -->
-                            @if($sale->isPending() && $sale->paid_usd == 0 && $sale->paid_vnd == 0)
+                            <!-- Cancel button - chỉ hiện khi chờ duyệt (pending) -->
+                            @if($sale->isPending())
                             <form method="POST" action="{{ route('sales.cancel', $sale->id) }}" class="inline">
                                 @csrf
                                 <button type="submit" 
@@ -588,9 +588,9 @@
                                 @endif
                             @endhasPermission
                             
-                            <!-- Delete button - hiển thị khi có quyền và chưa thanh toán -->
+                            <!-- Delete button - hiển thị khi có quyền và phiếu chưa duyệt (pending) -->
                             @hasPermission('sales', 'can_delete')
-                                @if($sale->paid_usd == 0 && $sale->paid_vnd == 0)
+                                @if($sale->isPending())
                                 <button type="button" 
                                         class="w-7 h-7 flex items-center justify-center bg-red-100 text-red-600 rounded-lg hover:bg-red-200 transition-colors delete-btn text-xs" 
                                         title="Xóa"
@@ -598,9 +598,9 @@
                                         data-message="Bạn có chắc chắn muốn xóa hóa đơn {{ $sale->invoice_code }}?">
                                     <i class="fas fa-trash"></i>
                                 </button>
-                                @else
+                                @elseif($sale->sale_status != 'cancelled')
                                 <span class="w-7 h-7 flex items-center justify-center rounded-lg bg-gray-100 text-gray-400 cursor-not-allowed text-xs" 
-                                      title="Đã có thanh toán">
+                                      title="Phiếu đã duyệt">
                                     <i class="fas fa-lock"></i>
                                 </span>
                                 @endif

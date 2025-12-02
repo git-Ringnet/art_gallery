@@ -843,11 +843,11 @@ class SalesController extends Controller
         $sale = Sale::findOrFail($id);
         Log::info('Sale found: ' . $sale->invoice_code . ', Status: ' . $sale->sale_status . ', Paid amount: ' . $sale->paid_amount);
 
-        // Chỉ không cho xóa nếu đã có thanh toán
-        // Phiếu completed nhưng chưa thanh toán vẫn có thể xóa
-        if ($sale->paid_usd > 0 || $sale->paid_vnd > 0) {
-            Log::info('Cannot delete sale with payments');
-            return back()->with('error', 'Không thể xóa hóa đơn đã có thanh toán');
+        // Chỉ cho xóa phiếu chưa duyệt (pending)
+        // Phiếu đã duyệt (completed) không được xóa
+        if ($sale->sale_status === 'completed') {
+            Log::info('Cannot delete completed sale');
+            return back()->with('error', 'Không thể xóa hóa đơn đã duyệt');
         }
 
         DB::beginTransaction();
@@ -1184,14 +1184,10 @@ class SalesController extends Controller
     {
         $sale = Sale::findOrFail($id);
 
-        // Chỉ cho hủy khi phiếu chờ duyệt
+        // Chỉ cho hủy khi phiếu chờ duyệt (pending)
+        // Phiếu đã duyệt (completed) không được hủy
         if (!$sale->isPending()) {
             return back()->with('error', 'Chỉ có thể hủy phiếu đang chờ duyệt');
-        }
-
-        // Không cho hủy nếu đã có thanh toán
-        if ($sale->paid_usd > 0 || $sale->paid_vnd > 0) {
-            return back()->with('error', 'Không thể hủy phiếu đã có thanh toán');
         }
 
         DB::beginTransaction();
