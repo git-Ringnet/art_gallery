@@ -51,8 +51,14 @@ class DebtController extends Controller
         $canFilterByStatus = \Illuminate\Support\Facades\Auth::user()->email === 'admin@example.com' || 
                             (\Illuminate\Support\Facades\Auth::user()->role && \Illuminate\Support\Facades\Auth::user()->role->getModulePermissions('debt') && 
                              \Illuminate\Support\Facades\Auth::user()->role->getModulePermissions('debt')->can_filter_by_status);
+        $canFilterByShowroom = \Illuminate\Support\Facades\Auth::user()->email === 'admin@example.com' || 
+                              (\Illuminate\Support\Facades\Auth::user()->role && \Illuminate\Support\Facades\Auth::user()->role->getModulePermissions('debt') && 
+                               \Illuminate\Support\Facades\Auth::user()->role->getModulePermissions('debt')->can_filter_by_showroom);
+        
+        // Lấy danh sách showrooms
+        $showrooms = \App\Models\Showroom::orderBy('name')->get();
 
-        return view('debts.index', compact('payments', 'stats', 'canSearch', 'canFilterByDate', 'canFilterByStatus'));
+        return view('debts.index', compact('payments', 'stats', 'canSearch', 'canFilterByDate', 'canFilterByStatus', 'canFilterByShowroom', 'showrooms'));
     }
 
     public function show($id)
@@ -211,6 +217,16 @@ class DebtController extends Controller
         }
         if ($request->filled('amount_to')) {
             $query->where('amount', '<=', $request->amount_to);
+        }
+        
+        // Filter by showroom (nếu có quyền)
+        $canFilterShowroom = \Illuminate\Support\Facades\Auth::user()->email === 'admin@example.com' || 
+                            (\Illuminate\Support\Facades\Auth::user()->role && \Illuminate\Support\Facades\Auth::user()->role->getModulePermissions('debt') && 
+                             \Illuminate\Support\Facades\Auth::user()->role->getModulePermissions('debt')->can_filter_by_showroom);
+        if ($canFilterShowroom && $request->filled('showroom_id')) {
+            $query->whereHas('sale', function($q) use ($request) {
+                $q->where('showroom_id', $request->showroom_id);
+            });
         }
 
         // Get all payments first

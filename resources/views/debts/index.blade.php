@@ -90,7 +90,21 @@
             </div>
         </div>
 
-        <div class="grid grid-cols-1 md:grid-cols-5 gap-3">
+        <div class="grid grid-cols-1 md:grid-cols-6 gap-3">
+            @if($canFilterByShowroom ?? true)
+            <div>
+                <label class="block text-xs font-medium text-gray-700 mb-1">
+                    Showroom
+                </label>
+                <select name="showroom_id" class="w-full px-3 py-1.5 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                    <option value="">-- Tất cả --</option>
+                    @foreach($showrooms ?? [] as $showroom)
+                        <option value="{{ $showroom->id }}" {{ request('showroom_id') == $showroom->id ? 'selected' : '' }}>{{ $showroom->name }}</option>
+                    @endforeach
+                </select>
+            </div>
+            @endif
+            
             <div>
                 <label class="block text-xs font-medium text-gray-700 mb-1">
                     Trạng thái TT
