@@ -316,15 +316,12 @@
             <div class="flex justify-between items-start mb-3">
                 <!-- Left: Logo + Showroom info -->
                 <div>
-                    <div style="width: 180px; height: 65px; ">
-                        <img id="invoice-logo" src="{{ $sale->showroom->logo_url }}" alt="logo" class="rounded-lg field-logo" style="width: 100%; height: 100%; object-fit: contain;" data-field="logo" />
+                    <div style="width: 280px; height: 140px; margin-bottom: -63px; overflow: hidden;">
+                        <img id="invoice-logo" src="{{ $sale->showroom->logo_url }}" alt="logo" class="rounded-lg field-logo" style="width: 120%; height: 120%; object-fit: contain; margin-left: -10%; margin-top: -15%;" data-field="logo" />
                     </div>
-                    <div>
-                        <p class="font-bold text-base">{{ $sale->showroom->name }}</p>
-                        <div class="field-showroom-info" data-field="showroom-info">
-                            <p class="text-xs text-gray-600">{{ $sale->showroom->address }}</p>
-                            <p class="text-xs text-gray-600">{{ $sale->showroom->phone }}</p>
-                        </div>
+                    <div class="field-showroom-info" data-field="showroom-info" style="margin-top: -10px;">
+                        <p class="text-xs text-gray-600">{{ $sale->showroom->address }}</p>
+                        <p class="text-xs text-gray-600">{{ $sale->showroom->phone }}</p>
                     </div>
                 </div>
                 
