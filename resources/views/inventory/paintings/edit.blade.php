@@ -123,7 +123,9 @@
                         @if($painting->image)
                             <div class="relative group">
                                 <img id="painting-current-image" src="{{ Storage::url($painting->image) }}"
-                                    alt="{{ $painting->name }}" class="w-20 h-20 object-cover rounded border">
+                                    alt="{{ $painting->name }}" class="max-w-24 max-h-24 object-contain rounded border bg-gray-100 cursor-pointer"
+                                    onclick="showFullImage(this.src, '{{ $painting->name }}')"
+                                    title="Click để xem ảnh gốc">
                                 <button type="button" id="btn-remove-image"
                                     class="hidden group-hover:flex absolute -top-1 -right-1 w-6 h-6 items-center justify-center rounded-full bg-red-600 text-white shadow">
                                     <i class="fas fa-times text-xs"></i>
@@ -136,7 +138,9 @@
                     </div>
                     <div id="painting-image-preview-wrap-edit" class="mt-2 hidden">
                         <img id="painting-image-preview-edit" src="#" alt="Xem trước ảnh"
-                            class="w-24 h-24 object-cover rounded border">
+                            class="max-w-32 max-h-32 object-contain rounded border bg-gray-100 cursor-pointer"
+                            onclick="showFullImage(this.src, 'Xem trước ảnh mới')"
+                            title="Click để xem ảnh gốc">
                     </div>
                     <p class="text-xs text-gray-500 mt-1">Định dạng: JPG, PNG, WEBP. Tối đa 2MB.</p>
                 </div>
@@ -156,8 +160,44 @@
     </div>
 @endsection
 
+<!-- Image Modal -->
+<div id="imageModal" class="fixed inset-0 bg-black bg-opacity-80 z-50 hidden flex items-center justify-center p-4" onclick="closeImageModal()">
+    <div class="relative" onclick="event.stopPropagation()">
+        <button onclick="closeImageModal()" class="absolute -top-10 right-0 text-white hover:text-gray-300">
+            <i class="fas fa-times text-2xl"></i>
+        </button>
+        <img id="modalImage" src="" alt="" class="max-w-[90vw] max-h-[90vh] rounded-lg shadow-2xl">
+        <p id="modalImageTitle" class="text-white text-center mt-4 text-lg"></p>
+    </div>
+</div>
+
 @push('scripts')
     <script>
+        // Image modal functions
+        function showFullImage(src, title) {
+            const modal = document.getElementById('imageModal');
+            const modalImage = document.getElementById('modalImage');
+            const modalTitle = document.getElementById('modalImageTitle');
+            
+            modalImage.src = src;
+            modalTitle.textContent = title || '';
+            modal.classList.remove('hidden');
+            document.body.style.overflow = 'hidden';
+        }
+        
+        function closeImageModal() {
+            const modal = document.getElementById('imageModal');
+            modal.classList.add('hidden');
+            document.body.style.overflow = 'auto';
+        }
+        
+        // Close modal with ESC key
+        document.addEventListener('keydown', function(event) {
+            if (event.key === 'Escape') {
+                closeImageModal();
+            }
+        });
+
         // Material select (edit)
         (() => {
             const wrapper = document.getElementById('material-select-edit');

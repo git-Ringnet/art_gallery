@@ -90,7 +90,10 @@
                 <label class="block text-xs font-medium text-gray-700 mb-1">Ảnh vật tư (5Mb)</label>
                 @if($supply->image)
                     <div class="mb-2">
-                        <img src="{{ asset('storage/' . $supply->image) }}" alt="{{ $supply->name }}" class="w-32 h-32 object-cover rounded border">
+                        <img src="{{ asset('storage/' . $supply->image) }}" alt="{{ $supply->name }}" 
+                            class="max-w-32 max-h-32 object-contain rounded border bg-gray-100 cursor-pointer"
+                            onclick="showFullImage(this.src, '{{ $supply->name }}')"
+                            title="Click để xem ảnh gốc">
                         <label class="flex items-center mt-2">
                             <input type="checkbox" name="remove_image" value="1" class="mr-2">
                             <span class="text-xs text-red-600">Xóa ảnh hiện tại</span>
@@ -101,7 +104,9 @@
                     class="w-full px-2 py-1.5 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white">
                 <div id="supply-edit-image-preview-wrap" class="mt-2 hidden">
                     <img id="supply-edit-image-preview" src="#" alt="Xem trước ảnh"
-                        class="w-32 h-32 object-cover rounded border">
+                        class="max-w-32 max-h-32 object-contain rounded border bg-gray-100 cursor-pointer"
+                        onclick="showFullImage(this.src, 'Xem trước ảnh mới')"
+                        title="Click để xem ảnh gốc">
                 </div>
             </div>
 
@@ -130,8 +135,44 @@
 
 
 
+<!-- Image Modal -->
+<div id="imageModal" class="fixed inset-0 bg-black bg-opacity-80 z-50 hidden flex items-center justify-center p-4" onclick="closeImageModal()">
+    <div class="relative" onclick="event.stopPropagation()">
+        <button onclick="closeImageModal()" class="absolute -top-10 right-0 text-white hover:text-gray-300">
+            <i class="fas fa-times text-2xl"></i>
+        </button>
+        <img id="modalImage" src="" alt="" class="max-w-[90vw] max-h-[90vh] rounded-lg shadow-2xl">
+        <p id="modalImageTitle" class="text-white text-center mt-4 text-lg"></p>
+    </div>
+</div>
+
 @push('scripts')
     <script>
+        // Image modal functions
+        function showFullImage(src, title) {
+            const modal = document.getElementById('imageModal');
+            const modalImage = document.getElementById('modalImage');
+            const modalTitle = document.getElementById('modalImageTitle');
+            
+            modalImage.src = src;
+            modalTitle.textContent = title || '';
+            modal.classList.remove('hidden');
+            document.body.style.overflow = 'hidden';
+        }
+        
+        function closeImageModal() {
+            const modal = document.getElementById('imageModal');
+            modal.classList.add('hidden');
+            document.body.style.overflow = 'auto';
+        }
+        
+        // Close modal with ESC key
+        document.addEventListener('keydown', function(event) {
+            if (event.key === 'Escape') {
+                closeImageModal();
+            }
+        });
+
         // Live preview cho hình ảnh
         (() => {
             const input = document.getElementById('supply-edit-image-input');

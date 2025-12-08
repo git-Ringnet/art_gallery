@@ -148,7 +148,7 @@
         <div class="bg-white rounded-xl shadow-lg p-6 glass-effect mb-6">
             <h3 class="text-lg font-semibold text-gray-900 mb-4">Ảnh tranh</h3>
             @if($painting->image)
-                <img id="painting-image-show" src="{{ asset('storage/' . $painting->image) }}" alt="{{ $painting->name }}" class="w-full h-64 object-cover rounded-lg cursor-zoom-in">
+                <img id="painting-image-show" src="{{ asset('storage/' . $painting->image) }}" alt="{{ $painting->name }}" class="w-full max-h-80 object-contain rounded-lg cursor-zoom-in bg-gray-100">
             @else
                 <div class="w-full h-64 bg-gray-200 rounded-lg flex items-center justify-center">
                     <div class="text-center text-gray-500">
@@ -163,21 +163,57 @@
 @endsection
 @push('scripts')
 <script>
-// Simple zoom modal
+// Full image zoom modal - hiển thị ảnh gốc không cắt xén
 (function(){
     const img = document.getElementById('painting-image-show');
     if(!img) return;
     let overlay;
+    
     img.addEventListener('click', () => {
         overlay = document.createElement('div');
-        overlay.className = 'fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center z-50';
+        overlay.className = 'fixed inset-0 bg-black bg-opacity-80 flex items-center justify-center z-50 p-4';
+        overlay.style.cursor = 'pointer';
+        
+        const container = document.createElement('div');
+        container.className = 'relative';
+        container.onclick = (e) => e.stopPropagation();
+        
+        // Close button
+        const closeBtn = document.createElement('button');
+        closeBtn.className = 'absolute -top-10 right-0 text-white hover:text-gray-300';
+        closeBtn.innerHTML = '<i class="fas fa-times text-2xl"></i>';
+        closeBtn.onclick = () => overlay.remove();
+        
+        // Full image - không giới hạn, hiển thị đúng kích thước gốc trong viewport
         const full = document.createElement('img');
         full.src = img.src;
         full.alt = img.alt;
         full.className = 'max-w-[90vw] max-h-[90vh] rounded-lg shadow-2xl';
-        overlay.appendChild(full);
+        full.style.objectFit = 'contain';
+        
+        // Title
+        const title = document.createElement('p');
+        title.className = 'text-white text-center mt-4 text-lg';
+        title.textContent = '{{ $painting->name }}';
+        
+        container.appendChild(closeBtn);
+        container.appendChild(full);
+        container.appendChild(title);
+        overlay.appendChild(container);
+        
         overlay.addEventListener('click', () => overlay.remove());
         document.body.appendChild(overlay);
+        document.body.style.overflow = 'hidden';
+        
+        // ESC to close
+        const escHandler = (e) => {
+            if (e.key === 'Escape') {
+                overlay.remove();
+                document.body.style.overflow = 'auto';
+                document.removeEventListener('keydown', escHandler);
+            }
+        };
+        document.addEventListener('keydown', escHandler);
     });
 })();
 </script>

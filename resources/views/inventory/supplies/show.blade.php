@@ -15,6 +15,63 @@
 </div>
 @endsection
 
+@push('scripts')
+<script>
+// Full image zoom modal - hiển thị ảnh gốc không cắt xén
+(function(){
+    const img = document.getElementById('supply-image-show');
+    if(!img) return;
+    let overlay;
+    
+    img.addEventListener('click', () => {
+        overlay = document.createElement('div');
+        overlay.className = 'fixed inset-0 bg-black bg-opacity-80 flex items-center justify-center z-50 p-4';
+        overlay.style.cursor = 'pointer';
+        
+        const container = document.createElement('div');
+        container.className = 'relative';
+        container.onclick = (e) => e.stopPropagation();
+        
+        // Close button
+        const closeBtn = document.createElement('button');
+        closeBtn.className = 'absolute -top-10 right-0 text-white hover:text-gray-300';
+        closeBtn.innerHTML = '<i class="fas fa-times text-2xl"></i>';
+        closeBtn.onclick = () => overlay.remove();
+        
+        // Full image - không giới hạn, hiển thị đúng kích thước gốc trong viewport
+        const full = document.createElement('img');
+        full.src = img.src;
+        full.alt = img.alt;
+        full.className = 'max-w-[90vw] max-h-[90vh] rounded-lg shadow-2xl';
+        full.style.objectFit = 'contain';
+        
+        // Title
+        const title = document.createElement('p');
+        title.className = 'text-white text-center mt-4 text-lg';
+        title.textContent = '{{ $supply->name }}';
+        
+        container.appendChild(closeBtn);
+        container.appendChild(full);
+        container.appendChild(title);
+        overlay.appendChild(container);
+        
+        overlay.addEventListener('click', () => overlay.remove());
+        document.body.appendChild(overlay);
+        document.body.style.overflow = 'hidden';
+        
+        // ESC to close
+        const escHandler = (e) => {
+            if (e.key === 'Escape') {
+                overlay.remove();
+                document.body.style.overflow = 'auto';
+                document.removeEventListener('keydown', escHandler);
+            }
+        };
+        document.addEventListener('keydown', escHandler);
+    });
+})();
+</script>
+@endpush
 @section('content')
 <div class="grid grid-cols-1 lg:grid-cols-3 gap-4">
     <!-- Main Information -->
@@ -117,7 +174,9 @@
         @if($supply->image)
         <div class="bg-white rounded-xl shadow-lg p-4 glass-effect mb-4">
             <h3 class="text-base font-semibold text-gray-900 mb-3">Hình ảnh vật tư</h3>
-            <img src="{{ asset('storage/' . $supply->image) }}" alt="{{ $supply->name }}" class="w-full h-auto rounded-lg border border-gray-200">
+            <img id="supply-image-show" src="{{ asset('storage/' . $supply->image) }}" alt="{{ $supply->name }}" 
+                class="w-full max-h-80 object-contain rounded-lg border border-gray-200 bg-gray-100 cursor-zoom-in"
+                title="Click để xem ảnh gốc">
         </div>
         @endif
 
