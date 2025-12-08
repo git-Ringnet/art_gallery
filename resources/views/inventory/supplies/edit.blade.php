@@ -68,22 +68,11 @@
             </div>
             
             <div id="tree_count_field">
-                <label class="block text-sm font-medium text-gray-700 mb-2">Số lượng cây</label>
-                <input type="number" name="tree_count" value="{{ old('tree_count', $supply->tree_count) }}" 
+                <label class="block text-sm font-medium text-gray-700 mb-2">Số lượng cây <span class="text-red-500">*</span></label>
+                <input type="number" name="tree_count" required value="{{ old('tree_count', $supply->tree_count) }}" 
                        class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent" 
                        placeholder="0" min="0" step="1">
                 <p class="text-xs text-gray-500 mt-1">Số cây gỗ (chỉ áp dụng cho loại khung tranh)</p>
-            </div>
-            
-            <div>
-                <label class="block text-xs font-medium text-gray-700 mb-1">Trạng thái <span class="text-red-500">*</span></label>
-                <select name="status" required class="w-full px-2 py-1.5 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent @error('status') border-red-500 @enderror">
-                    <option value="in_stock" {{ old('status', $supply->status) == 'in_stock' ? 'selected' : '' }}>Còn hàng</option>
-                    <option value="out_of_stock" {{ old('status', $supply->status) == 'out_of_stock' ? 'selected' : '' }}>Hết hàng</option>
-                </select>
-                @error('status')
-                    <p class="mt-1 text-xs text-red-600">{{ $message }}</p>
-                @enderror
             </div>
             
             <div>
@@ -131,10 +120,6 @@
         </div>
     </form>
 </div>
-@endsection
-
-
-
 <!-- Image Modal -->
 <div id="imageModal" class="fixed inset-0 bg-black bg-opacity-80 z-50 hidden flex items-center justify-center p-4" onclick="closeImageModal()">
     <div class="relative" onclick="event.stopPropagation()">
@@ -145,6 +130,7 @@
         <p id="modalImageTitle" class="text-white text-center mt-4 text-lg"></p>
     </div>
 </div>
+@endsection
 
 @push('scripts')
     <script>

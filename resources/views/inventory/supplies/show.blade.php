@@ -148,7 +148,7 @@
                 <div>
                     <label class="block text-xs font-medium text-gray-700 mb-1">Trạng thái</label>
                     <p>
-                        @if($supply->status == 'in_stock')
+                        @if($supply->quantity > 0)
                             <span class="px-1.5 py-0.5 text-xs font-semibold rounded bg-green-100 text-green-800">Còn hàng</span>
                         @else
                             <span class="px-1.5 py-0.5 text-xs font-semibold rounded bg-red-100 text-red-800">Hết hàng</span>

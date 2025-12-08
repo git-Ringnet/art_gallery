@@ -16,11 +16,9 @@ class SupplyTemplateExport implements FromArray, WithHeadings, WithStyles, WithC
             [
                 'VT001',
                 'Khung gỗ sồi',
-                'Khung tranh',
                 'cm',
                 '200',
                 '10',
-                '50',
                 'Ghi chú mẫu'
             ]
         ];
@@ -31,11 +29,9 @@ class SupplyTemplateExport implements FromArray, WithHeadings, WithStyles, WithC
         return [
             'Mã vật tư (*)',
             'Tên vật tư (*)',
-            'Loại (*)',
             'Đơn vị (*)',
             'Chiều dài mỗi cây (cm) (*)',
             'Số lượng cây (*)',
-            'Tồn kho tối thiểu',
             'Ghi chú'
         ];
     }
@@ -55,12 +51,10 @@ class SupplyTemplateExport implements FromArray, WithHeadings, WithStyles, WithC
         return [
             'A' => 15,
             'B' => 25,
-            'C' => 15,
-            'D' => 12,
-            'E' => 25,
-            'F' => 18,
-            'G' => 20,
-            'H' => 25,
+            'C' => 12,
+            'D' => 25,
+            'E' => 18,
+            'F' => 25,
         ];
     }
 }

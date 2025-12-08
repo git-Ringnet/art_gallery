@@ -162,11 +162,11 @@ class SupplyImport implements ToModel, WithHeadingRow, WithValidation, SkipsOnEr
             return new Supply([
                 'code' => $code,
                 'name' => $name,
-                'type' => $this->mapType($normalizedRow['loai'] ?? 'other'),
+                'type' => 'frame', // Default to frame
                 'unit' => $normalizedRow['don_vi'] ?? 'cm',
                 'quantity' => $lengthPerTree,
                 'tree_count' => $treeCount,
-                'min_quantity' => !empty($normalizedRow['ton_kho_toi_thieu']) ? (float)$normalizedRow['ton_kho_toi_thieu'] : 0,
+                'min_quantity' => 0, // Default to 0
                 'notes' => $notes,
                 'image' => $imagePath,
             ]);
@@ -411,7 +411,6 @@ class SupplyImport implements ToModel, WithHeadingRow, WithValidation, SkipsOnEr
         return [
             'ma_vat_tu' => 'required|string|max:50',
             'ten_vat_tu' => 'required|string|max:255',
-            'loai' => 'required|string',
             'don_vi' => 'required|string|max:20',
             'chieu_dai_moi_cay_cm' => 'required|numeric|min:0',
             'so_luong_cay' => 'required|integer|min:1',

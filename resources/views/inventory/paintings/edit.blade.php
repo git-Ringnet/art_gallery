@@ -29,23 +29,22 @@
 
             <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
                 <div>
-                    <label class="block text-xs font-medium text-gray-700 mb-1">Mã tranh</label>
-                    <input type="text" value="{{ $painting->code }}"
-                        class="w-full px-2 py-1.5 text-sm border border-gray-300 rounded-lg bg-gray-100" disabled>
-                    <input type="hidden" name="code" value="{{ $painting->code }}">
+                    <label class="block text-xs font-medium text-gray-700 mb-1">Mã tranh (*)</label>
+                    <input type="text" name="code" value="{{ old('code', $painting->code) }}" required
+                        class="w-full px-2 py-1.5 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
                 </div>
                 <div>
-                    <label class="block text-xs font-medium text-gray-700 mb-1">Tên tranh</label>
+                    <label class="block text-xs font-medium text-gray-700 mb-1">Tên tranh (*)</label>
                     <input type="text" name="name" value="{{ old('name', $painting->name) }}" required
                         class="w-full px-2 py-1.5 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
                 </div>
                 <div>
-                    <label class="block text-xs font-medium text-gray-700 mb-1">Họa sĩ</label>
+                    <label class="block text-xs font-medium text-gray-700 mb-1">Họa sĩ (*)</label>
                     <input type="text" name="artist" value="{{ old('artist', $painting->artist) }}" required
                         class="w-full px-2 py-1.5 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
                 </div>
                 <div>
-                    <label class="block text-xs font-medium text-gray-700 mb-1">Chất liệu</label>
+                    <label class="block text-xs font-medium text-gray-700 mb-1">Chất liệu (*)</label>
                     <div id="material-select-edit" class="relative">
                         <div class="flex items-center">
                             <input type="text" name="material" id="material-input-edit"
@@ -89,8 +88,9 @@
                         class="w-full px-2 py-1.5 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
                 </div>
                 <div>
-                    <label class="block text-xs font-medium text-gray-700 mb-1">Giá USD</label>
-                    <input type="number" step="0.01" name="price_usd" value="{{ old('price_usd', $painting->price_usd) }}" required
+                    <label class="block text-xs font-medium text-gray-700 mb-1">Giá USD (*)</label>
+                    <input type="number" step="0.01" name="price_usd" value="{{ old('price_usd', $painting->price_usd) }}"
+                        required
                         class="w-full px-2 py-1.5 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                         placeholder="Ví dụ: 4500">
                 </div>
@@ -101,15 +101,10 @@
                         placeholder="Ví dụ: 100000000">
                 </div>
                 <div>
-                    <label class="block text-xs font-medium text-gray-700 mb-1">Ngày nhập</label>
+                    <label class="block text-xs font-medium text-gray-700 mb-1">Ngày nhập (*)</label>
                     <input type="date" name="import_date"
                         value="{{ old('import_date', optional($painting->import_date)->format('Y-m-d')) }}"
-                        class="w-full px-2 py-1.5 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
-                </div>
-                <div>
-                    <label class="block text-xs font-medium text-gray-700 mb-1">Ngày xuất</label>
-                    <input type="date" name="export_date"
-                        value="{{ old('export_date', optional($painting->export_date)->format('Y-m-d')) }}"
+                        required
                         class="w-full px-2 py-1.5 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
                 </div>
                 <div class="md:col-span-2">
@@ -123,9 +118,9 @@
                         @if($painting->image)
                             <div class="relative group">
                                 <img id="painting-current-image" src="{{ Storage::url($painting->image) }}"
-                                    alt="{{ $painting->name }}" class="max-w-24 max-h-24 object-contain rounded border bg-gray-100 cursor-pointer"
-                                    onclick="showFullImage(this.src, '{{ $painting->name }}')"
-                                    title="Click để xem ảnh gốc">
+                                    alt="{{ $painting->name }}"
+                                    class="max-w-24 max-h-24 object-contain rounded border bg-gray-100 cursor-pointer"
+                                    onclick="showFullImage(this.src, '{{ $painting->name }}')" title="Click để xem ảnh gốc">
                                 <button type="button" id="btn-remove-image"
                                     class="hidden group-hover:flex absolute -top-1 -right-1 w-6 h-6 items-center justify-center rounded-full bg-red-600 text-white shadow">
                                     <i class="fas fa-times text-xs"></i>
@@ -139,8 +134,7 @@
                     <div id="painting-image-preview-wrap-edit" class="mt-2 hidden">
                         <img id="painting-image-preview-edit" src="#" alt="Xem trước ảnh"
                             class="max-w-32 max-h-32 object-contain rounded border bg-gray-100 cursor-pointer"
-                            onclick="showFullImage(this.src, 'Xem trước ảnh mới')"
-                            title="Click để xem ảnh gốc">
+                            onclick="showFullImage(this.src, 'Xem trước ảnh mới')" title="Click để xem ảnh gốc">
                     </div>
                     <p class="text-xs text-gray-500 mt-1">Định dạng: JPG, PNG, WEBP. Tối đa 2MB.</p>
                 </div>
@@ -158,18 +152,18 @@
             </div>
         </form>
     </div>
-@endsection
-
-<!-- Image Modal -->
-<div id="imageModal" class="fixed inset-0 bg-black bg-opacity-80 z-50 hidden flex items-center justify-center p-4" onclick="closeImageModal()">
-    <div class="relative" onclick="event.stopPropagation()">
-        <button onclick="closeImageModal()" class="absolute -top-10 right-0 text-white hover:text-gray-300">
-            <i class="fas fa-times text-2xl"></i>
-        </button>
-        <img id="modalImage" src="" alt="" class="max-w-[90vw] max-h-[90vh] rounded-lg shadow-2xl">
-        <p id="modalImageTitle" class="text-white text-center mt-4 text-lg"></p>
+    <!-- Image Modal -->
+    <div id="imageModal" class="fixed inset-0 bg-black bg-opacity-80 z-50 hidden flex items-center justify-center p-4"
+        onclick="closeImageModal()">
+        <div class="relative" onclick="event.stopPropagation()">
+            <button onclick="closeImageModal()" class="absolute -top-10 right-0 text-white hover:text-gray-300">
+                <i class="fas fa-times text-2xl"></i>
+            </button>
+            <img id="modalImage" src="" alt="" class="max-w-[90vw] max-h-[90vh] rounded-lg shadow-2xl">
+            <p id="modalImageTitle" class="text-white text-center mt-4 text-lg"></p>
+        </div>
     </div>
-</div>
+@endsection
 
 @push('scripts')
     <script>
@@ -178,21 +172,21 @@
             const modal = document.getElementById('imageModal');
             const modalImage = document.getElementById('modalImage');
             const modalTitle = document.getElementById('modalImageTitle');
-            
+
             modalImage.src = src;
             modalTitle.textContent = title || '';
             modal.classList.remove('hidden');
             document.body.style.overflow = 'hidden';
         }
-        
+
         function closeImageModal() {
             const modal = document.getElementById('imageModal');
             modal.classList.add('hidden');
             document.body.style.overflow = 'auto';
         }
-        
+
         // Close modal with ESC key
-        document.addEventListener('keydown', function(event) {
+        document.addEventListener('keydown', function (event) {
             if (event.key === 'Escape') {
                 closeImageModal();
             }

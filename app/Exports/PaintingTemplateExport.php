@@ -26,8 +26,6 @@ class PaintingTemplateExport implements FromArray, WithHeadings, WithStyles, Wit
                 '1000',
                 '23500000',
                 date('Y-m-d'),
-                '',
-                '',
                 'Có ảnh - Insert ảnh vào dòng này'
             ],
             [
@@ -41,8 +39,6 @@ class PaintingTemplateExport implements FromArray, WithHeadings, WithStyles, Wit
                 '1500',
                 '35250000',
                 date('Y-m-d'),
-                '',
-                '',
                 'Không có ảnh'
             ],
             [
@@ -56,8 +52,6 @@ class PaintingTemplateExport implements FromArray, WithHeadings, WithStyles, Wit
                 '800',
                 '18800000',
                 date('Y-m-d'),
-                '',
-                '',
                 'Có ảnh - Insert ảnh vào dòng này'
             ]
         ];
@@ -75,9 +69,7 @@ class PaintingTemplateExport implements FromArray, WithHeadings, WithStyles, Wit
             'Năm vẽ',
             'Giá (USD) (*)',
             'Giá (VND)',
-            'Ngày nhập kho',
-            'Ngày xuất kho',
-            'Đường dẫn hình ảnh',
+            'Ngày nhập kho (*)',
             'Ghi chú'
         ];
     }
@@ -105,9 +97,7 @@ class PaintingTemplateExport implements FromArray, WithHeadings, WithStyles, Wit
             'H' => 15,  // Giá USD
             'I' => 18,  // Giá VND
             'J' => 18,  // Ngày nhập kho
-            'K' => 18,  // Ngày xuất kho
-            'L' => 30,  // Đường dẫn hình ảnh
-            'M' => 35,  // Ghi chú
+            'K' => 35,  // Ghi chú
         ];
     }
 
@@ -121,9 +111,6 @@ class PaintingTemplateExport implements FromArray, WithHeadings, WithStyles, Wit
                 $event->sheet->getDelegate()->getRowDimension(2)->setRowHeight(80);
                 $event->sheet->getDelegate()->getRowDimension(3)->setRowHeight(80);
                 $event->sheet->getDelegate()->getRowDimension(4)->setRowHeight(80);
-                
-                // Set column L (Image) width wider
-                $event->sheet->getDelegate()->getColumnDimension('L')->setWidth(40);
             },
         ];
     }

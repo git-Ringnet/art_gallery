@@ -224,7 +224,7 @@ class InventoryController extends Controller
             'width' => 'nullable|numeric|min:0|max:100000',
             'height' => 'nullable|numeric|min:0|max:100000',
             'year' => 'nullable',
-            'price_usd' => 'nullable|numeric|min:0',
+            'price_usd' => 'required|numeric|min:0',
             'price_vnd' => 'nullable|numeric|min:0',
             'import_date' => 'required|date',
             'export_date' => 'nullable|date|after:import_date',
@@ -233,14 +233,17 @@ class InventoryController extends Controller
         ], [
             'code.unique' => 'Mã tranh đã tồn tại trong hệ thống.',
             'code.required' => 'Vui lòng nhập mã tranh.',
+            'name.required' => 'Vui lòng nhập tên tranh.',
+            'artist.required' => 'Vui lòng nhập tên họa sĩ.',
+            'material.required' => 'Vui lòng chọn chất liệu tranh.',
+            'price_usd.required' => 'Vui lòng nhập giá USD.',
+            'price_usd.numeric' => 'Giá USD phải là số.',
+            'price_usd.min' => 'Giá USD phải lớn hơn hoặc bằng 0.',
+            'import_date.required' => 'Vui lòng chọn ngày nhập kho.',
             'width.max' => 'Chiều rộng không được vượt quá 100,000 cm.',
             'height.max' => 'Chiều cao không được vượt quá 100,000 cm.',
+            'image.max' => 'Kích thước ảnh không được vượt quá 5MB.',
         ]);
-
-        // Validate that at least one price is provided
-        if (empty($validated['price_usd']) && empty($validated['price_vnd'])) {
-            return back()->withErrors(['price_usd' => 'Vui lòng nhập ít nhất một loại giá (USD hoặc VND).'])->withInput();
-        }
 
         // Persist painting
         $imagePath = null;
@@ -874,17 +877,27 @@ class InventoryController extends Controller
     public function importPaintingExcel(Request $request)
     {
         $request->validate([
-            'file' => 'required|mimes:xlsx,xls|max:20480', // Tăng lên 20MB
+            'file' => 'required|mimes:xlsx,xls|max:51200', // Tăng lên 50MB
         ], [
             'file.required' => 'Vui lòng chọn file Excel',
             'file.mimes' => 'File phải có định dạng .xlsx hoặc .xls',
-            'file.max' => 'File không được vượt quá 20MB',
+            'file.max' => 'File không được vượt quá 50MB',
         ]);
+
+        // Validate image count
+        if ($request->hasFile('images')) {
+            $imageCount = count($request->file('images'));
+            if ($imageCount > 200) {
+                return redirect()->back()
+                    ->withErrors(['images' => "Đã chọn {$imageCount} ảnh, vượt quá giới hạn 200 ảnh. Vui lòng chọn lại hoặc chia nhỏ thành nhiều lần import."])
+                    ->withInput();
+            }
+        }
 
         try {
             // Tăng timeout và memory limit cho file lớn
-            set_time_limit(300); // 5 phút
-            ini_set('memory_limit', '512M');
+            set_time_limit(600); // 10 phút
+            ini_set('memory_limit', '1024M'); // 1GB
             
             Log::info('Starting painting import', [
                 'file_size' => $request->file('file')->getSize(),
@@ -917,6 +930,21 @@ class InventoryController extends Controller
                     // Map by code (filename without extension)
                     // Support flexible matching: exact match or starts with code
                     $uploadedImages[$nameWithoutExt] = $filename;
+                    
+                    // Also extract potential code from filename
+                    // Example: "BHH 742_79x109cm_2024-5k_resize.jpg" → "BHH 742"
+                    // Pattern: Extract text before first underscore or dash
+                    if (preg_match('/^([^_\-]+)/', $nameWithoutExt, $matches)) {
+                        $potentialCode = trim($matches[1]);
+                        if ($potentialCode !== $nameWithoutExt) {
+                            $uploadedImages[$potentialCode] = $filename;
+                            Log::info('Extracted code from filename', [
+                                'original' => $nameWithoutExt,
+                                'extracted_code' => $potentialCode,
+                                'filename' => $filename
+                            ]);
+                        }
+                    }
                     
                     Log::info('Uploaded image', [
                         'original' => $originalName,
@@ -1046,14 +1074,28 @@ class InventoryController extends Controller
     public function importSupplyExcel(Request $request)
     {
         $request->validate([
-            'file' => 'required|mimes:xlsx,xls|max:10240',
+            'file' => 'required|mimes:xlsx,xls|max:51200', // Tăng lên 50MB
         ], [
             'file.required' => 'Vui lòng chọn file Excel',
             'file.mimes' => 'File phải có định dạng .xlsx hoặc .xls',
-            'file.max' => 'File không được vượt quá 10MB',
+            'file.max' => 'File không được vượt quá 50MB',
         ]);
 
+        // Validate image count
+        if ($request->hasFile('images')) {
+            $imageCount = count($request->file('images'));
+            if ($imageCount > 200) {
+                return redirect()->back()
+                    ->withErrors(['images' => "Đã chọn {$imageCount} ảnh, vượt quá giới hạn 200 ảnh. Vui lòng chọn lại hoặc chia nhỏ thành nhiều lần import."])
+                    ->withInput();
+            }
+        }
+
         try {
+            // Tăng timeout và memory limit cho file lớn
+            set_time_limit(600); // 10 phút
+            ini_set('memory_limit', '1024M'); // 1GB
+            
             // Handle uploaded images
             $uploadedImages = [];
             if ($request->hasFile('images')) {
@@ -1079,6 +1121,18 @@ class InventoryController extends Controller
                     
                     // Map by code (filename without extension)
                     $uploadedImages[$nameWithoutExt] = $filename;
+                    
+                    // Also extract potential code from filename
+                    if (preg_match('/^([^_\-]+)/', $nameWithoutExt, $matches)) {
+                        $potentialCode = trim($matches[1]);
+                        if ($potentialCode !== $nameWithoutExt) {
+                            $uploadedImages[$potentialCode] = $filename;
+                            Log::info('Extracted supply code from filename', [
+                                'original' => $nameWithoutExt,
+                                'extracted_code' => $potentialCode
+                            ]);
+                        }
+                    }
                     
                     Log::info('Uploaded supply image', [
                         'original' => $originalName,
