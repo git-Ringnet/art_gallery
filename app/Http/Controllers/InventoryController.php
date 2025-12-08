@@ -529,6 +529,83 @@ class InventoryController extends Controller
             ->with('success', 'Đã xóa vật tư');
     }
 
+    public function bulkDelete(Request $request)
+    {
+        $items = json_decode($request->input('items'), true);
+        
+        if (empty($items)) {
+            return redirect()->route('inventory.index')
+                ->with('error', 'Không có mục nào được chọn để xóa');
+        }
+
+        $deletedPaintings = 0;
+        $deletedSupplies = 0;
+        $errors = [];
+
+        foreach ($items as $item) {
+            $id = $item['id'];
+            $type = $item['type'];
+
+            try {
+                if ($type === 'painting') {
+                    $painting = Painting::find($id);
+                    if ($painting) {
+                        // Không cho xóa tranh đã bán
+                        if ($painting->status !== 'in_stock') {
+                            $errors[] = "Tranh {$painting->code} đã bán, không thể xóa";
+                            continue;
+                        }
+                        
+                        // Xóa ảnh nếu có
+                        if ($painting->image) {
+                            Storage::disk('public')->delete($painting->image);
+                        }
+                        $painting->delete();
+                        $deletedPaintings++;
+                    }
+                } elseif ($type === 'supply') {
+                    $supply = Supply::find($id);
+                    if ($supply) {
+                        // Không cho xóa vật tư đã sử dụng hết
+                        if ($supply->quantity <= 0) {
+                            $errors[] = "Vật tư {$supply->code} đã sử dụng hết, không thể xóa";
+                            continue;
+                        }
+                        
+                        // Xóa ảnh nếu có
+                        if ($supply->image) {
+                            Storage::disk('public')->delete($supply->image);
+                        }
+                        $supply->delete();
+                        $deletedSupplies++;
+                    }
+                }
+            } catch (\Exception $e) {
+                Log::error('Bulk delete error', ['item' => $item, 'error' => $e->getMessage()]);
+                $errors[] = "Lỗi khi xóa {$type} ID {$id}";
+            }
+        }
+
+        $totalDeleted = $deletedPaintings + $deletedSupplies;
+        $message = "Đã xóa {$totalDeleted} mục";
+        if ($deletedPaintings > 0) {
+            $message .= " ({$deletedPaintings} tranh";
+        }
+        if ($deletedSupplies > 0) {
+            $message .= $deletedPaintings > 0 ? ", {$deletedSupplies} vật tư)" : " ({$deletedSupplies} vật tư)";
+        } else if ($deletedPaintings > 0) {
+            $message .= ")";
+        }
+
+        if (!empty($errors)) {
+            return redirect()->route('inventory.index')
+                ->with('warning', $message . '. Một số mục không thể xóa: ' . implode('; ', $errors));
+        }
+
+        return redirect()->route('inventory.index')
+            ->with('success', $message);
+    }
+
     public function exportExcel(Request $request)
     {
         $search = $request->get('search');

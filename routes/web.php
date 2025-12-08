@@ -101,6 +101,9 @@ Route::middleware(['auth'])->group(function () {
         Route::get('/supplies/{id}/edit', [App\Http\Controllers\InventoryController::class, 'editSupply'])->middleware('permission:inventory,can_edit')->name('supplies.edit');
         Route::put('/supplies/{id}', [App\Http\Controllers\InventoryController::class, 'updateSupply'])->middleware('permission:inventory,can_edit')->name('supplies.update');
         Route::delete('/supplies/{id}', [App\Http\Controllers\InventoryController::class, 'destroySupply'])->middleware('permission:inventory,can_delete')->name('supplies.destroy');
+        
+        // Bulk delete
+        Route::delete('/bulk-delete', [App\Http\Controllers\InventoryController::class, 'bulkDelete'])->middleware('permission:inventory,can_delete')->name('bulk-delete');
     });
 
     // Showrooms routes

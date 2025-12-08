@@ -125,11 +125,36 @@
             </form>
         </div>
 
+        <!-- Bulk Actions Bar -->
+        @hasPermission('inventory', 'can_delete')
+        <div id="bulkActionsBar" class="hidden bg-blue-50 border border-blue-200 rounded-lg p-3 mb-4 flex items-center justify-between">
+            <div class="flex items-center">
+                <span class="text-sm text-blue-800">
+                    <i class="fas fa-check-square mr-1"></i>
+                    Đã chọn <span id="selectedCount" class="font-bold">0</span> mục
+                </span>
+            </div>
+            <div class="flex items-center gap-2">
+                <button type="button" onclick="clearSelection()" class="text-gray-600 hover:text-gray-800 text-sm px-3 py-1.5 rounded border border-gray-300 hover:bg-gray-100">
+                    <i class="fas fa-times mr-1"></i>Bỏ chọn
+                </button>
+                <button type="button" onclick="confirmBulkDelete()" class="bg-red-600 hover:bg-red-700 text-white text-sm px-3 py-1.5 rounded">
+                    <i class="fas fa-trash mr-1"></i>Xóa đã chọn
+                </button>
+            </div>
+        </div>
+        @endhasPermission
+
         <!-- Inventory Table -->
         <div class="overflow-x-auto">
             <table class="w-full text-sm">
                 <thead class="bg-gradient-to-r from-blue-500 to-cyan-600 text-white">
                     <tr>
+                        @hasPermission('inventory', 'can_delete')
+                        <th class="px-2 py-2 text-center text-xs font-medium uppercase tracking-wider w-10">
+                            <input type="checkbox" id="selectAll" class="rounded border-gray-300 text-blue-600 focus:ring-blue-500" title="Chọn tất cả">
+                        </th>
+                        @endhasPermission
                         <th class="px-2 py-2 text-center text-xs font-medium uppercase tracking-wider w-12">STT</th>
                         <th class="px-2 py-2 text-left text-xs font-medium uppercase tracking-wider">Mã</th>
                         <th class="px-2 py-2 text-left text-xs font-medium uppercase tracking-wider">Tên sản
@@ -149,7 +174,21 @@
                 </thead>
                 <tbody class="bg-white divide-y divide-gray-200">
                     @forelse($inventory as $index => $item)
+                        @php
+                            $canDelete = ($item['type'] == 'painting' && $item['status'] == 'in_stock') || 
+                                        ($item['type'] == 'supply' && $item['quantity'] > 0);
+                        @endphp
                         <tr class="hover:bg-gray-50">
+                            @hasPermission('inventory', 'can_delete')
+                            <td class="px-2 py-2 whitespace-nowrap text-center">
+                                @if($canDelete)
+                                    <input type="checkbox" class="item-checkbox rounded border-gray-300 text-blue-600 focus:ring-blue-500" 
+                                        data-id="{{ $item['id'] }}" data-type="{{ $item['type'] }}" data-name="{{ $item['code'] }}">
+                                @else
+                                    <input type="checkbox" disabled class="rounded border-gray-200 text-gray-300 cursor-not-allowed" title="Không thể xóa">
+                                @endif
+                            </td>
+                            @endhasPermission
                             <td class="px-2 py-2 whitespace-nowrap text-xs text-center text-gray-500">
                                 {{ $inventory->firstItem() + $index }}
                             </td>
@@ -299,7 +338,7 @@
                         </tr>
                     @empty
                         <tr>
-                            <td colspan="9" class="px-2 py-6 text-center text-gray-500">
+                            <td colspan="10" class="px-2 py-6 text-center text-gray-500">
                                 <i class="fas fa-inbox text-3xl mb-2"></i>
                                 <p class="text-sm">Không có dữ liệu</p>
                             </td>
@@ -366,5 +405,102 @@
                 closeImageModal();
             }
         });
+
+        // Bulk selection functionality
+        const selectAllCheckbox = document.getElementById('selectAll');
+        const itemCheckboxes = document.querySelectorAll('.item-checkbox');
+        const bulkActionsBar = document.getElementById('bulkActionsBar');
+        const selectedCountSpan = document.getElementById('selectedCount');
+
+        function updateBulkActionsBar() {
+            const checkedBoxes = document.querySelectorAll('.item-checkbox:checked');
+            const count = checkedBoxes.length;
+            
+            if (selectedCountSpan) {
+                selectedCountSpan.textContent = count;
+            }
+            
+            if (bulkActionsBar) {
+                if (count > 0) {
+                    bulkActionsBar.classList.remove('hidden');
+                } else {
+                    bulkActionsBar.classList.add('hidden');
+                }
+            }
+            
+            // Update select all checkbox state
+            if (selectAllCheckbox && itemCheckboxes.length > 0) {
+                const enabledCheckboxes = document.querySelectorAll('.item-checkbox:not(:disabled)');
+                const checkedEnabled = document.querySelectorAll('.item-checkbox:not(:disabled):checked');
+                selectAllCheckbox.checked = enabledCheckboxes.length > 0 && checkedEnabled.length === enabledCheckboxes.length;
+                selectAllCheckbox.indeterminate = checkedEnabled.length > 0 && checkedEnabled.length < enabledCheckboxes.length;
+            }
+        }
+
+        if (selectAllCheckbox) {
+            selectAllCheckbox.addEventListener('change', function() {
+                const enabledCheckboxes = document.querySelectorAll('.item-checkbox:not(:disabled)');
+                enabledCheckboxes.forEach(cb => cb.checked = this.checked);
+                updateBulkActionsBar();
+            });
+        }
+
+        itemCheckboxes.forEach(cb => {
+            cb.addEventListener('change', updateBulkActionsBar);
+        });
+
+        function clearSelection() {
+            itemCheckboxes.forEach(cb => cb.checked = false);
+            if (selectAllCheckbox) selectAllCheckbox.checked = false;
+            updateBulkActionsBar();
+        }
+
+        function confirmBulkDelete() {
+            const checkedBoxes = document.querySelectorAll('.item-checkbox:checked');
+            if (checkedBoxes.length === 0) {
+                alert('Vui lòng chọn ít nhất một mục để xóa');
+                return;
+            }
+
+            const items = [];
+            const names = [];
+            checkedBoxes.forEach(cb => {
+                items.push({
+                    id: cb.dataset.id,
+                    type: cb.dataset.type
+                });
+                names.push(cb.dataset.name);
+            });
+
+            const confirmMsg = `Bạn có chắc chắn muốn xóa ${items.length} mục sau?\n\n${names.join(', ')}\n\nHành động này không thể hoàn tác!`;
+            
+            if (confirm(confirmMsg)) {
+                // Create form and submit
+                const form = document.createElement('form');
+                form.method = 'POST';
+                form.action = '{{ route("inventory.bulk-delete") }}';
+                
+                const csrfToken = document.createElement('input');
+                csrfToken.type = 'hidden';
+                csrfToken.name = '_token';
+                csrfToken.value = '{{ csrf_token() }}';
+                form.appendChild(csrfToken);
+
+                const methodField = document.createElement('input');
+                methodField.type = 'hidden';
+                methodField.name = '_method';
+                methodField.value = 'DELETE';
+                form.appendChild(methodField);
+
+                const itemsField = document.createElement('input');
+                itemsField.type = 'hidden';
+                itemsField.name = 'items';
+                itemsField.value = JSON.stringify(items);
+                form.appendChild(itemsField);
+
+                document.body.appendChild(form);
+                form.submit();
+            }
+        }
     </script>
 @endpush
