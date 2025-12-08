@@ -167,10 +167,11 @@ class InventoryController extends Controller
             }));
         }
 
-        // Sort by created_at (newest first) - this ensures consistent ordering
-        $inventory = $inventory->sortByDesc(function ($item) {
-            return $item['created_at'] ? $item['created_at']->timestamp : 0;
-        })->values();
+        // Sort by created_at (newest first) - vừa nhập thì xếp đầu
+        $inventory = $inventory->sortBy([
+            ['created_at', 'desc'],
+            ['id', 'desc'],
+        ])->values();
 
         // Paginate merged collection
         $perPage = 10;

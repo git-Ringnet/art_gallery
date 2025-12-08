@@ -130,6 +130,7 @@
             <table class="w-full text-sm">
                 <thead class="bg-gradient-to-r from-blue-500 to-cyan-600 text-white">
                     <tr>
+                        <th class="px-2 py-2 text-center text-xs font-medium uppercase tracking-wider w-12">STT</th>
                         <th class="px-2 py-2 text-left text-xs font-medium uppercase tracking-wider">Mã</th>
                         <th class="px-2 py-2 text-left text-xs font-medium uppercase tracking-wider">Tên sản
                             phẩm</th>
@@ -147,9 +148,11 @@
                     </tr>
                 </thead>
                 <tbody class="bg-white divide-y divide-gray-200">
-                    @forelse($inventory as $item)
+                    @forelse($inventory as $index => $item)
                         <tr class="hover:bg-gray-50">
-
+                            <td class="px-2 py-2 whitespace-nowrap text-xs text-center text-gray-500">
+                                {{ $inventory->firstItem() + $index }}
+                            </td>
                             <td class="px-2 py-2 whitespace-nowrap text-xs font-medium text-indigo-600">{{ $item['code'] }}
                             </td>
                             <td class="px-2 py-2 whitespace-nowrap text-xs text-gray-900">{{ $item['name'] }}</td>
@@ -296,7 +299,7 @@
                         </tr>
                     @empty
                         <tr>
-                            <td colspan="8" class="px-2 py-6 text-center text-gray-500">
+                            <td colspan="9" class="px-2 py-6 text-center text-gray-500">
                                 <i class="fas fa-inbox text-3xl mb-2"></i>
                                 <p class="text-sm">Không có dữ liệu</p>
                             </td>
