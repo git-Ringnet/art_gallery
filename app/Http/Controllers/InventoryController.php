@@ -451,6 +451,19 @@ class InventoryController extends Controller
             return redirect()->route('inventory.index')
                 ->with('error', 'Không thể xóa tranh đã bán');
         }
+        // Kiểm tra xem tranh có đang được sử dụng trong phiếu chờ duyệt không
+        $pendingSales = \App\Models\SaleItem::where('painting_id', $id)
+            ->whereHas('sale', function($q) {
+                $q->where('sale_status', 'pending');
+            })
+            ->with('sale')
+            ->get();
+        
+        if ($pendingSales->isNotEmpty()) {
+            $invoiceCodes = $pendingSales->pluck('sale.invoice_code')->unique()->implode(', ');
+            return redirect()->route('inventory.index')
+                ->with('error', "Không thể xóa tranh đang được sử dụng trong phiếu chờ duyệt: {$invoiceCodes}");
+        }
         
         if ($painting->image) {
             Storage::disk('public')->delete($painting->image);
@@ -525,7 +538,23 @@ class InventoryController extends Controller
             return redirect()->route('inventory.index')
                 ->with('error', 'Không thể xóa vật tư đã sử dụng hết');
         }
+        // Kiểm tra xem vật tư có đang được sử dụng trong phiếu chờ duyệt không
+        $pendingSales = \App\Models\SaleItem::where('supply_id', $id)
+            ->whereHas('sale', function($q) {
+                $q->where('sale_status', 'pending');
+            })
+            ->with('sale')
+            ->get();
         
+        if ($pendingSales->isNotEmpty()) {
+            $invoiceCodes = $pendingSales->pluck('sale.invoice_code')->unique()->implode(', ');
+            return redirect()->route('inventory.index')
+                ->with('error', "Không thể xóa vật tư đang được sử dụng trong phiếu chờ duyệt: {$invoiceCodes}");
+        }
+        
+        if ($supply->image) {
+            Storage::disk('public')->delete($supply->image);
+        }
         $supply->delete();
 
         return redirect()->route('inventory.index')
@@ -558,7 +587,17 @@ class InventoryController extends Controller
                             $errors[] = "Tranh {$painting->code} đã bán, không thể xóa";
                             continue;
                         }
+                         // Kiểm tra phiếu chờ duyệt
+                        $pendingSales = \App\Models\SaleItem::where('painting_id', $id)
+                            ->whereHas('sale', function($q) {
+                                $q->where('sale_status', 'pending');
+                            })
+                            ->exists();
                         
+                        if ($pendingSales) {
+                            $errors[] = "Tranh {$painting->code} đang trong phiếu chờ duyệt";
+                            continue;
+                        }
                         // Xóa ảnh nếu có
                         if ($painting->image) {
                             Storage::disk('public')->delete($painting->image);
@@ -574,7 +613,17 @@ class InventoryController extends Controller
                             $errors[] = "Vật tư {$supply->code} đã sử dụng hết, không thể xóa";
                             continue;
                         }
+                        // Kiểm tra phiếu chờ duyệt
+                        $pendingSales = \App\Models\SaleItem::where('supply_id', $id)
+                            ->whereHas('sale', function($q) {
+                                $q->where('sale_status', 'pending');
+                            })
+                            ->exists();
                         
+                        if ($pendingSales) {
+                            $errors[] = "Vật tư {$supply->code} đang trong phiếu chờ duyệt";
+                            continue;
+                        }
                         // Xóa ảnh nếu có
                         if ($supply->image) {
                             Storage::disk('public')->delete($supply->image);

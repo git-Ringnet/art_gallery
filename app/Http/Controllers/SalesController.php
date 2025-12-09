@@ -1061,6 +1061,53 @@ class SalesController extends Controller
             return back()->with('error', 'Phiếu bán hàng này không thể duyệt');
         }
 
+        // KIỂM TRA TỒN KHO TRƯỚC KHI DUYỆT
+        $stockErrors = [];
+        foreach ($sale->saleItems as $saleItem) {
+            // Kiểm tra tranh
+            if ($saleItem->painting_id) {
+                $painting = Painting::find($saleItem->painting_id);
+                if (!$painting) {
+                    $stockErrors[] = "Tranh (ID: {$saleItem->painting_id}) đã bị xóa khỏi kho";
+                } elseif ($painting->status !== 'in_stock') {
+                    $stockErrors[] = "Tranh {$painting->code} - {$painting->name} đã được bán";
+                } elseif ($painting->quantity < $saleItem->quantity) {
+                    $stockErrors[] = "Tranh {$painting->code} không đủ số lượng (cần: {$saleItem->quantity}, còn: {$painting->quantity})";
+                }
+            }
+
+            // Kiểm tra vật tư
+            if ($saleItem->supply_id && $saleItem->supply_length) {
+                $supply = Supply::find($saleItem->supply_id);
+                $totalRequired = $saleItem->supply_length * $saleItem->quantity;
+                
+                if (!$supply) {
+                    $stockErrors[] = "Vật tư (ID: {$saleItem->supply_id}) đã bị xóa khỏi kho";
+                } else {
+                    // Tính tổng chiều dài còn lại
+                    $availableLength = $supply->tree_count * $supply->quantity;
+                    if ($availableLength < $totalRequired) {
+                        $stockErrors[] = "Vật tư {$supply->code} không đủ (cần: {$totalRequired}{$supply->unit}, còn: {$availableLength}{$supply->unit})";
+                    }
+                }
+            }
+
+            // Kiểm tra khung
+            if ($saleItem->frame_id) {
+                $frame = \App\Models\Frame::find($saleItem->frame_id);
+                if (!$frame) {
+                    $stockErrors[] = "Khung (ID: {$saleItem->frame_id}) đã bị xóa";
+                } elseif (!$frame->isAvailable()) {
+                    $stockErrors[] = "Khung {$frame->name} đã được bán";
+                }
+            }
+        }
+
+        // Nếu có lỗi tồn kho, không cho duyệt
+        if (!empty($stockErrors)) {
+            return back()->with('error', 'Không thể duyệt phiếu do lỗi tồn kho: ' . implode('; ', $stockErrors));
+        }
+
         DB::beginTransaction();
         try {
             $user = $this->getDefaultUser();
