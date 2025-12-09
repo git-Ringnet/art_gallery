@@ -19,9 +19,14 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
+        //https
+        if ($this->app->environment('production') || true) {
+            URL::forceScheme('https');
+        }
+
         // Use Tailwind for pagination
         \Illuminate\Pagination\Paginator::useTailwind();
-        
+
         // Register Blade directives for permissions
         \Illuminate\Support\Facades\Blade::directive('canAccess', function ($module) {
             return "<?php if(auth()->check() && auth()->user()->canAccess($module)): ?>";
