@@ -28,6 +28,8 @@ class InventoryController extends Controller
         $type = $request->get('type');
         $dateFrom = $request->get('date_from');
         $dateTo = $request->get('date_to');
+        $perPage = 10;
+        $currentPage = (int) ($request->get('page', 1));
 
         // Check view permission
         $canView = true;
@@ -45,7 +47,7 @@ class InventoryController extends Controller
             $inventoryPaginator = new LengthAwarePaginator(
                 [],
                 0,
-                10,
+                $perPage,
                 1,
                 [
                     'path' => route('inventory.index'),
@@ -62,19 +64,6 @@ class InventoryController extends Controller
             ]);
         }
 
-        // Get paintings with sale information
-        $paintingsQuery = Painting::with(['saleItems.sale']);
-        if ($search) {
-            $paintingsQuery->where(function($q) use ($search) {
-                $q->where('code', 'like', "%{$search}%")
-                  ->orWhere('name', 'like', "%{$search}%")
-                  ->orWhere('artist', 'like', "%{$search}%")
-                  ->orWhereHas('saleItems.sale', function($saleQuery) use ($search) {
-                      $saleQuery->where('invoice_code', 'like', "%{$search}%")
-                                ->where('sale_status', 'completed');
-                  });
-            });
-        }
         // Check filter permissions
         $canFilterDate = true;
         if (\Illuminate\Support\Facades\Auth::check() && \Illuminate\Support\Facades\Auth::user()->email !== 'admin@example.com') {
@@ -87,6 +76,43 @@ class InventoryController extends Controller
             }
         }
 
+        // ==========================================
+        // OPTIMIZED: Use database-level pagination
+        // ==========================================
+
+        // Case 1: Only paintings
+        if ($type === 'painting') {
+            return $this->indexPaintingsOnly($request, $search, $dateFrom, $dateTo, $canFilterDate, $perPage, $currentPage);
+        }
+
+        // Case 2: Only supplies
+        if ($type === 'supply') {
+            return $this->indexSuppliesOnly($request, $search, $dateFrom, $dateTo, $canFilterDate, $perPage, $currentPage);
+        }
+
+        // Case 3: Both types - use optimized lightweight pagination
+        return $this->indexBothTypes($request, $search, $dateFrom, $dateTo, $canFilterDate, $perPage, $currentPage);
+    }
+
+    /**
+     * OPTIMIZED: Index only paintings with database-level pagination
+     */
+    private function indexPaintingsOnly($request, $search, $dateFrom, $dateTo, $canFilterDate, $perPage, $currentPage)
+    {
+        $paintingsQuery = Painting::query();
+
+        if ($search) {
+            $paintingsQuery->where(function ($q) use ($search) {
+                $q->where('code', 'like', "%{$search}%")
+                    ->orWhere('name', 'like', "%{$search}%")
+                    ->orWhere('artist', 'like', "%{$search}%")
+                    ->orWhereHas('saleItems.sale', function ($saleQuery) use ($search) {
+                        $saleQuery->where('invoice_code', 'like', "%{$search}%")
+                            ->where('sale_status', 'completed');
+                    });
+            });
+        }
+
         if ($canFilterDate) {
             if ($dateFrom) {
                 $paintingsQuery->where('import_date', '>=', $dateFrom);
@@ -95,14 +121,157 @@ class InventoryController extends Controller
                 $paintingsQuery->where('import_date', '<=', $dateTo);
             }
         }
-        $paintings = $paintingsQuery->orderBy('created_at', 'desc')->get();
 
-        // Get supplies (chỉ lấy những cây còn số lượng > 0)
+        // Use database pagination
+        $paginatedPaintings = $paintingsQuery->orderBy('created_at', 'desc')
+            ->orderBy('id', 'desc')
+            ->paginate($perPage);
+
+        // Get IDs for current page to load sales efficiently
+        $paintingIds = $paginatedPaintings->pluck('id')->toArray();
+
+        // Load completed sales for paintings on current page only (batch query)
+        $completedSalesMap = $this->getCompletedSalesForPaintings($paintingIds);
+
+        // Transform to expected format
+        $items = $paginatedPaintings->getCollection()->map(function ($painting) use ($completedSalesMap) {
+            return [
+                'id' => $painting->id,
+                'code' => $painting->code,
+                'name' => $painting->name,
+                'type' => 'painting',
+                'quantity' => $painting->quantity,
+                'import_date' => $painting->import_date?->format('d/m/Y'),
+                'import_date_raw' => $painting->import_date,
+                'created_at' => $painting->created_at,
+                'status' => $painting->status,
+                'artist' => $painting->artist,
+                'material' => $painting->material,
+                'price_usd' => $painting->price_usd,
+                'sales' => $completedSalesMap[$painting->id] ?? collect(),
+            ];
+        });
+
+        $inventoryPaginator = new LengthAwarePaginator(
+            $items,
+            $paginatedPaintings->total(),
+            $perPage,
+            $currentPage,
+            [
+                'path' => route('inventory.index'),
+                'query' => $request->query(),
+            ]
+        );
+
+        return view('inventory.index', [
+            'inventory' => $inventoryPaginator,
+            'search' => $search,
+            'type' => 'painting',
+            'dateFrom' => $dateFrom,
+            'dateTo' => $dateTo,
+        ]);
+    }
+
+    /**
+     * OPTIMIZED: Index only supplies with database-level pagination
+     */
+    private function indexSuppliesOnly($request, $search, $dateFrom, $dateTo, $canFilterDate, $perPage, $currentPage)
+    {
         $suppliesQuery = Supply::where('tree_count', '>', 0);
+
         if ($search) {
-            $suppliesQuery->where(function($q) use ($search) {
+            $suppliesQuery->where(function ($q) use ($search) {
                 $q->where('code', 'like', "%{$search}%")
-                  ->orWhere('name', 'like', "%{$search}%");
+                    ->orWhere('name', 'like', "%{$search}%");
+            });
+        }
+
+        if ($canFilterDate) {
+            if ($dateFrom) {
+                $suppliesQuery->where('import_date', '>=', $dateFrom);
+            }
+            if ($dateTo) {
+                $suppliesQuery->where('import_date', '<=', $dateTo);
+            }
+        }
+
+        // Use database pagination
+        $paginatedSupplies = $suppliesQuery->orderBy('created_at', 'desc')
+            ->orderBy('id', 'desc')
+            ->paginate($perPage);
+
+        // Transform to expected format
+        $items = $paginatedSupplies->getCollection()->map(function ($supply) {
+            return [
+                'id' => $supply->id,
+                'code' => $supply->code,
+                'name' => $supply->name,
+                'type' => 'supply',
+                'supply_type' => $supply->type,
+                'quantity' => $supply->quantity,
+                'tree_count' => $supply->tree_count,
+                'unit' => $supply->unit,
+                'import_date' => $supply->import_date?->format('d/m/Y'),
+                'import_date_raw' => $supply->import_date,
+                'created_at' => $supply->created_at,
+                'status' => $supply->status,
+                'sales' => collect(),
+            ];
+        });
+
+        $inventoryPaginator = new LengthAwarePaginator(
+            $items,
+            $paginatedSupplies->total(),
+            $perPage,
+            $currentPage,
+            [
+                'path' => route('inventory.index'),
+                'query' => $request->query(),
+            ]
+        );
+
+        return view('inventory.index', [
+            'inventory' => $inventoryPaginator,
+            'search' => $search,
+            'type' => 'supply',
+            'dateFrom' => $dateFrom,
+            'dateTo' => $dateTo,
+        ]);
+    }
+
+    /**
+     * OPTIMIZED: Index both paintings and supplies
+     * Uses lightweight ID-based pagination first, then loads full data only for current page
+     */
+    private function indexBothTypes($request, $search, $dateFrom, $dateTo, $canFilterDate, $perPage, $currentPage)
+    {
+        // Step 1: Get lightweight data (only id, created_at) for pagination calculation
+        $paintingsQuery = Painting::select('id', 'created_at');
+        if ($search) {
+            $paintingsQuery->where(function ($q) use ($search) {
+                $q->where('code', 'like', "%{$search}%")
+                    ->orWhere('name', 'like', "%{$search}%")
+                    ->orWhere('artist', 'like', "%{$search}%")
+                    ->orWhereHas('saleItems.sale', function ($saleQuery) use ($search) {
+                        $saleQuery->where('invoice_code', 'like', "%{$search}%")
+                            ->where('sale_status', 'completed');
+                    });
+            });
+        }
+        if ($canFilterDate) {
+            if ($dateFrom) {
+                $paintingsQuery->where('import_date', '>=', $dateFrom);
+            }
+            if ($dateTo) {
+                $paintingsQuery->where('import_date', '<=', $dateTo);
+            }
+        }
+
+        $suppliesQuery = Supply::select('id', 'created_at')->where('tree_count', '>', 0);
+        if ($search) {
+            $suppliesQuery->where(function ($q) use ($search) {
+                $q->where('code', 'like', "%{$search}%")
+                    ->orWhere('name', 'like', "%{$search}%");
             });
         }
         if ($canFilterDate) {
@@ -113,23 +282,51 @@ class InventoryController extends Controller
                 $suppliesQuery->where('import_date', '<=', $dateTo);
             }
         }
-        $supplies = $suppliesQuery->orderBy('created_at', 'desc')->get();
 
-        // Combine and filter by type
-        $inventory = collect();
-        if (!$type || $type === 'painting') {
-            $inventory = $inventory->merge($paintings->map(function ($painting) {
-                // Get completed sales for this painting
-                $completedSales = $painting->saleItems()
-                    ->whereHas('sale', function($q) {
-                        $q->where('sale_status', 'completed');
-                    })
-                    ->with('sale')
-                    ->get()
-                    ->pluck('sale')
-                    ->filter()
-                    ->unique('id');
-                
+        // Get lightweight data
+        $paintingIds = $paintingsQuery->orderBy('created_at', 'desc')->get();
+        $supplyIds = $suppliesQuery->orderBy('created_at', 'desc')->get();
+
+        // Step 2: Merge with type marker (lightweight objects)
+        $allItems = collect();
+        foreach ($paintingIds as $p) {
+            $allItems->push(['id' => $p->id, 'type' => 'painting', 'created_at' => $p->created_at]);
+        }
+        foreach ($supplyIds as $s) {
+            $allItems->push(['id' => $s->id, 'type' => 'supply', 'created_at' => $s->created_at]);
+        }
+
+        // Step 3: Sort and paginate IDs only
+        $allItems = $allItems->sortBy([
+            ['created_at', 'desc'],
+            ['id', 'desc'],
+        ])->values();
+
+        $total = $allItems->count();
+        $itemsForPage = $allItems->forPage($currentPage, $perPage)->values();
+
+        // Step 4: Get IDs for current page only
+        $paintingIdsOnPage = $itemsForPage->where('type', 'painting')->pluck('id')->toArray();
+        $supplyIdsOnPage = $itemsForPage->where('type', 'supply')->pluck('id')->toArray();
+
+        // Step 5: Load full data ONLY for items on current page (max 10 items)
+        $paintings = collect();
+        if (!empty($paintingIdsOnPage)) {
+            $paintings = Painting::whereIn('id', $paintingIdsOnPage)->get()->keyBy('id');
+        }
+
+        $supplies = collect();
+        if (!empty($supplyIdsOnPage)) {
+            $supplies = Supply::whereIn('id', $supplyIdsOnPage)->get()->keyBy('id');
+        }
+
+        // Load completed sales for paintings on current page (batch query)
+        $completedSalesMap = $this->getCompletedSalesForPaintings($paintingIdsOnPage);
+
+        // Step 6: Build final collection in correct sort order
+        $inventory = $itemsForPage->map(function ($item) use ($paintings, $supplies, $completedSalesMap) {
+            if ($item['type'] === 'painting' && isset($paintings[$item['id']])) {
+                $painting = $paintings[$item['id']];
                 return [
                     'id' => $painting->id,
                     'code' => $painting->code,
@@ -143,12 +340,10 @@ class InventoryController extends Controller
                     'artist' => $painting->artist,
                     'material' => $painting->material,
                     'price_usd' => $painting->price_usd,
-                    'sales' => $completedSales,
+                    'sales' => $completedSalesMap[$painting->id] ?? collect(),
                 ];
-            }));
-        }
-        if (!$type || $type === 'supply') {
-            $inventory = $inventory->merge($supplies->map(function ($supply) {
+            } elseif ($item['type'] === 'supply' && isset($supplies[$item['id']])) {
+                $supply = $supplies[$item['id']];
                 return [
                     'id' => $supply->id,
                     'code' => $supply->code,
@@ -164,23 +359,12 @@ class InventoryController extends Controller
                     'status' => $supply->status,
                     'sales' => collect(),
                 ];
-            }));
-        }
-
-        // Sort by created_at (newest first) - vừa nhập thì xếp đầu
-        $inventory = $inventory->sortBy([
-            ['created_at', 'desc'],
-            ['id', 'desc'],
-        ])->values();
-
-        // Paginate merged collection
-        $perPage = 10;
-        $currentPage = (int) ($request->get('page', 1));
-        $total = $inventory->count();
-        $itemsForCurrentPage = $inventory->forPage($currentPage, $perPage)->values();
+            }
+            return null;
+        })->filter()->values();
 
         $inventoryPaginator = new LengthAwarePaginator(
-            $itemsForCurrentPage,
+            $inventory,
             $total,
             $perPage,
             $currentPage,
@@ -193,10 +377,48 @@ class InventoryController extends Controller
         return view('inventory.index', [
             'inventory' => $inventoryPaginator,
             'search' => $search,
-            'type' => $type,
+            'type' => null,
             'dateFrom' => $dateFrom,
             'dateTo' => $dateTo,
         ]);
+    }
+
+    /**
+     * Get completed sales for multiple paintings in a single batch query
+     * Eliminates N+1 query problem
+     */
+    private function getCompletedSalesForPaintings(array $paintingIds): array
+    {
+        if (empty($paintingIds)) {
+            return [];
+        }
+
+        $saleItems = \App\Models\SaleItem::whereIn('painting_id', $paintingIds)
+            ->whereHas('sale', function ($q) {
+                $q->where('sale_status', 'completed');
+            })
+            ->with([
+                'sale' => function ($q) {
+                    $q->where('sale_status', 'completed');
+                }
+            ])
+            ->get();
+
+        $salesMap = [];
+        foreach ($saleItems as $saleItem) {
+            if ($saleItem->sale) {
+                $paintingId = $saleItem->painting_id;
+                if (!isset($salesMap[$paintingId])) {
+                    $salesMap[$paintingId] = collect();
+                }
+                // Add unique sales only
+                if (!$salesMap[$paintingId]->contains('id', $saleItem->sale->id)) {
+                    $salesMap[$paintingId]->push($saleItem->sale);
+                }
+            }
+        }
+
+        return $salesMap;
     }
 
     public function import()
@@ -345,18 +567,18 @@ class InventoryController extends Controller
     public function editPainting(Request $request, $id)
     {
         $painting = Painting::findOrFail($id);
-        
+
         // Không cho sửa tranh đã bán
         if ($painting->status !== 'in_stock') {
             return redirect()->route('inventory.index')
                 ->with('error', 'Không thể chỉnh sửa tranh đã bán');
         }
-        
+
         // Store the return URL in session
         if ($request->has('return_url')) {
             session(['painting_edit_return_url' => $request->get('return_url')]);
         }
-        
+
         return view('inventory.paintings.edit', compact('painting'));
     }
 
@@ -364,7 +586,7 @@ class InventoryController extends Controller
     {
         try {
             $painting = Painting::findOrFail($id);
-            
+
             // Không cho cập nhật tranh đã bán
             if ($painting->status !== 'in_stock') {
                 return redirect()->route('inventory.index')
@@ -408,7 +630,7 @@ class InventoryController extends Controller
             }
 
             $updateResult = $painting->update($validated);
-            
+
             Log::info('Painting update result', [
                 'painting_id' => $id,
                 'update_result' => $updateResult,
@@ -421,21 +643,21 @@ class InventoryController extends Controller
 
             return redirect($returnUrl)
                 ->with('success', 'Cập nhật tranh thành công');
-                
+
         } catch (\Illuminate\Validation\ValidationException $e) {
             Log::error('Validation error in updatePainting', [
                 'errors' => $e->errors(),
                 'painting_id' => $id
             ]);
             return back()->withErrors($e->errors())->withInput();
-            
+
         } catch (\Exception $e) {
             Log::error('Error updating painting', [
                 'painting_id' => $id,
                 'error' => $e->getMessage(),
                 'trace' => $e->getTraceAsString()
             ]);
-            
+
             return back()
                 ->with('error', 'Có lỗi xảy ra: ' . $e->getMessage())
                 ->withInput();
@@ -445,7 +667,7 @@ class InventoryController extends Controller
     public function destroyPainting($id)
     {
         $painting = Painting::findOrFail($id);
-        
+
         // Không cho xóa tranh đã bán
         if ($painting->status !== 'in_stock') {
             return redirect()->route('inventory.index')
@@ -453,18 +675,18 @@ class InventoryController extends Controller
         }
         // Kiểm tra xem tranh có đang được sử dụng trong phiếu chờ duyệt không
         $pendingSales = \App\Models\SaleItem::where('painting_id', $id)
-            ->whereHas('sale', function($q) {
+            ->whereHas('sale', function ($q) {
                 $q->where('sale_status', 'pending');
             })
             ->with('sale')
             ->get();
-        
+
         if ($pendingSales->isNotEmpty()) {
             $invoiceCodes = $pendingSales->pluck('sale.invoice_code')->unique()->implode(', ');
             return redirect()->route('inventory.index')
                 ->with('error', "Không thể xóa tranh đang được sử dụng trong phiếu chờ duyệt: {$invoiceCodes}");
         }
-        
+
         if ($painting->image) {
             Storage::disk('public')->delete($painting->image);
         }
@@ -532,7 +754,7 @@ class InventoryController extends Controller
     public function destroySupply($id)
     {
         $supply = Supply::findOrFail($id);
-        
+
         // Không cho xóa vật tư đã sử dụng hết (quantity = 0)
         if ($supply->quantity <= 0) {
             return redirect()->route('inventory.index')
@@ -540,18 +762,18 @@ class InventoryController extends Controller
         }
         // Kiểm tra xem vật tư có đang được sử dụng trong phiếu chờ duyệt không
         $pendingSales = \App\Models\SaleItem::where('supply_id', $id)
-            ->whereHas('sale', function($q) {
+            ->whereHas('sale', function ($q) {
                 $q->where('sale_status', 'pending');
             })
             ->with('sale')
             ->get();
-        
+
         if ($pendingSales->isNotEmpty()) {
             $invoiceCodes = $pendingSales->pluck('sale.invoice_code')->unique()->implode(', ');
             return redirect()->route('inventory.index')
                 ->with('error', "Không thể xóa vật tư đang được sử dụng trong phiếu chờ duyệt: {$invoiceCodes}");
         }
-        
+
         if ($supply->image) {
             Storage::disk('public')->delete($supply->image);
         }
@@ -564,7 +786,7 @@ class InventoryController extends Controller
     public function bulkDelete(Request $request)
     {
         $items = json_decode($request->input('items'), true);
-        
+
         if (empty($items)) {
             return redirect()->route('inventory.index')
                 ->with('error', 'Không có mục nào được chọn để xóa');
@@ -587,13 +809,13 @@ class InventoryController extends Controller
                             $errors[] = "Tranh {$painting->code} đã bán, không thể xóa";
                             continue;
                         }
-                         // Kiểm tra phiếu chờ duyệt
+                        // Kiểm tra phiếu chờ duyệt
                         $pendingSales = \App\Models\SaleItem::where('painting_id', $id)
-                            ->whereHas('sale', function($q) {
+                            ->whereHas('sale', function ($q) {
                                 $q->where('sale_status', 'pending');
                             })
                             ->exists();
-                        
+
                         if ($pendingSales) {
                             $errors[] = "Tranh {$painting->code} đang trong phiếu chờ duyệt";
                             continue;
@@ -615,11 +837,11 @@ class InventoryController extends Controller
                         }
                         // Kiểm tra phiếu chờ duyệt
                         $pendingSales = \App\Models\SaleItem::where('supply_id', $id)
-                            ->whereHas('sale', function($q) {
+                            ->whereHas('sale', function ($q) {
                                 $q->where('sale_status', 'pending');
                             })
                             ->exists();
-                        
+
                         if ($pendingSales) {
                             $errors[] = "Vật tư {$supply->code} đang trong phiếu chờ duyệt";
                             continue;
@@ -751,7 +973,7 @@ class InventoryController extends Controller
                     $totalLength = $supply->tree_count * $supply->quantity;
                     $quantityDisplay = $supply->tree_count . ' cây × ' . $supply->quantity . $supply->unit . '/cây = ' . number_format($totalLength, 2) . $supply->unit . ' tổng';
                 }
-                
+
                 return [
                     'code' => $supply->code,
                     'name' => $supply->name,
@@ -881,7 +1103,7 @@ class InventoryController extends Controller
                     $totalLength = $supply->tree_count * $supply->quantity;
                     $quantityDisplay = $supply->tree_count . ' cây × ' . $supply->quantity . $supply->unit . '/cây = ' . number_format($totalLength, 2) . $supply->unit . ' tổng';
                 }
-                
+
                 return [
                     'code' => $supply->code,
                     'name' => $supply->name,
@@ -947,12 +1169,12 @@ class InventoryController extends Controller
             // Tăng timeout và memory limit cho file lớn
             set_time_limit(600); // 10 phút
             ini_set('memory_limit', '1024M'); // 1GB
-            
+
             Log::info('Starting painting import', [
                 'file_size' => $request->file('file')->getSize(),
                 'file_name' => $request->file('file')->getClientOriginalName()
             ]);
-            
+
             // Handle uploaded images
             $uploadedImages = [];
             if ($request->hasFile('images')) {
@@ -960,14 +1182,14 @@ class InventoryController extends Controller
                     $originalName = $image->getClientOriginalName();
                     $nameWithoutExt = pathinfo($originalName, PATHINFO_FILENAME);
                     $extension = $image->getClientOriginalExtension();
-                    
+
                     // Store image
                     $uniqueName = uniqid() . '_' . time() . '.' . $extension;
                     $filename = 'paintings/' . $uniqueName;
-                    
+
                     // Save file using Storage facade
                     Storage::disk('public')->putFileAs('paintings', $image, $uniqueName);
-                    
+
                     // Verify file was saved
                     $fullPath = storage_path('app' . DIRECTORY_SEPARATOR . 'public' . DIRECTORY_SEPARATOR . 'paintings' . DIRECTORY_SEPARATOR . $uniqueName);
                     if (!file_exists($fullPath)) {
@@ -975,11 +1197,11 @@ class InventoryController extends Controller
                     } else {
                         Log::info('File saved successfully', ['path' => $fullPath, 'size' => filesize($fullPath)]);
                     }
-                    
+
                     // Map by code (filename without extension)
                     // Support flexible matching: exact match or starts with code
                     $uploadedImages[$nameWithoutExt] = $filename;
-                    
+
                     // Also extract potential code from filename
                     // Example: "BHH 742_79x109cm_2024-5k_resize.jpg" → "BHH 742"
                     // Pattern: Extract text before first underscore or dash
@@ -994,7 +1216,7 @@ class InventoryController extends Controller
                             ]);
                         }
                     }
-                    
+
                     Log::info('Uploaded image', [
                         'original' => $originalName,
                         'code' => $nameWithoutExt,
@@ -1002,87 +1224,88 @@ class InventoryController extends Controller
                     ]);
                 }
             }
-            
-        // Extract embedded images from Excel manually
-        $excelImages = [];
-        try {
-            Log::info('Loading Excel file to extract images');
-            $spreadsheet = IOFactory::load($request->file('file')->getPathname());
-            $worksheet = $spreadsheet->getActiveSheet();
-            
-            Log::info('Excel loaded, getting drawings');
-            $drawings = $worksheet->getDrawingCollection();
-            Log::info('Found drawings', ['count' => count($drawings)]);
 
-            foreach ($drawings as $drawing) {
-                try {
-                    $coordinates = $drawing->getCoordinates();
-                    if (strpos($coordinates, ':') !== false) {
-                        $coordinates = explode(':', $coordinates)[0];
-                    }
-                    $row = (int) preg_replace('/[^0-9]/', '', $coordinates);
-                    
-                    if ($row <= 1) continue;
+            // Extract embedded images from Excel manually
+            $excelImages = [];
+            try {
+                Log::info('Loading Excel file to extract images');
+                $spreadsheet = IOFactory::load($request->file('file')->getPathname());
+                $worksheet = $spreadsheet->getActiveSheet();
 
-                    $imageContent = null;
-                    $extension = 'jpg';
+                Log::info('Excel loaded, getting drawings');
+                $drawings = $worksheet->getDrawingCollection();
+                Log::info('Found drawings', ['count' => count($drawings)]);
 
-                    if ($drawing instanceof Drawing) {
-                        $imagePath = $drawing->getPath();
-                        if (file_exists($imagePath)) {
-                            $imageContent = file_get_contents($imagePath);
-                            $extension = pathinfo($imagePath, PATHINFO_EXTENSION) ?: 'jpg';
+                foreach ($drawings as $drawing) {
+                    try {
+                        $coordinates = $drawing->getCoordinates();
+                        if (strpos($coordinates, ':') !== false) {
+                            $coordinates = explode(':', $coordinates)[0];
                         }
-                    } elseif ($drawing instanceof MemoryDrawing) {
-                        $gdImage = $drawing->getImageResource();
-                        if ($gdImage) {
-                            ob_start();
-                            switch ($drawing->getMimeType()) {
-                                case MemoryDrawing::MIMETYPE_PNG:
-                                    imagepng($gdImage);
-                                    $extension = 'png';
-                                    break;
-                                case MemoryDrawing::MIMETYPE_GIF:
-                                    imagegif($gdImage);
-                                    $extension = 'gif';
-                                    break;
-                                default:
-                                    imagejpeg($gdImage);
-                                    $extension = 'jpg';
+                        $row = (int) preg_replace('/[^0-9]/', '', $coordinates);
+
+                        if ($row <= 1)
+                            continue;
+
+                        $imageContent = null;
+                        $extension = 'jpg';
+
+                        if ($drawing instanceof Drawing) {
+                            $imagePath = $drawing->getPath();
+                            if (file_exists($imagePath)) {
+                                $imageContent = file_get_contents($imagePath);
+                                $extension = pathinfo($imagePath, PATHINFO_EXTENSION) ?: 'jpg';
                             }
-                            $imageContent = ob_get_contents();
-                            ob_end_clean();
+                        } elseif ($drawing instanceof MemoryDrawing) {
+                            $gdImage = $drawing->getImageResource();
+                            if ($gdImage) {
+                                ob_start();
+                                switch ($drawing->getMimeType()) {
+                                    case MemoryDrawing::MIMETYPE_PNG:
+                                        imagepng($gdImage);
+                                        $extension = 'png';
+                                        break;
+                                    case MemoryDrawing::MIMETYPE_GIF:
+                                        imagegif($gdImage);
+                                        $extension = 'gif';
+                                        break;
+                                    default:
+                                        imagejpeg($gdImage);
+                                        $extension = 'jpg';
+                                }
+                                $imageContent = ob_get_contents();
+                                ob_end_clean();
+                            }
                         }
-                    }
 
-                    if ($imageContent) {
-                        $uniqueName = uniqid() . '_' . time() . '.' . $extension;
-                        Storage::disk('public')->put('paintings/' . $uniqueName, $imageContent);
-                        $excelImages[$row] = 'paintings/' . $uniqueName;
-                        Log::info('Extracted image from Excel', ['row' => $row, 'file' => $uniqueName]);
+                        if ($imageContent) {
+                            $uniqueName = uniqid() . '_' . time() . '.' . $extension;
+                            Storage::disk('public')->put('paintings/' . $uniqueName, $imageContent);
+                            $excelImages[$row] = 'paintings/' . $uniqueName;
+                            Log::info('Extracted image from Excel', ['row' => $row, 'file' => $uniqueName]);
+                        }
+                    } catch (\Exception $e) {
+                        Log::warning('Error extracting single image from Excel', [
+                            'row' => $row ?? 'unknown',
+                            'error' => $e->getMessage()
+                        ]);
+                        // Continue với images khác
                     }
-                } catch (\Exception $e) {
-                    Log::warning('Error extracting single image from Excel', [
-                        'row' => $row ?? 'unknown',
-                        'error' => $e->getMessage()
-                    ]);
-                    // Continue với images khác
                 }
+
+                Log::info('Finished extracting images', ['total' => count($excelImages)]);
+            } catch (\Exception $e) {
+                Log::error('Error extracting excel images', [
+                    'error' => $e->getMessage(),
+                    'trace' => $e->getTraceAsString()
+                ]);
+                // Không throw exception, tiếp tục import mà không có embedded images
             }
-            
-            Log::info('Finished extracting images', ['total' => count($excelImages)]);
-        } catch (\Exception $e) {
-            Log::error('Error extracting excel images', [
-                'error' => $e->getMessage(),
-                'trace' => $e->getTraceAsString()
-            ]);
-            // Không throw exception, tiếp tục import mà không có embedded images
-        }
-        
-        // Use new import class that handles images better
-        Log::info('Starting Excel import process');
-        $import = new PaintingImportWithImages($uploadedImages, $excelImages);
-        Excel::import($import, $request->file('file'));
+
+            // Use new import class that handles images better
+            Log::info('Starting Excel import process');
+            $import = new PaintingImportWithImages($uploadedImages, $excelImages);
+            Excel::import($import, $request->file('file'));
 
             $message = "Import thành công {$import->getImportedCount()} tranh";
             if ($import->getSkippedCount() > 0) {
@@ -1144,7 +1367,7 @@ class InventoryController extends Controller
             // Tăng timeout và memory limit cho file lớn
             set_time_limit(600); // 10 phút
             ini_set('memory_limit', '1024M'); // 1GB
-            
+
             // Handle uploaded images
             $uploadedImages = [];
             if ($request->hasFile('images')) {
@@ -1152,14 +1375,14 @@ class InventoryController extends Controller
                     $originalName = $image->getClientOriginalName();
                     $nameWithoutExt = pathinfo($originalName, PATHINFO_FILENAME);
                     $extension = $image->getClientOriginalExtension();
-                    
+
                     // Store image
                     $uniqueName = uniqid() . '_' . time() . '.' . $extension;
                     $filename = 'supplies/' . $uniqueName;
-                    
+
                     // Save file using Storage facade
                     Storage::disk('public')->putFileAs('supplies', $image, $uniqueName);
-                    
+
                     // Verify file was saved
                     $fullPath = storage_path('app' . DIRECTORY_SEPARATOR . 'public' . DIRECTORY_SEPARATOR . 'supplies' . DIRECTORY_SEPARATOR . $uniqueName);
                     if (!file_exists($fullPath)) {
@@ -1167,10 +1390,10 @@ class InventoryController extends Controller
                     } else {
                         Log::info('Supply file saved successfully', ['path' => $fullPath, 'size' => filesize($fullPath)]);
                     }
-                    
+
                     // Map by code (filename without extension)
                     $uploadedImages[$nameWithoutExt] = $filename;
-                    
+
                     // Also extract potential code from filename
                     if (preg_match('/^([^_\-]+)/', $nameWithoutExt, $matches)) {
                         $potentialCode = trim($matches[1]);
@@ -1182,7 +1405,7 @@ class InventoryController extends Controller
                             ]);
                         }
                     }
-                    
+
                     Log::info('Uploaded supply image', [
                         'original' => $originalName,
                         'code' => $nameWithoutExt,
