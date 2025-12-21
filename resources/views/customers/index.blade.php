@@ -5,12 +5,14 @@
 @section('page-description', 'Danh sách khách hàng và thông tin liên hệ')
 
 @section('header-actions')
+@notArchive
 @hasPermission('customers', 'can_create')
 <a href="{{ route('customers.create') }}" class="bg-green-500 hover:bg-green-600 text-white px-3 py-1.5 text-sm rounded-lg transition-colors flex items-center space-x-1">
     <i class="fas fa-plus"></i>
     <span>Thêm khách hàng</span>
 </a>
 @endhasPermission
+@endnotArchive
 @endsection
 
 @section('content')

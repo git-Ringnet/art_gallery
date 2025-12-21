@@ -7,8 +7,8 @@ use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use App\Models\Sale;
-use App\Models\Debt;
 use App\Models\Painting;
+use App\Models\YearDatabase;
 use App\Models\Supply;
 use App\Models\Customer;
 use App\Models\SaleItem;
@@ -37,7 +37,10 @@ class DashboardController extends Controller
 
         $stats = $this->getStatistics($period, $fromDate, $toDate);
         
-        return view('dashboard.index', compact('stats', 'period', 'canFilterDate'));
+        // Kiểm tra nhắc nhở cuối năm (từ 15/12 trở đi)
+        $yearEndReminder = $this->getYearEndReminder();
+        
+        return view('dashboard.index', compact('stats', 'period', 'canFilterDate', 'yearEndReminder'));
     }
 
 
@@ -64,19 +67,25 @@ class DashboardController extends Controller
         // Determine date range
         $dateRange = $this->getDateRange($period, $fromDate, $toDate);
         
+        // Lọc theo năm đang chọn
+        $selectedYear = session('selected_year', date('Y'));
+        
         // Calculate sales revenue (CHỈ phiếu đã duyệt - completed)
         $totalSalesUsd = Sale::whereBetween('sale_date', [$dateRange['start'], $dateRange['end']])
+            ->where('year', $selectedYear)
             ->where('sale_status', 'completed')
             ->where('payment_status', '!=', 'cancelled')
             ->sum('total_usd');
             
         $totalSalesVnd = Sale::whereBetween('sale_date', [$dateRange['start'], $dateRange['end']])
+            ->where('year', $selectedYear)
             ->where('sale_status', 'completed')
             ->where('payment_status', '!=', 'cancelled')
             ->sum('total_vnd');
 
         // Calculate remaining debt (RIÊNG USD và VND)
         $sales = Sale::whereBetween('sale_date', [$dateRange['start'], $dateRange['end']])
+            ->where('year', $selectedYear)
             ->where('sale_status', 'completed')
             ->where('payment_status', '!=', 'cancelled')
             ->get();
@@ -168,6 +177,7 @@ class DashboardController extends Controller
     private function getRevenueChartData($period, $fromDate, $toDate)
     {
         $dateRange = $this->getDateRange($period, $fromDate, $toDate);
+        $selectedYear = session('selected_year', date('Y'));
         
         if ($period === 'week') {
             $labels = ['T2', 'T3', 'T4', 'T5', 'T6', 'T7', 'CN'];
@@ -177,10 +187,12 @@ class DashboardController extends Controller
             for ($i = 0; $i < 7; $i++) {
                 $date = $dateRange['start']->copy()->addDays($i);
                 $revenueVnd = Sale::whereDate('sale_date', $date)
+                    ->where('year', $selectedYear)
                     ->where('sale_status', 'completed')
                     ->where('payment_status', '!=', 'cancelled')
                     ->sum('total_vnd');
                 $revenueUsd = Sale::whereDate('sale_date', $date)
+                    ->where('year', $selectedYear)
                     ->where('sale_status', 'completed')
                     ->where('payment_status', '!=', 'cancelled')
                     ->sum('total_usd');
@@ -201,10 +213,12 @@ class DashboardController extends Controller
                 $labels[] = "Ngày {$i}";
                 $date = $dateRange['start']->copy()->day($i);
                 $revenueVnd = Sale::whereDate('sale_date', $date)
+                    ->where('year', $selectedYear)
                     ->where('sale_status', 'completed')
                     ->where('payment_status', '!=', 'cancelled')
                     ->sum('total_vnd');
                 $revenueUsd = Sale::whereDate('sale_date', $date)
+                    ->where('year', $selectedYear)
                     ->where('sale_status', 'completed')
                     ->where('payment_status', '!=', 'cancelled')
                     ->sum('total_usd');
@@ -226,10 +240,12 @@ class DashboardController extends Controller
             $monthEnd = $dateRange['start']->copy()->month($i)->endOfMonth();
             
             $revenueVnd = Sale::whereBetween('sale_date', [$monthStart, $monthEnd])
+                ->where('year', $selectedYear)
                 ->where('sale_status', 'completed')
                 ->where('payment_status', '!=', 'cancelled')
                 ->sum('total_vnd');
             $revenueUsd = Sale::whereBetween('sale_date', [$monthStart, $monthEnd])
+                ->where('year', $selectedYear)
                 ->where('sale_status', 'completed')
                 ->where('payment_status', '!=', 'cancelled')
                 ->sum('total_usd');
@@ -242,18 +258,22 @@ class DashboardController extends Controller
 
     private function getProductDistribution($dateRange)
     {
+        $selectedYear = session('selected_year', date('Y'));
+        
         // Get sales items grouped by type (CHỈ phiếu đã duyệt - completed)
         $paintingSales = SaleItem::whereNotNull('painting_id')
-            ->whereHas('sale', function($query) use ($dateRange) {
+            ->whereHas('sale', function($query) use ($dateRange, $selectedYear) {
                 $query->whereBetween('sale_date', [$dateRange['start'], $dateRange['end']])
+                    ->where('year', $selectedYear)
                     ->where('sale_status', 'completed')
                     ->where('payment_status', '!=', 'cancelled');
             })
             ->sum('quantity');
 
         $supplySales = SaleItem::whereNotNull('supply_id')
-            ->whereHas('sale', function($query) use ($dateRange) {
+            ->whereHas('sale', function($query) use ($dateRange, $selectedYear) {
                 $query->whereBetween('sale_date', [$dateRange['start'], $dateRange['end']])
+                    ->where('year', $selectedYear)
                     ->where('sale_status', 'completed')
                     ->where('payment_status', '!=', 'cancelled');
             })
@@ -286,11 +306,14 @@ class DashboardController extends Controller
 
     private function getCustomerStats($dateRange)
     {
+        $selectedYear = session('selected_year', date('Y'));
+        
         $newCustomers = Customer::whereBetween('created_at', [$dateRange['start'], $dateRange['end']])
             ->count();
 
         // CHỈ đếm phiếu đã duyệt (completed)
         $totalTransactions = Sale::whereBetween('sale_date', [$dateRange['start'], $dateRange['end']])
+            ->where('year', $selectedYear)
             ->where('sale_status', 'completed')
             ->where('payment_status', '!=', 'cancelled')
             ->count();
@@ -303,6 +326,7 @@ class DashboardController extends Controller
 
     private function getInventoryStats()
     {
+        $selectedYear = session('selected_year', date('Y'));
         $now = Carbon::now();
         $monthStart = $now->copy()->startOfMonth();
         $monthEnd = $now->copy()->endOfMonth();
@@ -312,8 +336,9 @@ class DashboardController extends Controller
                            Supply::whereBetween('created_at', [$monthStart, $monthEnd])->count();
 
         // Count items sold this month (CHỈ phiếu đã duyệt - completed)
-        $exportsThisMonth = SaleItem::whereHas('sale', function($query) use ($monthStart, $monthEnd) {
+        $exportsThisMonth = SaleItem::whereHas('sale', function($query) use ($monthStart, $monthEnd, $selectedYear) {
             $query->whereBetween('sale_date', [$monthStart, $monthEnd])
+                ->where('year', $selectedYear)
                 ->where('sale_status', 'completed')
                 ->where('payment_status', '!=', 'cancelled');
         })->sum('quantity');
@@ -324,13 +349,49 @@ class DashboardController extends Controller
         ];
     }
 
+    /**
+     * Kiểm tra và trả về thông báo nhắc nhở cuối năm
+     */
+    private function getYearEndReminder()
+    {
+        $now = Carbon::now();
+        $currentYear = (int) $now->format('Y');
+        $currentMonth = (int) $now->format('m');
+        $currentDay = (int) $now->format('d');
+        
+        // Chỉ hiện từ 15/12 đến 31/12
+        if ($currentMonth != 12 || $currentDay < 15) {
+            return null;
+        }
+        
+        // Kiểm tra năm mới đã được tạo chưa
+        $newYear = $currentYear + 1;
+        $newYearExists = YearDatabase::where('year', $newYear)->exists();
+        
+        if ($newYearExists) {
+            return null; // Đã chuyển năm rồi
+        }
+        
+        // Đếm số ngày còn lại
+        $daysLeft = 31 - $currentDay + 1;
+        
+        return [
+            'current_year' => $currentYear,
+            'new_year' => $newYear,
+            'days_left' => $daysLeft,
+        ];
+    }
+
     private function getTopSellingProducts($dateRange)
     {
+        $selectedYear = session('selected_year', date('Y'));
+        
         // Get top selling paintings (CHỈ phiếu đã duyệt - completed)
         $topPaintings = SaleItem::select('painting_id', DB::raw('SUM(quantity) as total_quantity'), DB::raw('SUM(total_vnd) as total_revenue'), DB::raw('SUM(total_usd) as total_revenue_usd'))
             ->whereNotNull('painting_id')
-            ->whereHas('sale', function($query) use ($dateRange) {
+            ->whereHas('sale', function($query) use ($dateRange, $selectedYear) {
                 $query->whereBetween('sale_date', [$dateRange['start'], $dateRange['end']])
+                    ->where('year', $selectedYear)
                     ->where('sale_status', 'completed')
                     ->where('payment_status', '!=', 'cancelled');
             })
@@ -358,8 +419,9 @@ class DashboardController extends Controller
         if (count($products) < 2) {
             $topSupplies = SaleItem::select('supply_id', DB::raw('SUM(supply_length) as total_quantity'), DB::raw('SUM(total_vnd) as total_revenue'), DB::raw('SUM(total_usd) as total_revenue_usd'))
                 ->whereNotNull('supply_id')
-                ->whereHas('sale', function($query) use ($dateRange) {
+                ->whereHas('sale', function($query) use ($dateRange, $selectedYear) {
                     $query->whereBetween('sale_date', [$dateRange['start'], $dateRange['end']])
+                        ->where('year', $selectedYear)
                         ->where('sale_status', 'completed')
                         ->where('payment_status', '!=', 'cancelled');
                 })

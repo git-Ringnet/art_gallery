@@ -11,6 +11,36 @@
 
 @section('content')
 <div class="fade-in">
+    <!-- Year End Auto Reminder -->
+    @if(isset($yearEndReminder) && $yearEndReminder)
+    <div class="mb-4 p-4 rounded-xl shadow-lg border-l-4 bg-green-50 border-green-500">
+        <div class="flex items-start justify-between">
+            <div class="flex items-start">
+                <div class="ml-3">
+                    <h3 class="text-sm font-semibold text-green-800">
+                        Chuyển năm TỰ ĐỘNG: {{ $yearEndReminder['current_year'] }} → {{ $yearEndReminder['new_year'] }}
+                    </h3>
+                    <p class="mt-1 text-sm text-green-700">
+                        Còn <strong>{{ $yearEndReminder['days_left'] }} ngày</strong>. Hệ thống sẽ tự động chuyển năm vào <strong>00:05 ngày 1/1/{{ $yearEndReminder['new_year'] }}</strong>
+                    </p>
+                    <div class="mt-2 flex flex-wrap gap-2">
+                        <a href="{{ route('year.index') }}" 
+                           class="inline-flex items-center px-3 py-1.5 text-xs font-medium rounded-lg bg-green-600 hover:bg-green-700 text-white transition-colors">
+                            <i class="fas fa-database mr-1"></i> Xem chi tiết
+                        </a>
+                        <span class="inline-flex items-center px-3 py-1.5 text-xs font-medium rounded-lg bg-green-100 text-green-700">
+                            <i class="fas fa-check-circle mr-1"></i> Đã cài đặt tự động
+                        </span>
+                    </div>
+                </div>
+            </div>
+            <button onclick="this.closest('.mb-4').style.display='none'" class="text-gray-400 hover:text-gray-600">
+                <i class="fas fa-times"></i>
+            </button>
+        </div>
+    </div>
+    @endif
+
     <!-- Time Filter -->
     <div class="bg-white rounded-xl shadow-lg p-3 mb-4 no-print">
         <div class="flex flex-col lg:flex-row flex-wrap items-start lg:items-center gap-3">

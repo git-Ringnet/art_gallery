@@ -5,12 +5,14 @@
 @section('page-description', 'Quản lý các showroom')
 
 @section('header-actions')
+    @notArchive
     @hasPermission('showrooms', 'can_create')
     <a href="{{ route('showrooms.create') }}"
         class="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors">
         <i class="fas fa-plus mr-2"></i>Thêm phòng
     </a>
     @endhasPermission
+    @endnotArchive
 @endsection
 
 @section('content')

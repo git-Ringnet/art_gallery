@@ -27,19 +27,26 @@ class DebtController extends Controller
             ['path' => request()->url(), 'query' => request()->query()]
         );
 
+        // Lọc theo năm đang chọn
+        $selectedYear = session('selected_year', date('Y'));
+        
         // Statistics - CHỈ tính các phiếu đã duyệt hoặc đã hủy (trả hết)
         $stats = [
-            'total_payments' => Payment::whereHas('sale', function($q) {
-                $q->whereIn('sale_status', ['completed', 'cancelled']);
+            'total_payments' => Payment::whereHas('sale', function($q) use ($selectedYear) {
+                $q->whereIn('sale_status', ['completed', 'cancelled'])
+                  ->where('year', $selectedYear);
             })->sum('amount'),
             'total_debt' => \App\Models\Sale::where('sale_status', 'completed')
+                ->where('year', $selectedYear)
                 ->where('debt_amount', '>', 0)
                 ->sum('debt_amount'),
             'debt_count' => \App\Models\Sale::where('sale_status', 'completed')
+                ->where('year', $selectedYear)
                 ->where('debt_amount', '>', 0)
                 ->count(),
-            'total_count' => Payment::whereHas('sale', function($q) {
-                $q->whereIn('sale_status', ['completed', 'cancelled']);
+            'total_count' => Payment::whereHas('sale', function($q) use ($selectedYear) {
+                $q->whereIn('sale_status', ['completed', 'cancelled'])
+                  ->where('year', $selectedYear);
             })->count(),
         ];
 
@@ -92,8 +99,9 @@ class DebtController extends Controller
             ->limit(10)
             ->get(['id', 'name', 'phone']);
 
-        // Tìm kiếm mã hóa đơn có thanh toán (chỉ phiếu đã duyệt hoặc đã hủy)
+        // Tìm kiếm mã hóa đơn có thanh toán (chỉ phiếu đã duyệt hoặc đã hủy, theo năm đang chọn)
         $invoices = \App\Models\Sale::whereIn('sale_status', ['completed', 'cancelled'])
+            ->where('year', $selectedYear)
             ->whereHas('payments')
             ->where('invoice_code', 'like', "%{$search}%")
             ->limit(5)
@@ -122,10 +130,14 @@ class DebtController extends Controller
 
     private function getFilteredPayments(Request $request, $all = false)
     {
+        // Lọc theo năm đang chọn
+        $selectedYear = session('selected_year', date('Y'));
+        
         // Lấy TẤT CẢ Payment (lịch sử thanh toán) - CHỈ của các phiếu đã duyệt hoặc đã hủy (trả hết)
         $query = Payment::with(['sale.customer', 'sale.debt', 'sale.payments', 'createdBy'])
-            ->whereHas('sale', function($q) {
-                $q->whereIn('sale_status', ['completed', 'cancelled']);
+            ->whereHas('sale', function($q) use ($selectedYear) {
+                $q->whereIn('sale_status', ['completed', 'cancelled'])
+                  ->where('year', $selectedYear);
             });
         
         // Áp dụng phạm vi dữ liệu - custom logic cho Payment

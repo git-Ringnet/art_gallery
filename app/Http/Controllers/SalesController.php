@@ -50,6 +50,10 @@ class SalesController extends Controller
         $query = Sale::with(['customer', 'showroom', 'user', 'payments'])
             ->orderBy('created_at', 'desc'); // Phiếu mới tạo lên trên
 
+        // Lọc theo năm đang chọn
+        $selectedYear = session('selected_year', date('Y'));
+        $query->where('year', $selectedYear);
+
         // Áp dụng phạm vi dữ liệu theo phân quyền
         $query = \App\Helpers\PermissionHelper::applyDataScope($query, 'sales', 'user_id', 'showroom_id');
 
@@ -173,7 +177,7 @@ class SalesController extends Controller
         Log::info('=== SALES STORE START ===');
         Log::info('Request data:', $request->all());
         
-        // Add invoice_code validation
+// Add invoice_code validation
         $request->merge(['invoice_code' => $request->invoice_code ?: null]);
         
         // Validate invoice_code separately
@@ -1012,8 +1016,10 @@ class SalesController extends Controller
 
         $suggestions = [];
 
-        // Tìm theo mã hóa đơn
+        // Tìm theo mã hóa đơn (theo năm đang chọn)
+        $selectedYear = session('selected_year', date('Y'));
         $invoices = Sale::where('invoice_code', 'like', "%{$query}%")
+            ->where('year', $selectedYear)
             ->with('customer')
             ->limit(5)
             ->get();

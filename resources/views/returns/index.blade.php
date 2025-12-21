@@ -6,13 +6,13 @@
 
 @section('header-actions')
 <div class="flex gap-2">
+    @notArchive
     @hasPermission('returns', 'can_create')
     <a href="{{ route('returns.create') }}" class="bg-blue-600 text-white px-3 py-1.5 text-sm rounded-lg hover:bg-blue-700 transition-colors">
         <i class="fas fa-plus mr-1"></i>Tạo phiếu
     </a>
     @endhasPermission
-    
-    
+    @endnotArchive
 </div>
 @endsection
 

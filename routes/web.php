@@ -10,7 +10,8 @@ use App\Http\Controllers\DebtController;
 require __DIR__ . '/auth.php';
 
 // Protected routes - require authentication
-Route::middleware(['auth'])->group(function () {
+// Middleware 'archive.readonly' sẽ block các action POST/PUT/DELETE khi đang xem năm cũ
+Route::middleware(['auth', 'archive.readonly'])->group(function () {
     // Route gốc - Controller sẽ xử lý redirect dựa vào quyền
     Route::get('/', [DashboardController::class, 'index'])->name('dashboard');
 
@@ -165,15 +166,30 @@ Route::middleware(['auth'])->group(function () {
     // Year Database routes
     Route::prefix('year')->name('year.')->group(function () {
         Route::get('/', [App\Http\Controllers\YearDatabaseController::class, 'index'])->middleware('permission:year_database,can_view')->name('index');
+        Route::get('/manage', [App\Http\Controllers\YearDatabaseController::class, 'manage'])->middleware('permission:year_database,can_view')->name('manage');
         Route::post('/switch', [App\Http\Controllers\YearDatabaseController::class, 'switchYear'])->middleware('permission:year_database,can_view')->name('switch');
         Route::post('/reset', [App\Http\Controllers\YearDatabaseController::class, 'resetYear'])->middleware('permission:year_database,can_view')->name('reset');
         Route::get('/info', [App\Http\Controllers\YearDatabaseController::class, 'getCurrentInfo'])->middleware('permission:year_database,can_view')->name('info');
 
         // Export & Import
         Route::post('/export', [App\Http\Controllers\YearDatabaseController::class, 'exportDatabase'])->middleware('permission:year_database,can_export')->name('export');
+        Route::post('/export-with-images', [App\Http\Controllers\YearDatabaseController::class, 'exportWithImages'])->middleware('permission:year_database,can_export')->name('export.with-images');
         Route::post('/import', [App\Http\Controllers\YearDatabaseController::class, 'importDatabase'])->middleware('permission:year_database,can_import')->name('import');
+        Route::post('/import-with-images', [App\Http\Controllers\YearDatabaseController::class, 'importWithImages'])->middleware('permission:year_database,can_import')->name('import.with-images');
         Route::get('/export/{id}/download', [App\Http\Controllers\YearDatabaseController::class, 'downloadExport'])->middleware('permission:year_database,can_view')->name('export.download');
         Route::delete('/export/{id}', [App\Http\Controllers\YearDatabaseController::class, 'deleteExport'])->middleware('permission:year_database,can_delete')->name('export.delete');
+        
+        // Import với progress (batch)
+        Route::post('/import/prepare', [App\Http\Controllers\YearDatabaseController::class, 'prepareImportImages'])->middleware('permission:year_database,can_import')->name('import.prepare');
+        Route::post('/import/sql', [App\Http\Controllers\YearDatabaseController::class, 'importSqlFromSession'])->middleware('permission:year_database,can_import')->name('import.sql');
+        Route::post('/import/images-batch', [App\Http\Controllers\YearDatabaseController::class, 'copyImagesBatch'])->middleware('permission:year_database,can_import')->name('import.images-batch');
+        Route::post('/import/cleanup', [App\Http\Controllers\YearDatabaseController::class, 'cleanupImportSession'])->middleware('permission:year_database,can_import')->name('import.cleanup');
+        Route::post('/upload-images-batch', [App\Http\Controllers\YearDatabaseController::class, 'uploadImagesBatch'])->middleware('permission:year_database,can_import')->name('upload-images-batch');
+
+        // Year management
+        Route::get('/stats/{year}', [App\Http\Controllers\YearDatabaseController::class, 'getYearStats'])->middleware('permission:year_database,can_view')->name('stats');
+        Route::post('/cleanup', [App\Http\Controllers\YearDatabaseController::class, 'cleanupYear'])->middleware('permission:year_database,can_delete')->name('cleanup');
+        Route::post('/prepare', [App\Http\Controllers\YearDatabaseController::class, 'prepareNewYear'])->middleware('permission:year_database,can_create')->name('prepare');
     });
 
     // Reports routes

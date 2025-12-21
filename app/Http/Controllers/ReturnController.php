@@ -21,6 +21,10 @@ class ReturnController extends Controller
     {
         $query = ReturnModel::with(['sale', 'customer', 'processedBy', 'items.painting', 'items.supply']);
 
+        // Lọc theo năm đang chọn
+        $selectedYear = session('selected_year', date('Y'));
+        $query->where('year', $selectedYear);
+
         // Áp dụng phạm vi dữ liệu - custom logic cho Returns
         if (Auth::check() && Auth::user()->email !== 'admin@example.com') {
             $role = Auth::user()->role;

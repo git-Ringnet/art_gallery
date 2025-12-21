@@ -41,12 +41,14 @@
     </div>
     @endhasPermission
 
+    @notArchive
     @hasPermission('employees', 'can_create')
     <a href="{{ route('employees.create') }}"
         class="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors">
         <i class="fas fa-plus mr-2"></i>Thêm nhân viên
     </a>
     @endhasPermission
+    @endnotArchive
 </div>
 @endsection
 

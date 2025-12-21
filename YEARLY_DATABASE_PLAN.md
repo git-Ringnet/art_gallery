@@ -218,6 +218,52 @@ Lệnh này sẽ:
 
 ---
 
+## 🤖 CÀI ĐẶT TỰ ĐỘNG TRÊN VPS
+
+### Bước 1: Thêm cron job cho Laravel Scheduler
+```bash
+# Mở crontab
+crontab -e
+
+# Thêm dòng này (thay /path/to/your/project bằng đường dẫn thực tế)
+* * * * * cd /path/to/your/project && php artisan schedule:run >> /dev/null 2>&1
+```
+
+### Bước 2: Kiểm tra schedule đã cài đặt
+```bash
+php artisan schedule:list
+```
+
+### Lịch chạy tự động:
+| Thời gian | Task | Mô tả |
+|-----------|------|-------|
+| 23:00 ngày 31/12 | `year:backup` | Backup an toàn trước khi chuyển năm |
+| **00:05 ngày 1/1** | `year:end-process` | **Chuyển năm tự động** (Export → Cleanup → Prepare) |
+| 02:00 Chủ nhật | `year:backup` | Backup hàng tuần |
+| 03:00 ngày 1 hàng tháng | `year:backup` | Backup đầu tháng |
+
+### Kiểm tra log sau khi chạy:
+```bash
+# Xem log Laravel
+tail -f storage/logs/laravel.log | grep -i "year"
+
+# Hoặc xem toàn bộ log hôm nay
+cat storage/logs/laravel-$(date +%Y-%m-%d).log
+```
+
+### Chạy thủ công (nếu cần):
+```bash
+# Chạy quy trình chuyển năm ngay lập tức
+php artisan year:end-process
+
+# Hoặc chạy từng bước
+php artisan year:export 2025 --include-images
+php artisan year:cleanup 2025 --force
+php artisan year:prepare 2026 --force
+```
+
+---
+
 ## ⚠️ LƯU Ý
 
 ### Ưu điểm:

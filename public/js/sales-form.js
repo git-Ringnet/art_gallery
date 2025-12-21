@@ -91,7 +91,7 @@ function selectPainting(paintingId, idx) {
                 vndInput.value = vndValue.toLocaleString('en-US');
             }
 
-            const imgUrl = painting.image ? `/storage/${painting.image}` : 'https://via.placeholder.com/80x60?text=No+Image';
+            const imgUrl = painting.image ? `/storage/${painting.image}` : '/images/no-image.svg';
             const imgElement = document.getElementById(`img-${idx}`);
             imgElement.src = imgUrl;
             if (typeof showImageModal === 'function') {
@@ -137,7 +137,7 @@ function selectFrame(frameId, idx) {
 
             // Clear image for frame
             const imgElement = document.getElementById(`img-${idx}`);
-            imgElement.src = 'https://via.placeholder.com/80x60?text=Khung';
+            imgElement.src = '/images/frame-placeholder.svg';
 
             document.getElementById(`item-suggestions-${idx}`).classList.add('hidden');
             if (typeof calc === 'function') calc();

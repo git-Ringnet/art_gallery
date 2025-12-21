@@ -7,6 +7,7 @@
     <meta name="csrf-token" content="{{ csrf_token() }}">
     <title>@yield('title', 'Hệ thống Quản lý Tranh & Khung')</title>
     <script src="https://cdn.tailwindcss.com"></script>
+    <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
@@ -410,25 +411,10 @@
                     </div>
                 </div>
 
-                <!-- Archive Warning + User Profile -->
+                <!-- Year Selector + User Profile -->
                 <div class="flex items-center space-x-3">
-                    <!-- Archive Warning Badge (chỉ hiện khi xem năm cũ) -->
-                    @php
-                        $yearService = app(\App\Services\YearDatabaseService::class);
-                        $isViewingArchive = $yearService->isViewingArchive();
-                        $selectedYear = $yearService->getSelectedYear();
-                    @endphp
-
-                    @if($isViewingArchive)
-                        <div class="hidden sm:block">
-                            <span
-                                class="px-2 py-1 bg-orange-100 text-orange-700 text-xs font-semibold rounded-full whitespace-nowrap">
-                                <i class="fas fa-exclamation-triangle mr-1"></i>
-                                <span class="hidden md:inline">Đang xem năm {{ $selectedYear }} (Chỉ đọc)</span>
-                                <span class="md:hidden">Năm {{ $selectedYear }}</span>
-                            </span>
-                        </div>
-                    @endif
+                    <!-- Year Selector Dropdown -->
+                    @include('components.year-selector')
 
                     <!-- User Profile Dropdown -->
                     <div class="relative z-50">
@@ -472,6 +458,26 @@
                 </div>
             </div>
         </div>
+
+        <!-- Archive Warning Banner -->
+        @isArchive
+        <div class="mx-4 mt-4 bg-gradient-to-r from-orange-500 to-red-500 text-white rounded-lg shadow-lg p-3 no-print">
+            <div class="flex items-center justify-between">
+                <div class="flex items-center">
+                    <i class="fas fa-exclamation-triangle text-2xl mr-3"></i>
+                    <div>
+                        <h4 class="font-bold text-sm">
+                            <i class="fas fa-eye mr-1"></i>Đang xem dữ liệu năm {{ app(\App\Services\YearDatabaseService::class)->getSelectedYear() }}
+                        </h4>
+                        <p class="text-xs opacity-90">Chế độ chỉ đọc - Không thể thêm, sửa, xóa dữ liệu</p>
+                    </div>
+                </div>
+                <button onclick="resetToCurrentYear()" class="px-3 py-1.5 bg-white text-orange-600 rounded-lg hover:bg-gray-100 transition-colors text-xs font-semibold">
+                    <i class="fas fa-undo mr-1"></i>Quay lại năm hiện tại
+                </button>
+            </div>
+        </div>
+        @endisArchive
 
         <!-- Page Header (Title + Actions) -->
         <div class="bg-white rounded-xl shadow-lg p-4 m-4 mb-4 relative z-30 no-print">

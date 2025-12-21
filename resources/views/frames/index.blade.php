@@ -5,9 +5,11 @@
 @section('page-description', 'Danh sách khung tranh đã làm')
 
 @section('header-actions')
+    @notArchive
     <a href="{{ route('frames.create') }}" class="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors text-sm">
         <i class="fas fa-plus mr-2"></i>Tạo khung mới
     </a>
+    @endnotArchive
 @endsection
 
 @section('content')

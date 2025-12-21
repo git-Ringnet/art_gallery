@@ -16,12 +16,15 @@ class DatabaseExport extends Model
         'exported_by',
         'exported_at',
         'is_encrypted',
+        'includes_images',
+        'type', // 'export' hoặc 'import'
     ];
 
     protected $casts = [
         'exported_at' => 'datetime',
         'file_size' => 'integer',
         'is_encrypted' => 'boolean',
+        'includes_images' => 'boolean',
     ];
 
     /**

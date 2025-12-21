@@ -9,6 +9,47 @@ class Sale extends Model
 {
     use HasFactory;
 
+    // Tự động set year khi tạo Sale mới
+    protected static function boot()
+    {
+        parent::boot();
+        
+        static::creating(function ($sale) {
+            if (empty($sale->year)) {
+                // Lấy năm từ sale_date nếu có, nếu không thì lấy năm hiện tại
+                if ($sale->sale_date) {
+                    $sale->year = date('Y', strtotime($sale->sale_date));
+                } else {
+                    $sale->year = date('Y');
+                }
+            }
+            
+            // Tự động tạo record năm nếu chưa có
+            self::ensureYearExists($sale->year);
+        });
+    }
+    
+    /**
+     * Đảm bảo năm tồn tại trong bảng year_databases
+     */
+    public static function ensureYearExists($year)
+    {
+        if (!$year) return;
+        
+        $exists = YearDatabase::where('year', $year)->exists();
+        if (!$exists) {
+            YearDatabase::create([
+                'year' => $year,
+                'database_name' => config('database.connections.mysql.database'),
+                'is_active' => false, // Không phải năm hiện tại
+                'is_on_server' => true,
+                'description' => "Năm {$year} (tự động tạo)",
+            ]);
+        }
+    }
+
+
+
     // Thêm các accessor vào JSON output
     protected $appends = [
         'paid_usd',

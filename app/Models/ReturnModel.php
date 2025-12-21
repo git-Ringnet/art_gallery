@@ -10,7 +10,29 @@ class ReturnModel extends Model
 {
     protected $table = 'returns';
 
+    // Tự động set year khi tạo Return mới
+    protected static function boot()
+    {
+        parent::boot();
+        
+        static::creating(function ($return) {
+            if (empty($return->year)) {
+                if ($return->return_date) {
+                    $return->year = date('Y', strtotime($return->return_date));
+                } else {
+                    $return->year = date('Y');
+                }
+            }
+            
+            // Tự động tạo record năm nếu chưa có
+            Sale::ensureYearExists($return->year);
+        });
+    }
+
+
+
     protected $fillable = [
+        'year',
         'return_code',
         'type',
         'sale_id',

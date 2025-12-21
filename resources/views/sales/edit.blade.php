@@ -564,7 +564,7 @@ function addItem() {
     tr.className = 'border hover:bg-purple-50';
     tr.innerHTML = `
         <td class="px-3 py-3 border">
-            <img id="img-${idx}" src="https://via.placeholder.com/80x60?text=No+Image" class="w-20 h-16 object-cover rounded border shadow-sm">
+            <img id="img-${idx}" src="/images/no-image.svg" class="w-20 h-16 object-cover rounded border shadow-sm">
         </td>
         <td class="px-3 py-3 border">
             <div class="relative">
@@ -683,7 +683,7 @@ function selectPainting(paintingId, idx) {
                 if (vndInput) vndInput.value = '0';
             }
             
-            const imgUrl = painting.image ? `/storage/${painting.image}` : 'https://via.placeholder.com/80x60?text=No+Image';
+            const imgUrl = painting.image ? `/storage/${painting.image}` : '/images/no-image.svg';
             const imgElement = document.getElementById(`img-${idx}`);
             imgElement.src = imgUrl;
             imgElement.onclick = () => showImageModal(imgUrl, painting.name);
@@ -935,7 +935,7 @@ function selectPainting(paintingId, idx) {
                 togCur(currencySelect, idx);
             }
             
-            const imgUrl = painting.image ? `/storage/${painting.image}` : 'https://via.placeholder.com/80x60?text=No+Image';
+            const imgUrl = painting.image ? `/storage/${painting.image}` : '/images/no-image.svg';
             const imgElement = document.getElementById(`img-${idx}`);
             imgElement.src = imgUrl;
             if (typeof showImageModal === 'function') {
@@ -1008,7 +1008,7 @@ function selectFrame(frameId, idx) {
             
             // Clear image for frame
             const imgElement = document.getElementById(`img-${idx}`);
-            imgElement.src = 'https://via.placeholder.com/80x60?text=Khung';
+            imgElement.src = '/images/frame-placeholder.svg';
             
             document.getElementById(`item-suggestions-${idx}`).classList.add('hidden');
             calc();
@@ -1627,7 +1627,7 @@ function loadExistingItems() {
             document.getElementById(`painting-id-${index}`).value = ''; // Clear painting
             document.getElementById(`item-search-${index}`).value = item.frame?.name || item.description;
             document.getElementById(`desc-${index}`).value = item.description;
-            document.getElementById(`img-${index}`).src = 'https://via.placeholder.com/80x60?text=Khung';
+            document.getElementById(`img-${index}`).src = '/images/frame-placeholder.svg';
         } else {
             document.getElementById(`item-search-${index}`).value = item.description;
             document.getElementById(`desc-${index}`).value = item.description;
@@ -1658,17 +1658,20 @@ function loadExistingItems() {
 
 // Before form submit, validate and remove formatting
 document.getElementById('sales-form').addEventListener('submit', function(e) {
-    // VALIDATION: Kiểm tra có ít nhất 1 sản phẩm với tranh/khung được chọn
+    // VALIDATION: Kiểm tra có ít nhất 1 sản phẩm với tranh HOẶC khung được chọn
     const rows = document.querySelectorAll('#items-body tr');
     let hasValidProduct = false;
     
     rows.forEach((row, index) => {
         const paintingInput = row.querySelector('input[name*="[painting_id]"]');
         const paintingId = paintingInput ? paintingInput.value : '';
+        const frameInput = row.querySelector('input[name*="[frame_id]"]');
+        const frameId = frameInput ? frameInput.value : '';
         const qtyInput = row.querySelector('input[name*="[quantity]"]');
         const qty = qtyInput ? (parseInt(qtyInput.value) || 0) : 0;
         
-        if (paintingId && qty > 0) {
+        // Hợp lệ nếu có tranh HOẶC có khung, và số lượng > 0
+        if ((paintingId || frameId) && qty > 0) {
             hasValidProduct = true;
         }
     });

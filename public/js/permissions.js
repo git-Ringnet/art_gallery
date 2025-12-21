@@ -585,19 +585,27 @@ async function savePermissions() {
             alert('Đã lưu quyền thành công');
             location.reload();
         } else {
-            const error1 = await response1.text();
-            const error2 = await response2.text();
-            console.error('Response 1 status:', response1.status);
-            console.error('Response 1:', error1);
-            console.error('Response 2 status:', response2.status);
-            console.error('Response 2:', error2);
+            // Parse error response để lấy message
+            let errorMessage = '';
             
-            // Show more specific error message
             if (!response1.ok) {
-                alert('Có lỗi khi lưu quyền module. Vui lòng kiểm tra console (F12).');
+                try {
+                    const errorData = await response1.json();
+                    errorMessage = errorData.message || 'Có lỗi khi lưu quyền module';
+                } catch {
+                    errorMessage = 'Có lỗi khi lưu quyền module';
+                }
             } else if (!response2.ok) {
-                alert('Có lỗi khi lưu quyền trường. Vui lòng kiểm tra console (F12).');
+                try {
+                    const errorData = await response2.json();
+                    errorMessage = errorData.message || 'Có lỗi khi lưu quyền trường';
+                } catch {
+                    errorMessage = 'Có lỗi khi lưu quyền trường';
+                }
             }
+            
+            console.error('Error:', errorMessage);
+            alert(errorMessage);
         }
     } catch (error) {
         console.error('Error saving permissions:', error);
@@ -730,8 +738,9 @@ async function assignRole(userId, roleId) {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
+                'Accept': 'application/json',
                 'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content,
-                'X-HTTP-Method-Override': 'PUT'
+                'X-Requested-With': 'XMLHttpRequest'
             },
             body: JSON.stringify({ 
                 _method: 'PUT',
@@ -740,20 +749,32 @@ async function assignRole(userId, roleId) {
         });
         
         if (response.ok) {
-            if (roleId === null) {
-                alert('Đã hủy gán vai trò thành công');
+            const data = await response.json();
+            if (data.success) {
+                if (roleId === null) {
+                    alert('Đã hủy gán vai trò thành công');
+                } else {
+                    alert('Đã gán vai trò thành công');
+                }
+                location.reload();
             } else {
-                alert('Đã gán vai trò thành công');
+                alert(data.message || 'Có lỗi khi gán vai trò');
+                location.reload();
+            }
+        } else {
+            // Parse error response để lấy message (bao gồm archive mode)
+            try {
+                const errorData = await response.json();
+                alert(errorData.message || 'Có lỗi khi gán vai trò');
+            } catch {
+                alert('Có lỗi khi gán vai trò');
             }
             location.reload();
-        } else {
-            const errorText = await response.text();
-            console.error('Error response:', errorText);
-            alert('Có lỗi khi gán vai trò');
         }
     } catch (error) {
         console.error('Error assigning role:', error);
         alert('Có lỗi khi gán vai trò: ' + error.message);
+        location.reload();
     }
 }
 

@@ -205,20 +205,20 @@ function initializeExport() {
             })
             .then(data => {
                 if (data.success) {
-                    alert('✅ Export thành công!\n\n' +
+                    alert('Export thành công!\n\n' +
                           'File: ' + data.export.filename + '\n' +
                           'Kích thước: ' + data.export.file_size + '\n' +
                           'Thời gian: ' + data.export.exported_at);
                     closeModal('exportModal');
                     location.reload();
                 } else {
-                    alert('❌ Lỗi: ' + data.message);
+                    alert('Lỗi: ' + data.message);
                     form.querySelectorAll('input, textarea, button').forEach(el => el.disabled = false);
                 }
             })
             .catch(error => {
                 console.error('Export error:', error);
-                alert('❌ Có lỗi xảy ra khi export. Vui lòng thử lại.');
+                alert('Có lỗi xảy ra khi export. Vui lòng thử lại.');
                 form.querySelectorAll('input, textarea, button').forEach(el => el.disabled = false);
             })
             .finally(() => {
@@ -343,13 +343,13 @@ function initializeImport() {
                     // Reload để áp dụng session mới
                     location.reload();
                 } else {
-                    alert('❌ Lỗi: ' + data.message);
+                    alert('Lỗi: ' + data.message);
                     form.querySelectorAll('input, button').forEach(el => el.disabled = false);
                 }
             })
             .catch(error => {
                 console.error('Import error:', error);
-                alert('❌ Có lỗi xảy ra khi import. Vui lòng thử lại.');
+                alert('Có lỗi xảy ra khi import. Vui lòng thử lại.');
                 form.querySelectorAll('input, button').forEach(el => el.disabled = false);
             })
             .finally(() => {

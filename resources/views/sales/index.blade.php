@@ -5,11 +5,13 @@
 @section('page-description', 'Quản lý tất cả các giao dịch bán hàng')
 
 @section('header-actions')
+@notArchive
 @hasPermission('sales', 'can_create')
 <a href="{{ route('sales.create') }}" class="bg-green-600 text-white px-3 py-2 rounded-lg hover:bg-green-700 transition-colors text-sm whitespace-nowrap">
     <i class="fas fa-plus mr-1"></i>Tạo hóa đơn
 </a>
 @endhasPermission
+@endnotArchive
 @endsection
 
 @section('content')
@@ -525,6 +527,7 @@
                     </td>
                     <td class="px-2 py-2">
                         <div class="flex items-center justify-center space-x-1">
+                            @notArchive
                             <!-- Approve button - chỉ hiện khi chờ duyệt -->
                             @if($sale->canApprove())
                             <form method="POST" action="{{ route('sales.approve', $sale->id) }}" class="inline">
@@ -550,6 +553,7 @@
                                 </button>
                             </form>
                             @endif
+                            @endnotArchive
                             
                             <!-- Show button - luôn hiển thị nếu có quyền xem -->
                             @hasPermission('sales', 'can_view')
@@ -561,6 +565,7 @@
                             @endhasPermission
                             
                             <!-- Edit button - chỉ hiện khi có quyền và chờ duyệt, ẩn khi đã hủy/trả hết -->
+                            @notArchive
                             @hasPermission('sales', 'can_edit')
                                 @if($sale->canEdit() && !$allReturned && $sale->sale_status != 'cancelled')
                                 <a href="{{ route('sales.edit', $sale->id) }}" 
@@ -575,6 +580,7 @@
                                 </span>
                                 @endif
                             @endhasPermission
+                            @endnotArchive
                             
                             <!-- Print button - ẩn khi đã hủy/trả hết hoặc không có quyền -->
                             @hasPermission('sales', 'can_print')
@@ -589,6 +595,7 @@
                             @endhasPermission
                             
                             <!-- Delete button - hiển thị khi có quyền và phiếu chưa duyệt (pending) -->
+                            @notArchive
                             @hasPermission('sales', 'can_delete')
                                 @if($sale->isPending())
                                 <button type="button" 
@@ -605,6 +612,7 @@
                                 </span>
                                 @endif
                             @endhasPermission
+                            @endnotArchive
                         </div>
                     </td>
                 </tr>

@@ -105,11 +105,19 @@ class YearDatabaseService
     }
 
     /**
-     * Lấy danh sách năm có sẵn
+     * Lấy danh sách năm có sẵn (trên server)
      */
     public function getAvailableYears()
     {
         return YearDatabase::getAvailableYears();
+    }
+
+    /**
+     * Lấy tất cả năm (bao gồm offline)
+     */
+    public function getAllYears()
+    {
+        return YearDatabase::getAllYears();
     }
 
     /**

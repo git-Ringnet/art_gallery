@@ -52,5 +52,23 @@ class AppServiceProvider extends ServiceProvider
             list($module, $field) = explode(',', str_replace(['(', ')', ' ', "'", '"'], '', $expression));
             return "<?php if(auth()->check() && auth()->user()->role): ?><?php \$fp = auth()->user()->role->getFieldPermissions('$module')->get('$field'); echo (\$fp && \$fp->is_readonly) ? 'readonly' : ''; endif; ?>";
         });
+
+        // Directive để ẩn các nút action khi đang xem dữ liệu năm cũ
+        \Illuminate\Support\Facades\Blade::directive('notArchive', function () {
+            return "<?php if(!app(\App\Services\YearDatabaseService::class)->isViewingArchive()): ?>";
+        });
+
+        \Illuminate\Support\Facades\Blade::directive('endnotArchive', function () {
+            return "<?php endif; ?>";
+        });
+
+        // Directive để hiển thị nội dung chỉ khi đang xem archive
+        \Illuminate\Support\Facades\Blade::directive('isArchive', function () {
+            return "<?php if(app(\App\Services\YearDatabaseService::class)->isViewingArchive()): ?>";
+        });
+
+        \Illuminate\Support\Facades\Blade::directive('endisArchive', function () {
+            return "<?php endif; ?>";
+        });
     }
 }
