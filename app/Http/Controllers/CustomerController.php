@@ -3,10 +3,18 @@
 namespace App\Http\Controllers;
 
 use App\Models\Customer;
+use App\Services\ActivityLogger;
 use Illuminate\Http\Request;
 
 class CustomerController extends Controller
 {
+    protected $activityLogger;
+
+    public function __construct(ActivityLogger $activityLogger)
+    {
+        $this->activityLogger = $activityLogger;
+    }
+
     public function index(Request $request)
     {
         $query = Customer::query();
@@ -60,7 +68,14 @@ class CustomerController extends Controller
         $validated['total_purchased'] = 0;
         $validated['total_debt'] = 0;
 
-        Customer::create($validated);
+        $customer = Customer::create($validated);
+
+        // Log activity
+        $this->activityLogger->logCreate(
+            'customers',
+            $customer,
+            "Tạo khách hàng mới: {$customer->name}"
+        );
 
         return redirect()->route('customers.index')->with('success', 'Thêm khách hàng thành công!');
     }
@@ -98,6 +113,14 @@ class CustomerController extends Controller
 
         $customer->update($validated);
 
+        // Log activity with changes
+        $this->activityLogger->logUpdate(
+            'customers',
+            $customer,
+            [],
+            "Cập nhật thông tin khách hàng: {$customer->name}"
+        );
+
         return redirect()->route('customers.index')->with('success', 'Cập nhật khách hàng thành công!');
     }
 
@@ -122,6 +145,14 @@ class CustomerController extends Controller
             return redirect()->route('customers.index')
                 ->with('error', 'Không thể xóa khách hàng đã có lịch sử mua hàng!');
         }
+
+        // Log activity before deletion
+        $this->activityLogger->logDelete(
+            'customers',
+            $customer,
+            $customer->toArray(),
+            "Xóa khách hàng: {$customer->name}"
+        );
 
         $customer->delete();
 

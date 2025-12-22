@@ -14,6 +14,7 @@ use App\Models\Debt;
 use App\Models\ExchangeRate;
 use App\Models\InventoryTransaction;
 use App\Models\User;
+use App\Services\ActivityLogger;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Log;
@@ -22,6 +23,13 @@ use Barryvdh\DomPDF\Facade\Pdf;
 
 class SalesController extends Controller
 {
+    protected $activityLogger;
+
+    public function __construct(ActivityLogger $activityLogger)
+    {
+        $this->activityLogger = $activityLogger;
+    }
+
     /**
      * Get or create default user for sales
      */
@@ -397,6 +405,13 @@ class SalesController extends Controller
             // Create debt if there's remaining amount
             // KHÔNG tạo debt khi tạo phiếu pending
             // Debt sẽ được tạo khi duyệt phiếu (approve)
+
+            // Log activity
+            $this->activityLogger->logCreate(
+                'sales',
+                $sale,
+                "Tạo phiếu bán hàng {$sale->invoice_code} cho khách hàng {$customer->name}"
+            );
 
             DB::commit();
 
@@ -825,6 +840,14 @@ class SalesController extends Controller
                 }
             }
 
+            // Log activity
+            $this->activityLogger->logUpdate(
+                'sales',
+                $sale,
+                [],
+                "Cập nhật phiếu bán hàng {$sale->invoice_code}"
+            );
+
             DB::commit();
 
             return redirect()->route('sales.show', $sale->id)
@@ -880,6 +903,19 @@ class SalesController extends Controller
                     }
                 }
             }
+
+            // Log activity before deletion
+            $this->activityLogger->logDelete(
+                'sales',
+                $sale,
+                [
+                    'invoice_code' => $sale->invoice_code,
+                    'customer' => $sale->customer->name ?? 'N/A',
+                    'total_vnd' => $sale->total_vnd,
+                    'total_usd' => $sale->total_usd,
+                ],
+                "Xóa phiếu bán hàng {$sale->invoice_code}"
+            );
 
             // Delete related records
             $sale->saleItems()->delete();
@@ -1222,6 +1258,14 @@ class SalesController extends Controller
                 ]);
             }
 
+            // Log approval activity
+            $this->activityLogger->logApprove(
+                'sales',
+                $sale,
+                null,
+                "Duyệt phiếu bán hàng {$sale->invoice_code}"
+            );
+
             DB::commit();
 
             return back()->with('success', 'Đã duyệt phiếu bán hàng ' . $sale->invoice_code . ' và trừ kho thành công');
@@ -1247,6 +1291,14 @@ class SalesController extends Controller
         try {
             // Update sale status to cancelled
             $sale->update(['sale_status' => 'cancelled']);
+
+            // Log cancellation activity
+            $this->activityLogger->logCancel(
+                'sales',
+                $sale,
+                null,
+                "Hủy phiếu bán hàng {$sale->invoice_code}"
+            );
 
             DB::commit();
 

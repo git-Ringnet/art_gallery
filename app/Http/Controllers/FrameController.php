@@ -5,11 +5,19 @@ namespace App\Http\Controllers;
 use App\Models\Frame;
 use App\Models\FrameItem;
 use App\Models\Supply;
+use App\Services\ActivityLogger;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 
 class FrameController extends Controller
 {
+    protected $activityLogger;
+
+    public function __construct(ActivityLogger $activityLogger)
+    {
+        $this->activityLogger = $activityLogger;
+    }
+
     public function index(Request $request)
     {
         $search = $request->get('search');
@@ -162,6 +170,14 @@ class FrameController extends Controller
             }
 
             DB::commit();
+            
+            // Log activity
+            $this->activityLogger->logCreate(
+                \App\Models\ActivityLog::MODULE_FRAMES,
+                $frame,
+                "Tạo khung mới: {$frame->name}"
+            );
+            
             return redirect()->route('frames.index')->with('success', 'Tạo khung thành công!');
         } catch (\Exception $e) {
             DB::rollBack();
@@ -345,6 +361,20 @@ class FrameController extends Controller
                     ]);
                 }
             }
+
+            // Log activity before deletion
+            $frameData = [
+                'name' => $frame->name,
+                'frame_length' => $frame->frame_length,
+                'frame_width' => $frame->frame_width,
+                'cost_price' => $frame->cost_price,
+            ];
+            $this->activityLogger->logDelete(
+                \App\Models\ActivityLog::MODULE_FRAMES,
+                $frame,
+                $frameData,
+                "Xóa khung: {$frame->name}"
+            );
 
             $frame->delete();
             DB::commit();

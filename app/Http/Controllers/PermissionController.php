@@ -9,9 +9,17 @@ use App\Models\RolePermission;
 use App\Models\FieldPermission;
 use App\Models\User;
 use App\Models\CustomField;
+use App\Services\ActivityLogger;
 
 class PermissionController extends Controller
 {
+    protected $activityLogger;
+
+    public function __construct(ActivityLogger $activityLogger)
+    {
+        $this->activityLogger = $activityLogger;
+    }
+
     public function index()
     {
         $roles = Role::with(['permissions', 'rolePermissions.permission', 'fieldPermissions'])->get();
@@ -31,6 +39,13 @@ class PermissionController extends Controller
 
         $role = Role::create($validated);
 
+        // Log activity
+        $this->activityLogger->logCreate(
+            \App\Models\ActivityLog::MODULE_PERMISSIONS,
+            $role,
+            "Tạo vai trò mới: {$role->name}"
+        );
+
         return redirect()->route('permissions.index')
             ->with('success', 'Đã tạo vai trò thành công');
     }
@@ -46,6 +61,14 @@ class PermissionController extends Controller
 
         $role->update($validated);
 
+        // Log activity
+        $this->activityLogger->logUpdate(
+            \App\Models\ActivityLog::MODULE_PERMISSIONS,
+            $role,
+            [],
+            "Cập nhật vai trò: {$role->name}"
+        );
+
         return redirect()->route('permissions.index')
             ->with('success', 'Đã cập nhật vai trò thành công');
     }
@@ -59,6 +82,18 @@ class PermissionController extends Controller
             return redirect()->route('permissions.index')
                 ->with('error', 'Không thể xóa vai trò đang được gán cho người dùng');
         }
+
+        // Log activity before deletion
+        $roleData = [
+            'name' => $role->name,
+            'description' => $role->description,
+        ];
+        $this->activityLogger->logDelete(
+            \App\Models\ActivityLog::MODULE_PERMISSIONS,
+            $role,
+            $roleData,
+            "Xóa vai trò: {$role->name}"
+        );
 
         $role->delete();
 
@@ -183,6 +218,15 @@ class PermissionController extends Controller
             ]);
         }
 
+        // Log activity
+        $this->activityLogger->log(
+            \App\Models\ActivityLog::TYPE_UPDATE,
+            \App\Models\ActivityLog::MODULE_PERMISSIONS,
+            $role,
+            ['permissions_count' => count($validated['permissions'])],
+            "Cập nhật quyền cho vai trò: {$role->name}"
+        );
+
         return response()->json([
             'success' => true,
             'message' => 'Đã cập nhật quyền thành công'
@@ -228,6 +272,15 @@ class PermissionController extends Controller
             }
         }
 
+        // Log activity
+        $this->activityLogger->log(
+            \App\Models\ActivityLog::TYPE_UPDATE,
+            \App\Models\ActivityLog::MODULE_PERMISSIONS,
+            $role,
+            ['field_permissions_count' => count($validated['field_permissions'])],
+            "Cập nhật quyền trường cho vai trò: {$role->name}"
+        );
+
         return response()->json([
             'success' => true,
             'message' => 'Đã cập nhật quyền trường thành công'
@@ -252,6 +305,16 @@ class PermissionController extends Controller
         $user->update(['role_id' => $validated['role_id']]);
 
         $message = $validated['role_id'] ? 'Đã gán vai trò thành công' : 'Đã hủy gán vai trò thành công';
+
+        // Log activity
+        $roleName = $validated['role_id'] ? (Role::find($validated['role_id'])->name ?? 'N/A') : 'None';
+        $this->activityLogger->log(
+            \App\Models\ActivityLog::TYPE_UPDATE,
+            \App\Models\ActivityLog::MODULE_PERMISSIONS,
+            $user,
+            ['role_name' => $roleName],
+            "Gán vai trò {$roleName} cho user {$user->name}"
+        );
 
         return response()->json([
             'success' => true,
@@ -313,6 +376,13 @@ class PermissionController extends Controller
 
         $field = CustomField::create($validated);
 
+        // Log activity
+        $this->activityLogger->logCreate(
+            \App\Models\ActivityLog::MODULE_PERMISSIONS,
+            $field,
+            "Tạo trường tùy chỉnh: {$field->field_label} ({$field->module})"
+        );
+
         return response()->json([
             'success' => true,
             'message' => 'Đã thêm trường thành công',
@@ -335,6 +405,19 @@ class PermissionController extends Controller
                 'message' => 'Không thể xóa trường này vì đang được sử dụng trong phân quyền. Vui lòng xóa các phân quyền liên quan trước.'
             ], 422);
         }
+
+        // Log activity before deletion
+        $fieldData = [
+            'field_name' => $field->field_name,
+            'field_label' => $field->field_label,
+            'module' => $field->module,
+        ];
+        $this->activityLogger->logDelete(
+            \App\Models\ActivityLog::MODULE_PERMISSIONS,
+            $field,
+            $fieldData,
+            "Xóa trường tùy chỉnh: {$field->field_label} ({$field->module})"
+        );
 
         $field->delete();
 

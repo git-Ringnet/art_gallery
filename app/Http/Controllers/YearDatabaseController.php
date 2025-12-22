@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Services\YearDatabaseService;
+use App\Services\ActivityLogger;
 use App\Models\YearDatabase;
 use App\Models\DatabaseExport;
 use Illuminate\Http\Request;
@@ -14,10 +15,12 @@ use Illuminate\Support\Facades\Log;
 class YearDatabaseController extends Controller
 {
     protected $yearService;
+    protected $activityLogger;
 
-    public function __construct(YearDatabaseService $yearService)
+    public function __construct(YearDatabaseService $yearService, ActivityLogger $activityLogger)
     {
         $this->yearService = $yearService;
+        $this->activityLogger = $activityLogger;
     }
 
     /**
@@ -124,6 +127,15 @@ class YearDatabaseController extends Controller
 
         try {
             $this->yearService->setSelectedYear($year);
+
+            // Log activity
+            $this->activityLogger->log(
+                \App\Models\ActivityLog::TYPE_UPDATE,
+                \App\Models\ActivityLog::MODULE_YEAR_DATABASE,
+                null,
+                ['year' => $year],
+                "Chuyển sang năm {$year}"
+            );
 
             return response()->json([
                 'success' => true,
@@ -303,6 +315,19 @@ class YearDatabaseController extends Controller
             } elseif ($isEncrypted) {
                 $message .= ' (đã mã hóa)';
             }
+
+            // Log activity
+            $this->activityLogger->log(
+                \App\Models\ActivityLog::TYPE_CREATE,
+                \App\Models\ActivityLog::MODULE_YEAR_DATABASE,
+                $export,
+                [
+                    'year' => $year,
+                    'includes_images' => $includeImages,
+                    'file_size' => $export->file_size,
+                ],
+                "Export database năm {$year}" . ($includeImages ? ' (kèm ảnh)' : '')
+            );
 
             return response()->json([
                 'success' => true,
@@ -591,6 +616,21 @@ class YearDatabaseController extends Controller
                 }
             }
 
+            // Log activity
+            $this->activityLogger->log(
+                \App\Models\ActivityLog::TYPE_CREATE,
+                \App\Models\ActivityLog::MODULE_YEAR_DATABASE,
+                null,
+                [
+                    'year' => $year,
+                    'filename' => $filename,
+                    'has_images' => $hasImages,
+                    'images_copied' => $imagesCopied,
+                    'saved_to_backup' => $shouldSaveToBackup,
+                ],
+                "Import database năm {$year}" . ($hasImages ? " (kèm {$imagesCopied} ảnh)" : '')
+            );
+
             return response()->json([
                 'success' => true,
                 'message' => "Import database thành công. Dữ liệu đã được khôi phục.",
@@ -652,6 +692,21 @@ class YearDatabaseController extends Controller
             $export = DatabaseExport::where('year', $year)
                 ->orderBy('id', 'desc')
                 ->first();
+
+            // Log activity
+            if ($export) {
+                $this->activityLogger->log(
+                    \App\Models\ActivityLog::TYPE_CREATE,
+                    \App\Models\ActivityLog::MODULE_YEAR_DATABASE,
+                    $export,
+                    [
+                        'year' => $year,
+                        'includes_images' => true,
+                        'file_size' => $export->file_size,
+                    ],
+                    "Export database năm {$year} (kèm ảnh)"
+                );
+            }
 
             return response()->json([
                 'success' => true,
@@ -755,6 +810,18 @@ class YearDatabaseController extends Controller
                 ], 500);
             }
 
+            // Log activity
+            $this->activityLogger->log(
+                \App\Models\ActivityLog::TYPE_DELETE,
+                \App\Models\ActivityLog::MODULE_YEAR_DATABASE,
+                null,
+                [
+                    'year' => $year,
+                    'keep_images' => $keepImages,
+                ],
+                "Dọn dẹp dữ liệu năm {$year}" . ($keepImages ? ' (giữ ảnh)' : '')
+            );
+
             return response()->json([
                 'success' => true,
                 'message' => "Đã xóa dữ liệu năm {$year} thành công. Tồn kho đầu kỳ được giữ lại.",
@@ -792,6 +859,15 @@ class YearDatabaseController extends Controller
                     'message' => 'Lỗi khi chuẩn bị năm mới',
                 ], 500);
             }
+
+            // Log activity
+            $this->activityLogger->log(
+                \App\Models\ActivityLog::TYPE_CREATE,
+                \App\Models\ActivityLog::MODULE_YEAR_DATABASE,
+                null,
+                ['year' => $year],
+                "Chuẩn bị năm mới {$year}"
+            );
 
             return response()->json([
                 'success' => true,
@@ -973,6 +1049,19 @@ class YearDatabaseController extends Controller
                 $this->deleteDirectory($extractDir);
                 unlink($fullPath);
 
+                // Log activity
+                $this->activityLogger->log(
+                    \App\Models\ActivityLog::TYPE_CREATE,
+                    \App\Models\ActivityLog::MODULE_YEAR_DATABASE,
+                    null,
+                    [
+                        'year' => $year,
+                        'filename' => $filename,
+                        'type' => 'zip_with_images',
+                    ],
+                    "Import database năm {$year} từ ZIP (kèm ảnh)"
+                );
+
                 return response()->json([
                     'success' => true,
                     'message' => "Import thành công! Database và hình ảnh đã được khôi phục.",
@@ -1001,6 +1090,19 @@ class YearDatabaseController extends Controller
 
                 $this->importSqlFile($fullPath);
                 unlink($fullPath);
+
+                // Log activity
+                $this->activityLogger->log(
+                    \App\Models\ActivityLog::TYPE_CREATE,
+                    \App\Models\ActivityLog::MODULE_YEAR_DATABASE,
+                    null,
+                    [
+                        'year' => $year,
+                        'filename' => $filename,
+                        'type' => 'sql_only',
+                    ],
+                    "Import database năm {$year} từ file SQL"
+                );
 
                 return response()->json([
                     'success' => true,

@@ -3,10 +3,18 @@
 namespace App\Http\Controllers;
 
 use App\Models\Showroom;
+use App\Services\ActivityLogger;
 use Illuminate\Http\Request;
 
 class ShowroomController extends Controller
 {
+    protected $activityLogger;
+
+    public function __construct(ActivityLogger $activityLogger)
+    {
+        $this->activityLogger = $activityLogger;
+    }
+
     public function index(Request $request)
     {
         $search = $request->get('search');
@@ -49,7 +57,14 @@ class ShowroomController extends Controller
             $validated['logo'] = $request->file('logo')->store('showrooms', 'public');
         }
 
-        Showroom::create($validated);
+        $showroom = Showroom::create($validated);
+        
+        // Log activity
+        $this->activityLogger->logCreate(
+            \App\Models\ActivityLog::MODULE_SHOWROOMS,
+            $showroom,
+            "Tạo showroom mới: {$showroom->name}"
+        );
         
         return redirect()->route('showrooms.index')
             ->with('success', 'Đã tạo phòng trưng bày thành công');
@@ -95,6 +110,14 @@ class ShowroomController extends Controller
 
         $showroom->update($validated);
         
+        // Log activity
+        $this->activityLogger->logUpdate(
+            \App\Models\ActivityLog::MODULE_SHOWROOMS,
+            $showroom,
+            [],
+            "Cập nhật showroom: {$showroom->name}"
+        );
+        
         return redirect()->route('showrooms.index')
             ->with('success', 'Đã cập nhật phòng trưng bày thành công');
     }
@@ -102,6 +125,20 @@ class ShowroomController extends Controller
     public function destroy($id)
     {
         $showroom = Showroom::findOrFail($id);
+        
+        // Log activity before deletion
+        $showroomData = [
+            'code' => $showroom->code,
+            'name' => $showroom->name,
+            'address' => $showroom->address,
+        ];
+        $this->activityLogger->logDelete(
+            \App\Models\ActivityLog::MODULE_SHOWROOMS,
+            $showroom,
+            $showroomData,
+            "Xóa showroom: {$showroom->name}"
+        );
+        
         $showroom->delete();
         
         return redirect()->route('showrooms.index')
