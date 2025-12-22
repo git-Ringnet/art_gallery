@@ -5,6 +5,7 @@
 @section('page-description', $painting->name)
 
 @section('content')
+    <x-confirm-modal id="confirmUpdatePaintingModal" title="Xác nhận cập nhật tranh" />
     <div class="bg-white rounded-xl shadow-lg p-4 glass-effect">
         @if(session('error'))
             <div class="mb-3 p-3 bg-red-100 border border-red-400 text-red-700 rounded-lg text-sm">
@@ -23,7 +24,8 @@
             </div>
         @endif
 
-        <form action="{{ route('inventory.paintings.update', $painting->id) }}" method="POST" enctype="multipart/form-data">
+        <form id="painting-edit-form" action="{{ route('inventory.paintings.update', $painting->id) }}" method="POST"
+            enctype="multipart/form-data">
             @csrf
             @method('PUT')
 
@@ -103,8 +105,7 @@
                 <div>
                     <label class="block text-xs font-medium text-gray-700 mb-1">Ngày nhập (*)</label>
                     <input type="date" name="import_date"
-                        value="{{ old('import_date', optional($painting->import_date)->format('Y-m-d')) }}"
-                        required
+                        value="{{ old('import_date', optional($painting->import_date)->format('Y-m-d')) }}" required
                         class="w-full px-2 py-1.5 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
                 </div>
                 <div class="md:col-span-2">
@@ -141,7 +142,7 @@
             </div>
 
             <div class="flex space-x-2 mt-4">
-                <button type="submit"
+                <button type="button" onclick="confirmUpdatePainting()"
                     class="bg-blue-600 text-white py-1.5 px-4 text-sm rounded-lg hover:bg-blue-700 transition-colors">
                     <i class="fas fa-save mr-1"></i>Lưu thay đổi
                 </button>
@@ -167,11 +168,44 @@
 
 @push('scripts')
     <script>
-        // Image modal functions
+        function confirmUpdatePainting() {
+            var form = document.getElementById('painting-edit-form');
+            if (!form.checkValidity()) {
+                form.reportValidity();
+                return;
+            }
+
+            var code = form.querySelector('input[name="code"]').value || '';
+            var name = form.querySelector('input[name="name"]').value || '';
+            var artist = form.querySelector('input[name="artist"]').value || '';
+            var material = form.querySelector('input[name="material"]').value || '';
+            var priceUsd = form.querySelector('input[name="price_usd"]').value || '';
+            var priceVnd = form.querySelector('input[name="price_vnd"]').value || '';
+
+            var priceUsdText = priceUsd ? ('$' + Number(priceUsd).toLocaleString()) : 'Chưa nhập';
+            var priceVndText = priceVnd ? (Number(priceVnd).toLocaleString() + ' đ') : 'Chưa nhập';
+
+            var summary = '<div class="text-left space-y-2">';
+            summary += '<p><strong>Mã tranh:</strong> ' + code + '</p>';
+            summary += '<p><strong>Tên tranh:</strong> ' + name + '</p>';
+            summary += '<p><strong>Họa sĩ:</strong> ' + artist + '</p>';
+            summary += '<p><strong>Chất liệu:</strong> ' + material + '</p>';
+            summary += '<p><strong>Giá USD:</strong> ' + priceUsdText + '</p>';
+            summary += '<p><strong>Giá VND:</strong> ' + priceVndText + '</p>';
+            summary += '</div>';
+
+            showConfirmModal('confirmUpdatePaintingModal', {
+                message: summary,
+                onConfirm: function () {
+                    form.submit();
+                }
+            });
+        }
+
         function showFullImage(src, title) {
-            const modal = document.getElementById('imageModal');
-            const modalImage = document.getElementById('modalImage');
-            const modalTitle = document.getElementById('modalImageTitle');
+            var modal = document.getElementById('imageModal');
+            var modalImage = document.getElementById('modalImage');
+            var modalTitle = document.getElementById('modalImageTitle');
 
             modalImage.src = src;
             modalTitle.textContent = title || '';
@@ -180,78 +214,74 @@
         }
 
         function closeImageModal() {
-            const modal = document.getElementById('imageModal');
+            var modal = document.getElementById('imageModal');
             modal.classList.add('hidden');
             document.body.style.overflow = 'auto';
         }
 
-        // Close modal with ESC key
         document.addEventListener('keydown', function (event) {
             if (event.key === 'Escape') {
                 closeImageModal();
             }
         });
 
-        // Material select (edit)
-        (() => {
-            const wrapper = document.getElementById('material-select-edit');
+        (function () {
+            var wrapper = document.getElementById('material-select-edit');
             if (!wrapper) return;
-            const input = document.getElementById('material-input-edit');
-            const toggle = document.getElementById('material-toggle-edit');
-            const dropdown = document.getElementById('material-options-edit');
+            var input = document.getElementById('material-input-edit');
+            var toggle = document.getElementById('material-toggle-edit');
+            var dropdown = document.getElementById('material-options-edit');
 
             function openDropdown() { dropdown.classList.remove('hidden'); }
             function closeDropdown() { dropdown.classList.add('hidden'); }
             function isOpen() { return !dropdown.classList.contains('hidden'); }
 
-            toggle.addEventListener('click', () => {
+            toggle.addEventListener('click', function () {
                 isOpen() ? closeDropdown() : openDropdown();
                 input.focus();
             });
 
             input.addEventListener('focus', openDropdown);
-            input.addEventListener('input', () => {
-                const term = input.value.toLowerCase();
-                dropdown.querySelectorAll('li').forEach(li => {
-                    const show = li.dataset.value.toLowerCase().includes(term);
+            input.addEventListener('input', function () {
+                var term = input.value.toLowerCase();
+                dropdown.querySelectorAll('li').forEach(function (li) {
+                    var show = li.dataset.value.toLowerCase().includes(term);
                     li.classList.toggle('hidden', !show);
                 });
             });
 
-            dropdown.querySelectorAll('li').forEach(li => {
-                li.addEventListener('click', () => {
+            dropdown.querySelectorAll('li').forEach(function (li) {
+                li.addEventListener('click', function () {
                     input.value = li.dataset.value;
                     closeDropdown();
                 });
             });
 
-            document.addEventListener('click', (e) => {
+            document.addEventListener('click', function (e) {
                 if (!wrapper.contains(e.target)) closeDropdown();
             });
         })();
 
-        // Live preview + remove image on edit
-        (() => {
-            const input = document.getElementById('painting-image-input-edit');
+        (function () {
+            var input = document.getElementById('painting-image-input-edit');
             if (!input) return;
-            const wrap = document.getElementById('painting-image-preview-wrap-edit');
-            const img = document.getElementById('painting-image-preview-edit');
-            const removeBtn = document.getElementById('btn-remove-image');
-            const removeField = document.getElementById('remove_image');
+            var wrap = document.getElementById('painting-image-preview-wrap-edit');
+            var img = document.getElementById('painting-image-preview-edit');
+            var removeBtn = document.getElementById('btn-remove-image');
+            var removeField = document.getElementById('remove_image');
 
-            input.addEventListener('change', (e) => {
-                const file = e.target.files && e.target.files[0];
+            input.addEventListener('change', function (e) {
+                var file = e.target.files && e.target.files[0];
                 if (!file) { wrap.classList.add('hidden'); return; }
-                const url = URL.createObjectURL(file);
+                var url = URL.createObjectURL(file);
                 img.src = url;
                 wrap.classList.remove('hidden');
-                // if user uploads a new file, don't mark remove current
                 if (removeField) removeField.value = '0';
             });
 
             if (removeBtn) {
-                removeBtn.addEventListener('click', () => {
-                    const current = document.getElementById('painting-current-image');
+                removeBtn.addEventListener('click', function () {
+                    var current = document.getElementById('painting-current-image');
                     if (current) current.remove();
                     removeBtn.remove();
                     if (removeField) removeField.value = '1';

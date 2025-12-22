@@ -7,6 +7,20 @@
 @section('content')
 <x-alert />
 
+<!-- Confirm Modal for Edit Sales -->
+<x-confirm-modal 
+    id="confirm-edit-modal"
+    title="Xác nhận cập nhật hóa đơn"
+    message="Bạn có chắc chắn muốn cập nhật hóa đơn này?"
+    confirmText="Cập nhật"
+    cancelText="Quay lại"
+    type="warning"
+>
+    <div id="confirm-edit-summary" class="text-sm">
+        <!-- Order summary will be populated by JavaScript -->
+    </div>
+</x-confirm-modal>
+
 @php
     $hasReturns = $sale->returns()->whereIn('status', ['approved', 'completed'])->exists();
 @endphp
@@ -462,11 +476,11 @@
 
         <!-- Buttons -->
         <div class="flex flex-col sm:flex-row gap-2 pt-4 border-t-2 border-gray-200">
-            <button type="submit" class="flex-1 bg-green-600 hover:bg-green-700 text-white py-2 rounded-lg transition-colors font-medium shadow-lg text-sm">
-                Cập nhật hóa đơn
+            <button type="button" onclick="confirmUpdateOrder()" class="flex-1 bg-green-600 hover:bg-green-700 text-white py-2 rounded-lg transition-colors font-medium shadow-lg text-sm">
+                <i class="fas fa-save mr-2"></i>Cập nhật hóa đơn
             </button>
             <a href="{{ route('sales.show', $sale->id) }}" class="flex-1 bg-gray-500 hover:bg-gray-600 text-white py-2 rounded-lg transition-colors font-medium text-center shadow-lg text-sm">
-              Hủy bỏ
+              <i class="fas fa-times mr-2"></i>Hủy bỏ
             </a>
         </div>
     </form>
@@ -1658,6 +1672,9 @@ function loadExistingItems() {
 
 // Before form submit, validate and remove formatting
 document.getElementById('sales-form').addEventListener('submit', function(e) {
+    // Allow form submission - validation is done in confirmUpdateOrder
+    // This handler is kept for any direct form submissions
+    
     // VALIDATION: Kiểm tra có ít nhất 1 sản phẩm với tranh HOẶC khung được chọn
     const rows = document.querySelectorAll('#items-body tr');
     let hasValidProduct = false;
@@ -1682,26 +1699,6 @@ document.getElementById('sales-form').addEventListener('submit', function(e) {
         document.querySelector('#items-body')?.scrollIntoView({ behavior: 'smooth', block: 'center' });
         return false;
     }
-    
-    document.getElementById('rate').value = unformatNumber(document.getElementById('rate').value);
-    document.getElementById('paid').value = unformatNumber(document.getElementById('paid').value);
-    
-    document.querySelectorAll('[name*="[price_usd]"]').forEach(input => {
-        input.value = unformatNumber(input.value);
-    });
-    document.querySelectorAll('[name*="[price_vnd]"]').forEach(input => {
-        input.value = unformatNumber(input.value);
-    });
-    
-    // Convert BOTH to USD or VND
-    document.querySelectorAll('[name*="[currency]"]').forEach(select => {
-        if (select.value === 'BOTH') {
-            const row = select.closest('tr');
-            const usdVal = parseFloat(unformatNumber(row.querySelector('[name*="[price_usd]"]').value)) || 0;
-            const vndVal = parseFloat(unformatNumber(row.querySelector('[name*="[price_vnd]"]').value)) || 0;
-            select.value = (usdVal > 0) ? 'USD' : 'VND';
-        }
-    });
 });
 
 document.addEventListener('DOMContentLoaded', () => {
@@ -1918,6 +1915,126 @@ function showNotification(message, type = 'info') {
         notification.classList.add('opacity-0', 'translate-x-full');
         setTimeout(() => notification.remove(), 300);
     }, 4000);
+}
+
+// Confirm update order function
+function confirmUpdateOrder() {
+    const form = document.getElementById('sales-form');
+    
+    // VALIDATION: Kiểm tra có ít nhất 1 sản phẩm với tranh HOẶC khung được chọn
+    const rows = document.querySelectorAll('#items-body tr');
+    let hasValidProduct = false;
+    let productCount = 0;
+    
+    rows.forEach((row, index) => {
+        const paintingInput = row.querySelector('input[name*="[painting_id]"]');
+        const paintingId = paintingInput ? paintingInput.value : '';
+        const frameInput = row.querySelector('input[name*="[frame_id]"]');
+        const frameId = frameInput ? frameInput.value : '';
+        const qtyInput = row.querySelector('input[name*="[quantity]"]');
+        const qty = qtyInput ? (parseInt(qtyInput.value) || 0) : 0;
+        
+        if ((paintingId || frameId) && qty > 0) {
+            hasValidProduct = true;
+            productCount++;
+        }
+    });
+    
+    if (!hasValidProduct) {
+        showNotification('Vui lòng chọn ít nhất 1 sản phẩm (tranh/khung) trước khi lưu!', 'error');
+        document.querySelector('#items-body')?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        return false;
+    }
+    
+    // Kiểm tra các trường bắt buộc khác
+    const showroomEl = document.getElementById('showroom_id');
+    if (showroomEl && !showroomEl.value) {
+        showNotification('Vui lòng chọn Showroom!', 'error');
+        showroomEl.focus();
+        return false;
+    }
+    
+    const customerNameEl = document.getElementById('customer_name');
+    if (customerNameEl && !customerNameEl.value.trim()) {
+        showNotification('Vui lòng nhập tên khách hàng!', 'error');
+        customerNameEl.focus();
+        return false;
+    }
+    
+    // Build order summary for confirmation
+    const customerName = customerNameEl.value;
+    const invoiceCode = document.getElementById('invoice_code').value;
+    const totalUsdEl = document.getElementById('total_usd');
+    const totalVndEl = document.getElementById('total_vnd');
+    const totalUsd = totalUsdEl ? totalUsdEl.value : '0';
+    const totalVnd = totalVndEl ? totalVndEl.value : '0đ';
+    
+    let summaryHtml = `
+        <div class="space-y-2">
+            <div class="flex justify-between">
+                <span class="text-gray-600">Số hóa đơn:</span>
+                <span class="font-medium text-blue-600">${invoiceCode}</span>
+            </div>
+            <div class="flex justify-between">
+                <span class="text-gray-600">Khách hàng:</span>
+                <span class="font-medium">${customerName}</span>
+            </div>
+            <div class="flex justify-between">
+                <span class="text-gray-600">Số sản phẩm:</span>
+                <span class="font-medium">${productCount} sản phẩm</span>
+            </div>
+            <div class="border-t pt-2 mt-2">
+                <div class="flex justify-between text-blue-600">
+                    <span>Tổng USD:</span>
+                    <span class="font-bold">${totalUsd}</span>
+                </div>
+                <div class="flex justify-between text-green-600">
+                    <span>Tổng VND:</span>
+                    <span class="font-bold">${totalVnd}</span>
+                </div>
+            </div>
+        </div>
+    `;
+    
+    document.getElementById('confirm-edit-summary').innerHTML = summaryHtml;
+    
+    // Show confirmation modal
+    showConfirmModal('confirm-edit-modal', {
+        title: 'Xác nhận cập nhật hóa đơn',
+        message: 'Vui lòng kiểm tra thông tin hóa đơn trước khi cập nhật:',
+        onConfirm: function() {
+            submitEditForm();
+        }
+    });
+}
+
+// Submit form after confirmation
+function submitEditForm() {
+    const form = document.getElementById('sales-form');
+    
+    // Unformat all values before submit
+    document.getElementById('rate').value = unformatNumber(document.getElementById('rate').value);
+    
+    const paidEl = document.getElementById('paid');
+    if (paidEl) paidEl.value = unformatNumber(paidEl.value);
+    
+    document.querySelectorAll('[name*="[price_usd]"]').forEach(input => {
+        input.value = unformatNumber(input.value);
+    });
+    document.querySelectorAll('[name*="[price_vnd]"]').forEach(input => {
+        input.value = unformatNumber(input.value);
+    });
+    
+    // Convert BOTH to USD or VND
+    document.querySelectorAll('[name*="[currency]"]').forEach(select => {
+        if (select.value === 'BOTH') {
+            const row = select.closest('tr');
+            const usdVal = parseFloat(unformatNumber(row.querySelector('[name*="[price_usd]"]').value)) || 0;
+            select.value = (usdVal > 0) ? 'USD' : 'VND';
+        }
+    });
+    
+    form.submit();
 }
 </script>
 

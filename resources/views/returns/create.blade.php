@@ -7,7 +7,21 @@
 @section('content')
 <x-alert />
 
-<form action="{{ route('returns.store') }}" method="POST" id="return-form" onsubmit="return validateForm(event)">
+<!-- Confirm Modal for Returns -->
+<x-confirm-modal 
+    id="confirm-return-modal"
+    title="Xác nhận tạo phiếu đổi/trả"
+    message="Bạn có chắc chắn muốn tạo phiếu này?"
+    confirmText="Xác nhận"
+    cancelText="Quay lại"
+    type="warning"
+>
+    <div id="confirm-return-summary" class="text-sm">
+        <!-- Summary will be populated by JavaScript -->
+    </div>
+</x-confirm-modal>
+
+<form action="{{ route('returns.store') }}" method="POST" id="return-form">
     @csrf
     
     <div class="grid grid-cols-1 lg:grid-cols-3 gap-4">
@@ -263,7 +277,7 @@
                     </div>
                     
                     <div class="flex gap-2 pt-3">
-                        <button type="submit" class="flex-1 bg-blue-600 text-white py-1.5 px-3 text-sm rounded-lg hover:bg-blue-700">
+                        <button type="button" onclick="confirmReturnOrder()" class="flex-1 bg-blue-600 text-white py-1.5 px-3 text-sm rounded-lg hover:bg-blue-700">
                             <i class="fas fa-save mr-1"></i>Lưu
                         </button>
                         <a href="{{ route('returns.index') }}" class="flex-1 bg-gray-500 text-white py-1.5 px-3 text-sm rounded-lg hover:bg-gray-600 text-center">
@@ -1170,7 +1184,7 @@ function validateForm(event) {
     });
     
     if (!hasReturnItems) {
-        event.preventDefault();
+        if (event) event.preventDefault();
         showNotification('Vui lòng chọn ít nhất một sản phẩm để trả', 'error');
         return false;
     }
@@ -1178,7 +1192,7 @@ function validateForm(event) {
     // Validate: If exchange type, must have exchange products
     if (type === 'exchange') {
         if (exchangeProducts.length === 0) {
-            event.preventDefault();
+            if (event) event.preventDefault();
             showNotification('Vui lòng chọn sản phẩm để đổi', 'error');
             return false;
         }
@@ -1193,12 +1207,75 @@ function validateForm(event) {
         });
         
         if (hasInventoryError) {
-            event.preventDefault();
+            if (event) event.preventDefault();
             return false;
         }
     }
     
     return true;
+}
+
+// Confirm return order function
+function confirmReturnOrder() {
+    // Validate first
+    if (!validateForm(null)) {
+        return false;
+    }
+    
+    const type = document.getElementById('return-type').value;
+    const typeText = type === 'exchange' ? 'Đổi hàng' : 'Trả hàng';
+    
+    // Count return items
+    const returnInputs = document.querySelectorAll('.return-qty');
+    let returnQty = 0;
+    returnInputs.forEach(input => {
+        returnQty += parseInt(input.value) || 0;
+    });
+    
+    // Get invoice info
+    const invoiceCode = document.getElementById('inv-code')?.textContent || '';
+    const customerName = document.getElementById('inv-customer')?.textContent || '';
+    
+    // Build summary
+    let summaryHtml = `
+        <div class="space-y-2">
+            <div class="flex justify-between">
+                <span class="text-gray-600">Loại phiếu:</span>
+                <span class="font-medium ${type === 'exchange' ? 'text-blue-600' : 'text-orange-600'}">${typeText}</span>
+            </div>
+            <div class="flex justify-between">
+                <span class="text-gray-600">Hóa đơn gốc:</span>
+                <span class="font-medium text-blue-600">${invoiceCode}</span>
+            </div>
+            <div class="flex justify-between">
+                <span class="text-gray-600">Khách hàng:</span>
+                <span class="font-medium">${customerName}</span>
+            </div>
+            <div class="flex justify-between">
+                <span class="text-gray-600">Số SP trả:</span>
+                <span class="font-medium">${returnQty} sản phẩm</span>
+            </div>`;
+    
+    if (type === 'exchange') {
+        summaryHtml += `
+            <div class="flex justify-between">
+                <span class="text-gray-600">Số SP đổi mới:</span>
+                <span class="font-medium">${exchangeProducts.length} sản phẩm</span>
+            </div>`;
+    }
+    
+    summaryHtml += `</div>`;
+    
+    document.getElementById('confirm-return-summary').innerHTML = summaryHtml;
+    
+    // Show confirmation modal
+    showConfirmModal('confirm-return-modal', {
+        title: 'Xác nhận tạo phiếu ' + typeText.toLowerCase(),
+        message: 'Vui lòng kiểm tra thông tin trước khi lưu:',
+        onConfirm: function() {
+            document.getElementById('return-form').submit();
+        }
+    });
 }
 
 function showNotification(message, type = 'info') {

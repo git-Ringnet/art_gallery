@@ -5,8 +5,20 @@
 @section('page-description', 'Cập nhật thông tin nhân viên')
 
 @section('content')
+    <!-- Confirm Modal -->
+    <x-confirm-modal 
+        id="confirm-employee-edit-modal"
+        title="Xác nhận cập nhật nhân viên"
+        message="Bạn có chắc chắn muốn cập nhật thông tin nhân viên này?"
+        confirmText="Cập nhật"
+        cancelText="Quay lại"
+        type="warning"
+    >
+        <div id="confirm-employee-edit-summary" class="text-sm"></div>
+    </x-confirm-modal>
+
     <div class="bg-white rounded-xl shadow-lg p-4 glass-effect">
-        <form action="{{ route('employees.update', $employee->id) }}" method="POST" enctype="multipart/form-data">
+        <form action="{{ route('employees.update', $employee->id) }}" method="POST" enctype="multipart/form-data" id="employee-edit-form">
             @csrf
             @method('PUT')
             
@@ -109,7 +121,7 @@
                     class="bg-gray-500 text-white px-4 py-1.5 text-sm rounded-lg hover:bg-gray-600 transition-colors">
                     <i class="fas fa-times mr-1"></i>Hủy
                 </a>
-                <button type="submit"
+                <button type="button" onclick="confirmUpdateEmployee()"
                     class="bg-blue-600 text-white px-4 py-1.5 text-sm rounded-lg hover:bg-blue-700 transition-colors">
                     <i class="fas fa-save mr-1"></i>Cập nhật
                 </button>
@@ -120,6 +132,31 @@
 
 @push('scripts')
 <script>
+function confirmUpdateEmployee() {
+    const name = document.querySelector('input[name="name"]').value.trim();
+    const email = document.querySelector('input[name="email"]').value.trim();
+    
+    if (!name) { alert('Vui lòng nhập tên nhân viên!'); return; }
+    if (!email) { alert('Vui lòng nhập email!'); return; }
+    
+    let summaryHtml = `
+        <div class="space-y-2">
+            <div class="flex justify-between"><span class="text-gray-600">Tên:</span><span class="font-medium">${name}</span></div>
+            <div class="flex justify-between"><span class="text-gray-600">Email:</span><span class="font-medium">${email}</span></div>
+        </div>
+    `;
+    
+    document.getElementById('confirm-employee-edit-summary').innerHTML = summaryHtml;
+    
+    showConfirmModal('confirm-employee-edit-modal', {
+        title: 'Xác nhận cập nhật nhân viên',
+        message: 'Vui lòng kiểm tra thông tin trước khi cập nhật:',
+        onConfirm: function() {
+            document.getElementById('employee-edit-form').submit();
+        }
+    });
+}
+
 function previewImage(event) {
     const preview = document.getElementById('preview');
     const previewContainer = document.getElementById('imagePreview');

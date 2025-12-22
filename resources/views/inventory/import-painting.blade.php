@@ -5,6 +5,18 @@
 @section('page-description', 'Nhập tranh vào kho')
 
 @section('content')
+    <!-- Confirm Modal -->
+    <x-confirm-modal 
+        id="confirm-painting-modal"
+        title="Xác nhận nhập tranh"
+        message="Bạn có chắc chắn muốn nhập tranh này?"
+        confirmText="Xác nhận"
+        cancelText="Quay lại"
+        type="info"
+    >
+        <div id="confirm-painting-summary" class="text-sm"></div>
+    </x-confirm-modal>
+
     @if(session('success'))
         <div class="bg-green-100 border border-green-400 text-green-700 px-4 py-3 rounded mb-4">
             {{ session('success') }}
@@ -69,7 +81,7 @@
         <!-- Manual Form -->
         <div id="form-manual" class="tab-content">
 
-            <form action="{{ route('inventory.import.painting') }}" method="POST" enctype="multipart/form-data">
+            <form action="{{ route('inventory.import.painting') }}" method="POST" enctype="multipart/form-data" id="painting-manual-form">
                 @csrf
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
                     <div>
@@ -191,7 +203,7 @@
                     </div>
                 </div>
                 <div class="flex space-x-2 mt-4">
-                    <button type="submit"
+                    <button type="button" onclick="confirmImportPainting()"
                         class="bg-green-600 text-white py-1.5 px-4 text-sm rounded-lg hover:bg-green-700 transition-colors">
                         <i class="fas fa-save mr-1"></i>Lưu nhập tranh
                     </button>
@@ -283,6 +295,36 @@
 
 @push('scripts')
     <script>
+        // Confirm import painting
+        function confirmImportPainting() {
+            const code = document.querySelector('input[name="code"]').value.trim();
+            const name = document.querySelector('input[name="name"]').value.trim();
+            const artist = document.querySelector('input[name="artist"]').value.trim();
+            const priceUsd = document.querySelector('input[name="price_usd"]').value || '0';
+            
+            if (!code) { alert('Vui lòng nhập mã tranh!'); return; }
+            if (!name) { alert('Vui lòng nhập tên tranh!'); return; }
+            
+            let summaryHtml = `
+                <div class="space-y-2">
+                    <div class="flex justify-between"><span class="text-gray-600">Mã tranh:</span><span class="font-medium">${code}</span></div>
+                    <div class="flex justify-between"><span class="text-gray-600">Tên tranh:</span><span class="font-medium">${name}</span></div>
+                    ${artist ? `<div class="flex justify-between"><span class="text-gray-600">Họa sĩ:</span><span class="font-medium">${artist}</span></div>` : ''}
+                    <div class="flex justify-between"><span class="text-gray-600">Giá USD:</span><span class="font-medium text-blue-600">$${parseFloat(priceUsd).toLocaleString('en-US')}</span></div>
+                </div>
+            `;
+            
+            document.getElementById('confirm-painting-summary').innerHTML = summaryHtml;
+            
+            showConfirmModal('confirm-painting-modal', {
+                title: 'Xác nhận nhập tranh',
+                message: 'Vui lòng kiểm tra thông tin trước khi lưu:',
+                onConfirm: function() {
+                    document.getElementById('painting-manual-form').submit();
+                }
+            });
+        }
+
         // Image modal functions
         function showFullImage(src, title) {
             const modal = document.getElementById('imageModal');

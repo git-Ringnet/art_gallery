@@ -5,6 +5,18 @@
 @section('page-description', 'Nhập vật tư vào kho')
 
 @section('content')
+    <!-- Confirm Modal -->
+    <x-confirm-modal 
+        id="confirm-supply-modal"
+        title="Xác nhận nhập vật tư"
+        message="Bạn có chắc chắn muốn nhập vật tư này?"
+        confirmText="Xác nhận"
+        cancelText="Quay lại"
+        type="info"
+    >
+        <div id="confirm-supply-summary" class="text-sm"></div>
+    </x-confirm-modal>
+
     @if(session('success'))
         <div class="bg-green-100 border border-green-400 text-green-700 px-4 py-3 rounded mb-4">
             {{ session('success') }}
@@ -68,7 +80,7 @@
 
         <!-- Manual Form -->
         <div id="form-manual" class="tab-content">
-            <form action="{{ route('inventory.import.supply') }}" method="POST" enctype="multipart/form-data">
+            <form action="{{ route('inventory.import.supply') }}" method="POST" enctype="multipart/form-data" id="supply-manual-form">
                 @csrf
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
                     <div>
@@ -149,7 +161,7 @@
                     </div>
                 </div>
                 <div class="flex space-x-2 mt-4">
-                    <button type="submit"
+                    <button type="button" onclick="confirmImportSupply()"
                         class="bg-green-600 text-white py-1.5 px-4 text-sm rounded-lg hover:bg-green-700 transition-colors">
                         <i class="fas fa-save mr-1"></i>Lưu vật tư
                     </button>
@@ -241,6 +253,38 @@
 
 @push('scripts')
     <script>
+        // Confirm import supply
+        function confirmImportSupply() {
+            const code = document.querySelector('input[name="code"]').value.trim();
+            const name = document.querySelector('input[name="name"]').value.trim();
+            const treeCount = document.getElementById('tree_count').value || '0';
+            const lengthPerTree = document.getElementById('length_per_tree').value || '0';
+            
+            if (!code) { alert('Vui lòng nhập mã vật tư!'); return; }
+            if (!name) { alert('Vui lòng nhập tên vật tư!'); return; }
+            
+            const totalLength = parseFloat(treeCount) * parseFloat(lengthPerTree);
+            
+            let summaryHtml = `
+                <div class="space-y-2">
+                    <div class="flex justify-between"><span class="text-gray-600">Mã vật tư:</span><span class="font-medium">${code}</span></div>
+                    <div class="flex justify-between"><span class="text-gray-600">Tên vật tư:</span><span class="font-medium">${name}</span></div>
+                    <div class="flex justify-between"><span class="text-gray-600">Số lượng cây:</span><span class="font-medium">${treeCount} cây</span></div>
+                    <div class="flex justify-between"><span class="text-gray-600">Tổng chiều dài:</span><span class="font-medium text-blue-600">${totalLength.toFixed(2)} cm</span></div>
+                </div>
+            `;
+            
+            document.getElementById('confirm-supply-summary').innerHTML = summaryHtml;
+            
+            showConfirmModal('confirm-supply-modal', {
+                title: 'Xác nhận nhập vật tư',
+                message: 'Vui lòng kiểm tra thông tin trước khi lưu:',
+                onConfirm: function() {
+                    document.getElementById('supply-manual-form').submit();
+                }
+            });
+        }
+
         // Image modal functions
         function showFullImage(src, title) {
             const modal = document.getElementById('imageModal');

@@ -204,18 +204,34 @@
 
         <!-- Buttons -->
         <div class="flex flex-col sm:flex-row gap-2 pt-4 border-t-2 border-gray-200">
-            <button type="submit" name="action" value="save" class="flex-1 bg-green-600 hover:bg-green-700 text-white py-2 rounded-lg transition-colors font-medium shadow-lg text-sm">
+            <button type="button" onclick="confirmSaveOrder('save')" class="flex-1 bg-green-600 hover:bg-green-700 text-white py-2 rounded-lg transition-colors font-medium shadow-lg text-sm">
                 <i class="fas fa-save mr-1"></i>Lưu hóa đơn
             </button>
-            <button type="submit" name="action" value="save_and_print" class="flex-1 bg-blue-600 hover:bg-blue-700 text-white py-2 rounded-lg transition-colors font-medium shadow-lg text-sm">
+            <button type="button" onclick="confirmSaveOrder('save_and_print')" class="flex-1 bg-blue-600 hover:bg-blue-700 text-white py-2 rounded-lg transition-colors font-medium shadow-lg text-sm">
                 <i class="fas fa-print mr-1"></i>Lưu & In
             </button>
             <a href="{{ route('sales.index') }}" class="flex-1 bg-gray-500 hover:bg-gray-600 text-white py-2 rounded-lg transition-colors font-medium text-center shadow-lg text-sm">
                 <i class="fas fa-times mr-1"></i>Hủy bỏ
             </a>
         </div>
+        <!-- Hidden input for action -->
+        <input type="hidden" name="action" id="form-action" value="save">
     </form>
 </div>
+
+<!-- Confirm Modal for Sales -->
+<x-confirm-modal 
+    id="confirm-save-modal"
+    title="Xác nhận lưu hóa đơn"
+    message="Bạn có chắc chắn muốn lưu hóa đơn này?"
+    confirmText="Đồng ý lưu"
+    cancelText="Quay lại"
+    type="success"
+>
+    <div id="confirm-order-summary" class="bg-gray-50 rounded-lg p-3 text-sm">
+        <!-- Order summary will be populated by JavaScript -->
+    </div>
+</x-confirm-modal>
 
 @push('scripts')
 <script src="{{ asset('js/number-format.js') }}"></script>
@@ -490,19 +506,6 @@ function showFrameSuggestions(idx) {
     }
 }
 
-function selectFrame(frameId, idx) {
-    fetch(`{{ route('frames.show', '') }}/${frameId}`)
-        .then(response => response.json())
-        .then(frame => {
-            document.getElementById(`frame-id-${idx}`).value = frame.id;
-            document.getElementById(`frame-search-${idx}`).value = frame.name;
-            
-            document.getElementById(`frame-suggestions-${idx}`).classList.add('hidden');
-        })
-        .catch(error => {
-            console.error('Error fetching frame:', error);
-        });
-}
 
 // NEW: Search function for both paintings and frames
 function filterItems(query, idx) {
@@ -1212,172 +1215,23 @@ function loadCurrentDebt(customerId) {
     }
 }
 
-// Before form submit, validate and remove formatting
+// Before form submit, validate and remove formatting (only for direct submit, not from confirm modal)
 document.getElementById('sales-form').addEventListener('submit', function(e) {
-    // VALIDATION: Kiểm tra có ít nhất 1 sản phẩm với tranh HOẶC khung được chọn
-    const rows = document.querySelectorAll('#items-body tr');
-    let hasValidProduct = false;
-    let errorMessages = [];
-    
-    rows.forEach((row, index) => {
-        const paintingInput = row.querySelector('input[name*="[painting_id]"]');
-        const paintingId = paintingInput ? paintingInput.value : '';
-        const frameInput = row.querySelector('input[name*="[frame_id]"]');
-        const frameId = frameInput ? frameInput.value : '';
-        const qtyInput = row.querySelector('input[name*="[quantity]"]');
-        const qty = qtyInput ? (parseInt(qtyInput.value) || 0) : 0;
-        
-        // Hợp lệ nếu có tranh HOẶC có khung, và số lượng > 0
-        if ((paintingId || frameId) && qty > 0) {
-            hasValidProduct = true;
-        }
-    });
-    
-    if (!hasValidProduct) {
-        e.preventDefault();
-        showNotification('Vui lòng chọn ít nhất 1 sản phẩm (tranh/khung) trước khi lưu!', 'error');
-        // Scroll to products section
-        document.querySelector('#items-body')?.scrollIntoView({ behavior: 'smooth', block: 'center' });
-        return false;
+    // If form is being submitted from confirm modal, allow it
+    if (this.dataset.confirmed === 'true') {
+        this.dataset.confirmed = 'false';
+        return true;
     }
     
-    // Kiểm tra các trường bắt buộc khác
-    const showroomEl = document.getElementById('showroom_id');
-    if (showroomEl && !showroomEl.value) {
-        e.preventDefault();
-        showNotification('Vui lòng chọn Showroom!', 'error');
-        showroomEl.focus();
-        return false;
-    }
-    
-    const customerNameEl = document.getElementById('customer_name');
-    if (customerNameEl && !customerNameEl.value.trim()) {
-        e.preventDefault();
-        showNotification('Vui lòng nhập tên khách hàng!', 'error');
-        customerNameEl.focus();
-        return false;
-    }
-    
-    document.getElementById('rate').value = unformatNumber(document.getElementById('rate').value);
-    document.getElementById('paid').value = unformatNumber(document.getElementById('paid').value);
-    
-    document.querySelectorAll('[name*="[price_usd]"]').forEach(input => {
-        input.value = unformatNumber(input.value);
-    });
-    document.querySelectorAll('[name*="[price_vnd]"]').forEach(input => {
-        input.value = unformatNumber(input.value);
-    });
-    
-    // Convert BOTH to USD or VND
-    document.querySelectorAll('[name*="[currency]"]').forEach(select => {
-        if (select.value === 'BOTH') {
-            const row = select.closest('tr');
-            const usdVal = parseFloat(unformatNumber(row.querySelector('[name*="[price_usd]"]').value)) || 0;
-            const vndVal = parseFloat(unformatNumber(row.querySelector('[name*="[price_vnd]"]').value)) || 0;
-            select.value = (usdVal > 0) ? 'USD' : 'VND';
-        }
-    });
+    // Otherwise prevent default and show confirm modal
+    e.preventDefault();
+    confirmSaveOrder('save');
+    return false;
 });
 
 document.addEventListener('DOMContentLoaded', () => {
     addItem();
     calcDebt(); // Tính công nợ ngay khi load trang
-    
-    // Form validation và unformat trước khi submit
-    const form = document.getElementById('sales-form');
-    if (form) {
-        form.addEventListener('submit', function(e) {
-            // Unformat tất cả giá USD và VND của items trước khi submit
-            const priceUsdInputs = document.querySelectorAll('input[name*="[price_usd]"]');
-            const priceVndInputs = document.querySelectorAll('input[name*="[price_vnd]"]');
-            
-            priceUsdInputs.forEach(input => {
-                input.value = unformatNumber(input.value);
-            });
-            
-            priceVndInputs.forEach(input => {
-                input.value = unformatNumber(input.value);
-            });
-            
-            // Unformat payment USD and VND
-            const paidUsdInput = document.getElementById('paid_usd');
-            const paidVndInput = document.getElementById('paid_vnd');
-            if (paidUsdInput) {
-                paidUsdInput.value = unformatNumber(paidUsdInput.value);
-            }
-            if (paidVndInput) {
-                paidVndInput.value = unformatNumber(paidVndInput.value);
-            }
-            
-            // Validation - chặn submit nếu trả vượt quá (tính theo USD)
-            const totalUsdEl = document.getElementById('total_usd');
-            const totalVndEl = document.getElementById('total_vnd');
-            const totalPaidValueEl = document.getElementById('total_paid_value');
-            const paidUsdHiddenEl = document.getElementById('paid_usd');
-            const paidVndHiddenEl = document.getElementById('paid_vnd');
-            const rateEl = document.getElementById('rate');
-            
-            if (!totalUsdEl || !totalVndEl || !totalPaidValueEl || !rateEl) return;
-            
-            // Lấy tổng USD
-            const totalUsdTxt = totalUsdEl.value.replace(/[^\d.]/g, '');
-            const totalUsd = parseFloat(totalUsdTxt) || 0;
-            
-            // Lấy tổng VND
-            const totalVndTxt = totalVndEl.value.replace(/[^\d]/g, '');
-            const totalVnd = parseFloat(totalVndTxt) || 0;
-            
-            // Lấy số tiền đã trả
-            const paidUsd = parseFloat(paidUsdHiddenEl?.value || 0);
-            const paidVnd = parseFloat(paidVndHiddenEl?.value || 0);
-            const rate = parseFloat(unformatNumber(rateEl.value)) || 0;
-            
-            // Xác định loại tổng tiền
-            const hasUsdTotal = totalUsd > 0;
-            const hasVndTotal = totalVnd > 0;
-            
-            // Validation: Kiểm tra thanh toán không vượt quá tổng tiền
-            // CHỈ áp dụng cho phiếu có CẢ USD VÀ VND
-            if (hasUsdTotal && hasVndTotal) {
-                const tolerance = 0.01; // Sai số cho phép USD
-                
-                // Kiểm tra USD
-                if (paidUsd > totalUsd + tolerance) {
-                    e.preventDefault();
-                    alert('Số tiền USD thanh toán ($' + paidUsd.toFixed(2) + ') vượt quá tổng USD ($' + totalUsd.toFixed(2) + ')');
-                    return false;
-                }
-                
-                // Kiểm tra VND
-                if (paidVnd > totalVnd + 1) { // Tolerance 1 VND
-                    e.preventDefault();
-                    alert('Số tiền VND thanh toán (' + paidVnd.toLocaleString('vi-VN') + 'đ) vượt quá tổng VND (' + totalVnd.toLocaleString('vi-VN') + 'đ)');
-                    return false;
-                }
-            }
-            
-            // Validate exchange rate chỉ khi cần quy đổi
-            let needsExchangeRate = false;
-            if (hasUsdTotal && !hasVndTotal && paidVnd > 0) {
-                needsExchangeRate = true; // Tổng USD, trả VND
-            } else if (hasVndTotal && !hasUsdTotal && paidUsd > 0) {
-                needsExchangeRate = true; // Tổng VND, trả USD
-            } else if (hasUsdTotal && hasVndTotal && (paidUsd > 0 || paidVnd > 0)) {
-                needsExchangeRate = true; // Có cả 2 loại tổng
-            }
-            
-            // Kiểm tra tỷ giá nếu cần
-            if (needsExchangeRate && rate <= 0) {
-                e.preventDefault();
-                alert('⚠️ Cần nhập tỷ giá!\n\nBạn đang thanh toán bằng loại tiền khác với tổng hóa đơn.\nVui lòng nhập tỷ giá quy đổi.');
-                rateEl.focus();
-                return false;
-            }
-            
-            // Unformat exchange rate
-            rateEl.value = unformatNumber(rateEl.value);
-        });
-    }
 });
 
 // Image modal functions
@@ -1433,6 +1287,147 @@ function showNotification(message, type = 'info') {
         notification.classList.add('opacity-0', 'translate-x-full');
         setTimeout(() => notification.remove(), 300);
     }, 4000);
+}
+
+// Confirm save order function
+function confirmSaveOrder(action) {
+    // First validate the form
+    const form = document.getElementById('sales-form');
+    
+    // VALIDATION: Kiểm tra có ít nhất 1 sản phẩm với tranh HOẶC khung được chọn
+    const rows = document.querySelectorAll('#items-body tr');
+    let hasValidProduct = false;
+    let productCount = 0;
+    
+    rows.forEach((row, index) => {
+        const paintingInput = row.querySelector('input[name*="[painting_id]"]');
+        const paintingId = paintingInput ? paintingInput.value : '';
+        const frameInput = row.querySelector('input[name*="[frame_id]"]');
+        const frameId = frameInput ? frameInput.value : '';
+        const qtyInput = row.querySelector('input[name*="[quantity]"]');
+        const qty = qtyInput ? (parseInt(qtyInput.value) || 0) : 0;
+        
+        if ((paintingId || frameId) && qty > 0) {
+            hasValidProduct = true;
+            productCount++;
+        }
+    });
+    
+    if (!hasValidProduct) {
+        showNotification('Vui lòng chọn ít nhất 1 sản phẩm (tranh/khung) trước khi lưu!', 'error');
+        document.querySelector('#items-body')?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        return false;
+    }
+    
+    // Kiểm tra các trường bắt buộc khác
+    const showroomEl = document.getElementById('showroom_id');
+    if (showroomEl && !showroomEl.value) {
+        showNotification('Vui lòng chọn Showroom!', 'error');
+        showroomEl.focus();
+        return false;
+    }
+    
+    const customerNameEl = document.getElementById('customer_name');
+    if (customerNameEl && !customerNameEl.value.trim()) {
+        showNotification('Vui lòng nhập tên khách hàng!', 'error');
+        customerNameEl.focus();
+        return false;
+    }
+    
+    // Build order summary for confirmation
+    const customerName = customerNameEl.value;
+    const totalUsd = document.getElementById('total_usd').value;
+    const totalVnd = document.getElementById('total_vnd').value;
+    const paidUsdDisplay = document.getElementById('paid_usd_display').value;
+    const paidVndDisplay = document.getElementById('paid_vnd_display').value;
+    
+    let summaryHtml = `
+        <div class="space-y-2">
+            <div class="flex justify-between">
+                <span class="text-gray-600">Khách hàng:</span>
+                <span class="font-medium">${customerName}</span>
+            </div>
+            <div class="flex justify-between">
+                <span class="text-gray-600">Số sản phẩm:</span>
+                <span class="font-medium">${productCount} sản phẩm</span>
+            </div>
+            <div class="border-t pt-2 mt-2">
+                <div class="flex justify-between text-blue-600">
+                    <span>Tổng USD:</span>
+                    <span class="font-bold">${totalUsd}</span>
+                </div>
+                <div class="flex justify-between text-green-600">
+                    <span>Tổng VND:</span>
+                    <span class="font-bold">${totalVnd}</span>
+                </div>
+            </div>
+            <div class="border-t pt-2 mt-2">
+                <div class="flex justify-between">
+                    <span class="text-gray-600">Thanh toán USD:</span>
+                    <span class="font-medium">${paidUsdDisplay}</span>
+                </div>
+                <div class="flex justify-between">
+                    <span class="text-gray-600">Thanh toán VND:</span>
+                    <span class="font-medium">${paidVndDisplay}</span>
+                </div>
+            </div>
+        </div>
+    `;
+    
+    document.getElementById('confirm-order-summary').innerHTML = summaryHtml;
+    
+    // Set the action
+    document.getElementById('form-action').value = action;
+    
+    // Show confirmation modal
+    showConfirmModal('confirm-save-modal', {
+        title: action === 'save_and_print' ? 'Xác nhận lưu & in hóa đơn' : 'Xác nhận lưu hóa đơn',
+        message: 'Vui lòng kiểm tra thông tin hóa đơn trước khi lưu:',
+        onConfirm: function() {
+            // Submit the form
+            submitSalesForm();
+        }
+    });
+}
+
+// Submit form after confirmation
+function submitSalesForm() {
+    const form = document.getElementById('sales-form');
+    
+    // Mark form as confirmed
+    form.dataset.confirmed = 'true';
+    
+    // Unformat all values before submit
+    const rateEl = document.getElementById('rate');
+    if (rateEl) rateEl.value = unformatNumber(rateEl.value);
+    
+    document.querySelectorAll('[name*="[price_usd]"]').forEach(input => {
+        input.value = unformatNumber(input.value);
+    });
+    document.querySelectorAll('[name*="[price_vnd]"]').forEach(input => {
+        input.value = unformatNumber(input.value);
+    });
+    
+    // Unformat payment USD and VND
+    const paidUsdInput = document.getElementById('paid_usd');
+    const paidVndInput = document.getElementById('paid_vnd');
+    if (paidUsdInput) {
+        paidUsdInput.value = unformatNumber(paidUsdInput.value);
+    }
+    if (paidVndInput) {
+        paidVndInput.value = unformatNumber(paidVndInput.value);
+    }
+    
+    // Convert BOTH to USD or VND
+    document.querySelectorAll('[name*="[currency]"]').forEach(select => {
+        if (select.value === 'BOTH') {
+            const row = select.closest('tr');
+            const usdVal = parseFloat(unformatNumber(row.querySelector('[name*="[price_usd]"]').value)) || 0;
+            select.value = (usdVal > 0) ? 'USD' : 'VND';
+        }
+    });
+    
+    form.submit();
 }
 </script>
 

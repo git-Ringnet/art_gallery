@@ -768,6 +768,94 @@
             });
         });
     </script>
+    
+    <!-- Confirm Modal Helper Functions -->
+    <script>
+        // Global confirm modal functions
+        let confirmModalCallbacks = {};
+        
+        function showConfirmModal(modalId, options = {}) {
+            const modal = document.getElementById(modalId);
+            if (!modal) {
+                console.error('Modal not found:', modalId);
+                return;
+            }
+            
+            // Update title if provided
+            if (options.title) {
+                const titleEl = document.getElementById('modal-title-' + modalId);
+                if (titleEl) titleEl.textContent = options.title;
+            }
+            
+            // Update message if provided
+            if (options.message) {
+                const messageEl = document.getElementById('modal-message-' + modalId);
+                if (messageEl) messageEl.innerHTML = options.message;
+            }
+            
+            // Store callback for this modal
+            confirmModalCallbacks[modalId] = options.onConfirm || null;
+            
+            // Setup confirm button
+            const confirmBtn = document.getElementById('confirm-btn-' + modalId);
+            if (confirmBtn) {
+                // Remove old event listeners by cloning
+                const newBtn = confirmBtn.cloneNode(true);
+                confirmBtn.parentNode.replaceChild(newBtn, confirmBtn);
+                
+                newBtn.addEventListener('click', function() {
+                    const callback = confirmModalCallbacks[modalId];
+                    closeConfirmModal(modalId);
+                    if (typeof callback === 'function') {
+                        callback();
+                    }
+                });
+            }
+            
+            // Show modal
+            modal.classList.remove('hidden');
+            document.body.style.overflow = 'hidden';
+        }
+        
+        function closeConfirmModal(modalId) {
+            const modal = document.getElementById(modalId);
+            if (modal) {
+                modal.classList.add('hidden');
+                document.body.style.overflow = 'auto';
+            }
+            delete confirmModalCallbacks[modalId];
+        }
+        
+        // Close modal with ESC key
+        document.addEventListener('keydown', function(e) {
+            if (e.key === 'Escape') {
+                document.querySelectorAll('[id^="confirm-"]').forEach(modal => {
+                    if (!modal.classList.contains('hidden') && modal.id.includes('modal')) {
+                        closeConfirmModal(modal.id);
+                    }
+                });
+            }
+        });
+        
+        // Helper function for form submission with confirmation
+        function confirmFormSubmit(formId, options = {}) {
+            const form = document.getElementById(formId);
+            if (!form) return;
+            
+            showConfirmModal(options.modalId || 'confirm-modal', {
+                title: options.title || 'Xác nhận',
+                message: options.message || 'Bạn có chắc chắn muốn thực hiện thao tác này?',
+                onConfirm: function() {
+                    // If there's a pre-submit handler, call it
+                    if (options.beforeSubmit) {
+                        options.beforeSubmit();
+                    }
+                    form.submit();
+                }
+            });
+        }
+    </script>
+    
     @stack('scripts')
 </body>
 

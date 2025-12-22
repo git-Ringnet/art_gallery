@@ -7,7 +7,19 @@
 @section('content')
 <x-alert />
 
-<form action="{{ route('returns.update', $return->id) }}" method="POST" id="return-form" onsubmit="return validateForm(event)">
+<!-- Confirm Modal -->
+<x-confirm-modal 
+    id="confirm-return-edit-modal"
+    title="Xác nhận cập nhật phiếu"
+    message="Bạn có chắc chắn muốn cập nhật phiếu này?"
+    confirmText="Cập nhật"
+    cancelText="Quay lại"
+    type="warning"
+>
+    <div id="confirm-return-edit-summary" class="text-sm"></div>
+</x-confirm-modal>
+
+<form action="{{ route('returns.update', $return->id) }}" method="POST" id="return-form">
     @csrf
     @method('PUT')
     
@@ -378,7 +390,7 @@
                     </div>
                     
                     <div class="flex gap-2 pt-3">
-                        <button type="submit" class="flex-1 bg-blue-600 text-white py-1.5 px-3 text-sm rounded-lg hover:bg-blue-700">
+                        <button type="button" onclick="confirmUpdateReturn()" class="flex-1 bg-blue-600 text-white py-1.5 px-3 text-sm rounded-lg hover:bg-blue-700">
                             <i class="fas fa-save mr-1"></i>Lưu
                         </button>
                         <a href="{{ route('returns.show', $return->id) }}" class="flex-1 bg-gray-500 text-white py-1.5 px-3 text-sm rounded-lg hover:bg-gray-600 text-center">
@@ -394,6 +406,32 @@
 
 @push('scripts')
 <script>
+// Confirm update return
+function confirmUpdateReturn() {
+    const type = document.getElementById('return-type')?.value || 'return';
+    const typeText = type === 'exchange' ? 'Đổi hàng' : 'Trả hàng';
+    const invoiceCode = '{{ $return->sale->invoice_code }}';
+    const customerName = '{{ $return->customer->name }}';
+    
+    let summaryHtml = `
+        <div class="space-y-2">
+            <div class="flex justify-between"><span class="text-gray-600">Loại phiếu:</span><span class="font-medium">${typeText}</span></div>
+            <div class="flex justify-between"><span class="text-gray-600">Hóa đơn gốc:</span><span class="font-medium text-blue-600">${invoiceCode}</span></div>
+            <div class="flex justify-between"><span class="text-gray-600">Khách hàng:</span><span class="font-medium">${customerName}</span></div>
+        </div>
+    `;
+    
+    document.getElementById('confirm-return-edit-summary').innerHTML = summaryHtml;
+    
+    showConfirmModal('confirm-return-edit-modal', {
+        title: 'Xác nhận cập nhật phiếu ' + typeText.toLowerCase(),
+        message: 'Vui lòng kiểm tra thông tin trước khi cập nhật:',
+        onConfirm: function() {
+            document.getElementById('return-form').submit();
+        }
+    });
+}
+
 let saleData = @json($return->sale);
 let exchangeProducts = [];
 

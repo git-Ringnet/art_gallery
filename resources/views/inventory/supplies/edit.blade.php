@@ -16,10 +16,11 @@
 @endsection
 
 @section('content')
+<x-confirm-modal id="confirmUpdateSupplyModal" title="Xác nhận cập nhật vật tư" />
 <div class="bg-white rounded-xl shadow-lg p-4 glass-effect">
     <h3 class="text-base font-semibold text-gray-900 mb-4">Chỉnh sửa thông tin vật tư</h3>
     
-    <form action="{{ route('inventory.supplies.update', $supply->id) }}" method="POST" enctype="multipart/form-data">
+    <form id="supply-edit-form" action="{{ route('inventory.supplies.update', $supply->id) }}" method="POST" enctype="multipart/form-data">
         @csrf
         @method('PUT')
         
@@ -111,7 +112,7 @@
         </div>
         
         <div class="flex space-x-2 mt-4">
-            <button type="submit" class="bg-green-600 text-white py-1.5 px-4 text-sm rounded-lg hover:bg-green-700 transition-colors">
+            <button type="button" onclick="confirmUpdateSupply()" class="bg-green-600 text-white py-1.5 px-4 text-sm rounded-lg hover:bg-green-700 transition-colors">
                 <i class="fas fa-save mr-1"></i>Cập nhật vật tư
             </button>
             <a href="{{ route('inventory.supplies.show', $supply->id) }}" class="bg-gray-600 text-white py-1.5 px-4 text-sm rounded-lg hover:bg-gray-700 transition-colors">
@@ -134,6 +135,35 @@
 
 @push('scripts')
     <script>
+        function confirmUpdateSupply() {
+            var form = document.getElementById('supply-edit-form');
+            if (!form.checkValidity()) {
+                form.reportValidity();
+                return;
+            }
+            
+            var code = form.querySelector('input[name="code"]').value || '';
+            var name = form.querySelector('input[name="name"]').value || '';
+            var unit = form.querySelector('input[name="unit"]').value || '';
+            var quantity = form.querySelector('input[name="quantity"]').value || '';
+            var treeCount = form.querySelector('input[name="tree_count"]').value || '';
+            
+            var summary = '<div class="text-left space-y-2">';
+            summary += '<p><strong>Mã vật tư:</strong> ' + code + '</p>';
+            summary += '<p><strong>Tên vật tư:</strong> ' + name + '</p>';
+            summary += '<p><strong>Đơn vị:</strong> ' + unit + '</p>';
+            summary += '<p><strong>Chiều dài:</strong> ' + quantity + '</p>';
+            summary += '<p><strong>Số lượng cây:</strong> ' + treeCount + '</p>';
+            summary += '</div>';
+            
+            showConfirmModal('confirmUpdateSupplyModal', {
+                message: summary,
+                onConfirm: function() {
+                    form.submit();
+                }
+            });
+        }
+        
         // Image modal functions
         function showFullImage(src, title) {
             const modal = document.getElementById('imageModal');

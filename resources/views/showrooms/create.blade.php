@@ -5,8 +5,20 @@
 @section('page-description', 'Thêm Showroom mới')
 
 @section('content')
+    <!-- Confirm Modal -->
+    <x-confirm-modal 
+        id="confirm-showroom-modal"
+        title="Xác nhận tạo Showroom"
+        message="Bạn có chắc chắn muốn tạo Showroom này?"
+        confirmText="Xác nhận"
+        cancelText="Quay lại"
+        type="info"
+    >
+        <div id="confirm-showroom-summary" class="text-sm"></div>
+    </x-confirm-modal>
+
     <div class="bg-white rounded-xl shadow-lg p-4 glass-effect">
-        <form action="{{ route('showrooms.store') }}" method="POST" enctype="multipart/form-data">
+        <form action="{{ route('showrooms.store') }}" method="POST" enctype="multipart/form-data" id="showroom-form">
             @csrf
             <div id="logo_preview_container" class="hidden mb-2 relative inline-block group">
                 <img id="logo_preview" src="" class="w-24 h-24 rounded-lg object-cover border-2 border-gray-300"
@@ -79,7 +91,7 @@
                 </div>
             </div>
             <div class="mt-3 flex justify-end space-x-2">
-                <button type="submit" class="px-3 py-1.5 text-sm rounded bg-green-600 text-white hover:bg-green-700">
+                <button type="button" onclick="confirmCreateShowroom()" class="px-3 py-1.5 text-sm rounded bg-green-600 text-white hover:bg-green-700">
                     <i class="fas fa-save mr-1"></i>Lưu
                 </button>
                 <a href="{{ route('showrooms.index') }}" class="px-3 py-1.5 text-sm rounded bg-gray-600 text-white hover:bg-gray-700">
@@ -92,6 +104,33 @@
 
 @push('scripts')
     <script>
+        function confirmCreateShowroom() {
+            const code = document.querySelector('input[name="code"]').value.trim();
+            const name = document.querySelector('input[name="name"]').value.trim();
+            const address = document.querySelector('input[name="address"]').value.trim();
+            
+            if (!code) { alert('Vui lòng nhập mã phòng!'); return; }
+            if (!name) { alert('Vui lòng nhập tên phòng!'); return; }
+            
+            let summaryHtml = `
+                <div class="space-y-2">
+                    <div class="flex justify-between"><span class="text-gray-600">Mã phòng:</span><span class="font-medium">${code}</span></div>
+                    <div class="flex justify-between"><span class="text-gray-600">Tên phòng:</span><span class="font-medium">${name}</span></div>
+                    ${address ? `<div class="flex justify-between"><span class="text-gray-600">Địa chỉ:</span><span class="font-medium">${address}</span></div>` : ''}
+                </div>
+            `;
+            
+            document.getElementById('confirm-showroom-summary').innerHTML = summaryHtml;
+            
+            showConfirmModal('confirm-showroom-modal', {
+                title: 'Xác nhận tạo Showroom',
+                message: 'Vui lòng kiểm tra thông tin trước khi lưu:',
+                onConfirm: function() {
+                    document.getElementById('showroom-form').submit();
+                }
+            });
+        }
+
         let banks = [];
 
         // Fetch danh sách ngân hàng từ API VietQR

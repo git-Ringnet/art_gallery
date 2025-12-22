@@ -5,6 +5,18 @@
 @section('page-description', 'Tạo khung tranh mới từ cây gỗ')
 
 @section('content')
+    <!-- Confirm Modal -->
+    <x-confirm-modal 
+        id="confirm-frame-modal"
+        title="Xác nhận tạo khung"
+        message="Bạn có chắc chắn muốn tạo khung tranh này?"
+        confirmText="Xác nhận"
+        cancelText="Quay lại"
+        type="info"
+    >
+        <div id="confirm-frame-summary" class="text-sm"></div>
+    </x-confirm-modal>
+
     <div class="bg-white rounded-xl shadow-lg p-6 glass-effect">
         <div class="flex items-center justify-between mb-6">
             <h4 class="font-medium text-lg">Form tạo khung tranh</h4>
@@ -134,7 +146,7 @@
                 <a href="{{ route('frames.index') }}" class="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50">
                     Hủy
                 </a>
-                <button type="submit" class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700">
+                <button type="button" onclick="confirmCreateFrame()" class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700">
                     <i class="fas fa-save mr-2"></i>Tạo khung
                 </button>
             </div>
@@ -145,6 +157,36 @@
     <script>
         const supplies = @json($supplies);
         let itemIndex = 0;
+
+        function confirmCreateFrame() {
+            const name = document.querySelector('input[name="name"]').value.trim();
+            if (!name) {
+                alert('Vui lòng nhập tên khung!');
+                return;
+            }
+            
+            const frameLength = document.getElementById('frame_length').value || '0';
+            const frameWidth = document.getElementById('frame_width').value || '0';
+            const costPrice = document.querySelector('input[name="cost_price"]').value || '0';
+            
+            let summaryHtml = `
+                <div class="space-y-2">
+                    <div class="flex justify-between"><span class="text-gray-600">Tên khung:</span><span class="font-medium">${name}</span></div>
+                    <div class="flex justify-between"><span class="text-gray-600">Kích thước:</span><span class="font-medium">${frameLength} x ${frameWidth} cm</span></div>
+                    <div class="flex justify-between"><span class="text-gray-600">Giá nhập:</span><span class="font-medium">${parseInt(costPrice).toLocaleString('vi-VN')}đ</span></div>
+                </div>
+            `;
+            
+            document.getElementById('confirm-frame-summary').innerHTML = summaryHtml;
+            
+            showConfirmModal('confirm-frame-modal', {
+                title: 'Xác nhận tạo khung tranh',
+                message: 'Vui lòng kiểm tra thông tin trước khi lưu:',
+                onConfirm: function() {
+                    document.getElementById('frameForm').submit();
+                }
+            });
+        }
 
         function calculateFrameMetrics() {
             const frameLength = parseFloat(document.getElementById('frame_length').value) || 0;

@@ -4,6 +4,18 @@
 @section('page-title', 'Sửa khung tranh')
 
 @section('content')
+    <!-- Confirm Modal -->
+    <x-confirm-modal 
+        id="confirm-frame-edit-modal"
+        title="Xác nhận cập nhật khung"
+        message="Bạn có chắc chắn muốn cập nhật khung tranh này?"
+        confirmText="Cập nhật"
+        cancelText="Quay lại"
+        type="warning"
+    >
+        <div id="confirm-frame-edit-summary" class="text-sm"></div>
+    </x-confirm-modal>
+
     <div class="bg-white rounded-xl shadow-lg p-6 glass-effect">
         <div class="flex items-center justify-between mb-6">
             <h4 class="font-medium text-lg">Chỉnh sửa khung tranh</h4>
@@ -69,7 +81,7 @@
                 <a href="{{ route('frames.show', $frame) }}" class="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50">
                     Hủy
                 </a>
-                <button type="submit" class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700">
+                <button type="button" onclick="confirmUpdateFrame()" class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700">
                     <i class="fas fa-save mr-2"></i>Cập nhật
                 </button>
             </div>
@@ -81,6 +93,33 @@
         const supplies = @json($supplies);
         const existingItems = @json($frame->items);
         let itemIndex = 0;
+
+        function confirmUpdateFrame() {
+            const name = document.querySelector('input[name="name"]').value.trim();
+            if (!name) {
+                alert('Vui lòng nhập tên khung!');
+                return;
+            }
+            
+            const costPrice = document.querySelector('input[name="cost_price"]').value || '0';
+            
+            let summaryHtml = `
+                <div class="space-y-2">
+                    <div class="flex justify-between"><span class="text-gray-600">Tên khung:</span><span class="font-medium">${name}</span></div>
+                    <div class="flex justify-between"><span class="text-gray-600">Giá nhập:</span><span class="font-medium">${parseInt(costPrice).toLocaleString('vi-VN')}đ</span></div>
+                </div>
+            `;
+            
+            document.getElementById('confirm-frame-edit-summary').innerHTML = summaryHtml;
+            
+            showConfirmModal('confirm-frame-edit-modal', {
+                title: 'Xác nhận cập nhật khung tranh',
+                message: 'Vui lòng kiểm tra thông tin trước khi cập nhật:',
+                onConfirm: function() {
+                    document.getElementById('frameForm').submit();
+                }
+            });
+        }
 
         function addItem(data = {}) {
             const index = itemIndex++;

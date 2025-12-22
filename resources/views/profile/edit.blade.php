@@ -33,10 +33,12 @@
                     @enderror
                 </div>
 
-                <button type="submit" class="bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700 transition-colors">
+                <button type="button" onclick="confirmUpdateProfile()" class="bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700 transition-colors">
                     <i class="fas fa-save mr-2"></i>Lưu thay đổi
                 </button>
             </form>
+            
+            <x-confirm-modal id="confirmUpdateProfileModal" title="Xác nhận cập nhật thông tin" />
         </div>
 
         <!-- Update Password -->
@@ -71,11 +73,57 @@
                         class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
                 </div>
 
-                <button type="submit" class="bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700 transition-colors">
+                <button type="button" onclick="confirmUpdatePassword()" class="bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700 transition-colors">
                     <i class="fas fa-key mr-2"></i>Cập nhật mật khẩu
                 </button>
             </form>
+            
+            <x-confirm-modal id="confirmUpdatePasswordModal" title="Xác nhận đổi mật khẩu" />
         </div>
     </div>
 </div>
+
+@push('scripts')
+<script>
+function confirmUpdateProfile() {
+    const form = document.querySelector('form[action="{{ route('profile.update') }}"]');
+    if (!form.checkValidity()) {
+        form.reportValidity();
+        return;
+    }
+    
+    const name = document.getElementById('name').value.trim();
+    const email = document.getElementById('email').value.trim();
+    
+    const summary = `
+        <div class="text-left space-y-2">
+            <p><strong>Họ và tên:</strong> ${name}</p>
+            <p><strong>Email:</strong> ${email}</p>
+        </div>
+    `;
+    
+    showConfirmModal('confirmUpdateProfileModal', summary, () => {
+        form.submit();
+    });
+}
+
+function confirmUpdatePassword() {
+    const form = document.querySelector('form[action="{{ route('password.update') }}"]');
+    if (!form.checkValidity()) {
+        form.reportValidity();
+        return;
+    }
+    
+    const summary = `
+        <div class="text-left">
+            <p>Bạn có chắc chắn muốn đổi mật khẩu?</p>
+        </div>
+    `;
+    
+    showConfirmModal('confirmUpdatePasswordModal', summary, () => {
+        form.submit();
+    });
+}
+</script>
+@endpush
 @endsection
