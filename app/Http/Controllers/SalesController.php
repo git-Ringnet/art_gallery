@@ -347,6 +347,7 @@ class SalesController extends Controller
                 'paid_amount' => $paidAmount,
                 'payment_usd' => $paymentUsd,
                 'payment_vnd' => $paymentVnd,
+                'payment_method' => $request->payment_method ?? 'cash',
                 'debt_amount' => 0,
                 'payment_status' => 'unpaid',
                 'notes' => $request->notes,
@@ -633,6 +634,7 @@ class SalesController extends Controller
                 'sale_date' => $request->sale_date,
                 'exchange_rate' => $exchangeRate, // Chỉ thay đổi nếu pending
                 'discount_percent' => $request->discount_percent ?? 0,
+                'payment_method' => $request->payment_method ?? $sale->payment_method,
                 'notes' => $request->notes,
                 'invoice_code' => $request->invoice_code ?: $sale->invoice_code,
             ]);
@@ -1237,7 +1239,7 @@ class SalesController extends Controller
                     'payment_usd' => $sale->payment_usd ?? 0,
                     'payment_vnd' => $sale->payment_vnd ?? 0,
                     'payment_exchange_rate' => $paymentExchangeRate, // Lưu tỷ giá tại thời điểm thanh toán
-                    'payment_method' => 'cash', // Default
+                    'payment_method' => $sale->payment_method ?? 'cash', // Lấy từ sale
                     'transaction_type' => 'sale_payment',
                     'payment_date' => now(),
                     'notes' => 'Thanh toán ban đầu khi duyệt phiếu',
@@ -1245,14 +1247,31 @@ class SalesController extends Controller
                 ]);
             }
 
-            // Create debt if there's remaining amount
-            if ($sale->debt_amount > 0) {
+            // Create debt if there's remaining amount (check both USD and VND)
+            $debtUsd = $sale->total_usd - ($sale->paid_usd ?? 0);
+            $debtVnd = $sale->total_vnd - ($sale->paid_vnd ?? 0);
+            $hasDebtUsd = $debtUsd > 0.01;
+            $hasDebtVnd = $debtVnd > 1000;
+            
+            if ($hasDebtUsd || $hasDebtVnd || $sale->debt_amount > 0) {
+                // Tính debt_amount (VND) nếu chưa có
+                $debtAmount = $sale->debt_amount;
+                if ($debtAmount <= 0) {
+                    $debtAmount = $debtVnd + ($debtUsd * ($sale->exchange_rate ?: 1));
+                }
+                
                 Debt::create([
                     'sale_id' => $sale->id,
                     'customer_id' => $sale->customer_id,
-                    'total_amount' => $sale->total_vnd,
-                    'paid_amount' => $sale->paid_amount,
-                    'debt_amount' => $sale->debt_amount,
+                    // USD fields
+                    'total_usd' => $sale->total_usd ?? 0,
+                    'paid_usd' => $sale->paid_usd ?? 0,
+                    'debt_usd' => max(0, $debtUsd),
+                    'exchange_rate' => $sale->exchange_rate ?? 0,
+                    // VND fields
+                    'total_amount' => $sale->total_vnd ?? 0,
+                    'paid_amount' => $sale->paid_vnd ?? 0,
+                    'debt_amount' => max(0, $debtVnd),
                     'due_date' => now()->addDays(30),
                     'status' => 'unpaid',
                 ]);

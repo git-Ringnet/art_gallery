@@ -430,7 +430,12 @@
                                 @endif
                                 
                                 <p class="text-sm text-gray-600 mt-1">
-                                    {{ $sale->created_at->format('d/m/Y H:i') }} - Thanh toán ban đầu
+                                    {{ $sale->created_at->format('d/m/Y H:i') }} - 
+                                    @if($sale->payment_method == 'cash') Tiền mặt
+                                    @elseif($sale->payment_method == 'bank_transfer') Chuyển khoản
+                                    @elseif($sale->payment_method == 'card') Thẻ
+                                    @else Khác
+                                    @endif
                                     <span class="ml-2 text-xs bg-yellow-100 text-yellow-800 px-2 py-0.5 rounded">Chờ duyệt</span>
                                 </p>
                             </div>

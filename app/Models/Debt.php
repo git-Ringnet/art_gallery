@@ -12,6 +12,10 @@ class Debt extends Model
     protected $fillable = [
         'sale_id',
         'customer_id',
+        'total_usd',
+        'paid_usd',
+        'debt_usd',
+        'exchange_rate',
         'total_amount',
         'paid_amount',
         'debt_amount',
@@ -23,6 +27,10 @@ class Debt extends Model
     protected function casts(): array
     {
         return [
+            'total_usd' => 'decimal:2',
+            'paid_usd' => 'decimal:2',
+            'debt_usd' => 'decimal:2',
+            'exchange_rate' => 'decimal:2',
             'total_amount' => 'decimal:2',
             'paid_amount' => 'decimal:2',
             'debt_amount' => 'decimal:2',

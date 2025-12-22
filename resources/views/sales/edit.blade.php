@@ -385,9 +385,9 @@
                         <div>
                             <label class="block text-xs font-medium text-gray-700 mb-1">Phương thức</label>
                             <select name="payment_method" id="payment_method" class="w-full px-3 py-1.5 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500">
-                                <option value="cash">Tiền mặt</option>
-                                <option value="bank_transfer">Chuyển khoản</option>
-                                <option value="card">Thẻ</option>
+                                <option value="cash" {{ old('payment_method', $sale->payment_method ?? 'cash') == 'cash' ? 'selected' : '' }}>Tiền mặt</option>
+                                <option value="bank_transfer" {{ old('payment_method', $sale->payment_method ?? 'cash') == 'bank_transfer' ? 'selected' : '' }}>Chuyển khoản</option>
+                                <option value="card" {{ old('payment_method', $sale->payment_method ?? 'cash') == 'card' ? 'selected' : '' }}>Thẻ</option>
                             </select>
                         </div>
                         <div>
@@ -429,9 +429,9 @@
                         <div>
                             <label class="block text-xs font-medium text-gray-700 mb-1">Phương thức</label>
                             <select name="payment_method" id="payment_method" class="w-full px-3 py-1.5 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500">
-                                <option value="cash">Tiền mặt</option>
-                                <option value="bank_transfer">Chuyển khoản</option>
-                                <option value="card">Thẻ</option>
+                                <option value="cash" {{ old('payment_method', $sale->payment_method ?? 'cash') == 'cash' ? 'selected' : '' }}>Tiền mặt</option>
+                                <option value="bank_transfer" {{ old('payment_method', $sale->payment_method ?? 'cash') == 'bank_transfer' ? 'selected' : '' }}>Chuyển khoản</option>
+                                <option value="card" {{ old('payment_method', $sale->payment_method ?? 'cash') == 'card' ? 'selected' : '' }}>Thẻ</option>
                             </select>
                         </div>
                         <div>
@@ -466,7 +466,6 @@
                 </div>
             </div>
         </div>
-        <input type="hidden" name="payment_method" value="cash">
 
         <!-- Ghi chú -->
         <div class="mb-4">

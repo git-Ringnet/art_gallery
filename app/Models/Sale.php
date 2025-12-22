@@ -78,6 +78,7 @@ class Sale extends Model
         'paid_amount',
         'payment_usd',
         'payment_vnd',
+        'payment_method',
         'debt_amount',
         'payment_status',
         'sale_status',

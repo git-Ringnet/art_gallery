@@ -533,14 +533,14 @@
                                 @if($payment->sale->debt)
                                     <a href="{{ route('debt.show', $payment->sale->debt->id) }}" 
                                         class="w-8 h-8 flex items-center justify-center bg-green-100 text-green-600 rounded-lg hover:bg-green-200 transition-colors" 
-                                        title="Thanh toán">
+                                        title="Thanh toán nợ">
                                         <i class="fas fa-money-bill-wave"></i>
                                     </a>
                                 @else
-                                    {{-- Không có debt record, link trực tiếp đến sales edit --}}
+                                    {{-- Không có debt record, dẫn đến sales.edit để trả nợ --}}
                                     <a href="{{ route('sales.edit', $payment->sale_id) }}" 
                                         class="w-8 h-8 flex items-center justify-center bg-green-100 text-green-600 rounded-lg hover:bg-green-200 transition-colors" 
-                                        title="Thanh toán (qua phiếu bán)">
+                                        title="Thanh toán nợ (qua phiếu bán)">
                                         <i class="fas fa-money-bill-wave"></i>
                                     </a>
                                 @endif
