@@ -4,10 +4,18 @@ namespace App\Http\Controllers;
 
 use App\Models\Debt;
 use App\Models\Payment;
+use App\Services\ActivityLogger;
 use Illuminate\Http\Request;
 
 class DebtController extends Controller
 {
+    protected $activityLogger;
+
+    public function __construct(ActivityLogger $activityLogger)
+    {
+        $this->activityLogger = $activityLogger;
+    }
+
     public function index(Request $request)
     {
         $allPayments = $this->getFilteredPayments($request);
@@ -375,6 +383,22 @@ class DebtController extends Controller
         // Update sale payment status
         $debt->sale->refresh();
         $debt->sale->updatePaymentStatus();
+
+        // Log activity
+        $customerName = $debt->sale->customer->name ?? 'N/A';
+        $this->activityLogger->log(
+            \App\Models\ActivityLog::TYPE_CREATE,
+            \App\Models\ActivityLog::MODULE_DEBT,
+            $payment,
+            [
+                'payment_usd' => $paymentUsd,
+                'payment_vnd' => $paymentVnd,
+                'total_amount' => $payment->amount,
+                'customer_name' => $customerName,
+                'invoice_code' => $debt->sale->invoice_code,
+            ],
+            "Thu nợ " . number_format($payment->amount, 0, ',', '.') . "đ từ khách hàng {$customerName}"
+        );
 
         return redirect()->route('debt.index')
             ->with('success', 'Thu nợ thành công! Số tiền: ' . number_format($payment->amount, 0, ',', '.') . 'đ');

@@ -11,12 +11,20 @@ use App\Models\Painting;
 use App\Models\Supply;
 use App\Models\Payment;
 use App\Models\InventoryTransaction;
+use App\Services\ActivityLogger;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Auth;
 
 class ReturnController extends Controller
 {
+    protected $activityLogger;
+
+    public function __construct(ActivityLogger $activityLogger)
+    {
+        $this->activityLogger = $activityLogger;
+    }
+
     public function index(Request $request)
     {
         $query = ReturnModel::with(['sale', 'customer', 'processedBy', 'items.painting', 'items.supply']);
@@ -600,6 +608,14 @@ class ReturnController extends Controller
                 }
             }
 
+            // Log activity
+            $returnType = $return->type === 'return' ? 'trả hàng' : 'đổi hàng';
+            $this->activityLogger->logCreate(
+                \App\Models\ActivityLog::MODULE_RETURNS,
+                $return,
+                "Tạo phiếu {$returnType} {$return->return_code} cho hóa đơn {$sale->invoice_code}"
+            );
+
             DB::commit();
 
             return redirect()->route('returns.show', $return->id)
@@ -973,6 +989,15 @@ class ReturnController extends Controller
                 'notes' => $notesToUpdate,
             ]);
 
+            // Log activity
+            $returnType = $return->type === 'return' ? 'trả hàng' : 'đổi hàng';
+            $this->activityLogger->logUpdate(
+                \App\Models\ActivityLog::MODULE_RETURNS,
+                $return,
+                [],
+                "Cập nhật phiếu {$returnType} {$return->return_code}"
+            );
+
             DB::commit();
 
             return redirect()->route('returns.show', $return->id)
@@ -1050,6 +1075,15 @@ class ReturnController extends Controller
                 'status' => 'approved',
                 'processed_by' => Auth::id()
             ]);
+
+            // Log activity
+            $returnType = $return->type === 'return' ? 'trả hàng' : 'đổi hàng';
+            $this->activityLogger->logApprove(
+                \App\Models\ActivityLog::MODULE_RETURNS,
+                $return,
+                null,
+                "Duyệt phiếu {$returnType} {$return->return_code}"
+            );
 
             return back()->with('success', 'Đã duyệt phiếu đổi/trả');
 
@@ -1382,6 +1416,16 @@ class ReturnController extends Controller
                 }
             }
 
+            // Log activity
+            $returnType = $return->type === 'return' ? 'trả hàng' : 'đổi hàng';
+            $this->activityLogger->log(
+                \App\Models\ActivityLog::TYPE_UPDATE,
+                \App\Models\ActivityLog::MODULE_RETURNS,
+                $return,
+                ['status' => 'completed'],
+                "Hoàn thành phiếu {$returnType} {$return->return_code}"
+            );
+
             DB::commit();
 
             return back()->with('success', 'Đã hoàn thành phiếu đổi/trả');
@@ -1410,6 +1454,15 @@ class ReturnController extends Controller
             // Cancel the return
             $return->update(['status' => 'cancelled']);
 
+            // Log activity
+            $returnType = $return->type === 'return' ? 'trả hàng' : 'đổi hàng';
+            $this->activityLogger->logCancel(
+                \App\Models\ActivityLog::MODULE_RETURNS,
+                $return,
+                null,
+                "Hủy phiếu {$returnType} {$return->return_code}"
+            );
+
             DB::commit();
 
             return back()->with('success', 'Đã hủy phiếu đổi/trả');
@@ -1428,6 +1481,21 @@ class ReturnController extends Controller
             if ($return->status === 'completed') {
                 return back()->with('error', 'Không thể xóa phiếu đã hoàn thành. Vui lòng hủy phiếu trước.');
             }
+
+            // Log activity before deletion
+            $returnData = [
+                'return_code' => $return->return_code,
+                'type' => $return->type,
+                'status' => $return->status,
+                'sale_id' => $return->sale_id,
+            ];
+            $returnType = $return->type === 'return' ? 'trả hàng' : 'đổi hàng';
+            $this->activityLogger->logDelete(
+                \App\Models\ActivityLog::MODULE_RETURNS,
+                $return,
+                $returnData,
+                "Xóa phiếu {$returnType} {$return->return_code}"
+            );
 
             $return->delete();
 

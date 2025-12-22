@@ -60,3 +60,19 @@ Schedule::command('year:backup --description="Backup tự động hàng tuần"'
 Schedule::command('year:backup --description="Backup tự động đầu tháng"')
     ->monthlyOn(1, '03:00')
     ->timezone('Asia/Ho_Chi_Minh');
+
+// ============================================
+// ACTIVITY LOG CLEANUP
+// ============================================
+
+// Cleanup old activity logs (Daily at 01:00)
+Schedule::command('activitylog:cleanup')
+    ->daily()
+    ->at('01:00')
+    ->timezone('Asia/Ho_Chi_Minh')
+    ->onSuccess(function () {
+        Log::info('Activity log cleanup completed successfully');
+    })
+    ->onFailure(function () {
+        Log::error('Activity log cleanup failed');
+    });

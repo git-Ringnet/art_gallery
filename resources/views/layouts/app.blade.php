@@ -377,6 +377,16 @@
                     </a>
                     @endcanAccess
 
+                    {{-- Activity Logs - Admin only --}}
+                    @if(Auth::check() && Auth::user()->email === 'admin@example.com')
+                    <a href="{{ route('activity-logs.index') }}"
+                        class="nav-item flex items-center space-x-3 p-2.5 rounded-lg hover:bg-white hover:bg-opacity-20 transition-all duration-200 {{ request()->routeIs('activity-logs.*') ? 'bg-white bg-opacity-20' : '' }}"
+                        title="Nhật ký hoạt động">
+                        <i class="fas fa-history w-5 flex-shrink-0"></i>
+                        <span class="sidebar-text text-sm">Nhật ký hoạt động</span>
+                    </a>
+                    @endif
+
                     @canAccess('year_database')
                     <a href="{{ route('year.index') }}"
                         class="nav-item flex items-center space-x-3 p-2.5 rounded-lg hover:bg-white hover:bg-opacity-20 transition-all duration-200 {{ request()->routeIs('year.*') ? 'bg-white bg-opacity-20' : '' }}"
@@ -440,6 +450,12 @@
                                     class="flex items-center px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 transition-colors">
                                     <i class="fas fa-user mr-3 text-gray-400"></i>
                                     Hồ sơ cá nhân
+                                </a>
+
+                                <a href="{{ route('activity-logs.my-activity') }}"
+                                    class="flex items-center px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 transition-colors">
+                                    <i class="fas fa-history mr-3 text-gray-400"></i>
+                                    Lịch sử hoạt động
                                 </a>
 
                                 <div class="border-t border-gray-100">

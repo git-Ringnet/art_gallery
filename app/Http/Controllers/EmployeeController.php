@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
 use App\Models\User;
+use App\Services\ActivityLogger;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Storage;
@@ -13,6 +14,13 @@ use App\Exports\EmployeesExport;
 
 class EmployeeController extends Controller
 {
+    protected $activityLogger;
+
+    public function __construct(ActivityLogger $activityLogger)
+    {
+        $this->activityLogger = $activityLogger;
+    }
+
     public function index(Request $request)
     {
         $search = $request->get('search');
@@ -75,7 +83,7 @@ class EmployeeController extends Controller
             $avatarPath = $request->file('avatar')->store('avatars', 'public');
         }
 
-        User::create([
+        $employee = User::create([
             'name' => $validated['name'],
             'email' => $validated['email'],
             'password' => Hash::make($validated['password']),
@@ -83,6 +91,13 @@ class EmployeeController extends Controller
             'avatar' => $avatarPath,
             'is_active' => $request->has('is_active') ? 1 : 0,
         ]);
+
+        // Log activity
+        $this->activityLogger->logCreate(
+            'employees',
+            $employee,
+            "Tạo nhân viên mới: {$employee->name} ({$employee->email})"
+        );
 
         return redirect()->route('employees.index')
             ->with('success', 'Thêm nhân viên thành công');
@@ -159,6 +174,14 @@ class EmployeeController extends Controller
 
         $employee->update($validated);
 
+        // Log activity
+        $this->activityLogger->logUpdate(
+            'employees',
+            $employee,
+            [],
+            "Cập nhật thông tin nhân viên: {$employee->name}"
+        );
+
         return redirect()->route('employees.index')
             ->with('success', 'Cập nhật nhân viên thành công');
     }
@@ -173,6 +196,18 @@ class EmployeeController extends Controller
                 ->with('error', 'Không thể xóa tài khoản admin');
         }
         
+        // Log activity before deletion
+        $this->activityLogger->logDelete(
+            'employees',
+            $employee,
+            [
+                'name' => $employee->name,
+                'email' => $employee->email,
+                'phone' => $employee->phone,
+            ],
+            "Xóa nhân viên: {$employee->name} ({$employee->email})"
+        );
+
         if ($employee->avatar) {
             Storage::disk('public')->delete($employee->avatar);
         }

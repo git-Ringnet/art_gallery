@@ -209,4 +209,13 @@ Route::middleware(['auth', 'archive.readonly'])->group(function () {
         Route::put('/{frame}', [App\Http\Controllers\FrameController::class, 'update'])->middleware('permission:frames,can_edit')->name('update');
         Route::delete('/{frame}', [App\Http\Controllers\FrameController::class, 'destroy'])->middleware('permission:frames,can_delete')->name('destroy');
     });
+
+    // Activity Logs routes
+    Route::prefix('activity-logs')->name('activity-logs.')->group(function () {
+        Route::get('/', [App\Http\Controllers\ActivityLogController::class, 'index'])->name('index');
+        Route::get('/my-activity', [App\Http\Controllers\ActivityLogController::class, 'myActivity'])->name('my-activity');
+        Route::get('/export/excel', [App\Http\Controllers\ActivityLogController::class, 'exportExcel'])->name('export.excel');
+        Route::get('/export/pdf', [App\Http\Controllers\ActivityLogController::class, 'exportPdf'])->name('export.pdf');
+        Route::get('/{id}', [App\Http\Controllers\ActivityLogController::class, 'show'])->name('show');
+    });
 });

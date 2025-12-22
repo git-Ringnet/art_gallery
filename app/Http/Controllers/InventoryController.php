@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use Illuminate\Http\Request;
 use App\Models\Painting;
 use App\Models\Supply;
+use App\Services\ActivityLogger;
 use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Facades\Storage;
 use Barryvdh\DomPDF\Facade\Pdf;
@@ -22,6 +23,13 @@ use PhpOffice\PhpSpreadsheet\Worksheet\MemoryDrawing;
 
 class InventoryController extends Controller
 {
+    protected $activityLogger;
+
+    public function __construct(ActivityLogger $activityLogger)
+    {
+        $this->activityLogger = $activityLogger;
+    }
+
     public function index(Request $request)
     {
         $search = $request->get('search');
@@ -473,7 +481,7 @@ class InventoryController extends Controller
             $imagePath = $request->file('image')->store('paintings', 'public');
         }
 
-        Painting::create([
+        $painting = Painting::create([
             'code' => $validated['code'],
             'name' => $validated['name'],
             'artist' => $validated['artist'],
@@ -490,6 +498,13 @@ class InventoryController extends Controller
             'notes' => $validated['notes'] ?? null,
             'status' => 'in_stock',
         ]);
+
+        // Log activity
+        $this->activityLogger->logCreate(
+            \App\Models\ActivityLog::MODULE_INVENTORY,
+            $painting,
+            "Nhập tranh mới: {$painting->code} - {$painting->name}"
+        );
 
         return redirect()->route('inventory.index')
             ->with('success', 'Đã nhập tranh thành công');
@@ -520,8 +535,17 @@ class InventoryController extends Controller
 
         if ($existingSupply) {
             // Cập nhật số lượng cây
+            $oldTreeCount = $existingSupply->tree_count;
             $existingSupply->tree_count += $validated['tree_count'];
             $existingSupply->save();
+
+            // Log activity
+            $this->activityLogger->logUpdate(
+                \App\Models\ActivityLog::MODULE_INVENTORY,
+                $existingSupply,
+                ['tree_count' => ['old' => $oldTreeCount, 'new' => $existingSupply->tree_count]],
+                "Cập nhật số lượng cây vật tư: {$existingSupply->code} - {$existingSupply->name} (Thêm {$validated['tree_count']} cây)"
+            );
 
             return redirect()->route('inventory.index')
                 ->with('success', 'Đã cập nhật số lượng cây cho vật tư: ' . $existingSupply->name . ' (' . $existingSupply->code . ') - Thêm ' . $validated['tree_count'] . ' cây');
@@ -542,7 +566,7 @@ class InventoryController extends Controller
 
         // Tạo mới vật tư
         // Lưu chiều dài mỗi cây vào quantity (để dễ so sánh khi nhập lần sau)
-        Supply::create([
+        $supply = Supply::create([
             'code' => $validated['code'],
             'name' => $validated['name'],
             'type' => $validated['type'],
@@ -553,7 +577,14 @@ class InventoryController extends Controller
             'image' => $imagePath,
         ]);
 
+        // Log activity
         $totalLength = $validated['length_per_tree'] * $validated['tree_count'];
+        $this->activityLogger->logCreate(
+            \App\Models\ActivityLog::MODULE_INVENTORY,
+            $supply,
+            "Nhập vật tư mới: {$supply->code} - {$supply->name} ({$validated['tree_count']} cây × {$validated['length_per_tree']}cm)"
+        );
+
         return redirect()->route('inventory.index')
             ->with('success', 'Đã nhập vật tư thành công: ' . $validated['tree_count'] . ' cây × ' . $validated['length_per_tree'] . 'cm = ' . $totalLength . 'cm tổng');
     }
@@ -637,6 +668,14 @@ class InventoryController extends Controller
                 'validated_data' => $validated
             ]);
 
+            // Log activity
+            $this->activityLogger->logUpdate(
+                \App\Models\ActivityLog::MODULE_INVENTORY,
+                $painting,
+                [],
+                "Cập nhật tranh: {$painting->code} - {$painting->name}"
+            );
+
             // Get the return URL from session or default to index
             $returnUrl = session('painting_edit_return_url', route('inventory.index'));
             session()->forget('painting_edit_return_url');
@@ -686,6 +725,19 @@ class InventoryController extends Controller
             return redirect()->route('inventory.index')
                 ->with('error', "Không thể xóa tranh đang được sử dụng trong phiếu chờ duyệt: {$invoiceCodes}");
         }
+
+        // Log activity before deletion
+        $paintingData = [
+            'code' => $painting->code,
+            'name' => $painting->name,
+            'artist' => $painting->artist,
+        ];
+        $this->activityLogger->logDelete(
+            \App\Models\ActivityLog::MODULE_INVENTORY,
+            $painting,
+            $paintingData,
+            "Xóa tranh: {$painting->code} - {$painting->name}"
+        );
 
         if ($painting->image) {
             Storage::disk('public')->delete($painting->image);
@@ -747,6 +799,14 @@ class InventoryController extends Controller
 
         $supply->update($validated);
 
+        // Log activity
+        $this->activityLogger->logUpdate(
+            \App\Models\ActivityLog::MODULE_INVENTORY,
+            $supply,
+            [],
+            "Cập nhật vật tư: {$supply->code} - {$supply->name}"
+        );
+
         return redirect()->route('inventory.index')
             ->with('success', 'Cập nhật vật tư thành công');
     }
@@ -773,6 +833,19 @@ class InventoryController extends Controller
             return redirect()->route('inventory.index')
                 ->with('error', "Không thể xóa vật tư đang được sử dụng trong phiếu chờ duyệt: {$invoiceCodes}");
         }
+
+        // Log activity before deletion
+        $supplyData = [
+            'code' => $supply->code,
+            'name' => $supply->name,
+            'type' => $supply->type,
+        ];
+        $this->activityLogger->logDelete(
+            \App\Models\ActivityLog::MODULE_INVENTORY,
+            $supply,
+            $supplyData,
+            "Xóa vật tư: {$supply->code} - {$supply->name}"
+        );
 
         if ($supply->image) {
             Storage::disk('public')->delete($supply->image);
@@ -858,6 +931,31 @@ class InventoryController extends Controller
                 Log::error('Bulk delete error', ['item' => $item, 'error' => $e->getMessage()]);
                 $errors[] = "Lỗi khi xóa {$type} ID {$id}";
             }
+        }
+
+        // Log bulk delete activity
+        if ($deletedPaintings > 0 || $deletedSupplies > 0) {
+            $totalDeleted = $deletedPaintings + $deletedSupplies;
+            $description = "Xóa hàng loạt {$totalDeleted} sản phẩm";
+            if ($deletedPaintings > 0 && $deletedSupplies > 0) {
+                $description .= " ({$deletedPaintings} tranh, {$deletedSupplies} vật tư)";
+            } elseif ($deletedPaintings > 0) {
+                $description .= " ({$deletedPaintings} tranh)";
+            } else {
+                $description .= " ({$deletedSupplies} vật tư)";
+            }
+            
+            $this->activityLogger->log(
+                \App\Models\ActivityLog::TYPE_DELETE,
+                \App\Models\ActivityLog::MODULE_INVENTORY,
+                null,
+                [
+                    'deleted_paintings' => $deletedPaintings,
+                    'deleted_supplies' => $deletedSupplies,
+                    'total_deleted' => $totalDeleted,
+                ],
+                $description
+            );
         }
 
         $totalDeleted = $deletedPaintings + $deletedSupplies;
@@ -1312,6 +1410,19 @@ class InventoryController extends Controller
                 $message .= ", bỏ qua {$import->getSkippedCount()} dòng";
             }
 
+            // Log activity
+            $this->activityLogger->log(
+                \App\Models\ActivityLog::TYPE_CREATE,
+                \App\Models\ActivityLog::MODULE_INVENTORY,
+                null,
+                [
+                    'imported_count' => $import->getImportedCount(),
+                    'skipped_count' => $import->getSkippedCount(),
+                    'type' => 'painting',
+                ],
+                "Import {$import->getImportedCount()} tranh từ Excel"
+            );
+
             $errors = $import->getErrors();
             if (!empty($errors)) {
                 return redirect()->route('inventory.index')
@@ -1424,6 +1535,20 @@ class InventoryController extends Controller
             if ($import->getSkippedCount() > 0) {
                 $message .= ", bỏ qua {$import->getSkippedCount()} dòng";
             }
+
+            // Log activity
+            $this->activityLogger->log(
+                \App\Models\ActivityLog::TYPE_CREATE,
+                \App\Models\ActivityLog::MODULE_INVENTORY,
+                null,
+                [
+                    'imported_count' => $import->getImportedCount(),
+                    'updated_count' => $import->getUpdatedCount(),
+                    'skipped_count' => $import->getSkippedCount(),
+                    'type' => 'supply',
+                ],
+                "Import {$import->getImportedCount()} vật tư từ Excel"
+            );
 
             $errors = $import->getErrors();
             if (!empty($errors)) {
