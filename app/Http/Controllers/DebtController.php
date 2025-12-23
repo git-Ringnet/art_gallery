@@ -401,6 +401,6 @@ class DebtController extends Controller
         );
 
         return redirect()->route('debt.index')
-            ->with('success', 'Thu nợ thành công! Số tiền: ' . number_format($payment->amount, 0, ',', '.') . 'đ');
+            ->with('success', 'Thu nợ thành công! Số tiền: ' . number_format($payment->amount, 0, ',', '.'));
     }
 }

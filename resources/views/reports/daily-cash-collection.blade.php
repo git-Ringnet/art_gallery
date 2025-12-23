@@ -66,8 +66,8 @@
             </div>
         </div>
         
-        <!-- Row 2: Employee, Customer, Actions -->
-        <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+        <!-- Row 2: Employee, Customer, Payment Type, Actions -->
+        <div class="grid grid-cols-1 md:grid-cols-5 gap-4">
             @if($canFilterByUser)
             <div>
                 <label class="block text-sm font-semibold text-gray-700 mb-2">
@@ -95,6 +95,17 @@
                             {{ $customer->name }}
                         </option>
                     @endforeach
+                </select>
+            </div>
+            
+            <div>
+                <label class="block text-sm font-semibold text-gray-700 mb-2">
+                    <i class="fas fa-money-bill-wave mr-2 text-green-500"></i>Loại thanh toán
+                </label>
+                <select name="payment_type" class="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                    <option value="">-- Tất cả --</option>
+                    <option value="cash" {{ request('payment_type') == 'cash' ? 'selected' : '' }}>Tiền mặt (Cash)</option>
+                    <option value="card_transfer" {{ request('payment_type') == 'card_transfer' ? 'selected' : '' }}>Thẻ + Chuyển khoản</option>
                 </select>
             </div>
             
@@ -186,7 +197,18 @@
     <div class="bg-gradient-to-br from-purple-500 to-purple-600 rounded-xl shadow-lg p-5 text-white">
         <div class="flex items-center justify-between">
             <div class="flex-1">
-                <p class="text-sm opacity-90 mb-1">Collection (Cash + Card)</p>
+                @php
+                    $paymentTypeLabel = 'Cash + Card';
+                    $paymentTypeIcon = 'fa-cash-register';
+                    if (request('payment_type') == 'cash') {
+                        $paymentTypeLabel = '💵 Tiền mặt (Cash)';
+                        $paymentTypeIcon = 'fa-money-bill-wave';
+                    } elseif (request('payment_type') == 'card_transfer') {
+                        $paymentTypeLabel = '💳 Thẻ + Chuyển khoản';
+                        $paymentTypeIcon = 'fa-credit-card';
+                    }
+                @endphp
+                <p class="text-sm opacity-90 mb-1">Collection: {{ $paymentTypeLabel }}</p>
                 @if($totalCollectionUsd > 0 && $exchangeRate <= 1)
                     <!-- Có USD nhưng chưa nhập tỷ giá -->
                     <p class="text-lg font-bold text-yellow-300">
@@ -198,11 +220,13 @@
                 @else
                     <!-- Không có USD hoặc đã nhập tỷ giá -->
                     <p class="text-2xl font-bold">{{ number_format($cashCollectionVnd + $cardCollectionVnd, 0) }} đ</p>
-                    <p class="text-xs opacity-75 mt-1">Cash: {{ number_format($cashCollectionVnd, 0) }}đ | Card: {{ number_format($cardCollectionVnd, 0) }}đ</p>
+                    @if(!request('payment_type'))
+                        <p class="text-xs opacity-75 mt-1">Cash: {{ number_format($cashCollectionVnd, 0) }}đ | Card: {{ number_format($cardCollectionVnd, 0) }}đ</p>
+                    @endif
                 @endif
             </div>
             <div class="bg-white bg-opacity-20 rounded-full p-3">
-                <i class="fas fa-cash-register text-3xl"></i>
+                <i class="fas {{ $paymentTypeIcon }} text-3xl"></i>
             </div>
         </div>
     </div>
@@ -214,6 +238,11 @@
         <div class="flex justify-between items-center mb-4">
             <h3 class="text-xl font-bold text-gray-800">
                 <i class="fas fa-table mr-2 text-blue-500"></i>Chi tiết giao dịch
+                @if(request('payment_type') == 'cash')
+                    <span class="text-sm bg-green-100 text-green-700 px-2 py-1 rounded-full ml-2">💵 Tiền mặt</span>
+                @elseif(request('payment_type') == 'card_transfer')
+                    <span class="text-sm bg-blue-100 text-blue-700 px-2 py-1 rounded-full ml-2">💳 Thẻ + CK</span>
+                @endif
                 <span class="text-sm font-normal text-gray-600 ml-2">
                     ({{ $fromDate->format('d/m/Y') }} - {{ $toDate->format('d/m/Y') }})
                 </span>
@@ -316,6 +345,7 @@
             @else
                 <!-- Không có USD hoặc đã nhập tỷ giá -->
                 <div class="space-y-3">
+                    @if(!request('payment_type') || request('payment_type') == 'cash')
                     <div class="flex justify-between items-center py-2 border-b border-gray-200">
                         <span class="text-gray-700 font-medium">
                             Collection in CASH:
@@ -324,20 +354,23 @@
                             VND {{ number_format($cashCollectionVnd, 0) }}
                         </span>
                     </div>
+                    @endif
+                    @if(!request('payment_type') || request('payment_type') == 'card_transfer')
                     <div class="flex justify-between items-center py-2 border-b border-gray-200">
                         <span class="text-gray-700 font-medium">
-                            In Credit Card:
+                            In Credit Card + Transfer:
                         </span>
                         <span class="text-lg font-bold text-blue-700">
                             VND {{ number_format($cardCollectionVnd, 0) }}
                         </span>
                     </div>
+                    @endif
                     <div class="flex justify-between items-center py-3 bg-gradient-to-r from-blue-100 to-purple-100 rounded-lg px-4 mt-2">
                         <span class="text-gray-800 font-bold text-lg">
                             Grand Total:
                         </span>
                         <span class="text-xl font-bold text-purple-700">
-                            VND {{ number_format($grandTotalVnd, 0) }}
+                            VND {{ number_format($cashCollectionVnd + $cardCollectionVnd, 0) }}
                         </span>
                     </div>
                     @if($totalCollectionUsd > 0 && $exchangeRate > 1)
@@ -373,7 +406,13 @@
     
     <div class="text-center mb-4">
         <h2 class="text-base font-bold mt-2">
-            Daily Cash Collection Report 
+            @if(request('payment_type') == 'cash')
+                Cash Collection Report
+            @elseif(request('payment_type') == 'card_transfer')
+                Card & Transfer Collection Report
+            @else
+                Daily Cash Collection Report
+            @endif
             @if($fromDate->format('Y-m-d') == $toDate->format('Y-m-d'))
                 of {{ $fromDate->format('d/m/Y') }}
             @else
@@ -451,10 +490,14 @@
 
 
     <div style="margin-top: 15px; font-size: 10px;">
+        @if(!request('payment_type') || request('payment_type') == 'cash')
         <p style="margin: 3px 0;"><strong>Collection in CASH:</strong> VND {{ number_format($cashCollectionVnd, 0) }}</p>
-        <p style="margin: 3px 0;"><strong>in Credit Card:</strong> VND {{ number_format($cardCollectionVnd, 0) }}</p>
+        @endif
+        @if(!request('payment_type') || request('payment_type') == 'card_transfer')
+        <p style="margin: 3px 0;"><strong>in Credit Card + Transfer:</strong> VND {{ number_format($cardCollectionVnd, 0) }}</p>
+        @endif
         <p style="border-top: 2px solid #000; border-bottom: 2px double #000; padding: 6px 0; margin-top: 6px; font-weight: bold; font-size: 11px;">
-            <strong>GRAND TOTAL:</strong> VND {{ number_format($grandTotalVnd, 0) }}
+            <strong>GRAND TOTAL:</strong> VND {{ number_format($cashCollectionVnd + $cardCollectionVnd, 0) }}
         </p>
     </div>
 </div>

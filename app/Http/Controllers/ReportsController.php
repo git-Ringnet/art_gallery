@@ -10,12 +10,21 @@ use App\Models\ExchangeRate;
 use App\Models\Showroom;
 use App\Models\User;
 use App\Models\Customer;
+use App\Models\Painting;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Auth;
 
 class ReportsController extends Controller
 {
+    /**
+     * Reports index - list all available reports
+     */
+    public function index()
+    {
+        return view('reports.index');
+    }
+
     /**
      * Display daily cash collection report
      */
@@ -77,7 +86,6 @@ class ReportsController extends Controller
         // Lấy danh sách showrooms dựa trên quyền
         if ($dataScope === 'showroom' && $allowedShowrooms) {
             $showrooms = Showroom::whereIn('id', $allowedShowrooms)->orderBy('name')->get();
-            // Nếu user chọn showroom không được phép, reset về null
             if ($showroomId && !in_array($showroomId, $allowedShowrooms)) {
                 $showroomId = null;
             }
@@ -85,7 +93,7 @@ class ReportsController extends Controller
             $showrooms = Showroom::orderBy('name')->get();
         }
         
-        // Lấy danh sách nhân viên (chỉ sales staff)
+        // Lấy danh sách nhân viên
         $employees = User::whereHas('role', function($q) {
             $q->where('name', 'Nhân viên bán hàng');
         })->orderBy('name')->get();
@@ -99,38 +107,25 @@ class ReportsController extends Controller
             $selectedShowroom = Showroom::find($showroomId);
         }
         
-        // Lấy tỷ giá từ request, mặc định là 1 (không chuyển đổi)
+        // Lấy tỷ giá từ request
         $exchangeRateInput = $request->input('exchange_rate');
         if (!$exchangeRateInput || $exchangeRateInput == '') {
-            $exchangeRate = 1; // Mặc định là 1 nếu không nhập
+            $exchangeRate = 1;
         } else {
-            // Xử lý tỷ giá: loại bỏ dấu phẩy ngăn cách hàng nghìn
-            // VD: "26,170" hoặc "26.170" → 26170
-            $cleanRate = str_replace(',', '', $exchangeRateInput); // Bỏ dấu phẩy
-            
-            // Kiểm tra nếu có dấu chấm (có thể là decimal hoặc separator)
+            $cleanRate = str_replace(',', '', $exchangeRateInput);
             if (strpos($cleanRate, '.') !== false) {
-                // Nếu phần sau dấu chấm có 3 chữ số → đây là separator (26.170 = 26170)
                 $parts = explode('.', $cleanRate);
                 if (count($parts) == 2 && strlen($parts[1]) == 3) {
-                    $cleanRate = $parts[0] . $parts[1]; // 26.170 → 26170
+                    $cleanRate = $parts[0] . $parts[1];
                 }
-                // Ngược lại giữ nguyên (có thể là decimal như 26.5)
             }
-            
             $exchangeRate = (float) $cleanRate;
-            
-            // Nếu tỷ giá vẫn quá nhỏ (< 1000), có thể user nhập sai
             if ($exchangeRate > 0 && $exchangeRate < 1000) {
-                $exchangeRate = $exchangeRate * 1000; // Giả sử user nhập 26 thay vì 26000
+                $exchangeRate = $exchangeRate * 1000;
             }
         }
         
-        
-        // Logic mới: Báo cáo dựa trên PAYMENTS trong khoảng thời gian
-        // Mỗi dòng = 1 payment, hiển thị thông tin sale tương ứng
-        
-        // Fix: Thêm thời gian để lọc đúng cả ngày (00:00:00 - 23:59:59)
+        // Query payments
         $fromDateTime = $fromDate->format('Y-m-d') . ' 00:00:00';
         $toDateTime = $toDate->format('Y-m-d') . ' 23:59:59';
         
@@ -138,30 +133,34 @@ class ReportsController extends Controller
             ->whereBetween('payment_date', [$fromDateTime, $toDateTime])
             ->where('transaction_type', 'sale_payment')
             ->whereHas('sale', function($q) use ($showroomId, $employeeId, $customerId, $dataScope, $allowedShowrooms, $user) {
-                // Bỏ filter sale_status để hiển thị tất cả payments
-                // Báo cáo thu tiền nên hiển thị TẤT CẢ tiền thu được, bất kể trạng thái sale
-                
-                // Filter theo showroom
                 if ($showroomId) {
                     $q->where('showroom_id', $showroomId);
                 } elseif ($dataScope === 'showroom' && $allowedShowrooms) {
                     $q->whereIn('showroom_id', $allowedShowrooms);
                 }
                 
-                // Filter theo nhân viên
                 if ($employeeId) {
                     $q->where('user_id', $employeeId);
                 } elseif ($dataScope === 'own') {
-                    // Chỉ xem dữ liệu của chính mình
                     $q->where('user_id', $user->id);
                 }
                 
-                // Filter theo khách hàng
                 if ($customerId) {
                     $q->where('customer_id', $customerId);
                 }
-            })
-            ->orderBy('payment_date')
+            });
+        
+        // Filter theo loại thanh toán
+        $paymentType = $request->input('payment_type');
+        if ($paymentType === 'cash') {
+            // Chỉ tiền mặt
+            $paymentsQuery->where('payment_method', 'cash');
+        } elseif ($paymentType === 'card_transfer') {
+            // Thẻ + Chuyển khoản (không phải cash)
+            $paymentsQuery->where('payment_method', '!=', 'cash');
+        }
+        
+        $paymentsQuery = $paymentsQuery->orderBy('payment_date')
             ->orderBy('id')
             ->get();
         
@@ -177,15 +176,12 @@ class ReportsController extends Controller
         
         foreach ($paymentsQuery as $payment) {
             $sale = $payment->sale;
-            
-            // Lấy item đầu tiên của sale để hiển thị (hoặc có thể tách thành nhiều dòng nếu cần)
             $firstItem = $sale->items->first();
             
             if (!$firstItem) {
-                continue; // Skip nếu không có item
+                continue;
             }
             
-            // ID Code = mã tranh hoặc supply hoặc frame
             $idCode = '';
             if ($firstItem->painting_id) {
                 $idCode = $firstItem->painting->code ?? 'N/A';
@@ -195,7 +191,6 @@ class ReportsController extends Controller
                 $idCode = 'FRAME' . $firstItem->frame_id;
             }
             
-            // Tính tổng deposit và adjustment của toàn bộ sale
             $saleDepositUsd = 0;
             $saleDepositVnd = 0;
             $saleAdjustmentUsd = 0;
@@ -230,51 +225,41 @@ class ReportsController extends Controller
                 'adjustment_usd' => $saleAdjustmentUsd,
                 'adjustment_vnd' => $saleAdjustmentVnd,
                 'collection_usd' => $payment->payment_usd ?? 0,
-                'collection_vnd' => $payment->payment_vnd ?? 0, // Lấy đúng payment_vnd
-                'collection_adjustment_usd' => 0, // Để sau này mở rộng
+                'collection_vnd' => $payment->payment_vnd ?? 0,
+                'collection_adjustment_usd' => 0,
                 'collection_adjustment_vnd' => 0,
             ];
             
             $reportData[] = $rowData;
             
-            // Cộng vào tổng
             $totalDepositUsd += $saleDepositUsd;
             $totalDepositVnd += $saleDepositVnd;
             $totalAdjustmentUsd += $saleAdjustmentUsd;
             $totalAdjustmentVnd += $saleAdjustmentVnd;
             $totalCollectionUsd += ($payment->payment_usd ?? 0);
-            $totalCollectionVnd += ($payment->payment_vnd ?? 0); // Lấy đúng payment_vnd
+            $totalCollectionVnd += ($payment->payment_vnd ?? 0);
             
-            // Phân loại cash/card
-            // Tính VND cho cash/card: USD quy đổi + VND trực tiếp
             $paymentUsd = $payment->payment_usd ?? 0;
             $paymentVnd = $payment->payment_vnd ?? 0;
             $collectionVndForCashCard = ($paymentUsd * $exchangeRate) + $paymentVnd;
             
-            // CASH: Chỉ payment_method = 'cash'
-            // CREDIT CARD: Tất cả còn lại (card, bank_transfer, ...)
             if ($payment->payment_method == 'cash') {
                 $cashCollectionVnd += $collectionVndForCashCard;
             } else {
-                // card, bank_transfer, hoặc bất kỳ phương thức nào khác → Credit Card
                 $cardCollectionVnd += $collectionVndForCashCard;
             }
         }
         
-        // Tính Total VND cho Deposit và Adjustment
-        // Chỉ quy đổi USD sang VND nếu có nhập tỷ giá (khác 1)
         if ($exchangeRate > 1) {
             $totalDepositTotalVnd = ($totalDepositUsd * $exchangeRate) + $totalDepositVnd;
             $totalAdjustmentTotalVnd = ($totalAdjustmentUsd * $exchangeRate) + $totalAdjustmentVnd;
             $grandTotalVnd = ($totalCollectionUsd * $exchangeRate) + $totalCollectionVnd;
         } else {
-            // Không nhập tỷ giá → Chỉ tính VND, bỏ qua USD
             $totalDepositTotalVnd = $totalDepositVnd;
             $totalAdjustmentTotalVnd = $totalAdjustmentVnd;
             $grandTotalVnd = $totalCollectionVnd;
         }
         
-        // Placeholder cho Collection Adjustment totals
         $totalCollectionAdjustmentUsd = 0;
         $totalCollectionAdjustmentVnd = 0;
         
@@ -307,12 +292,535 @@ class ReportsController extends Controller
             'grandTotalVnd'
         ));
     }
+
+    /**
+     * Monthly Sales Report - Báo cáo thống kê bán hàng tháng
+     */
+    public function monthlySales(Request $request)
+    {
+        $user = Auth::user();
+        $permission = $user->role?->rolePermissions()
+            ->whereHas('permission', function($q) {
+                $q->where('module', 'reports');
+            })
+            ->first();
+        
+        if (!$permission || !$permission->can_view) {
+            abort(403, 'Bạn không có quyền xem báo cáo');
+        }
+        
+        // Mặc định là tháng hiện tại
+        $fromDate = $request->input('from_date') 
+            ? Carbon::parse($request->input('from_date')) 
+            : Carbon::now()->startOfMonth();
+        
+        $toDate = $request->input('to_date') 
+            ? Carbon::parse($request->input('to_date')) 
+            : Carbon::now()->endOfMonth();
+        
+        if ($fromDate->gt($toDate)) {
+            $temp = $fromDate;
+            $fromDate = $toDate;
+            $toDate = $temp;
+        }
+        
+        $showroomId = $request->input('showroom_id');
+        $employeeId = $request->input('employee_id');
+        
+        $dataScope = $permission->data_scope ?? 'all';
+        $allowedShowrooms = $permission->allowed_showrooms;
+        $canFilterByShowroom = $permission->can_filter_by_showroom ?? true;
+        $canFilterByUser = $permission->can_filter_by_user ?? true;
+        $canFilterByDate = $permission->can_filter_by_date ?? true;
+        $canPrint = $permission->can_print ?? true;
+        
+        if (!$canFilterByShowroom) $showroomId = null;
+        if (!$canFilterByUser) $employeeId = null;
+        
+        if ($dataScope === 'showroom' && $allowedShowrooms) {
+            $showrooms = Showroom::whereIn('id', $allowedShowrooms)->orderBy('name')->get();
+            if ($showroomId && !in_array($showroomId, $allowedShowrooms)) {
+                $showroomId = null;
+            }
+        } else {
+            $showrooms = Showroom::orderBy('name')->get();
+        }
+        
+        $employees = User::orderBy('name')->get();
+        
+        $selectedShowroom = $showroomId ? Showroom::find($showroomId) : null;
+        
+        // Lấy tỷ giá
+        $exchangeRateInput = $request->input('exchange_rate');
+        $exchangeRate = 1;
+        if ($exchangeRateInput && $exchangeRateInput != '') {
+            $cleanRate = str_replace(',', '', $exchangeRateInput);
+            if (strpos($cleanRate, '.') !== false) {
+                $parts = explode('.', $cleanRate);
+                if (count($parts) == 2 && strlen($parts[1]) == 3) {
+                    $cleanRate = $parts[0] . $parts[1];
+                }
+            }
+            $exchangeRate = (float) $cleanRate;
+            if ($exchangeRate > 0 && $exchangeRate < 1000) {
+                $exchangeRate = $exchangeRate * 1000;
+            }
+        }
+        
+        // Query sales - chỉ lấy phiếu đã duyệt (completed)
+        $selectedYear = session('selected_year', date('Y'));
+        
+        $salesQuery = Sale::with(['customer', 'showroom', 'user', 'items.painting', 'items.supply', 'items.frame'])
+            ->where('sale_status', 'completed')
+            ->where('year', $selectedYear)
+            ->whereBetween('sale_date', [$fromDate->format('Y-m-d'), $toDate->format('Y-m-d')]);
+        
+        if ($showroomId) {
+            $salesQuery->where('showroom_id', $showroomId);
+        } elseif ($dataScope === 'showroom' && $allowedShowrooms) {
+            $salesQuery->whereIn('showroom_id', $allowedShowrooms);
+        }
+        
+        if ($employeeId) {
+            $salesQuery->where('user_id', $employeeId);
+        } elseif ($dataScope === 'own') {
+            $salesQuery->where('user_id', $user->id);
+        }
+        
+        $sales = $salesQuery->orderBy('sale_date')->orderBy('id')->get();
+        
+        $reportData = [];
+        $totalUsd = 0;
+        $totalVnd = 0;
+        $totalPaidVnd = 0;
+        $totalDebtVnd = 0;
+        $totalItems = 0;
+        
+        foreach ($sales as $sale) {
+            $firstItem = $sale->items->first();
+            $idCode = '';
+            $itemDescription = '';
+            
+            if ($firstItem) {
+                if ($firstItem->painting_id && $firstItem->painting) {
+                    $idCode = $firstItem->painting->code ?? '';
+                    $itemDescription = $firstItem->painting->name ?? $firstItem->description;
+                } elseif ($firstItem->supply_id && $firstItem->supply) {
+                    $idCode = $firstItem->supply->code ?? '';
+                    $itemDescription = $firstItem->supply->name ?? $firstItem->description;
+                } elseif ($firstItem->frame_id) {
+                    $idCode = 'FRAME' . $firstItem->frame_id;
+                    $itemDescription = $firstItem->description;
+                } else {
+                    $itemDescription = $firstItem->description;
+                }
+            }
+            
+            $itemCount = $sale->items->sum('quantity');
+            
+            $reportData[] = [
+                'sale_date' => $sale->sale_date->format('d/m/Y'),
+                'invoice_code' => $sale->invoice_code,
+                'id_code' => $idCode,
+                'customer_name' => $sale->customer->name ?? 'Khách lẻ',
+                'item_description' => $itemDescription,
+                'item_count' => $itemCount,
+                'total_usd' => $sale->total_usd,
+                'total_vnd' => $sale->total_vnd,
+                'paid_vnd' => $sale->paid_amount ?? 0,
+                'debt_vnd' => $sale->debt_amount ?? 0,
+                'showroom' => $sale->showroom->name ?? '',
+                'employee' => $sale->user->name ?? '',
+            ];
+            
+            $totalUsd += $sale->total_usd;
+            $totalVnd += $sale->total_vnd;
+            $totalPaidVnd += ($sale->paid_amount ?? 0);
+            $totalDebtVnd += ($sale->debt_amount ?? 0);
+            $totalItems += $itemCount;
+        }
+        
+        // Tính tổng quy đổi VND
+        if ($exchangeRate > 1) {
+            $grandTotalVnd = ($totalUsd * $exchangeRate) + $totalVnd;
+        } else {
+            $grandTotalVnd = $totalVnd;
+        }
+        $grandPaidVnd = $totalPaidVnd;
+        $grandDebtVnd = $totalDebtVnd;
+        
+        return view('reports.monthly-sales', compact(
+            'reportData',
+            'fromDate',
+            'toDate',
+            'exchangeRate',
+            'showrooms',
+            'showroomId',
+            'selectedShowroom',
+            'employees',
+            'employeeId',
+            'canFilterByShowroom',
+            'canFilterByUser',
+            'canFilterByDate',
+            'canPrint',
+            'totalUsd',
+            'totalVnd',
+            'totalPaidVnd',
+            'totalDebtVnd',
+            'totalItems',
+            'grandTotalVnd',
+            'grandPaidVnd',
+            'grandDebtVnd'
+        ));
+    }
+
+    /**
+     * Debt Report - Báo cáo công nợ
+     */
+    public function debtReport(Request $request)
+    {
+        $user = Auth::user();
+        $permission = $user->role?->rolePermissions()
+            ->whereHas('permission', function($q) {
+                $q->where('module', 'reports');
+            })
+            ->first();
+        
+        if (!$permission || !$permission->can_view) {
+            abort(403, 'Bạn không có quyền xem báo cáo');
+        }
+        
+        // Mặc định là lũy kế (tất cả công nợ còn lại)
+        $reportType = $request->input('report_type', 'cumulative'); // 'month' hoặc 'cumulative'
+        
+        $fromDate = $request->input('from_date') 
+            ? Carbon::parse($request->input('from_date')) 
+            : Carbon::now()->startOfYear(); // Từ đầu năm
+        
+        $toDate = $request->input('to_date') 
+            ? Carbon::parse($request->input('to_date')) 
+            : Carbon::now(); // Đến hôm nay
+        
+        if ($fromDate->gt($toDate)) {
+            $temp = $fromDate;
+            $fromDate = $toDate;
+            $toDate = $temp;
+        }
+        
+        $showroomId = $request->input('showroom_id');
+        $customerId = $request->input('customer_id');
+        
+        $dataScope = $permission->data_scope ?? 'all';
+        $allowedShowrooms = $permission->allowed_showrooms;
+        $canFilterByShowroom = $permission->can_filter_by_showroom ?? true;
+        $canFilterByDate = $permission->can_filter_by_date ?? true;
+        $canPrint = $permission->can_print ?? true;
+        
+        if (!$canFilterByShowroom) $showroomId = null;
+        
+        if ($dataScope === 'showroom' && $allowedShowrooms) {
+            $showrooms = Showroom::whereIn('id', $allowedShowrooms)->orderBy('name')->get();
+            if ($showroomId && !in_array($showroomId, $allowedShowrooms)) {
+                $showroomId = null;
+            }
+        } else {
+            $showrooms = Showroom::orderBy('name')->get();
+        }
+        
+        $customers = Customer::orderBy('name')->get();
+        $selectedShowroom = $showroomId ? Showroom::find($showroomId) : null;
+        
+        // Lấy tỷ giá
+        $exchangeRateInput = $request->input('exchange_rate');
+        $exchangeRate = 1;
+        if ($exchangeRateInput && $exchangeRateInput != '') {
+            $cleanRate = str_replace(',', '', $exchangeRateInput);
+            if (strpos($cleanRate, '.') !== false) {
+                $parts = explode('.', $cleanRate);
+                if (count($parts) == 2 && strlen($parts[1]) == 3) {
+                    $cleanRate = $parts[0] . $parts[1];
+                }
+            }
+            $exchangeRate = (float) $cleanRate;
+            if ($exchangeRate > 0 && $exchangeRate < 1000) {
+                $exchangeRate = $exchangeRate * 1000;
+            }
+        }
+        
+        $selectedYear = session('selected_year', date('Y'));
+        
+        // Query sales có công nợ
+        // Lưu ý: debt_usd, debt_vnd là accessor nên không thể dùng trong where
+        // Lấy tất cả phiếu completed chưa thanh toán đủ (payment_status != 'paid')
+        // HOẶC có total_usd > 0 (vì payment_status có thể không chính xác cho USD)
+        $salesQuery = Sale::with(['customer', 'showroom', 'user', 'items.painting', 'payments'])
+            ->where('sale_status', 'completed')
+            ->where('year', $selectedYear)
+            ->where(function($q) {
+                // Lấy phiếu chưa thanh toán đủ HOẶC có USD (để kiểm tra bằng accessor)
+                $q->where('payment_status', '!=', 'paid')
+                  ->orWhere('total_usd', '>', 0);
+            });
+        
+        if ($reportType === 'cumulative') {
+            // Công nợ từ đầu đến hết ngày được chọn
+            $salesQuery->whereDate('sale_date', '<=', $toDate->format('Y-m-d'));
+        } else {
+            // Công nợ trong khoảng thời gian
+            $salesQuery->whereBetween('sale_date', [$fromDate->format('Y-m-d'), $toDate->format('Y-m-d')]);
+        }
+        
+        if ($showroomId) {
+            $salesQuery->where('showroom_id', $showroomId);
+        } elseif ($dataScope === 'showroom' && $allowedShowrooms) {
+            $salesQuery->whereIn('showroom_id', $allowedShowrooms);
+        }
+        
+        if ($customerId) {
+            $salesQuery->where('customer_id', $customerId);
+        }
+        
+        if ($dataScope === 'own') {
+            $salesQuery->where('user_id', $user->id);
+        }
+        
+        $sales = $salesQuery->orderBy('sale_date')->orderBy('id')->get();
+        
+        $reportData = [];
+        $totalSaleUsd = 0;
+        $totalSaleVnd = 0;
+        $totalPaidUsd = 0;
+        $totalPaidVnd = 0;
+        $totalDebtUsd = 0;
+        $totalDebtVnd = 0;
+        
+        foreach ($sales as $sale) {
+            $firstItem = $sale->items->first();
+            $idCode = '';
+            
+            if ($firstItem && $firstItem->painting_id && $firstItem->painting) {
+                $idCode = $firstItem->painting->code ?? '';
+            }
+            
+            // Xác định loại hóa đơn
+            $isUsdOnly = $sale->total_usd > 0 && $sale->total_vnd <= 0;
+            $isVndOnly = $sale->total_vnd > 0 && $sale->total_usd <= 0;
+            $isMixed = $sale->total_usd > 0 && $sale->total_vnd > 0;
+            
+            // Sử dụng accessor để lấy debt_usd và debt_vnd
+            $debtUsd = $sale->debt_usd ?? 0;
+            $debtVnd = $sale->debt_vnd ?? 0;
+            $paidUsd = $sale->paid_usd ?? 0;
+            $paidVnd = $sale->paid_vnd ?? 0;
+            
+            // Chỉ thêm vào báo cáo nếu còn nợ (USD hoặc VND)
+            if ($debtUsd > 0.01 || $debtVnd > 1) {
+                $reportData[] = [
+                    'sale_date' => $sale->sale_date->format('d/m/Y'),
+                    'invoice_code' => $sale->invoice_code,
+                    'id_code' => $idCode,
+                    'customer_name' => $sale->customer->name ?? 'Khách lẻ',
+                    'customer_phone' => $sale->customer->phone ?? '',
+                    'total_usd' => $sale->total_usd,
+                    'total_vnd' => $sale->total_vnd,
+                    'paid_usd' => $paidUsd,
+                    'paid_vnd' => $paidVnd,
+                    'debt_usd' => $debtUsd,
+                    'debt_vnd' => $debtVnd,
+                    'showroom' => $sale->showroom->name ?? '',
+                    // Thêm loại hóa đơn để view hiển thị đúng
+                    'is_usd_only' => $isUsdOnly,
+                    'is_vnd_only' => $isVndOnly,
+                    'is_mixed' => $isMixed,
+                ];
+                
+                // Tính tổng - cộng tất cả USD và VND riêng biệt
+                $totalSaleUsd += $sale->total_usd;
+                $totalSaleVnd += $sale->total_vnd;
+                
+                // Đơn USD: debt/paid là USD
+                // Đơn VND: debt/paid là VND
+                // Đơn hỗn hợp: có cả USD và VND
+                if ($isUsdOnly) {
+                    $totalPaidUsd += $paidUsd;
+                    $totalDebtUsd += $debtUsd;
+                } elseif ($isVndOnly) {
+                    $totalPaidVnd += $paidVnd;
+                    $totalDebtVnd += $debtVnd;
+                } else {
+                    // Đơn hỗn hợp
+                    $totalPaidUsd += $paidUsd;
+                    $totalPaidVnd += $paidVnd;
+                    $totalDebtUsd += $debtUsd;
+                    $totalDebtVnd += $debtVnd;
+                }
+            }
+        }
+        
+        // Tính tổng quy đổi VND
+        // grandTotalVnd = (tất cả USD * tỷ giá) + tất cả VND
+        if ($exchangeRate > 1) {
+            $grandTotalVnd = ($totalSaleUsd * $exchangeRate) + $totalSaleVnd;
+            $grandPaidVnd = ($totalPaidUsd * $exchangeRate) + $totalPaidVnd;
+            $grandDebtVnd = ($totalDebtUsd * $exchangeRate) + $totalDebtVnd;
+        } else {
+            // Không có tỷ giá: không thể quy đổi
+            $grandTotalVnd = $totalSaleVnd;
+            $grandPaidVnd = $totalPaidVnd;
+            $grandDebtVnd = $totalDebtVnd;
+        }
+        
+        return view('reports.debt-report', compact(
+            'reportData',
+            'reportType',
+            'fromDate',
+            'toDate',
+            'exchangeRate',
+            'showrooms',
+            'showroomId',
+            'selectedShowroom',
+            'customers',
+            'customerId',
+            'canFilterByShowroom',
+            'canFilterByDate',
+            'canPrint',
+            'totalSaleUsd',
+            'totalSaleVnd',
+            'totalPaidUsd',
+            'totalPaidVnd',
+            'totalDebtUsd',
+            'totalDebtVnd',
+            'grandTotalVnd',
+            'grandPaidVnd',
+            'grandDebtVnd'
+        ));
+    }
+
+    /**
+     * Stock Import Report - Báo cáo nhập stock tháng
+     */
+    public function stockImport(Request $request)
+    {
+        $user = Auth::user();
+        $permission = $user->role?->rolePermissions()
+            ->whereHas('permission', function($q) {
+                $q->where('module', 'reports');
+            })
+            ->first();
+        
+        if (!$permission || !$permission->can_view) {
+            abort(403, 'Bạn không có quyền xem báo cáo');
+        }
+        
+        // Mặc định là tháng hiện tại
+        $fromDate = $request->input('from_date') 
+            ? Carbon::parse($request->input('from_date')) 
+            : Carbon::now()->startOfMonth();
+        
+        $toDate = $request->input('to_date') 
+            ? Carbon::parse($request->input('to_date')) 
+            : Carbon::now()->endOfMonth();
+        
+        if ($fromDate->gt($toDate)) {
+            $temp = $fromDate;
+            $fromDate = $toDate;
+            $toDate = $temp;
+        }
+        
+        $canFilterByDate = $permission->can_filter_by_date ?? true;
+        $canPrint = $permission->can_print ?? true;
+        
+        // Lấy tỷ giá
+        $exchangeRateInput = $request->input('exchange_rate');
+        $exchangeRate = 1;
+        if ($exchangeRateInput && $exchangeRateInput != '') {
+            $cleanRate = str_replace(',', '', $exchangeRateInput);
+            if (strpos($cleanRate, '.') !== false) {
+                $parts = explode('.', $cleanRate);
+                if (count($parts) == 2 && strlen($parts[1]) == 3) {
+                    $cleanRate = $parts[0] . $parts[1];
+                }
+            }
+            $exchangeRate = (float) $cleanRate;
+            if ($exchangeRate > 0 && $exchangeRate < 1000) {
+                $exchangeRate = $exchangeRate * 1000;
+            }
+        }
+        
+        // Query paintings nhập trong khoảng thời gian
+        $paintings = Painting::whereBetween('import_date', [$fromDate->format('Y-m-d'), $toDate->format('Y-m-d')])
+            ->orderBy('import_date')
+            ->orderBy('id')
+            ->get();
+        
+        $reportData = [];
+        $totalQuantity = 0;
+        $totalPriceUsd = 0;
+        $totalPriceVnd = 0;
+        
+        foreach ($paintings as $painting) {
+            $reportData[] = [
+                'import_date' => $painting->import_date ? $painting->import_date->format('d/m/Y') : '',
+                'code' => $painting->code,
+                'name' => $painting->name,
+                'artist' => $painting->artist ?? '',
+                'material' => $painting->material ?? '',
+                'dimensions' => $this->formatDimensions($painting),
+                'quantity' => $painting->quantity ?? 1,
+                'price_usd' => $painting->price_usd ?? 0,
+                'price_vnd' => $painting->price_vnd ?? 0,
+                'status' => $this->getStatusText($painting->status),
+            ];
+            
+            $totalQuantity += ($painting->quantity ?? 1);
+            $totalPriceUsd += ($painting->price_usd ?? 0);
+            $totalPriceVnd += ($painting->price_vnd ?? 0);
+        }
+        
+        // Tính tổng quy đổi VND
+        if ($exchangeRate > 1) {
+            $grandTotalVnd = ($totalPriceUsd * $exchangeRate) + $totalPriceVnd;
+        } else {
+            $grandTotalVnd = $totalPriceVnd;
+        }
+        
+        return view('reports.stock-import', compact(
+            'reportData',
+            'fromDate',
+            'toDate',
+            'exchangeRate',
+            'canFilterByDate',
+            'canPrint',
+            'totalQuantity',
+            'totalPriceUsd',
+            'totalPriceVnd',
+            'grandTotalVnd'
+        ));
+    }
     
     /**
-     * Display reports index/dashboard
+     * Format dimensions for painting
      */
-    public function index()
+    private function formatDimensions($painting)
     {
-        return view('reports.daily-cash-collection');
+        $parts = [];
+        if ($painting->width) $parts[] = $painting->width;
+        if ($painting->height) $parts[] = $painting->height;
+        if ($painting->depth) $parts[] = $painting->depth;
+        
+        return count($parts) > 0 ? implode(' x ', $parts) . ' cm' : '';
+    }
+    
+    /**
+     * Get status text
+     */
+    private function getStatusText($status)
+    {
+        return match($status) {
+            'in_stock' => 'Còn hàng',
+            'sold' => 'Đã bán',
+            'reserved' => 'Đã đặt',
+            default => $status,
+        };
     }
 }
