@@ -72,7 +72,7 @@
                         </div>
                     </div>
                 </div>
-                <div class="grid grid-cols-2 gap-2">
+                <div class="grid grid-cols-3 gap-2">
                     <div>
                         <label class="block text-xs font-medium text-gray-700 mb-1">Rộng (cm)</label>
                         <input type="number" step="1" name="width" value="{{ old('width', $painting->width) }}"
@@ -81,6 +81,11 @@
                     <div>
                         <label class="block text-xs font-medium text-gray-700 mb-1">Cao (cm)</label>
                         <input type="number" step="1" name="height" value="{{ old('height', $painting->height) }}"
+                            class="w-full px-2 py-1.5 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-medium text-gray-700 mb-1">Sâu (cm)</label>
+                        <input type="number" step="1" name="depth" value="{{ old('depth', $painting->depth) }}"
                             class="w-full px-2 py-1.5 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
                     </div>
                 </div>

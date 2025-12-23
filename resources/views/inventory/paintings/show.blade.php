@@ -72,6 +72,9 @@
                     <p class="text-sm text-gray-900">
                         @if($painting->width && $painting->height)
                             {{ $painting->width }}cm x {{ $painting->height }}cm
+                            @if($painting->depth)
+                                x {{ $painting->depth }}cm
+                            @endif
                         @else
                             Chưa có thông tin
                         @endif

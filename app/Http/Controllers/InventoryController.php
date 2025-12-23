@@ -453,6 +453,7 @@ class InventoryController extends Controller
             'material' => 'required|string|max:100',
             'width' => 'nullable|numeric|min:0|max:100000',
             'height' => 'nullable|numeric|min:0|max:100000',
+            'depth' => 'nullable|numeric|min:0|max:100000',
             'year' => 'nullable',
             'price_usd' => 'required|numeric|min:0',
             'price_vnd' => 'nullable|numeric|min:0',
@@ -472,6 +473,7 @@ class InventoryController extends Controller
             'import_date.required' => 'Vui lòng chọn ngày nhập kho.',
             'width.max' => 'Chiều rộng không được vượt quá 100,000 cm.',
             'height.max' => 'Chiều cao không được vượt quá 100,000 cm.',
+            'depth.max' => 'Chiều sâu không được vượt quá 100,000 cm.',
             'image.max' => 'Kích thước ảnh không được vượt quá 5MB.',
         ]);
 
@@ -488,6 +490,7 @@ class InventoryController extends Controller
             'material' => $validated['material'],
             'width' => $validated['width'] ?? null,
             'height' => $validated['height'] ?? null,
+            'depth' => $validated['depth'] ?? null,
             'paint_year' => $validated['year'] ?? null,
             'price_usd' => $validated['price_usd'] ?? null,
             'price_vnd' => $validated['price_vnd'] ?? null,
@@ -631,6 +634,7 @@ class InventoryController extends Controller
                 'material' => 'required|string|max:100',
                 'width' => 'nullable|numeric|min:0|max:100000',
                 'height' => 'nullable|numeric|min:0|max:100000',
+                'depth' => 'nullable|numeric|min:0|max:100000',
                 'paint_year' => 'nullable',
                 'price_usd' => 'required|numeric|min:0',
                 'import_date' => 'nullable|date',
@@ -643,6 +647,7 @@ class InventoryController extends Controller
                 'code.required' => 'Vui lòng nhập mã tranh.',
                 'width.max' => 'Chiều rộng không được vượt quá 100,000 cm.',
                 'height.max' => 'Chiều cao không được vượt quá 100,000 cm.',
+                'depth.max' => 'Chiều sâu không được vượt quá 100,000 cm.',
             ]);
 
             // Remove old image if requested

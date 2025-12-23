@@ -22,6 +22,7 @@ class PaintingTemplateExport implements FromArray, WithHeadings, WithStyles, Wit
                 'Sơn dầu',
                 '100',
                 '80',
+                '5',
                 '2024',
                 '1000',
                 '23500000',
@@ -35,6 +36,7 @@ class PaintingTemplateExport implements FromArray, WithHeadings, WithStyles, Wit
                 'Canvas',
                 '120',
                 '90',
+                '3',
                 '2024',
                 '1500',
                 '35250000',
@@ -48,6 +50,7 @@ class PaintingTemplateExport implements FromArray, WithHeadings, WithStyles, Wit
                 'Acrylic',
                 '80',
                 '60',
+                '',
                 '2023',
                 '800',
                 '18800000',
@@ -66,6 +69,7 @@ class PaintingTemplateExport implements FromArray, WithHeadings, WithStyles, Wit
             'Chất liệu (*)',
             'Chiều rộng (cm)',
             'Chiều cao (cm)',
+            'Chiều sâu (cm)',
             'Năm vẽ',
             'Giá (USD) (*)',
             'Giá (VND)',
@@ -93,11 +97,12 @@ class PaintingTemplateExport implements FromArray, WithHeadings, WithStyles, Wit
             'D' => 15,  // Chất liệu
             'E' => 15,  // Chiều rộng
             'F' => 15,  // Chiều cao
-            'G' => 12,  // Năm vẽ
-            'H' => 15,  // Giá USD
-            'I' => 18,  // Giá VND
-            'J' => 18,  // Ngày nhập kho
-            'K' => 35,  // Ghi chú
+            'G' => 15,  // Chiều sâu
+            'H' => 12,  // Năm vẽ
+            'I' => 15,  // Giá USD
+            'J' => 18,  // Giá VND
+            'K' => 18,  // Ngày nhập kho
+            'L' => 35,  // Ghi chú
         ];
     }
 

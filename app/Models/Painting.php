@@ -16,6 +16,7 @@ class Painting extends Model
         'material',
         'width',
         'height',
+        'depth',
         'paint_year',
         'price_usd',
         'price_vnd',
@@ -32,6 +33,7 @@ class Painting extends Model
         return [
             'width' => 'decimal:2',
             'height' => 'decimal:2',
+            'depth' => 'decimal:2',
             'price_usd' => 'decimal:2',
             'price_vnd' => 'decimal:2',
             'quantity' => 'integer',

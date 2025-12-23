@@ -52,7 +52,7 @@
                         <i class="fas fa-plus-circle text-green-600 text-sm"></i>
                         <span>Tạo vai trò mới</span>
                     </h4>
-                    <form action="{{ route('permissions.roles.store') }}" method="POST">
+                    <form id="create-role-form" action="{{ route('permissions.roles.store') }}" method="POST">
                         @csrf
                         <div class="mb-3">
                             <label class="block text-xs font-semibold text-gray-700 mb-1">Tên vai trò</label>
@@ -66,12 +66,14 @@
                                 class="px-2 py-1.5 text-sm w-full border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                                 placeholder="Mô tả vai trò..."></textarea>
                         </div>
-                        <button type="submit"
+                        <button type="button" onclick="confirmCreateRole()"
                             class="px-3 py-1.5 text-xs w-full bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors font-semibold flex items-center justify-center gap-1.5">
                             <i class="fas fa-plus"></i>
                             <span>Tạo vai trò</span>
                         </button>
                     </form>
+                    
+                    <x-confirm-modal id="confirmCreateRoleModal" title="Xác nhận tạo vai trò" />
                 </div>
 
                 <div class="lg:col-span-2 bg-white rounded-xl shadow-lg p-4">
@@ -284,7 +286,7 @@
                                 class="px-2 py-1.5 text-sm w-full border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"></textarea>
                         </div>
                         <div class="flex gap-2">
-                            <button type="submit"
+                            <button type="button" onclick="confirmUpdateRole()"
                                 class="px-3 py-1.5 text-xs flex-1 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-semibold flex items-center justify-center gap-1.5">
                                 <i class="fas fa-save"></i>
                                 <span>Lưu</span>
@@ -295,6 +297,8 @@
                             </button>
                         </div>
                     </form>
+                    
+                    <x-confirm-modal id="confirmUpdateRoleModal" title="Xác nhận cập nhật vai trò" />
                 </div>
             </div>
         </div>
@@ -481,6 +485,52 @@
     @push('scripts')
         <script>
             window.permissionsModules = {!! json_encode($modules) !!};
+            
+            function confirmCreateRole() {
+                var form = document.getElementById('create-role-form');
+                if (!form.checkValidity()) {
+                    form.reportValidity();
+                    return;
+                }
+                
+                var name = form.querySelector('input[name="name"]').value || '';
+                var description = form.querySelector('textarea[name="description"]').value || '';
+                
+                var summary = '<div class="text-left space-y-2">';
+                summary += '<p><strong>Tên vai trò:</strong> ' + name + '</p>';
+                summary += '<p><strong>Mô tả:</strong> ' + (description || 'Không có') + '</p>';
+                summary += '</div>';
+                
+                showConfirmModal('confirmCreateRoleModal', {
+                    message: summary,
+                    onConfirm: function() {
+                        form.submit();
+                    }
+                });
+            }
+            
+            function confirmUpdateRole() {
+                var form = document.getElementById('editRoleForm');
+                if (!form.checkValidity()) {
+                    form.reportValidity();
+                    return;
+                }
+                
+                var name = document.getElementById('edit-role-name').value || '';
+                var description = document.getElementById('edit-role-description').value || '';
+                
+                var summary = '<div class="text-left space-y-2">';
+                summary += '<p><strong>Tên vai trò:</strong> ' + name + '</p>';
+                summary += '<p><strong>Mô tả:</strong> ' + (description || 'Không có') + '</p>';
+                summary += '</div>';
+                
+                showConfirmModal('confirmUpdateRoleModal', {
+                    message: summary,
+                    onConfirm: function() {
+                        form.submit();
+                    }
+                });
+            }
         </script>
         <script src="{{ asset('js/permissions.js') }}"></script>
     @endpush

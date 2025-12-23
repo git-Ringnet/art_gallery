@@ -150,9 +150,9 @@ class PaintingImportWithImages implements ToCollection
                 }
                 
                 // If still no image, try path from Excel
-                if (!$imagePath && isset($row[11]) && !empty(trim((string)$row[11]))) {
+                if (!$imagePath && isset($row[12]) && !empty(trim((string)$row[12]))) {
                     // Try to copy image from the path specified in Excel
-                    $imagePath = $this->copyImageFromPath(trim((string)$row[11]), $code);
+                    $imagePath = $this->copyImageFromPath(trim((string)$row[12]), $code);
                 }
                 
                 // Parse numeric fields safely
@@ -166,18 +166,23 @@ class PaintingImportWithImages implements ToCollection
                     $height = is_numeric($row[5]) ? (float)$row[5] : null;
                 }
                 
+                $depth = null;
+                if (isset($row[6]) && !empty($row[6])) {
+                    $depth = is_numeric($row[6]) ? (float)$row[6] : null;
+                }
+                
                 $priceUsd = 0;
-                if (isset($row[7]) && !empty($row[7])) {
-                    $priceUsd = is_numeric($row[7]) ? (float)$row[7] : 0;
+                if (isset($row[8]) && !empty($row[8])) {
+                    $priceUsd = is_numeric($row[8]) ? (float)$row[8] : 0;
                 }
                 
                 $priceVnd = null;
-                if (isset($row[8]) && !empty($row[8])) {
-                    $priceVnd = is_numeric($row[8]) ? (float)$row[8] : null;
+                if (isset($row[9]) && !empty($row[9])) {
+                    $priceVnd = is_numeric($row[9]) ? (float)$row[9] : null;
                 }
                 
                 // Clean notes
-                $notes = isset($row[12]) ? trim((string)$row[12]) : null;
+                $notes = isset($row[11]) ? trim((string)$row[11]) : null;
                 if ($notes && mb_strlen($notes) > 1000) {
                     $notes = mb_substr($notes, 0, 1000);
                 }
@@ -190,13 +195,14 @@ class PaintingImportWithImages implements ToCollection
                     'material' => $material,
                     'width' => $width,
                     'height' => $height,
-                    'paint_year' => $row[6] ?? null,
+                    'depth' => $depth,
+                    'paint_year' => $row[7] ?? null,
                     'price_usd' => $priceUsd,
                     'price_vnd' => $priceVnd,
                     'image' => $imagePath,
                     'quantity' => 1,
-                    'import_date' => !empty($row[9]) ? $this->parseDate($row[9]) : now(),
-                    'export_date' => !empty($row[10]) ? $this->parseDate($row[10]) : null,
+                    'import_date' => !empty($row[10]) ? $this->parseDate($row[10]) : now(),
+                    'export_date' => null,
                     'notes' => $notes,
                     'status' => 'in_stock',
                 ]);

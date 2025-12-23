@@ -140,7 +140,7 @@
                             </div>
                         </div>
                     </div>
-                    <div class="grid grid-cols-2 gap-2">
+                    <div class="grid grid-cols-3 gap-2">
                         <div>
                             <label class="block text-xs font-medium text-gray-700 mb-1">Rộng (cm)</label>
                             <input type="number" name="width" value="{{ old('width') }}"
@@ -152,6 +152,12 @@
                             <input type="number" name="height" value="{{ old('height') }}"
                                 class="w-full px-2 py-1.5 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                                 placeholder="Cao (cm)">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-medium text-gray-700 mb-1">Sâu (cm)</label>
+                            <input type="number" name="depth" value="{{ old('depth') }}"
+                                class="w-full px-2 py-1.5 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                                placeholder="Sâu (cm)">
                         </div>
                     </div>
                     <div>
