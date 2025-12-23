@@ -380,7 +380,7 @@
                     {{-- Activity Logs - Admin only --}}
                     @if(Auth::check() && Auth::user()->email === 'admin@example.com')
                     <a href="{{ route('activity-logs.index') }}"
-                        class="hidden nav-item flex items-center space-x-3 p-2.5 rounded-lg hover:bg-white hover:bg-opacity-20 transition-all duration-200 {{ request()->routeIs('activity-logs.*') ? 'bg-white bg-opacity-20' : '' }}"
+                        class="nav-item flex items-center space-x-3 p-2.5 rounded-lg hover:bg-white hover:bg-opacity-20 transition-all duration-200 {{ request()->routeIs('activity-logs.*') ? 'bg-white bg-opacity-20' : '' }}"
                         title="Nhật ký hoạt động">
                         <i class="fas fa-history w-5 flex-shrink-0"></i>
                         <span class="sidebar-text text-sm">Nhật ký hoạt động</span>
