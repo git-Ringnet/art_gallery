@@ -143,6 +143,13 @@ class InventoryController extends Controller
 
         // Transform to expected format
         $items = $paginatedPaintings->getCollection()->map(function ($painting) use ($completedSalesMap) {
+            // Lấy ngày xuất từ sale đầu tiên nếu có
+            $exportDate = null;
+            if (isset($completedSalesMap[$painting->id]) && $completedSalesMap[$painting->id]->isNotEmpty()) {
+                $firstSale = $completedSalesMap[$painting->id]->first();
+                $exportDate = $firstSale->sale_date?->format('d/m/Y');
+            }
+            
             return [
                 'id' => $painting->id,
                 'code' => $painting->code,
@@ -151,6 +158,7 @@ class InventoryController extends Controller
                 'quantity' => $painting->quantity,
                 'import_date' => $painting->import_date?->format('d/m/Y'),
                 'import_date_raw' => $painting->import_date,
+                'export_date' => $exportDate,
                 'created_at' => $painting->created_at,
                 'status' => $painting->status,
                 'artist' => $painting->artist,
@@ -335,6 +343,14 @@ class InventoryController extends Controller
         $inventory = $itemsForPage->map(function ($item) use ($paintings, $supplies, $completedSalesMap) {
             if ($item['type'] === 'painting' && isset($paintings[$item['id']])) {
                 $painting = $paintings[$item['id']];
+                
+                // Lấy ngày xuất từ sale đầu tiên nếu có
+                $exportDate = null;
+                if (isset($completedSalesMap[$painting->id]) && $completedSalesMap[$painting->id]->isNotEmpty()) {
+                    $firstSale = $completedSalesMap[$painting->id]->first();
+                    $exportDate = $firstSale->sale_date?->format('d/m/Y');
+                }
+                
                 return [
                     'id' => $painting->id,
                     'code' => $painting->code,
@@ -343,6 +359,7 @@ class InventoryController extends Controller
                     'quantity' => $painting->quantity,
                     'import_date' => $painting->import_date?->format('d/m/Y'),
                     'import_date_raw' => $painting->import_date,
+                    'export_date' => $exportDate,
                     'created_at' => $painting->created_at,
                     'status' => $painting->status,
                     'artist' => $painting->artist,
@@ -363,6 +380,7 @@ class InventoryController extends Controller
                     'unit' => $supply->unit,
                     'import_date' => $supply->import_date?->format('d/m/Y'),
                     'import_date_raw' => $supply->import_date,
+                    'export_date' => null,
                     'created_at' => $supply->created_at,
                     'status' => $supply->status,
                     'sales' => collect(),

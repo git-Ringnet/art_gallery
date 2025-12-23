@@ -166,6 +166,8 @@
                         </th>
                         <th class="px-2 py-2 text-left text-xs font-medium uppercase tracking-wider">Ngày nhập
                         </th>
+                        <th class="px-2 py-2 text-left text-xs font-medium uppercase tracking-wider">Ngày xuất
+                        </th>
                         <th class="px-2 py-2 text-left text-xs font-medium uppercase tracking-wider">Số hóa đơn
                         </th>
                         <th class="px-2 py-2 text-left text-xs font-medium uppercase tracking-wider">Trạng
@@ -220,6 +222,13 @@
                                 @endif
                             </td>
                             <td class="px-2 py-2 whitespace-nowrap text-xs text-gray-900">{{ $item['import_date'] }}</td>
+                            <td class="px-2 py-2 whitespace-nowrap text-xs text-gray-900">
+                                @if(isset($item['export_date']) && $item['export_date'])
+                                    {{ $item['export_date'] }}
+                                @else
+                                    <span class="text-gray-400">-</span>
+                                @endif
+                            </td>
                             <td class="px-2 py-2 text-xs text-gray-900">
                                 @if(isset($item['sales']) && $item['sales']->isNotEmpty())
                                     @foreach($item['sales'] as $sale)
@@ -340,7 +349,7 @@
                         </tr>
                     @empty
                         <tr>
-                            <td colspan="10" class="px-2 py-6 text-center text-gray-500">
+                            <td colspan="11" class="px-2 py-6 text-center text-gray-500">
                                 <i class="fas fa-inbox text-3xl mb-2"></i>
                                 <p class="text-sm">Không có dữ liệu</p>
                             </td>
