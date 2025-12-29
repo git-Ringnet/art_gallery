@@ -86,21 +86,24 @@
                 </a>
             </div>
             
+            <!-- Warning message when exchange rate not set -->
+            @if($exchangeRate <= 1)
+                <div class="bg-yellow-50 border-l-4 border-yellow-400 p-3 mb-2">
+                    <div class="flex items-center">
+                        <i class="fas fa-exclamation-triangle text-yellow-600 mr-2"></i>
+                        <p class="text-sm text-yellow-800 font-medium">Vui lòng nhập tỷ giá để xuất báo cáo (Excel, PDF, In)</p>
+                    </div>
+                </div>
+            @endif
+            
             <!-- Row 2: Export Actions -->
             <div class="flex gap-2">
                 @if($exchangeRate <= 1)
-                    <!-- Chưa nhập tỷ giá → Vô hiệu hóa Excel/PDF -->
-                    <button type="button" disabled class="flex-1 bg-gray-400 cursor-not-allowed text-white px-4 py-2.5 rounded-lg font-semibold shadow-lg opacity-60 relative group">
+                    <button type="button" disabled class="flex-1 bg-gray-400 cursor-not-allowed text-white px-4 py-2.5 rounded-lg font-semibold shadow-lg opacity-60">
                         <i class="fas fa-file-excel mr-2"></i>Excel
-                        <span class="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-3 py-2 bg-gray-800 text-white text-xs rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap z-10">
-                            ⚠️ Cần nhập tỷ giá trước khi xuất
-                        </span>
                     </button>
-                    <button type="button" disabled class="flex-1 bg-gray-400 cursor-not-allowed text-white px-4 py-2.5 rounded-lg font-semibold shadow-lg opacity-60 relative group">
+                    <button type="button" disabled class="flex-1 bg-gray-400 cursor-not-allowed text-white px-4 py-2.5 rounded-lg font-semibold shadow-lg opacity-60">
                         <i class="fas fa-file-pdf mr-2"></i>PDF
-                        <span class="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-3 py-2 bg-gray-800 text-white text-xs rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap z-10">
-                            ⚠️ Cần nhập tỷ giá trước khi xuất
-                        </span>
                     </button>
                 @else
                     <!-- Đã nhập tỷ giá → Cho phép xuất -->
@@ -114,12 +117,8 @@
                 
                 @if($canPrint)
                     @if($exchangeRate <= 1)
-                        <!-- Chưa nhập tỷ giá → Vô hiệu hóa nút In -->
-                        <button type="button" disabled class="flex-1 bg-gray-400 cursor-not-allowed text-white px-4 py-2.5 rounded-lg font-semibold shadow-lg opacity-60 relative group">
+                        <button type="button" disabled class="flex-1 bg-gray-400 cursor-not-allowed text-white px-4 py-2.5 rounded-lg font-semibold shadow-lg opacity-60">
                             <i class="fas fa-print mr-2"></i>In báo cáo
-                            <span class="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-3 py-2 bg-gray-800 text-white text-xs rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap z-10">
-                                ⚠️ Cần nhập tỷ giá trước khi in
-                            </span>
                         </button>
                     @else
                         <!-- Đã nhập tỷ giá → Cho phép in -->

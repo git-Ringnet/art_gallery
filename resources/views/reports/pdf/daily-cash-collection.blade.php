@@ -83,13 +83,10 @@
 <body>
     <div class="header">
         <div class="header-left">
-            <strong>{{ $selectedShowroom ? $selectedShowroom->name : 'Ben Thanh Art Gallery' }}</strong><br>
+            <strong>{{ $selectedShowroom ? $selectedShowroom->name : 'All Showrooms' }}</strong><br>
             @if($selectedShowroom)
                 {{ $selectedShowroom->address }}<br>
                 Tel: {{ $selectedShowroom->phone }}
-            @else
-                07 Nguyen Thiep - Dist.1, HCMC<br>
-                Tel: (84-8) 3823 3001 - 3823 8101
             @endif
         </div>
         <div class="header-right">
@@ -113,11 +110,12 @@
                 <th>Invoice</th>
                 <th>ID Code</th>
                 <th>Customer</th>
-                <th>Phone</th>
                 <th class="text-right">Adj. USD</th>
                 <th class="text-right">Adj. VND</th>
                 <th class="text-right">Collect USD</th>
                 <th class="text-right">Collect VND</th>
+                <th class="text-right">Adj. USD</th>
+                <th class="text-right">Adj. VND</th>
             </tr>
         </thead>
         <tbody>
@@ -127,7 +125,6 @@
                     <td>{{ $item['invoice_code'] }}</td>
                     <td>{{ $item['id_code'] }}</td>
                     <td>{{ $item['customer_name'] }}</td>
-                    <td>{{ $item['customer_phone'] }}</td>
                     <td class="text-right">
                         @if($item['adjustment_usd'] != 0)
                             ${{ number_format($item['adjustment_usd'], 2) }}
@@ -148,10 +145,20 @@
                             {{ number_format($item['collection_vnd'], 0) }}đ
                         @endif
                     </td>
+                    <td class="text-right">
+                        @if(isset($item['collection_adjustment_usd']) && $item['collection_adjustment_usd'] != 0)
+                            ${{ number_format($item['collection_adjustment_usd'], 2) }}
+                        @endif
+                    </td>
+                    <td class="text-right">
+                        @if(isset($item['collection_adjustment_vnd']) && $item['collection_adjustment_vnd'] != 0)
+                            {{ number_format($item['collection_adjustment_vnd'], 0) }}đ
+                        @endif
+                    </td>
                 </tr>
             @endforeach
             <tr class="total-row">
-                <td colspan="5">GRAND TOTAL</td>
+                <td colspan="4">GRAND TOTAL</td>
                 <td class="text-right">
                     @if($totalAdjustmentUsd != 0)
                         ${{ number_format($totalAdjustmentUsd, 2) }}
@@ -170,6 +177,16 @@
                 <td class="text-right">
                     @if($totalCollectionVnd > 0)
                         {{ number_format($totalCollectionVnd, 0) }}đ
+                    @endif
+                </td>
+                <td class=\"text-right\">
+                    @if(isset($totalCollectionAdjustmentUsd) && $totalCollectionAdjustmentUsd != 0)
+                        ${{ number_format($totalCollectionAdjustmentUsd, 2) }}
+                    @endif
+                </td>
+                <td class=\"text-right\">
+                    @if(isset($totalCollectionAdjustmentVnd) && $totalCollectionAdjustmentVnd != 0)
+                        {{ number_format($totalCollectionAdjustmentVnd, 0) }}đ
                     @endif
                 </td>
             </tr>
