@@ -78,11 +78,11 @@ Route::middleware(['auth', 'archive.readonly'])->group(function () {
         Route::get('/', [App\Http\Controllers\InventoryController::class, 'index'])->middleware('permission:inventory,can_view')->name('index');
         Route::get('/export/excel', [App\Http\Controllers\InventoryController::class, 'exportExcel'])->middleware('permission:inventory,can_export')->name('export.excel');
         Route::get('/export/pdf', [App\Http\Controllers\InventoryController::class, 'exportPdf'])->middleware('permission:inventory,can_export')->name('export.pdf');
-        
+
         // Template downloads
         Route::get('/template/painting', [App\Http\Controllers\InventoryController::class, 'downloadPaintingTemplate'])->middleware('permission:inventory,can_create')->name('template.painting');
         Route::get('/template/supply', [App\Http\Controllers\InventoryController::class, 'downloadSupplyTemplate'])->middleware('permission:inventory,can_create')->name('template.supply');
-        
+
         // Import routes
         Route::get('/import', [App\Http\Controllers\InventoryController::class, 'import'])->middleware('permission:inventory,can_create')->name('import');
         Route::get('/import/painting', [App\Http\Controllers\InventoryController::class, 'importPaintingForm'])->middleware('permission:inventory,can_create')->name('import.painting.form');
@@ -102,7 +102,7 @@ Route::middleware(['auth', 'archive.readonly'])->group(function () {
         Route::get('/supplies/{id}/edit', [App\Http\Controllers\InventoryController::class, 'editSupply'])->middleware('permission:inventory,can_edit')->name('supplies.edit');
         Route::put('/supplies/{id}', [App\Http\Controllers\InventoryController::class, 'updateSupply'])->middleware('permission:inventory,can_edit')->name('supplies.update');
         Route::delete('/supplies/{id}', [App\Http\Controllers\InventoryController::class, 'destroySupply'])->middleware('permission:inventory,can_delete')->name('supplies.destroy');
-        
+
         // Bulk delete
         Route::delete('/bulk-delete', [App\Http\Controllers\InventoryController::class, 'bulkDelete'])->middleware('permission:inventory,can_delete')->name('bulk-delete');
     });
@@ -178,7 +178,7 @@ Route::middleware(['auth', 'archive.readonly'])->group(function () {
         Route::post('/import-with-images', [App\Http\Controllers\YearDatabaseController::class, 'importWithImages'])->middleware('permission:year_database,can_import')->name('import.with-images');
         Route::get('/export/{id}/download', [App\Http\Controllers\YearDatabaseController::class, 'downloadExport'])->middleware('permission:year_database,can_view')->name('export.download');
         Route::delete('/export/{id}', [App\Http\Controllers\YearDatabaseController::class, 'deleteExport'])->middleware('permission:year_database,can_delete')->name('export.delete');
-        
+
         // Import với progress (batch)
         Route::post('/import/prepare', [App\Http\Controllers\YearDatabaseController::class, 'prepareImportImages'])->middleware('permission:year_database,can_import')->name('import.prepare');
         Route::post('/import/sql', [App\Http\Controllers\YearDatabaseController::class, 'importSqlFromSession'])->middleware('permission:year_database,can_import')->name('import.sql');
@@ -199,6 +199,19 @@ Route::middleware(['auth', 'archive.readonly'])->group(function () {
         Route::get('/monthly-sales', [App\Http\Controllers\ReportsController::class, 'monthlySales'])->name('monthly-sales');
         Route::get('/debt-report', [App\Http\Controllers\ReportsController::class, 'debtReport'])->name('debt-report');
         Route::get('/stock-import', [App\Http\Controllers\ReportsController::class, 'stockImport'])->name('stock-import');
+
+        // Export routes
+        Route::get('/daily-cash-collection/export/excel', [App\Http\Controllers\ReportsController::class, 'exportDailyCashCollectionExcel'])->name('daily-cash-collection.export.excel');
+        Route::get('/daily-cash-collection/export/pdf', [App\Http\Controllers\ReportsController::class, 'exportDailyCashCollectionPdf'])->name('daily-cash-collection.export.pdf');
+
+        Route::get('/monthly-sales/export/excel', [App\Http\Controllers\ReportsController::class, 'exportMonthlySalesExcel'])->name('monthly-sales.export.excel');
+        Route::get('/monthly-sales/export/pdf', [App\Http\Controllers\ReportsController::class, 'exportMonthlySalesPdf'])->name('monthly-sales.export.pdf');
+
+        Route::get('/debt-report/export/excel', [App\Http\Controllers\ReportsController::class, 'exportDebtReportExcel'])->name('debt-report.export.excel');
+        Route::get('/debt-report/export/pdf', [App\Http\Controllers\ReportsController::class, 'exportDebtReportPdf'])->name('debt-report.export.pdf');
+
+        Route::get('/stock-import/export/excel', [App\Http\Controllers\ReportsController::class, 'exportStockImportExcel'])->name('stock-import.export.excel');
+        Route::get('/stock-import/export/pdf', [App\Http\Controllers\ReportsController::class, 'exportStockImportPdf'])->name('stock-import.export.pdf');
     });
 
     // Frames routes

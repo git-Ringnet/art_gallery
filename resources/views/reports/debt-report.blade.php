@@ -74,18 +74,61 @@
             </div>
         </div>
         
-        <div class="flex gap-2">
-            <button type="submit" class="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2.5 rounded-lg font-semibold">
-                <i class="fas fa-search mr-2"></i>Xem báo cáo
-            </button>
-            <a href="{{ route('reports.debt-report') }}" class="bg-gray-500 hover:bg-gray-600 text-white px-6 py-2.5 rounded-lg font-semibold">
-                <i class="fas fa-times-circle mr-2"></i>Xóa bộ lọc
-            </a>
-            @if($canPrint)
-            <button type="button" onclick="window.print()" class="bg-green-600 hover:bg-green-700 text-white px-6 py-2.5 rounded-lg font-semibold">
-                <i class="fas fa-print mr-2"></i>In báo cáo
-            </button>
-            @endif
+        <!-- Action Buttons -->
+        <div class="flex flex-col gap-3">
+            <!-- Row 1: Primary Actions -->
+            <div class="flex gap-2">
+                <button type="submit" class="flex-1 bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white px-6 py-2.5 rounded-lg font-semibold shadow-lg transition-all duration-200">
+                    <i class="fas fa-search mr-2"></i>Xem báo cáo
+                </button>
+                <a href="{{ route('reports.debt-report') }}" class="flex-1 bg-gradient-to-r from-gray-500 to-gray-600 hover:from-gray-600 hover:to-gray-700 text-white px-6 py-2.5 rounded-lg font-semibold shadow- transition-all duration-200 flex items-center justify-center">
+                    <i class="fas fa-times-circle mr-2"></i>Xóa bộ lọc
+                </a>
+            </div>
+            
+            <!-- Row 2: Export Actions -->
+            <div class="flex gap-2">
+                @if($exchangeRate <= 1)
+                    <!-- Chưa nhập tỷ giá → Vô hiệu hóa Excel/PDF -->
+                    <button type="button" disabled class="flex-1 bg-gray-400 cursor-not-allowed text-white px-4 py-2.5 rounded-lg font-semibold shadow-lg opacity-60 relative group">
+                        <i class="fas fa-file-excel mr-2"></i>Excel
+                        <span class="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-3 py-2 bg-gray-800 text-white text-xs rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap z-10">
+                            ⚠️ Cần nhập tỷ giá trước khi xuất
+                        </span>
+                    </button>
+                    <button type="button" disabled class="flex-1 bg-gray-400 cursor-not-allowed text-white px-4 py-2.5 rounded-lg font-semibold shadow-lg opacity-60 relative group">
+                        <i class="fas fa-file-pdf mr-2"></i>PDF
+                        <span class="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-3 py-2 bg-gray-800 text-white text-xs rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap z-10">
+                            ⚠️ Cần nhập tỷ giá trước khi xuất
+                        </span>
+                    </button>
+                @else
+                    <!-- Đã nhập tỷ giá → Cho phép xuất -->
+                    <a href="{{ route('reports.debt-report.export.excel', request()->all()) }}" class="flex-1 bg-gradient-to-r from-green-600 to-green-700 hover:from-green-700 hover:to-green-800 text-white px-4 py-2.5 rounded-lg font-semibold shadow-lg transition-all duration-200 flex items-center justify-center">
+                        <i class="fas fa-file-excel mr-2"></i>Excel
+                    </a>
+                    <a href="{{ route('reports.debt-report.export.pdf', request()->all()) }}" class="flex-1 bg-gradient-to-r from-red-600 to-red-700 hover:from-red-700 hover:to-red-800 text-white px-4 py-2.5 rounded-lg font-semibold shadow-lg transition-all duration-200 flex items-center justify-center">
+                        <i class="fas fa-file-pdf mr-2"></i>PDF
+                    </a>
+                @endif
+                
+                @if($canPrint)
+                    @if($exchangeRate <= 1)
+                        <!-- Chưa nhập tỷ giá → Vô hiệu hóa nút In -->
+                        <button type="button" disabled class="flex-1 bg-gray-400 cursor-not-allowed text-white px-4 py-2.5 rounded-lg font-semibold shadow-lg opacity-60 relative group">
+                            <i class="fas fa-print mr-2"></i>In báo cáo
+                            <span class="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-3 py-2 bg-gray-800 text-white text-xs rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap z-10">
+                                ⚠️ Cần nhập tỷ giá trước khi in
+                            </span>
+                        </button>
+                    @else
+                        <!-- Đã nhập tỷ giá → Cho phép in -->
+                        <button type="button" onclick="window.print()" class="flex-1 bg-gradient-to-r from-purple-600 to-purple-700 hover:from-purple-700 hover:to-purple-800 text-white px-4 py-2.5 rounded-lg font-semibold shadow-lg transition-all duration-200">
+                            <i class="fas fa-print mr-2"></i>In báo cáo
+                        </button>
+                    @endif
+                @endif
+            </div>
         </div>
     </form>
     
