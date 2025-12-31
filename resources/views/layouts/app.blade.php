@@ -812,20 +812,21 @@
             // Store callback for this modal
             confirmModalCallbacks[modalId] = options.onConfirm || null;
             
-            // Setup confirm button
+            // Setup confirm button - use onclick instead of addEventListener to avoid issues
             const confirmBtn = document.getElementById('confirm-btn-' + modalId);
             if (confirmBtn) {
-                // Remove old event listeners by cloning
-                const newBtn = confirmBtn.cloneNode(true);
-                confirmBtn.parentNode.replaceChild(newBtn, confirmBtn);
-                
-                newBtn.addEventListener('click', function() {
+                confirmBtn.onclick = function() {
                     const callback = confirmModalCallbacks[modalId];
                     closeConfirmModal(modalId);
                     if (typeof callback === 'function') {
+                        console.log('Executing callback for modal:', modalId);
                         callback();
+                    } else {
+                        console.error('No callback found for modal:', modalId);
                     }
-                });
+                };
+            } else {
+                console.error('Confirm button not found:', 'confirm-btn-' + modalId);
             }
             
             // Show modal
@@ -839,7 +840,7 @@
                 modal.classList.add('hidden');
                 document.body.style.overflow = 'auto';
             }
-            delete confirmModalCallbacks[modalId];
+            // Don't delete callback here - it's needed for the click handler
         }
         
         // Close modal with ESC key

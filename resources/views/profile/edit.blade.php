@@ -7,11 +7,25 @@
 @section('content')
 <div class="fade-in">
     <div class="max-w-4xl mx-auto space-y-6">
+        
+        <!-- Success/Error Messages -->
+        @if(session('status') === 'profile-updated')
+        <div class="bg-green-100 border border-green-400 text-green-700 px-4 py-3 rounded-lg">
+            <i class="fas fa-check-circle mr-2"></i>Thông tin cá nhân đã được cập nhật thành công!
+        </div>
+        @endif
+        
+        @if(session('status') === 'password-updated')
+        <div class="bg-green-100 border border-green-400 text-green-700 px-4 py-3 rounded-lg">
+            <i class="fas fa-check-circle mr-2"></i>Mật khẩu đã được đổi thành công!
+        </div>
+        @endif
+        
         <!-- Update Profile Information -->
         <div class="bg-white rounded-xl shadow-lg p-6">
             <h3 class="text-lg font-semibold mb-4">Thông tin cá nhân</h3>
             
-            <form method="POST" action="{{ route('profile.update') }}">
+            <form id="profile-form" method="POST" action="{{ route('profile.update') }}">
                 @csrf
                 @method('PATCH')
 
@@ -45,26 +59,26 @@
         <div class="bg-white rounded-xl shadow-lg p-6">
             <h3 class="text-lg font-semibold mb-4">Đổi mật khẩu</h3>
             
-            <form method="POST" action="{{ route('password.update') }}">
+            <form id="password-form" method="POST" action="{{ route('password.update') }}">
                 @csrf
                 @method('PUT')
 
                 <div class="mb-4">
                     <label for="current_password" class="block text-sm font-medium text-gray-700 mb-2">Mật khẩu hiện tại</label>
                     <input type="password" id="current_password" name="current_password" required
-                        class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
-                    @error('current_password')
-                        <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
-                    @enderror
+                        class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent @if($errors->updatePassword->has('current_password')) border-red-500 @endif">
+                    @if($errors->updatePassword->has('current_password'))
+                        <p class="mt-1 text-sm text-red-600">{{ $errors->updatePassword->first('current_password') }}</p>
+                    @endif
                 </div>
 
                 <div class="mb-4">
                     <label for="password" class="block text-sm font-medium text-gray-700 mb-2">Mật khẩu mới</label>
                     <input type="password" id="password" name="password" required
-                        class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
-                    @error('password')
-                        <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
-                    @enderror
+                        class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent @if($errors->updatePassword->has('password')) border-red-500 @endif">
+                    @if($errors->updatePassword->has('password'))
+                        <p class="mt-1 text-sm text-red-600">{{ $errors->updatePassword->first('password') }}</p>
+                    @endif
                 </div>
 
                 <div class="mb-4">
@@ -86,7 +100,11 @@
 @push('scripts')
 <script>
 function confirmUpdateProfile() {
-    const form = document.querySelector('form[action="{{ route('profile.update') }}"]');
+    const form = document.getElementById('profile-form');
+    if (!form) {
+        console.error('Profile form not found');
+        return;
+    }
     if (!form.checkValidity()) {
         form.reportValidity();
         return;
@@ -102,13 +120,21 @@ function confirmUpdateProfile() {
         </div>
     `;
     
-    showConfirmModal('confirmUpdateProfileModal', summary, () => {
-        form.submit();
+    showConfirmModal('confirmUpdateProfileModal', {
+        message: summary,
+        onConfirm: function() {
+            console.log('Submitting profile form...');
+            form.submit();
+        }
     });
 }
 
 function confirmUpdatePassword() {
-    const form = document.querySelector('form[action="{{ route('password.update') }}"]');
+    const form = document.getElementById('password-form');
+    if (!form) {
+        console.error('Password form not found');
+        return;
+    }
     if (!form.checkValidity()) {
         form.reportValidity();
         return;
@@ -120,8 +146,12 @@ function confirmUpdatePassword() {
         </div>
     `;
     
-    showConfirmModal('confirmUpdatePasswordModal', summary, () => {
-        form.submit();
+    showConfirmModal('confirmUpdatePasswordModal', {
+        message: summary,
+        onConfirm: function() {
+            console.log('Submitting password form...');
+            form.submit();
+        }
     });
 }
 </script>

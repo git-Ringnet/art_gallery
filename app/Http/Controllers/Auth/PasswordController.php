@@ -18,6 +18,12 @@ class PasswordController extends Controller
         $validated = $request->validateWithBag('updatePassword', [
             'current_password' => ['required', 'current_password'],
             'password' => ['required', Password::defaults(), 'confirmed'],
+        ], [
+            'current_password.required' => 'Vui lòng nhập mật khẩu hiện tại.',
+            'current_password.current_password' => 'Mật khẩu hiện tại không đúng.',
+            'password.required' => 'Vui lòng nhập mật khẩu mới.',
+            'password.confirmed' => 'Xác nhận mật khẩu không khớp.',
+            'password.min' => 'Mật khẩu mới phải có ít nhất :min ký tự.',
         ]);
 
         $request->user()->update([
