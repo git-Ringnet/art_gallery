@@ -17,8 +17,9 @@ class ActivityLogController extends Controller
      */
     public function index(Request $request)
     {
-        // Check if user is admin
-        if (!Auth::user() || Auth::user()->email !== 'admin@example.com') {
+        // Check if user is admin (by role name)
+        $user = Auth::user();
+        if (!$user || !$user->role || $user->role->name !== 'Admin') {
             abort(403, 'Bạn không có quyền truy cập trang này');
         }
 
@@ -74,8 +75,9 @@ class ActivityLogController extends Controller
      */
     public function show($id)
     {
-        // Check if user is admin
-        if (!Auth::user() || Auth::user()->email !== 'admin@example.com') {
+        // Check if user is admin (by role name)
+        $user = Auth::user();
+        if (!$user || !$user->role || $user->role->name !== 'Admin') {
             abort(403, 'Bạn không có quyền truy cập trang này');
         }
 
@@ -120,8 +122,9 @@ class ActivityLogController extends Controller
      */
     public function exportExcel(Request $request)
     {
-        // Check if user is admin
-        if (!Auth::user() || Auth::user()->email !== 'admin@example.com') {
+        // Check if user is admin (by role name)
+        $user = Auth::user();
+        if (!$user || !$user->role || $user->role->name !== 'Admin') {
             abort(403, 'Bạn không có quyền truy cập trang này');
         }
 
@@ -168,8 +171,9 @@ class ActivityLogController extends Controller
      */
     public function exportPdf(Request $request)
     {
-        // Check if user is admin
-        if (!Auth::user() || Auth::user()->email !== 'admin@example.com') {
+        // Check if user is admin (by role name)
+        $user = Auth::user();
+        if (!$user || !$user->role || $user->role->name !== 'Admin') {
             abort(403, 'Bạn không có quyền truy cập trang này');
         }
 
