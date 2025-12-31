@@ -33,8 +33,10 @@ class YearDatabaseController extends Controller
         // Đồng bộ file backup với database (tự động tạo record cho file chưa có trong DB)
         $this->syncBackupFiles();
 
-        // Lấy danh sách exports của năm hiện tại
-        $exports = DatabaseExport::getByYear($currentYear->year ?? date('Y'));
+        // Lấy danh sách tất cả exports (không filter theo năm)
+        $exports = DatabaseExport::where('status', 'completed')
+            ->orderBy('exported_at', 'desc')
+            ->get();
         $exportsCount = $exports->count();
 
         return view('year-database.simple', compact(
