@@ -13,20 +13,23 @@ class YearEndProcess extends Command
 
     public function handle()
     {
-        $currentYear = (int) date('Y');
-        $newYear = $currentYear + 1;
+        // Lệnh này chạy vào 00:05 ngày 1/1 năm mới
+        // Nên năm hiện tại (date('Y')) đã là năm mới rồi
+        // Ta cần export/cleanup năm CŨ (năm trước)
+        $newYear = (int) date('Y');           // Năm mới (năm hiện tại khi lệnh chạy)
+        $oldYear = $newYear - 1;              // Năm cũ cần export/cleanup
         $force = $this->option('force');
 
         $this->info("╔══════════════════════════════════════════════════════════╗");
         $this->info("║         QUY TRÌNH CHUYỂN GIAO NĂM TỰ ĐỘNG                ║");
-        $this->info("║         Năm cũ: {$currentYear} → Năm mới: {$newYear}                       ║");
+        $this->info("║         Năm cũ: {$oldYear} → Năm mới: {$newYear}                       ║");
         $this->info("╚══════════════════════════════════════════════════════════╝");
 
         if (!$force) {
             $this->warn("\n  CẢNH BÁO: Quy trình này sẽ:");
-            $this->line("   1. Export toàn bộ dữ liệu năm {$currentYear} (SQL + ảnh)");
+            $this->line("   1. Export toàn bộ dữ liệu năm {$oldYear} (SQL + ảnh)");
             $this->line("   2. Tạo và kích hoạt năm {$newYear}");
-            $this->line("   3. Xóa dữ liệu giao dịch năm {$currentYear} (giữ tồn kho)");
+            $this->line("   3. Xóa dữ liệu giao dịch năm {$oldYear} (giữ tồn kho)");
             
             if (!$this->confirm("\nBạn có chắc chắn muốn tiếp tục?")) {
                 $this->info('Đã hủy.');
@@ -35,26 +38,26 @@ class YearEndProcess extends Command
         }
 
         $startTime = now();
-        Log::info("=== BẮT ĐẦU QUY TRÌNH CUỐI NĂM {$currentYear} ===");
+        Log::info("=== BẮT ĐẦU QUY TRÌNH CUỐI NĂM {$oldYear} ===");
 
         try {
             // BƯỚC 1: Export dữ liệu năm cũ
             $this->newLine();
             $this->info("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
-            $this->info(" BƯỚC 1/3: Export dữ liệu năm {$currentYear}...");
+            $this->info(" BƯỚC 1/3: Export dữ liệu năm {$oldYear}...");
             $this->info("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
             
             $exitCode = Artisan::call('year:export', [
-                'year' => $currentYear,
+                'year' => $oldYear,
                 '--include-images' => true,
             ]);
 
             if ($exitCode !== 0) {
-                throw new \Exception("Lỗi khi export dữ liệu năm {$currentYear}");
+                throw new \Exception("Lỗi khi export dữ liệu năm {$oldYear}");
             }
             
             $this->info(" Export thành công!");
-            Log::info("Export năm {$currentYear} thành công");
+            Log::info("Export năm {$oldYear} thành công");
 
             // BƯỚC 2: Chuẩn bị năm mới TRƯỚC (để năm cũ không còn là current)
             $this->newLine();
@@ -77,21 +80,21 @@ class YearEndProcess extends Command
             // BƯỚC 3: Cleanup dữ liệu năm cũ (bây giờ năm cũ không còn là current nữa)
             $this->newLine();
             $this->info("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
-            $this->info("  BƯỚC 3/3: Xóa dữ liệu giao dịch năm {$currentYear}...");
+            $this->info("  BƯỚC 3/3: Xóa dữ liệu giao dịch năm {$oldYear}...");
             $this->info("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
             
             $exitCode = Artisan::call('year:cleanup', [
-                'year' => $currentYear,
+                'year' => $oldYear,
                 '--force' => true,
                 '--keep-images' => false,
             ]);
 
             if ($exitCode !== 0) {
-                throw new \Exception("Lỗi khi cleanup dữ liệu năm {$currentYear}");
+                throw new \Exception("Lỗi khi cleanup dữ liệu năm {$oldYear}");
             }
             
             $this->info(" Cleanup thành công!");
-            Log::info("Cleanup năm {$currentYear} thành công");
+            Log::info("Cleanup năm {$oldYear} thành công");
 
             // HOÀN THÀNH
             $duration = now()->diffInSeconds($startTime);
@@ -114,9 +117,9 @@ class YearEndProcess extends Command
             Log::error("Lỗi quy trình cuối năm: " . $e->getMessage());
             
             $this->warn("\n  Quy trình bị gián đoạn. Vui lòng kiểm tra và chạy lại từng bước:");
-            $this->line("   php artisan year:export {$currentYear} --include-images");
-            $this->line("   php artisan year:cleanup {$currentYear} --force");
+            $this->line("   php artisan year:export {$oldYear} --include-images");
             $this->line("   php artisan year:prepare {$newYear} --force");
+            $this->line("   php artisan year:cleanup {$oldYear} --force");
             
             return 1;
         }
