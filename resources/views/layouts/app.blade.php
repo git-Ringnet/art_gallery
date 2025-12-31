@@ -378,7 +378,7 @@
                     @endcanAccess
 
                     {{-- Activity Logs - Admin only --}}
-                    @if(Auth::check() && Auth::user()->email === 'admin@example.com')
+                    @if(Auth::check() && Auth::user()->role && Auth::user()->role->name === 'Admin')
                     <a href="{{ route('activity-logs.index') }}"
                         class="nav-item flex items-center space-x-3 p-2.5 rounded-lg hover:bg-white hover:bg-opacity-20 transition-all duration-200 {{ request()->routeIs('activity-logs.*') ? 'bg-white bg-opacity-20' : '' }}"
                         title="Nhật ký hoạt động">

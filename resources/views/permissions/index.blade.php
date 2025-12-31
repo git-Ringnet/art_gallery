@@ -119,6 +119,7 @@
                                         </div>
                                     </div>
                                     <div class="flex gap-1.5 ml-3">
+                                        @if($role->name !== 'Admin')
                                         <button onclick="editRole({{ $role->id }})"
                                             class="text-blue-600 hover:text-blue-800 p-1 rounded-lg transition-colors">
                                             <i class="fas fa-edit px-2 py-1.5 rounded-lg bg-yellow-100 text-yellow-600"></i>
@@ -132,6 +133,7 @@
                                                 <i class="fas fa-trash px-2 py-1.5 rounded-lg bg-red-100 text-red-400"></i>
                                             </button>
                                         </form>
+                                        @endif
                                     </div>
                                 </div>
                             </div>
