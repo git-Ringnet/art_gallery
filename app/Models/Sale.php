@@ -165,9 +165,9 @@ class Sale extends Model
             $month = now()->format('m');
             $day = now()->format('d');
             
-            // Pattern: SHOWROOMCODE + NUMBER + YEAR + MONTH + DAY
-            // Example: HN01202510 10 (HN + 01 + 2025 + 10 + 10)
-            $datePattern = $year . $month . $day;
+            // Pattern: SHOWROOMCODE + NUMBER + DAY + MONTH + YEAR
+            // Example: HN0106012026 (HN + 01 + 06 + 01 + 2026)
+            $datePattern = $day . $month . $year;
             $prefix = $showroomCode;
             
             // Find last invoice with same showroom code and date pattern
@@ -178,7 +178,7 @@ class Sale extends Model
             
             if ($lastInvoice) {
                 // Extract number from invoice code (between showroom code and date)
-                // Example: HN01202510 10 -> extract "01"
+                // Example: HN0106012026 -> extract "01"
                 $codeLength = strlen($prefix);
                 $numberPart = substr($lastInvoice->invoice_code, $codeLength, 2);
                 $lastNumber = (int) $numberPart;
@@ -187,7 +187,7 @@ class Sale extends Model
                 $newNumber = 1;
             }
             
-            // Format: SHOWROOMCODE + 2-digit-number + YYYYMMDD
+            // Format: SHOWROOMCODE + 2-digit-number + DDMMYYYY
             return $prefix . str_pad($newNumber, 2, '0', STR_PAD_LEFT) . $datePattern;
         });
     }
