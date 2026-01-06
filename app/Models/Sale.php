@@ -13,7 +13,7 @@ class Sale extends Model
     protected static function boot()
     {
         parent::boot();
-        
+
         static::creating(function ($sale) {
             if (empty($sale->year)) {
                 // Lấy năm từ sale_date nếu có, nếu không thì lấy năm hiện tại
@@ -23,19 +23,20 @@ class Sale extends Model
                     $sale->year = date('Y');
                 }
             }
-            
+
             // Tự động tạo record năm nếu chưa có
             self::ensureYearExists($sale->year);
         });
     }
-    
+
     /**
      * Đảm bảo năm tồn tại trong bảng year_databases
      */
     public static function ensureYearExists($year)
     {
-        if (!$year) return;
-        
+        if (!$year)
+            return;
+
         $exists = YearDatabase::where('year', $year)->exists();
         if (!$exists) {
             YearDatabase::create([
@@ -69,8 +70,12 @@ class Sale extends Model
         'subtotal_usd',
         'subtotal_vnd',
         'discount_percent',
+        'discount_amount_usd',
+        'discount_amount_vnd',
         'discount_usd',
         'discount_vnd',
+        'shipping_fee_usd',
+        'shipping_fee_vnd',
         'total_usd',
         'total_vnd',
         'original_total_usd',
@@ -93,8 +98,12 @@ class Sale extends Model
             'subtotal_usd' => 'decimal:2',
             'subtotal_vnd' => 'decimal:2',
             'discount_percent' => 'decimal:2',
+            'discount_amount_usd' => 'decimal:2',
+            'discount_amount_vnd' => 'decimal:2',
             'discount_usd' => 'decimal:2',
             'discount_vnd' => 'decimal:2',
+            'shipping_fee_usd' => 'decimal:2',
+            'shipping_fee_vnd' => 'decimal:2',
             'total_usd' => 'decimal:2',
             'total_vnd' => 'decimal:2',
             'original_total_usd' => 'decimal:2',
@@ -160,22 +169,22 @@ class Sale extends Model
                     $showroomCode = strtoupper($showroom->code);
                 }
             }
-            
+
             $year = now()->format('Y');
             $month = now()->format('m');
             $day = now()->format('d');
-            
+
             // Pattern: SHOWROOMCODE + NUMBER + DAY + MONTH + YEAR
             // Example: HN0106012026 (HN + 01 + 06 + 01 + 2026)
             $datePattern = $day . $month . $year;
             $prefix = $showroomCode;
-            
+
             // Find last invoice with same showroom code and date pattern
             $lastInvoice = self::where('invoice_code', 'like', "{$prefix}%{$datePattern}")
-                              ->lockForUpdate()
-                              ->orderBy('invoice_code', 'desc')
-                              ->first();
-            
+                ->lockForUpdate()
+                ->orderBy('invoice_code', 'desc')
+                ->first();
+
             if ($lastInvoice) {
                 // Extract number from invoice code (between showroom code and date)
                 // Example: HN0106012026 -> extract "01"
@@ -186,7 +195,7 @@ class Sale extends Model
             } else {
                 $newNumber = 1;
             }
-            
+
             // Format: SHOWROOMCODE + 2-digit-number + DDMMYYYY
             return $prefix . str_pad($newNumber, 2, '0', STR_PAD_LEFT) . $datePattern;
         });
@@ -195,20 +204,33 @@ class Sale extends Model
     public function calculateTotals()
     {
         // CHỈ tính các sản phẩm chưa bị trả (is_returned = false hoặc null)
-        $subtotalUsd = $this->saleItems()->where(function($q) {
+        $subtotalUsd = $this->saleItems()->where(function ($q) {
             $q->where('is_returned', false)->orWhereNull('is_returned');
         })->sum('total_usd');
-        
-        $subtotalVnd = $this->saleItems()->where(function($q) {
+
+        $subtotalVnd = $this->saleItems()->where(function ($q) {
             $q->where('is_returned', false)->orWhereNull('is_returned');
         })->sum('total_vnd');
-        
-        $discountUsd = $subtotalUsd * ($this->discount_percent / 100);
-        $discountVnd = $subtotalVnd * ($this->discount_percent / 100);
-        
-        $totalUsd = $subtotalUsd - $discountUsd;
-        $totalVnd = $subtotalVnd - $discountVnd;
-        
+
+        // Giảm theo %
+        $discountPercentUsd = $subtotalUsd * ($this->discount_percent / 100);
+        $discountPercentVnd = $subtotalVnd * ($this->discount_percent / 100);
+
+        // Giảm theo số tiền cố định
+        $discountFixedUsd = $this->discount_amount_usd ?? 0;
+        $discountFixedVnd = $this->discount_amount_vnd ?? 0;
+
+        // Tổng số tiền giảm (% + cố định)
+        $discountUsd = $discountPercentUsd + $discountFixedUsd;
+        $discountVnd = $discountPercentVnd + $discountFixedVnd;
+
+        // Phí vận chuyển
+        $shippingFeeUsd = $this->shipping_fee_usd ?? 0;
+        $shippingFeeVnd = $this->shipping_fee_vnd ?? 0;
+
+        $totalUsd = max(0, $subtotalUsd - $discountUsd) + $shippingFeeUsd;
+        $totalVnd = max(0, $subtotalVnd - $discountVnd) + $shippingFeeVnd;
+
         $this->update([
             'subtotal_usd' => $subtotalUsd,
             'subtotal_vnd' => $subtotalVnd,
@@ -218,7 +240,7 @@ class Sale extends Model
             'total_vnd' => $totalVnd,
             'debt_amount' => $totalVnd - $this->paid_amount,
         ]);
-        
+
         $this->updatePaymentStatus();
     }
 
@@ -227,68 +249,68 @@ class Sale extends Model
         // Xác định loại tiền tệ chính của hóa đơn
         $hasUsd = $this->total_usd > 0;
         $hasVnd = $this->total_vnd > 0;
-        
+
         // Tính công nợ dựa trên loại tiền tệ
         if ($hasUsd && !$hasVnd) {
             // Chỉ có USD
-            $totalPaid = $this->paid_usd;
-            $totalAmount = $this->total_usd;
+            $totalPaid = (float) $this->paid_usd;
+            $totalAmount = (float) $this->total_usd;
             $debt = $totalAmount - $totalPaid;
-            
+
             // Xác định trạng thái
             if ($debt <= 0.01) {
                 $this->payment_status = 'paid';
                 $this->debt_amount = 0;
             } elseif ($totalPaid > 0.01) {
                 $this->payment_status = 'partial';
-                $this->debt_amount = $this->exchange_rate > 0 ? round($debt * $this->exchange_rate, 2) : 0;
+                $this->debt_amount = $this->exchange_rate > 0 ? (string) round($debt * (float) $this->exchange_rate, 2) : 0;
             } else {
                 $this->payment_status = 'unpaid';
-                $this->debt_amount = $this->exchange_rate > 0 ? round($totalAmount * $this->exchange_rate, 2) : 0;
+                $this->debt_amount = $this->exchange_rate > 0 ? (string) round($totalAmount * (float) $this->exchange_rate, 2) : 0;
             }
-            
-            $this->paid_amount = $this->exchange_rate > 0 ? round($totalPaid * $this->exchange_rate, 2) : 0;
-            
+
+            $this->paid_amount = $this->exchange_rate > 0 ? (string) round($totalPaid * (float) $this->exchange_rate, 2) : 0;
+
         } elseif ($hasVnd && !$hasUsd) {
             // Chỉ có VND
-            $totalPaid = $this->paid_vnd;
-            $totalAmount = $this->total_vnd;
+            $totalPaid = (float) $this->paid_vnd;
+            $totalAmount = (float) $this->total_vnd;
             $debt = $totalAmount - $totalPaid;
-            
+
             // Xác định trạng thái
             if ($debt <= 1) { // Tolerance 1 VND
                 $this->payment_status = 'paid';
                 $this->debt_amount = 0;
             } elseif ($totalPaid > 1) {
                 $this->payment_status = 'partial';
-                $this->debt_amount = round($debt, 2);
+                $this->debt_amount = (string) round($debt, 2);
             } else {
                 $this->payment_status = 'unpaid';
-                $this->debt_amount = round($totalAmount, 2);
+                $this->debt_amount = (string) round($totalAmount, 2);
             }
-            
-            $this->paid_amount = round($totalPaid, 2);
-            
+
+            $this->paid_amount = (string) round($totalPaid, 2);
+
         } else {
             // Có cả USD và VND - Kiểm tra RIÊNG từng loại
             // CHỈ tính debt cho loại tiền có total > 0
             $hasUsdDebt = false;
             $hasVndDebt = false;
-            
+
             if ($this->total_usd > 0.01) {
-                $debtUsd = $this->total_usd - $this->paid_usd;
+                $debtUsd = (float) $this->total_usd - (float) $this->paid_usd;
                 if ($debtUsd > 0.01) {
                     $hasUsdDebt = true;
                 }
             }
-            
+
             if ($this->total_vnd > 1) {
-                $debtVnd = $this->total_vnd - $this->paid_vnd;
+                $debtVnd = (float) $this->total_vnd - (float) $this->paid_vnd;
                 if ($debtVnd > 1) {
                     $hasVndDebt = true;
                 }
             }
-            
+
             // Xác định trạng thái: Chỉ "paid" khi KHÔNG còn nợ cả USD và VND
             if (!$hasUsdDebt && !$hasVndDebt) {
                 $this->payment_status = 'paid';
@@ -296,19 +318,19 @@ class Sale extends Model
             } elseif ($this->paid_usd > 0.01 || $this->paid_vnd > 1) {
                 $this->payment_status = 'partial';
                 // debt_amount chỉ để tham khảo, không dùng để tính toán
-                $debtVndValue = $this->total_vnd > 0 ? max(0, $this->total_vnd - $this->paid_vnd) : 0;
-                $this->debt_amount = round($debtVndValue, 2);
+                $debtVndValue = $this->total_vnd > 0 ? max(0, (float) $this->total_vnd - (float) $this->paid_vnd) : 0;
+                $this->debt_amount = (string) round($debtVndValue, 2);
             } else {
                 $this->payment_status = 'unpaid';
-                $this->debt_amount = round($this->total_vnd, 2);
+                $this->debt_amount = (string) round((float) $this->total_vnd, 2);
             }
-            
+
             // paid_amount chỉ để tham khảo, không dùng để tính toán
-            $this->paid_amount = round($this->paid_vnd, 2);
+            $this->paid_amount = (string) round((float) $this->paid_vnd, 2);
         }
-        
+
         $this->save();
-        
+
         // Đồng bộ với Debt nếu có
         if ($this->debt) {
             $this->debt->updateDebtAmount();
@@ -324,10 +346,10 @@ class Sale extends Model
     {
         return $query->where(function ($q) use ($search) {
             $q->where('invoice_code', 'like', "%{$search}%")
-              ->orWhereHas('customer', function ($customerQuery) use ($search) {
-                  $customerQuery->where('name', 'like', "%{$search}%")
-                               ->orWhere('phone', 'like', "%{$search}%");
-              });
+                ->orWhereHas('customer', function ($customerQuery) use ($search) {
+                    $customerQuery->where('name', 'like', "%{$search}%")
+                        ->orWhere('phone', 'like', "%{$search}%");
+                });
         });
     }
 
@@ -373,13 +395,13 @@ class Sale extends Model
         // Xác định loại hóa đơn dựa trên ORIGINAL total (trước khi trả hàng)
         $originalUsd = $this->original_total_usd ?? $this->total_usd;
         $originalVnd = $this->original_total_vnd ?? $this->total_vnd;
-        
+
         $hasUsdTotal = $originalUsd > 0;
         $hasVndTotal = $originalVnd > 0;
-        
+
         // Tính tổng USD đã trả từ tất cả payments
         $totalPaidUsd = 0;
-        
+
         // Nếu có payment records, tính từ payments
         if ($this->payments && $this->payments->count() > 0) {
             foreach ($this->payments as $payment) {
@@ -387,7 +409,7 @@ class Sale extends Model
                 if ($payment->payment_usd > 0) {
                     $totalPaidUsd += $payment->payment_usd;
                 }
-                
+
                 // Quy đổi payment_vnd → USD CHỈ KHI:
                 // - Hóa đơn CHỈ có USD (thanh toán chéo VND → USD)
                 if ($hasUsdTotal && !$hasVndTotal && $payment->payment_vnd > 0) {
@@ -402,7 +424,7 @@ class Sale extends Model
             if (isset($this->attributes['payment_usd']) && $this->attributes['payment_usd'] > 0) {
                 $totalPaidUsd += $this->attributes['payment_usd'];
             }
-            
+
             // Quy đổi payment_vnd → USD CHỈ KHI hóa đơn CHỈ có USD
             if ($hasUsdTotal && !$hasVndTotal && isset($this->attributes['payment_vnd']) && $this->attributes['payment_vnd'] > 0) {
                 if ($this->exchange_rate > 0) {
@@ -410,23 +432,23 @@ class Sale extends Model
                 }
             }
         }
-        
+
         return round($totalPaidUsd, 2);
     }
-    
+
     // Accessor để tính paid_vnd từ các payments
     public function getPaidVndAttribute()
     {
         // Xác định loại hóa đơn dựa trên ORIGINAL total (trước khi trả hàng)
         $originalUsd = $this->original_total_usd ?? $this->total_usd;
         $originalVnd = $this->original_total_vnd ?? $this->total_vnd;
-        
+
         $hasUsdTotal = $originalUsd > 0;
         $hasVndTotal = $originalVnd > 0;
-        
+
         // Tính tổng VND đã trả từ tất cả payments
         $totalPaidVnd = 0;
-        
+
         // Nếu có payment records, tính từ payments
         if ($this->payments && $this->payments->count() > 0) {
             foreach ($this->payments as $payment) {
@@ -434,7 +456,7 @@ class Sale extends Model
                 if ($payment->payment_vnd > 0) {
                     $totalPaidVnd += $payment->payment_vnd;
                 }
-                
+
                 // Quy đổi payment_usd → VND CHỈ KHI:
                 // - Hóa đơn CHỈ có VND (thanh toán chéo USD → VND)
                 if ($hasVndTotal && !$hasUsdTotal && $payment->payment_usd > 0) {
@@ -449,7 +471,7 @@ class Sale extends Model
             if (isset($this->attributes['payment_vnd']) && $this->attributes['payment_vnd'] > 0) {
                 $totalPaidVnd += $this->attributes['payment_vnd'];
             }
-            
+
             // Quy đổi payment_usd → VND CHỈ KHI hóa đơn CHỈ có VND
             if ($hasVndTotal && !$hasUsdTotal && isset($this->attributes['payment_usd']) && $this->attributes['payment_usd'] > 0) {
                 if ($this->exchange_rate > 0) {
@@ -457,7 +479,7 @@ class Sale extends Model
                 }
             }
         }
-        
+
         return round($totalPaidVnd, 2);
     }
 
@@ -468,13 +490,13 @@ class Sale extends Model
         if ($this->total_usd <= 0) {
             return 0;
         }
-        
+
         // Công nợ USD = Tổng hóa đơn USD - Tổng đã trả USD
         $debtUsd = $this->total_usd - $this->paid_usd;
-        
+
         return round(max(0, $debtUsd), 2);
     }
-    
+
     // Accessor để tính debt_vnd (công nợ theo VND)
     public function getDebtVndAttribute()
     {
@@ -482,10 +504,10 @@ class Sale extends Model
         if ($this->total_vnd <= 0) {
             return 0;
         }
-        
+
         // Công nợ VND = Tổng hóa đơn VND - Tổng đã trả VND
         $debtVnd = $this->total_vnd - $this->paid_vnd;
-        
+
         return round(max(0, $debtVnd), 2);
     }
 }

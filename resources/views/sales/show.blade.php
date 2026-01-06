@@ -94,7 +94,8 @@
                             <th class="px-2 py-2 text-left text-xs font-medium text-gray-500 uppercase">Sản phẩm</th>
                             <th class="px-2 py-2 text-center text-xs font-medium text-gray-500 uppercase">SL</th>
                             <th class="px-2 py-2 text-right text-xs font-medium text-gray-500 uppercase">Đơn giá</th>
-                            <th class="px-2 py-2 text-right text-xs font-medium text-gray-500 uppercase">Giảm</th>
+                            <th class="px-2 py-2 text-right text-xs font-medium text-gray-500 uppercase">Giảm(%)</th>
+                            <th class="px-2 py-2 text-right text-xs font-medium text-gray-500 uppercase">Giảm tiền</th>
                             <th class="px-2 py-2 text-right text-xs font-medium text-gray-500 uppercase">Thành tiền</th>
                         </tr>
                     </thead>
@@ -156,6 +157,17 @@
                                         @if($item->discount_percent > 0)
                                             <span class="text-red-600">{{ number_format($item->discount_percent, 0) }}%</span>
                                         @else
+                                            <span class="text-gray-400">-</span>
+                                        @endif
+                                    </td>
+                                    <td class="px-2 py-2 text-right text-xs {{ $textClass }}">
+                                        @if($item->discount_amount_usd > 0)
+                                            <div class="text-red-600">-${{ number_format($item->discount_amount_usd, 2) }}</div>
+                                        @endif
+                                        @if($item->discount_amount_vnd > 0)
+                                            <div class="text-red-600">-{{ number_format($item->discount_amount_vnd) }}đ</div>
+                                        @endif
+                                        @if($item->discount_amount_usd == 0 && $item->discount_amount_vnd == 0)
                                             <span class="text-gray-400">-</span>
                                         @endif
                                     </td>
@@ -512,13 +524,40 @@
                     <span>Giảm ({{ $sale->discount_percent }}%):</span>
                     <div class="text-right">
                         @if($hasUsdTotal && !$hasVndTotal)
-                            <div class="font-medium text-xs">-${{ number_format($sale->discount_usd, 2) }}</div>
+                            <div class="font-medium text-xs">-${{ number_format($sale->saleItems->sum('total_usd') * ($sale->discount_percent/100), 2) }}</div>
                         @elseif($hasVndTotal && !$hasUsdTotal)
-                            <div class="font-medium text-xs">-{{ number_format($sale->discount_vnd) }}đ</div>
+                            <div class="font-medium text-xs">-{{ number_format($sale->saleItems->sum('total_vnd') * ($sale->discount_percent/100)) }}đ</div>
                         @else
-                            {{-- Cả USD và VND - Hiển thị đều nhau --}}
-                            <div class="font-medium text-xs">-${{ number_format($sale->discount_usd, 2) }}</div>
-                            <div class="font-medium text-xs">-{{ number_format($sale->discount_vnd) }}đ</div>
+                            {{-- Cả USD và VND --}}
+                            <div class="font-medium text-xs">-${{ number_format($sale->saleItems->sum('total_usd') * ($sale->discount_percent/100), 2) }}</div>
+                            <div class="font-medium text-xs">-{{ number_format($sale->saleItems->sum('total_vnd') * ($sale->discount_percent/100)) }}đ</div>
+                        @endif
+                    </div>
+                </div>
+                @endif
+
+                @if($sale->discount_amount_usd > 0 || $sale->discount_amount_vnd > 0)
+                <div class="flex justify-between text-red-600 text-sm">
+                    <span>Giảm tiền:</span>
+                    <div class="text-right">
+                        @if($sale->discount_amount_usd > 0)
+                            <div class="font-medium text-xs">-${{ number_format($sale->discount_amount_usd, 2) }}</div>
+                        @endif
+                        @if($sale->discount_amount_vnd > 0)
+                            <div class="font-medium text-xs">-{{ number_format($sale->discount_amount_vnd) }}đ</div>
+                        @endif
+                    </div>
+                </div>
+                @endif
+                @if($sale->shipping_fee_usd > 0 || $sale->shipping_fee_vnd > 0)
+                <div class="flex justify-between text-blue-600 text-sm">
+                    <span>Phí vận chuyển:</span>
+                    <div class="text-right">
+                        @if($sale->shipping_fee_usd > 0)
+                            <div class="font-medium text-xs">+${{ number_format($sale->shipping_fee_usd, 2) }}</div>
+                        @endif
+                        @if($sale->shipping_fee_vnd > 0)
+                            <div class="font-medium text-xs">+{{ number_format($sale->shipping_fee_vnd) }}đ</div>
                         @endif
                     </div>
                 </div>
@@ -708,7 +747,7 @@
                 <div class="flex flex-col text-green-600 bg-green-50 p-2 rounded border border-green-200 text-sm">
                     <div class="flex justify-between items-center">
                         <span class="font-bold">
-                            <i class="fas fa-check-circle"></i>Đã TT đủ
+                            Đã TT đủ
                         </span>
                         @if($overpaidUsd > 0.01)
                             <span class="text-xs bg-green-100 px-2 py-0.5 rounded text-green-800 border border-green-200">

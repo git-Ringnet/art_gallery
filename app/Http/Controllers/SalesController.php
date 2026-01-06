@@ -68,24 +68,24 @@ class SalesController extends Controller
         // Search - tìm theo mã HD, tên KH, SĐT, email, sản phẩm (nếu có quyền)
         if ($request->filled('search') && \App\Helpers\PermissionHelper::canSearch('sales')) {
             $search = $request->search;
-            $query->where(function($q) use ($search) {
+            $query->where(function ($q) use ($search) {
                 $q->where('invoice_code', 'like', "%{$search}%")
-                  ->orWhere('notes', 'like', "%{$search}%")
-                  ->orWhereHas('customer', function($customerQuery) use ($search) {
-                      $customerQuery->where('name', 'like', "%{$search}%")
-                                   ->orWhere('phone', 'like', "%{$search}%")
-                                   ->orWhere('email', 'like', "%{$search}%");
-                  })
-                  ->orWhereHas('saleItems', function($itemQuery) use ($search) {
-                      $itemQuery->where('description', 'like', "%{$search}%");
-                  });
+                    ->orWhere('notes', 'like', "%{$search}%")
+                    ->orWhereHas('customer', function ($customerQuery) use ($search) {
+                        $customerQuery->where('name', 'like', "%{$search}%")
+                            ->orWhere('phone', 'like', "%{$search}%")
+                            ->orWhere('email', 'like', "%{$search}%");
+                    })
+                    ->orWhereHas('saleItems', function ($itemQuery) use ($search) {
+                        $itemQuery->where('description', 'like', "%{$search}%");
+                    });
             });
         }
 
         // Filter by payment status (nếu có quyền lọc theo trạng thái)
         if ($request->filled('payment_status')) {
-            $canFilterStatus = Auth::user()->email === 'admin@example.com' || 
-                             (Auth::user()->role && Auth::user()->role->getModulePermissions('sales') && Auth::user()->role->getModulePermissions('sales')->can_filter_by_status);
+            $canFilterStatus = Auth::user()->email === 'admin@example.com' ||
+                (Auth::user()->role && Auth::user()->role->getModulePermissions('sales') && Auth::user()->role->getModulePermissions('sales')->can_filter_by_status);
             if ($canFilterStatus) {
                 $query->where('payment_status', $request->payment_status);
             }
@@ -102,13 +102,13 @@ class SalesController extends Controller
         }
 
         // Filter by date range (nếu có quyền lọc theo ngày)
-        $canFilterDate = Auth::user()->email === 'admin@example.com' || 
-                        (Auth::user()->role && Auth::user()->role->getModulePermissions('sales') && Auth::user()->role->getModulePermissions('sales')->can_filter_by_date);
+        $canFilterDate = Auth::user()->email === 'admin@example.com' ||
+            (Auth::user()->role && Auth::user()->role->getModulePermissions('sales') && Auth::user()->role->getModulePermissions('sales')->can_filter_by_date);
         if ($canFilterDate) {
             if ($request->filled('from_date')) {
                 $query->whereDate('sale_date', '>=', $request->from_date);
             }
-            
+
             if ($request->filled('to_date')) {
                 $query->whereDate('sale_date', '<=', $request->to_date);
             }
@@ -118,7 +118,7 @@ class SalesController extends Controller
         if ($request->filled('min_amount')) {
             $query->where('total_vnd', '>=', $request->min_amount);
         }
-        
+
         if ($request->filled('max_amount')) {
             $query->where('total_vnd', '<=', $request->max_amount);
         }
@@ -135,7 +135,7 @@ class SalesController extends Controller
         // Sort
         $sortBy = $request->get('sort_by', 'sale_date');
         $sortOrder = $request->get('sort_order', 'desc');
-        
+
         if (in_array($sortBy, ['sale_date', 'total_vnd', 'paid_amount', 'debt_amount', 'invoice_code'])) {
             $query->orderBy($sortBy, $sortOrder);
         }
@@ -150,10 +150,10 @@ class SalesController extends Controller
         $canSearch = \App\Helpers\PermissionHelper::canSearch('sales');
         $canFilterByShowroom = \App\Helpers\PermissionHelper::canFilterByShowroom('sales');
         $canFilterByUser = \App\Helpers\PermissionHelper::canFilterByUser('sales');
-        $canFilterByDate = Auth::user()->email === 'admin@example.com' || 
-                          (Auth::user()->role && Auth::user()->role->getModulePermissions('sales') && Auth::user()->role->getModulePermissions('sales')->can_filter_by_date);
-        $canFilterByStatus = Auth::user()->email === 'admin@example.com' || 
-                            (Auth::user()->role && Auth::user()->role->getModulePermissions('sales') && Auth::user()->role->getModulePermissions('sales')->can_filter_by_status);
+        $canFilterByDate = Auth::user()->email === 'admin@example.com' ||
+            (Auth::user()->role && Auth::user()->role->getModulePermissions('sales') && Auth::user()->role->getModulePermissions('sales')->can_filter_by_date);
+        $canFilterByStatus = Auth::user()->email === 'admin@example.com' ||
+            (Auth::user()->role && Auth::user()->role->getModulePermissions('sales') && Auth::user()->role->getModulePermissions('sales')->can_filter_by_status);
 
         // Debug: Log permission values
         \Log::info('Sales Index Permissions', [
@@ -184,10 +184,10 @@ class SalesController extends Controller
     {
         Log::info('=== SALES STORE START ===');
         Log::info('Request data:', $request->all());
-        
-// Add invoice_code validation
+
+        // Add invoice_code validation
         $request->merge(['invoice_code' => $request->invoice_code ?: null]);
-        
+
         // Validate invoice_code separately
         if ($request->invoice_code) {
             $request->validate([
@@ -198,7 +198,7 @@ class SalesController extends Controller
                 'invoice_code.unique' => 'Số hóa đơn này đã tồn tại'
             ]);
         }
-        
+
         // Clean up empty strings and format for numeric fields
         if ($request->has('items')) {
             $items = $request->items;
@@ -213,7 +213,7 @@ class SalesController extends Controller
                         $items[$key]['price_usd'] = str_replace([',', ' '], '', $priceUsd);
                     }
                 }
-                
+
                 // Clean price_vnd: empty string, "0", or formatted string → null or clean number
                 if (isset($item['price_vnd'])) {
                     $priceVnd = $item['price_vnd'];
@@ -227,7 +227,7 @@ class SalesController extends Controller
             }
             $request->merge(['items' => $items]);
         }
-        
+
         $validated = $request->validate([
             'customer_id' => 'nullable|exists:customers,id',
             'customer_name' => 'required_without:customer_id|string|max:255',
@@ -247,8 +247,14 @@ class SalesController extends Controller
             'items.*.price_usd' => 'nullable|numeric|min:0',
             'items.*.price_vnd' => 'nullable|numeric|min:0',
             'items.*.discount_percent' => 'nullable|numeric|min:0|max:100',
+            'items.*.discount_amount_usd' => 'nullable',
+            'items.*.discount_amount_vnd' => 'nullable',
+            'shipping_fee_usd' => 'nullable|numeric|min:0',
+            'shipping_fee_vnd' => 'nullable|numeric|min:0',
             'exchange_rate' => 'nullable|numeric|min:0',
             'discount_percent' => 'nullable|numeric|min:0|max:100',
+            'discount_amount_usd' => 'nullable',
+            'discount_amount_vnd' => 'nullable',
             'payment_amount' => 'nullable|numeric|min:0',
             'payment_usd' => 'nullable|numeric|min:0',
             'payment_vnd' => 'nullable|numeric|min:0',
@@ -325,11 +331,31 @@ class SalesController extends Controller
             if (is_string($exchangeRate)) {
                 $exchangeRate = (float) str_replace([',', '.', ' '], '', $exchangeRate);
             }
-            
+
             // Tính paid_amount dựa vào loại payment
             // NOTE: paid_amount trong DB được dùng để tương thích và tính debt
             // Với logic mới: lưu riêng payment_usd và payment_vnd
             $paidAmount = $request->payment_amount ?? 0;  // Giá trị đã được tính từ frontend
+
+            // Xử lý discount_amount cho Sale
+            $discountAmountUsd = $request->discount_amount_usd ?? 0;
+            $discountAmountVnd = $request->discount_amount_vnd ?? 0;
+            if (is_string($discountAmountUsd)) {
+                $discountAmountUsd = (float) str_replace([',', ' '], '', $discountAmountUsd);
+            }
+            if (is_string($discountAmountVnd)) {
+                $discountAmountVnd = (float) str_replace([',', '.', ' '], '', $discountAmountVnd);
+            }
+
+            // Xử lý shipping_fee
+            $shippingFeeUsd = $request->shipping_fee_usd ?? 0;
+            $shippingFeeVnd = $request->shipping_fee_vnd ?? 0;
+            if (is_string($shippingFeeUsd)) {
+                $shippingFeeUsd = (float) str_replace([',', ' '], '', $shippingFeeUsd);
+            }
+            if (is_string($shippingFeeVnd)) {
+                $shippingFeeVnd = (float) str_replace([',', '.', ' '], '', $shippingFeeVnd);
+            }
 
             // Create sale
             $sale = Sale::create([
@@ -338,8 +364,12 @@ class SalesController extends Controller
                 'showroom_id' => $request->showroom_id,
                 'user_id' => $user->id,
                 'sale_date' => $request->sale_date,
-                'exchange_rate' => $exchangeRate,
+                'exchange_rate' => number_format((float) $exchangeRate, 0, '', ''),
                 'discount_percent' => $request->discount_percent ?? 0,
+                'discount_amount_usd' => $discountAmountUsd,
+                'discount_amount_vnd' => $discountAmountVnd,
+                'shipping_fee_usd' => $shippingFeeUsd,
+                'shipping_fee_vnd' => $shippingFeeVnd,
                 'subtotal_usd' => 0,
                 'subtotal_vnd' => 0,
                 'total_usd' => 0,
@@ -355,6 +385,16 @@ class SalesController extends Controller
 
             // Create sale items
             foreach ($request->items as $item) {
+                // Xử lý discount_amount cho item
+                $itemDiscountUsd = $item['discount_amount_usd'] ?? 0;
+                $itemDiscountVnd = $item['discount_amount_vnd'] ?? 0;
+                if (is_string($itemDiscountUsd)) {
+                    $itemDiscountUsd = (float) str_replace([',', ' '], '', $itemDiscountUsd);
+                }
+                if (is_string($itemDiscountVnd)) {
+                    $itemDiscountVnd = (float) str_replace([',', '.', ' '], '', $itemDiscountVnd);
+                }
+
                 $saleItem = SaleItem::create([
                     'sale_id' => $sale->id,
                     'painting_id' => $item['painting_id'] ?? null,
@@ -367,6 +407,8 @@ class SalesController extends Controller
                     'price_usd' => $item['currency'] === 'USD' ? ($item['price_usd'] ?? 0) : 0,
                     'price_vnd' => $item['currency'] === 'VND' ? ($item['price_vnd'] ?? 0) : 0,
                     'discount_percent' => $item['discount_percent'] ?? 0,
+                    'discount_amount_usd' => $item['currency'] === 'USD' ? $itemDiscountUsd : 0,
+                    'discount_amount_vnd' => $item['currency'] === 'VND' ? $itemDiscountVnd : 0,
                 ]);
 
                 // Calculate totals
@@ -377,26 +419,26 @@ class SalesController extends Controller
 
             // Calculate sale totals
             $sale->calculateTotals();
-            
+
             // Lưu original_total (giá trị gốc ban đầu)
             $sale->update([
                 'original_total_vnd' => $sale->total_vnd,
                 'original_total_usd' => $sale->total_usd,
             ]);
-            
+
             // Validation: Kiểm tra thanh toán không vượt quá tổng tiền
             // CHỈ áp dụng cho phiếu có CẢ USD VÀ VND
             if ($sale->total_usd > 0 && $sale->total_vnd > 0) {
                 $tolerance = 0.01; // Sai số cho phép
-                
+
                 // Kiểm tra USD
                 if ($paymentUsd > $sale->total_usd + $tolerance) {
                     throw new \Exception("Số tiền USD thanh toán (\${$paymentUsd}) vượt quá tổng USD (\${$sale->total_usd})");
                 }
-                
+
                 // Kiểm tra VND
                 if ($paymentVnd > $sale->total_vnd + 1) { // Tolerance 1 VND
-                    throw new \Exception("Số tiền VND thanh toán (" . number_format($paymentVnd) . "đ) vượt quá tổng VND (" . number_format($sale->total_vnd) . "đ)");
+                    throw new \Exception("Số tiền VND thanh toán (" . number_format((float) $paymentVnd) . "đ) vượt quá tổng VND (" . number_format((float) $sale->total_vnd) . "đ)");
                 }
             }
 
@@ -429,7 +471,7 @@ class SalesController extends Controller
             DB::rollBack();
             Log::error('Sales store error: ' . $e->getMessage());
             Log::error('Stack trace: ' . $e->getTraceAsString());
-            
+
             return back()->withInput()
                 ->with('error', 'Có lỗi xảy ra: ' . $e->getMessage());
         }
@@ -446,13 +488,13 @@ class SalesController extends Controller
     public function edit($id)
     {
         $sale = Sale::with(['saleItems.painting', 'saleItems.frame', 'saleItems.supply', 'customer', 'payments'])->findOrFail($id);
-        
+
         // Cho phép edit cả khi đã duyệt (để thêm thanh toán)
         if (!$sale->canEdit()) {
             return redirect()->route('sales.show', $id)
                 ->with('error', 'Không thể sửa phiếu đã hủy.');
         }
-        
+
         $showrooms = Showroom::active()->get();
         $supplies = Supply::all();
         $paintings = Painting::available()->get();
@@ -465,7 +507,7 @@ class SalesController extends Controller
     public function update(Request $request, $id)
     {
         $sale = Sale::findOrFail($id);
-        
+
         // Cho phép edit khi chưa hủy
         if (!$sale->canEdit()) {
             return back()->with('error', 'Không thể sửa phiếu đã hủy');
@@ -476,7 +518,7 @@ class SalesController extends Controller
 
         // Add invoice_code validation for update
         $request->merge(['invoice_code' => $request->invoice_code ?: null]);
-        
+
         // Validate invoice_code separately for update
         if ($request->invoice_code) {
             $request->validate([
@@ -520,7 +562,7 @@ class SalesController extends Controller
                             $items[$key]['price_usd'] = str_replace([',', ' '], '', $priceUsd);
                         }
                     }
-                    
+
                     // Clean price_vnd: empty string, "0", or formatted string → null or clean number
                     if (isset($item['price_vnd'])) {
                         $priceVnd = $item['price_vnd'];
@@ -534,7 +576,7 @@ class SalesController extends Controller
                 }
                 $request->merge(['items' => $items]);
             }
-            
+
             $rules = array_merge($rules, [
                 'items' => 'required|array|min:1',
                 'items.*.painting_id' => 'nullable|exists:paintings,id',
@@ -611,11 +653,11 @@ class SalesController extends Controller
             // Get default user
             $user = $this->getDefaultUser();
 
-            // Xử lý exchange_rate 
+            // Xử lý exchange_rate
             // CHÚ Ý: Chỉ cho phép thay đổi tỷ giá khi phiếu còn PENDING
             // Khi đã duyệt (completed), tỷ giá KHÔNG được thay đổi để đảm bảo tính toán chính xác
             $exchangeRate = $sale->exchange_rate; // Mặc định giữ nguyên tỷ giá cũ
-            
+
             if ($sale->sale_status === 'pending' && $request->filled('exchange_rate')) {
                 // Phiếu pending → Cho phép thay đổi tỷ giá
                 $newExchangeRate = $request->exchange_rate;
@@ -625,6 +667,31 @@ class SalesController extends Controller
                 $exchangeRate = $newExchangeRate;
             }
             // Nếu phiếu đã completed → Giữ nguyên exchange_rate cũ
+            if ($sale->exchange_rate != $exchangeRate) {
+                $sale->update([
+                    'exchange_rate' => number_format((float) $exchangeRate, 0, '', '')
+                ]);
+            }
+
+            // Xử lý discount_amount cho Sale (khi update)
+            $discountAmountUsd = $request->discount_amount_usd ?? $sale->discount_amount_usd ?? 0;
+            $discountAmountVnd = $request->discount_amount_vnd ?? $sale->discount_amount_vnd ?? 0;
+            if (is_string($discountAmountUsd)) {
+                $discountAmountUsd = (float) str_replace([',', ' '], '', $discountAmountUsd);
+            }
+            if (is_string($discountAmountVnd)) {
+                $discountAmountVnd = (float) str_replace([',', '.', ' '], '', $discountAmountVnd);
+            }
+
+            // Xử lý shipping_fee (khi update)
+            $shippingFeeUsd = $request->shipping_fee_usd ?? $sale->shipping_fee_usd ?? 0;
+            $shippingFeeVnd = $request->shipping_fee_vnd ?? $sale->shipping_fee_vnd ?? 0;
+            if (is_string($shippingFeeUsd)) {
+                $shippingFeeUsd = (float) str_replace([',', ' '], '', $shippingFeeUsd);
+            }
+            if (is_string($shippingFeeVnd)) {
+                $shippingFeeVnd = (float) str_replace([',', '.', ' '], '', $shippingFeeVnd);
+            }
 
             // Update sale
             $sale->update([
@@ -634,11 +701,15 @@ class SalesController extends Controller
                 'sale_date' => $request->sale_date,
                 'exchange_rate' => $exchangeRate, // Chỉ thay đổi nếu pending
                 'discount_percent' => $request->discount_percent ?? 0,
+                'discount_amount_usd' => $discountAmountUsd,
+                'discount_amount_vnd' => $discountAmountVnd,
+                'shipping_fee_usd' => $shippingFeeUsd,
+                'shipping_fee_vnd' => $shippingFeeVnd,
                 'payment_method' => $request->payment_method ?? $sale->payment_method,
                 'notes' => $request->notes,
                 'invoice_code' => $request->invoice_code ?: $sale->invoice_code,
             ]);
-            
+
             // Refresh để đảm bảo dữ liệu mới được load
             $sale->refresh();
 
@@ -653,7 +724,7 @@ class SalesController extends Controller
                                 $painting->increaseQuantity($oldItem->quantity);
                             }
                         }
-                        
+
                         if ($oldItem->supply_id && $oldItem->supply_length) {
                             $supply = Supply::find($oldItem->supply_id);
                             if ($supply) {
@@ -661,7 +732,7 @@ class SalesController extends Controller
                                 $supply->increaseQuantity($totalUsed);
                             }
                         }
-                        
+
                         // Hoàn trả status khung về available
                         if ($oldItem->frame_id) {
                             $frame = \App\Models\Frame::find($oldItem->frame_id);
@@ -671,12 +742,22 @@ class SalesController extends Controller
                         }
                     }
                 }
-                
+
                 // Delete existing sale items
                 $sale->saleItems()->delete();
 
                 // Create new sale items
                 foreach ($request->items as $item) {
+                    // Xử lý discount_amount cho item
+                    $itemDiscountUsd = $item['discount_amount_usd'] ?? 0;
+                    $itemDiscountVnd = $item['discount_amount_vnd'] ?? 0;
+                    if (is_string($itemDiscountUsd)) {
+                        $itemDiscountUsd = (float) str_replace([',', ' '], '', $itemDiscountUsd);
+                    }
+                    if (is_string($itemDiscountVnd)) {
+                        $itemDiscountVnd = (float) str_replace([',', '.', ' '], '', $itemDiscountVnd);
+                    }
+
                     $saleItem = SaleItem::create([
                         'sale_id' => $sale->id,
                         'painting_id' => $item['painting_id'] ?? null,
@@ -689,6 +770,8 @@ class SalesController extends Controller
                         'price_usd' => $item['currency'] === 'USD' ? ($item['price_usd'] ?? 0) : 0,
                         'price_vnd' => $item['currency'] === 'VND' ? ($item['price_vnd'] ?? 0) : 0,
                         'discount_percent' => $item['discount_percent'] ?? 0,
+                        'discount_amount_usd' => $item['currency'] === 'USD' ? $itemDiscountUsd : 0,
+                        'discount_amount_vnd' => $item['currency'] === 'VND' ? $itemDiscountVnd : 0,
                     ]);
 
                     // Calculate totals
@@ -702,7 +785,7 @@ class SalesController extends Controller
                                 throw new \Exception("Không đủ số lượng tranh {$painting->name} trong kho");
                             }
                         }
-                        
+
                         if ($saleItem->supply_id && $saleItem->supply_length) {
                             $supply = Supply::find($saleItem->supply_id);
                             $totalRequired = $saleItem->supply_length * $saleItem->quantity;
@@ -710,7 +793,7 @@ class SalesController extends Controller
                                 throw new \Exception("Không đủ số lượng vật tư {$supply->name} trong kho");
                             }
                         }
-                        
+
                         // Đánh dấu khung mới là đã bán
                         if ($saleItem->frame_id) {
                             $frame = \App\Models\Frame::find($saleItem->frame_id);
@@ -726,7 +809,7 @@ class SalesController extends Controller
 
                 // Calculate sale totals
                 $sale->calculateTotals();
-                
+
                 // Cập nhật original_total nếu chưa có (cho phiếu cũ)
                 if (!$sale->original_total_vnd) {
                     $sale->update([
@@ -743,14 +826,14 @@ class SalesController extends Controller
                     // Phiếu đã duyệt - tạo payment mới (trả thêm)
                     $paymentUsd = $request->payment_usd ?? 0;
                     $paymentVnd = $request->payment_vnd ?? 0;
-                    
+
                     // Xác định loại hóa đơn
                     $hasUsdTotal = $sale->total_usd > 0;
                     $hasVndTotal = $sale->total_vnd > 0;
-                    
+
                     // Lấy tỷ giá - CHỈ lưu khi thanh toán CHÉO
                     $paymentExchangeRate = null;
-                    
+
                     // Trường hợp 1: Hóa đơn USD, trả VND (USD-VND)
                     if ($hasUsdTotal && !$hasVndTotal && $paymentVnd > 0) {
                         $paymentExchangeRate = $request->exchange_rate ?? $sale->exchange_rate;
@@ -758,7 +841,7 @@ class SalesController extends Controller
                             $paymentExchangeRate = (float) str_replace([',', '.', ' '], '', $paymentExchangeRate);
                         }
                     }
-                    
+
                     // Trường hợp 2: Hóa đơn VND, trả USD (VND-USD)
                     if ($hasVndTotal && !$hasUsdTotal && $paymentUsd > 0) {
                         $paymentExchangeRate = $request->exchange_rate ?? $sale->exchange_rate;
@@ -766,10 +849,10 @@ class SalesController extends Controller
                             $paymentExchangeRate = (float) str_replace([',', '.', ' '], '', $paymentExchangeRate);
                         }
                     }
-                    
+
                     // Trường hợp 3: Hóa đơn Mixed (USD+VND) - KHÔNG lưu tỷ giá
                     // payment_exchange_rate = null
-                    
+
                     Payment::create([
                         'sale_id' => $sale->id,
                         'amount' => $request->payment_amount,
@@ -787,12 +870,12 @@ class SalesController extends Controller
                     $sale->paid_amount = $request->payment_amount;
                     $sale->payment_usd = $request->payment_usd ?? 0;
                     $sale->payment_vnd = $request->payment_vnd ?? 0;
-                    
+
                     // Tính debt_amount theo logic mới (sử dụng accessor)
                     // Accessor sẽ tự động tính đúng theo loại hóa đơn
                     $debtUsd = $sale->debt_usd;
                     $debtVnd = $sale->debt_vnd;
-                    
+
                     // Lưu debt_amount (để tương thích với code cũ)
                     // Ưu tiên VND nếu có, không thì dùng USD quy đổi
                     if ($debtVnd > 0) {
@@ -802,7 +885,7 @@ class SalesController extends Controller
                     } else {
                         $sale->debt_amount = 0;
                     }
-                    
+
                     $sale->save();
                 }
             }
@@ -859,7 +942,7 @@ class SalesController extends Controller
             DB::rollBack();
             Log::error('Sales update error: ' . $e->getMessage());
             Log::error('Stack trace: ' . $e->getTraceAsString());
-            
+
             return back()->withInput()
                 ->with('error', 'Có lỗi xảy ra: ' . $e->getMessage());
         }
@@ -868,7 +951,7 @@ class SalesController extends Controller
     public function destroy($id)
     {
         Log::info('Delete request for sale ID: ' . $id);
-        
+
         $sale = Sale::findOrFail($id);
         Log::info('Sale found: ' . $sale->invoice_code . ', Status: ' . $sale->sale_status . ', Paid amount: ' . $sale->paid_amount);
 
@@ -895,7 +978,7 @@ class SalesController extends Controller
                         $totalUsed = $item->supply_length * $item->quantity;
                         $supply->increaseQuantity($totalUsed);
                     }
-                    
+
                     // Hoàn trả status khung về available
                     if ($item->frame_id) {
                         $frame = \App\Models\Frame::find($item->frame_id);
@@ -967,24 +1050,24 @@ class SalesController extends Controller
     public function getCustomerDebt($id)
     {
         $customer = Customer::findOrFail($id);
-        
+
         // LOGIC MỚI: Tính tổng công nợ riêng USD và VND
         $sales = $customer->sales()
             ->whereIn('payment_status', ['unpaid', 'partial'])
             ->where('sale_status', 'completed')
             ->get();
-        
-        $totalDebtUsd = $sales->sum(function($sale) {
+
+        $totalDebtUsd = $sales->sum(function ($sale) {
             return $sale->debt_usd ?? 0;
         });
-        
-        $totalDebtVnd = $sales->sum(function($sale) {
+
+        $totalDebtVnd = $sales->sum(function ($sale) {
             return $sale->debt_vnd ?? 0;
         });
-        
+
         // Backward compatibility: total_debt = VND (cũ)
         $totalDebt = $sales->sum('debt_amount');
-        
+
         return response()->json([
             'customer_id' => $customer->id,
             'customer_name' => $customer->name,
@@ -997,15 +1080,15 @@ class SalesController extends Controller
     public function searchPaintings(Request $request)
     {
         $query = $request->get('q', '');
-        
+
         if (empty($query)) {
             return response()->json([]);
         }
 
-        $paintings = Painting::where(function($q) use ($query) {
-                $q->where('code', 'like', "%{$query}%")
-                  ->orWhere('name', 'like', "%{$query}%");
-            })
+        $paintings = Painting::where(function ($q) use ($query) {
+            $q->where('code', 'like', "%{$query}%")
+                ->orWhere('name', 'like', "%{$query}%");
+        })
             ->limit(10)
             ->get(['id', 'code', 'name', 'price_usd', 'price_vnd', 'quantity', 'image']);
 
@@ -1015,7 +1098,7 @@ class SalesController extends Controller
     public function searchSupplies(Request $request)
     {
         $query = $request->get('q', '');
-        
+
         if (empty($query)) {
             return response()->json([]);
         }
@@ -1030,7 +1113,7 @@ class SalesController extends Controller
     public function searchFrames(Request $request)
     {
         $query = $request->get('q', '');
-        
+
         if (empty($query)) {
             return response()->json([]);
         }
@@ -1047,7 +1130,7 @@ class SalesController extends Controller
     public function searchSuggestions(Request $request)
     {
         $query = $request->get('q', '');
-        
+
         if (empty($query) || strlen($query) < 2) {
             return response()->json([]);
         }
@@ -1061,7 +1144,7 @@ class SalesController extends Controller
             ->with('customer')
             ->limit(5)
             ->get();
-        
+
         foreach ($invoices as $invoice) {
             $suggestions[] = [
                 'type' => 'invoice',
@@ -1074,14 +1157,14 @@ class SalesController extends Controller
         }
 
         // Tìm theo khách hàng
-        $customers = Customer::where(function($q) use ($query) {
-                $q->where('name', 'like', "%{$query}%")
-                  ->orWhere('phone', 'like', "%{$query}%");
-            })
+        $customers = Customer::where(function ($q) use ($query) {
+            $q->where('name', 'like', "%{$query}%")
+                ->orWhere('phone', 'like', "%{$query}%");
+        })
             ->withCount('sales')
             ->limit(5)
             ->get();
-        
+
         foreach ($customers as $customer) {
             $suggestions[] = [
                 'type' => 'customer',
@@ -1124,7 +1207,7 @@ class SalesController extends Controller
             if ($saleItem->supply_id && $saleItem->supply_length) {
                 $supply = Supply::find($saleItem->supply_id);
                 $totalRequired = $saleItem->supply_length * $saleItem->quantity;
-                
+
                 if (!$supply) {
                     $stockErrors[] = "Vật tư (ID: {$saleItem->supply_id}) đã bị xóa khỏi kho";
                 } else {
@@ -1165,7 +1248,7 @@ class SalesController extends Controller
                         if (!$painting->reduceQuantity($saleItem->quantity)) {
                             throw new \Exception("Không đủ số lượng tranh {$painting->name} trong kho");
                         }
-                        
+
                         InventoryTransaction::create([
                             'transaction_type' => 'export',
                             'item_type' => 'painting',
@@ -1184,12 +1267,12 @@ class SalesController extends Controller
                 if ($saleItem->supply_id && $saleItem->supply_length) {
                     $supply = Supply::find($saleItem->supply_id);
                     $totalRequired = $saleItem->supply_length * $saleItem->quantity;
-                    
+
                     if ($supply) {
                         if (!$supply->reduceQuantity($totalRequired)) {
                             throw new \Exception("Không đủ số lượng vật tư {$supply->name} trong kho");
                         }
-                        
+
                         InventoryTransaction::create([
                             'transaction_type' => 'export',
                             'item_type' => 'supply',
@@ -1223,7 +1306,7 @@ class SalesController extends Controller
             // CHÚ Ý: Kiểm tra payment_usd hoặc payment_vnd thay vì paid_amount
             // Vì paid_amount có thể được tính sai khi chỉ trả USD
             $hasInitialPayment = ($sale->payment_usd ?? 0) > 0 || ($sale->payment_vnd ?? 0) > 0;
-            
+
             if ($hasInitialPayment) {
                 // Xác định payment_exchange_rate: CHỈ lưu khi có thanh toán VND
                 $paymentExchangeRate = null;
@@ -1232,7 +1315,7 @@ class SalesController extends Controller
                     $paymentExchangeRate = $sale->exchange_rate;
                 }
                 // Nếu chỉ trả USD → payment_exchange_rate = null
-                
+
                 Payment::create([
                     'sale_id' => $sale->id,
                     'amount' => $sale->paid_amount,
@@ -1252,14 +1335,14 @@ class SalesController extends Controller
             $debtVnd = $sale->total_vnd - ($sale->paid_vnd ?? 0);
             $hasDebtUsd = $debtUsd > 0.01;
             $hasDebtVnd = $debtVnd > 1000;
-            
+
             if ($hasDebtUsd || $hasDebtVnd || $sale->debt_amount > 0) {
                 // Tính debt_amount (VND) nếu chưa có
                 $debtAmount = $sale->debt_amount;
                 if ($debtAmount <= 0) {
                     $debtAmount = $debtVnd + ($debtUsd * ($sale->exchange_rate ?: 1));
                 }
-                
+
                 Debt::create([
                     'sale_id' => $sale->id,
                     'customer_id' => $sale->customer_id,
@@ -1336,17 +1419,17 @@ class SalesController extends Controller
     public function generateInvoiceCodeApi(Request $request)
     {
         $showroomId = $request->query('showroom_id');
-        
+
         if (!$showroomId) {
             return response()->json([
                 'success' => false,
                 'message' => 'Showroom ID is required'
             ], 400);
         }
-        
+
         try {
             $invoiceCode = Sale::generateInvoiceCode($showroomId);
-            
+
             return response()->json([
                 'success' => true,
                 'invoice_code' => $invoiceCode
@@ -1362,45 +1445,45 @@ class SalesController extends Controller
     public function export(Request $request)
     {
         $user = auth()->user();
-        
+
         // Get filter parameters (same as index)
         $query = Sale::with(['customer', 'showroom', 'user']);
-        
+
         // Apply filters
         if ($request->filled('search')) {
             $search = $request->search;
-            $query->where(function($q) use ($search) {
+            $query->where(function ($q) use ($search) {
                 $q->where('invoice_code', 'like', "%{$search}%")
-                  ->orWhereHas('customer', function($q) use ($search) {
-                      $q->where('name', 'like', "%{$search}%")
-                        ->orWhere('phone', 'like', "%{$search}%");
-                  });
+                    ->orWhereHas('customer', function ($q) use ($search) {
+                        $q->where('name', 'like', "%{$search}%")
+                            ->orWhere('phone', 'like', "%{$search}%");
+                    });
             });
         }
-        
+
         if ($request->filled('showroom_id')) {
             $query->where('showroom_id', $request->showroom_id);
         }
-        
+
         if ($request->filled('sale_status')) {
             $query->where('sale_status', $request->sale_status);
         }
-        
+
         if ($request->filled('payment_status')) {
             $query->where('payment_status', $request->payment_status);
         }
-        
+
         if ($request->filled('start_date')) {
             $query->whereDate('sale_date', '>=', $request->start_date);
         }
-        
+
         if ($request->filled('end_date')) {
             $query->whereDate('sale_date', '<=', $request->end_date);
         }
-        
+
         $format = $request->export; // 'excel' or 'pdf'
         $exportType = $request->export_type; // 'all' or 'separate'
-        
+
         if ($exportType === 'separate' && !$request->filled('showroom_id')) {
             // Export each showroom separately
             return $this->exportByShowroom($query, $format);
@@ -1408,7 +1491,7 @@ class SalesController extends Controller
             // Export all in one file
             $sales = $query->orderBy('sale_date', 'desc')->get();
             $filename = 'danh-sach-ban-hang-' . date('Y-m-d-His');
-            
+
             if ($format === 'excel') {
                 return $this->exportExcel($sales, $filename);
             } else {
@@ -1416,36 +1499,36 @@ class SalesController extends Controller
             }
         }
     }
-    
+
     private function exportByShowroom($query, $format)
     {
         $showrooms = \App\Models\Showroom::all();
         $zip = new \ZipArchive();
         $zipFilename = storage_path('app/temp/sales-by-showroom-' . date('Y-m-d-His') . '.zip');
-        
+
         // Create temp directory if not exists
         if (!file_exists(storage_path('app/temp'))) {
             mkdir(storage_path('app/temp'), 0755, true);
         }
-        
+
         $filesAdded = 0;
-        
+
         if ($zip->open($zipFilename, \ZipArchive::CREATE) === TRUE) {
             foreach ($showrooms as $showroom) {
                 $showroomSales = (clone $query)->where('showroom_id', $showroom->id)->orderBy('sale_date', 'desc')->get();
-                
+
                 if ($showroomSales->count() > 0) {
                     $filename = 'ban-hang-' . \Str::slug($showroom->name) . '-' . date('Y-m-d');
-                    
+
                     try {
                         if ($format === 'excel') {
                             $export = new \App\Exports\SalesExport($showroomSales, $showroom->name);
                             $filepath = storage_path('app/temp/' . $filename . '.xlsx');
-                            
+
                             // Tạo file Excel bằng cách lưu trực tiếp
                             $writer = Excel::raw($export, \Maatwebsite\Excel\Excel::XLSX);
                             file_put_contents($filepath, $writer);
-                            
+
                             // Kiểm tra file có tồn tại không
                             if (file_exists($filepath) && filesize($filepath) > 0) {
                                 $zip->addFile($filepath, $filename . '.xlsx');
@@ -1460,7 +1543,7 @@ class SalesController extends Controller
                             ]);
                             $filepath = storage_path('app/temp/' . $filename . '.pdf');
                             $pdf->save($filepath);
-                            
+
                             if (file_exists($filepath)) {
                                 $zip->addFile($filepath, $filename . '.pdf');
                                 $filesAdded++;
@@ -1473,7 +1556,7 @@ class SalesController extends Controller
                 }
             }
             $zip->close();
-            
+
             // Kiểm tra có file nào được thêm không
             if ($filesAdded === 0) {
                 // Xóa file zip rỗng
@@ -1482,12 +1565,12 @@ class SalesController extends Controller
                 }
                 return back()->with('error', 'Không có dữ liệu để xuất!');
             }
-            
+
             // Kiểm tra file zip có tồn tại không
             if (!file_exists($zipFilename)) {
                 return back()->with('error', 'Không thể tạo file zip!');
             }
-            
+
             // Xóa các file tạm trong thư mục temp (trừ file zip)
             $tempFiles = glob(storage_path('app/temp/*'));
             foreach ($tempFiles as $file) {
@@ -1495,26 +1578,26 @@ class SalesController extends Controller
                     unlink($file);
                 }
             }
-            
+
             return response()->download($zipFilename)->deleteFileAfterSend(true);
         }
-        
+
         return back()->with('error', 'Không thể tạo file zip');
     }
-    
+
     private function exportExcel($sales, $filename)
     {
         $export = new \App\Exports\SalesExport($sales);
-        return \Excel::download($export, $filename . '.xlsx');
+        return \Maatwebsite\Excel\Facades\Excel::download($export, $filename . '.xlsx');
     }
-    
+
     private function exportPDF($sales, $filename)
     {
-        $pdf = \PDF::loadView('sales.export-pdf', [
+        $pdf = \Barryvdh\DomPDF\Facade\Pdf::loadView('sales.export-pdf', [
             'sales' => $sales,
             'title' => 'Danh sách bán hàng'
         ]);
-        
+
         return $pdf->download($filename . '.pdf');
     }
 }

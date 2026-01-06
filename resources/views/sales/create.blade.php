@@ -5,1444 +5,1556 @@
 @section('page-description', 'Tạo hóa đơn bán hàng mới')
 
 @section('content')
-<x-alert />
+    <x-alert />
 
-<div class="bg-white rounded-xl shadow-lg p-4 glass-effect">
-    <form action="{{ route('sales.store') }}" method="POST" id="sales-form">
-        @csrf
-        
-        <!-- BƯỚC 1: THÔNG TIN CƠ BẢN -->
-        <div class="bg-blue-50 border-l-4 border-blue-500 p-4 rounded-lg mb-4">
-            <h3 class="text-base font-bold text-blue-900 mb-3 flex items-center">
-                <span class="bg-blue-500 text-white w-7 h-7 rounded-full flex items-center justify-center mr-2 text-sm">1</span>
-                Thông tin hóa đơn
-            </h3>
-            <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
-                <div>
-                    <label class="block text-xs font-medium text-gray-700 mb-1">Số hóa đơn</label>
-                    <div class="flex gap-2">
-                        <input type="text" 
-                               name="invoice_code" 
-                               id="invoice_code" 
-                               class="flex-1 px-3 py-1.5 text-sm border border-gray-300 rounded-lg font-medium text-blue-600" 
-                               placeholder="Tự động tạo...">
-                        <button type="button" 
-                                onclick="generateInvoiceCode()" 
+    <div class="bg-white rounded-xl shadow-lg p-4 glass-effect">
+        <form action="{{ route('sales.store') }}" method="POST" id="sales-form">
+            @csrf
+
+            <!-- BƯỚC 1: THÔNG TIN CƠ BẢN -->
+            <div class="bg-blue-50 border-l-4 border-blue-500 p-4 rounded-lg mb-4">
+                <h3 class="text-base font-bold text-blue-900 mb-3 flex items-center">
+                    <span
+                        class="bg-blue-500 text-white w-7 h-7 rounded-full flex items-center justify-center mr-2 text-sm">1</span>
+                    Thông tin hóa đơn
+                </h3>
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
+                    <div>
+                        <label class="block text-xs font-medium text-gray-700 mb-1">Số hóa đơn</label>
+                        <div class="flex gap-2">
+                            <input type="text" name="invoice_code" id="invoice_code"
+                                class="flex-1 px-3 py-1.5 text-sm border border-gray-300 rounded-lg font-medium text-blue-600"
+                                placeholder="Tự động tạo...">
+                            <button type="button" onclick="generateInvoiceCode()"
                                 class="bg-blue-500 hover:bg-blue-600 text-white px-3 py-1.5 rounded-lg transition-colors"
                                 title="Tự động tạo">
-                            <i class="fas fa-magic text-sm"></i>
-                        </button>
-                    </div>
-                </div>
-                <div>
-                    <label class="block text-xs font-medium text-gray-700 mb-1">Showroom <span class="text-red-500">*</span></label>
-                    <select name="showroom_id" id="showroom_id" required class="w-full px-3 py-1.5 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500">
-                        <option value="">-- Chọn showroom --</option>
-                        @foreach($showrooms as $showroom)
-                            <option value="{{ $showroom->id }}" data-code="{{ $showroom->code }}">{{ $showroom->name }}</option>
-                        @endforeach
-                    </select>
-                </div>
-                <div>
-                    <label class="block text-xs font-medium text-gray-700 mb-1">Ngày bán <span class="text-red-500">*</span></label>
-                    <input type="date" name="sale_date" required class="w-full px-3 py-1.5 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500" value="{{ date('Y-m-d') }}">
-                </div>
-            </div>
-        </div>
-
-        <!-- BƯỚC 2: THÔNG TIN KHÁCH HÀNG -->
-        <div class="bg-blue-50 border-l-4 border-blue-500 p-4 rounded-lg mb-4">
-            <h3 class="text-base font-bold text-green-900 mb-3 flex items-center">
-                <span class="bg-green-500 text-white w-7 h-7 rounded-full flex items-center justify-center mr-2 text-sm">2</span>
-                Thông tin khách hàng
-            </h3>
-            <div class="grid grid-cols-1 gap-3 mb-3">
-                <div class="relative">
-                    <label class="block text-xs font-medium text-gray-700 mb-1">Tên khách hàng <span class="text-red-500">*</span></label>
-                    <input type="text" 
-                           name="customer_name" 
-                           id="customer_name" 
-                           required 
-                           class="w-full px-3 py-1.5 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500"
-                           placeholder="Nhập tên khách hàng..."
-                           autocomplete="off"
-                           onkeyup="filterCustomers(this.value)"
-                           onfocus="showAllCustomers()"
-                           onclick="showAllCustomers()">
-                    <input type="hidden" name="customer_id" id="customer_id">
-                    <div id="customer-suggestions" class="absolute z-10 w-full bg-white border border-gray-300 rounded-lg mt-1 max-h-60 overflow-y-auto hidden shadow-lg"></div>
-                </div>
-            </div>
-            <!-- Các trường ẩn sẽ hiển thị khi chọn khách hàng -->
-            <div id="customer-details" class="grid grid-cols-1 md:grid-cols-3 gap-3 hidden">
-                <div>
-                    <label class="block text-xs font-medium text-gray-700 mb-1">Số điện thoại</label>
-                    <input type="tel" name="customer_phone" id="customer_phone" readonly class="w-full px-3 py-1.5 text-sm border border-gray-300 rounded-lg bg-gray-50 focus:ring-2 focus:ring-green-500" placeholder="Tự động điền...">
-                </div>
-                <div>
-                    <label class="block text-xs font-medium text-gray-700 mb-1">Email</label>
-                    <input type="email" name="customer_email" id="customer_email" readonly class="w-full px-3 py-1.5 text-sm border border-gray-300 rounded-lg bg-gray-50 focus:ring-2 focus:ring-green-500" placeholder="Tự động điền...">
-                </div>
-                <div>
-                    <label class="block text-xs font-medium text-gray-700 mb-1">Địa chỉ</label>
-                    <input type="text" name="customer_address" id="customer_address" readonly class="w-full px-3 py-1.5 text-sm border border-gray-300 rounded-lg bg-gray-50 focus:ring-2 focus:ring-green-500" placeholder="Tự động điền...">
-                </div>
-            </div>
-        </div>
-
-        <!-- BƯỚC 3: DANH SÁCH SẢN PHẨM -->
-        <div class="bg-blue-50 border-l-4 border-blue-500 p-4 rounded-lg mb-4">
-            <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-3 gap-2">
-                <h3 class="text-base font-bold text-purple-900 flex items-center">
-                    <span class="bg-purple-500 text-white w-7 h-7 rounded-full flex items-center justify-center mr-2 text-sm">3</span>
-                    Danh sách sản phẩm
-                </h3>
-                <button type="button" onclick="addItem()" class="bg-purple-500 hover:bg-purple-600 text-white px-4 py-1.5 rounded-lg transition-colors font-medium text-sm whitespace-nowrap">
-                    <i class="fas fa-plus mr-1"></i>Thêm sản phẩm
-                </button>
-            </div>
-            <div class="#">
-                <table class="w-full border-collapse text-sm">
-                    <thead>
-                        <tr class="bg-purple-100">
-                            <th class="px-2 py-2 text-left text-xs font-medium text-gray-700 border">Hình</th>
-                            <th class="px-2 py-2 text-left text-xs font-medium text-gray-700 border">Mô tả(Mã tranh/Khung)</th>
-                            <th class="px-2 py-2 text-center text-xs font-medium text-gray-700 border">SL</th>
-                            <th class="px-2 py-2 text-center text-xs font-medium text-gray-700 border">Loại tiền</th>
-                            <th class="px-2 py-2 text-right text-xs font-medium text-gray-700 border">Giá USD</th>
-                            <th class="px-2 py-2 text-right text-xs font-medium text-gray-700 border">Giá VND</th>
-                            <th class="px-2 py-2 text-center text-xs font-medium text-gray-700 border">Giảm(%)</th>
-                            <th class="px-2 py-2 text-center text-xs font-medium text-gray-700 border">Xóa</th>
-                        </tr>
-                    </thead>
-                    <tbody id="items-body" class="bg-white"></tbody>
-                </table>
-            </div>
-        </div>
-
-        <!-- BƯỚC 4: TÍNH TOÁN & THANH TOÁN -->
-        <div class="bg-blue-50 border-l-4 border-blue-500 p-4 rounded-lg mb-4">
-            <h3 class="text-base font-bold text-orange-900 mb-3 flex items-center">
-                <span class="bg-orange-500 text-white w-7 h-7 rounded-full flex items-center justify-center mr-2 text-sm">4</span>
-                Tính toán & Thanh toán
-            </h3>
-            
-            <!-- Giảm giá và Tổng tiền -->
-            <div class="grid grid-cols-3 gap-3 mb-3">
-                <div>
-                    <label class="block text-xs font-medium text-gray-700 mb-1">Giảm giá (%)</label>
-                    <input type="number" name="discount_percent" id="discount" class="w-full px-3 py-1.5 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500" value="0" min="0" max="100" step="1" onchange="calc()">
-                </div>
-                <div>
-                    <label class="block text-xs font-medium text-blue-900 mb-1">Tổng USD</label>
-                    <input type="text" id="total_usd" readonly class="w-full px-3 py-1.5 text-sm border-2 border-blue-300 rounded-lg bg-white font-bold text-blue-600">
-                </div>
-                <div>
-                    <label class="block text-xs font-medium text-green-900 mb-1">Tổng VND</label>
-                    <input type="text" id="total_vnd" readonly class="w-full px-3 py-1.5 text-sm border-2 border-green-300 rounded-lg bg-white font-bold text-green-600">
-                </div>
-            </div>
-
-            <!-- Thanh toán -->
-            <div class="bg-white p-3 rounded-lg border border-orange-200">
-                <h4 class="text-sm font-semibold text-gray-700 mb-2">Thanh toán</h4>
-                
-                <!-- Tỷ giá (Hiện khi cần quy đổi) -->
-                <div id="exchange-rate-section" class="mb-3 bg-yellow-50 border border-yellow-200 rounded-lg p-3 hidden">
-                    <label class="block text-xs font-medium text-yellow-900 mb-1">
-                        <i class="fas fa-exchange-alt mr-1"></i>Tỷ giá (VND/USD) <span id="rate-required-mark" class="text-red-500">*</span>
-                        <span class="text-xs font-normal" id="rate-hint-text">(Cần quy đổi)</span>
-                    </label>
-                    <input type="text" name="exchange_rate" id="rate" class="w-full px-3 py-1.5 text-sm border border-yellow-300 rounded-lg focus:ring-2 focus:ring-yellow-500 bg-white" value="{{ number_format(round($currentRate->rate ?? 0)) }}" oninput="formatVND(this); calcTotalPaid()" onblur="formatVND(this)">
-                    <p class="text-xs text-yellow-700 mt-1" id="rate-description">
-                        <i class="fas fa-info-circle mr-1"></i><span id="rate-desc-text">Tỷ giá để quy đổi giữa USD và VND</span>
-                    </p>
-                </div>
-                
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-3 mb-3">
-                    <div>
-                        <label class="block text-xs font-medium text-gray-700 mb-1">Trả bằng USD</label>
-                        <input type="text" id="paid_usd_display" class="w-full px-3 py-1.5 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500" value="0.00" oninput="formatPaymentUSD(this)" placeholder="0.00">
-                        <input type="hidden" name="payment_usd" id="paid_usd" value="0">
+                                <i class="fas fa-magic text-sm"></i>
+                            </button>
+                        </div>
                     </div>
                     <div>
-                        <label class="block text-xs font-medium text-gray-700 mb-1">Trả bằng VND</label>
-                        <input type="text" id="paid_vnd_display" class="w-full px-3 py-1.5 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500" value="0" oninput="formatPaymentVND(this)" placeholder="0">
-                        <input type="hidden" name="payment_vnd" id="paid_vnd" value="0">
-                    </div>
-                </div>
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-3 mb-3">
-                    <div>
-                        <label class="block text-xs font-medium text-gray-700 mb-1">Phương thức</label>
-                        <select name="payment_method" id="payment_method" class="w-full px-3 py-1.5 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500">
-                            <option value="cash">Tiền mặt</option>
-                            <option value="bank_transfer">Chuyển khoản</option>
-                            <option value="card">Thẻ</option>
+                        <label class="block text-xs font-medium text-gray-700 mb-1">Showroom <span
+                                class="text-red-500">*</span></label>
+                        <select name="showroom_id" id="showroom_id" required
+                            class="w-full px-3 py-1.5 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500">
+                            <option value="">-- Chọn showroom --</option>
+                            @foreach($showrooms as $showroom)
+                                <option value="{{ $showroom->id }}" data-code="{{ $showroom->code }}">{{ $showroom->name }}
+                                </option>
+                            @endforeach
                         </select>
                     </div>
                     <div>
-                        <label class="block text-xs font-medium text-blue-900 mb-1" id="total_paid_label">Tổng đã trả</label>
-                        <input type="text" id="total_paid_display" readonly class="w-full px-3 py-1.5 text-sm border border-blue-300 rounded-lg bg-blue-50 font-bold text-blue-600">
-                        <input type="hidden" name="payment_amount" id="total_paid_value">
-                        <div id="total_paid_usd_display" class="text-xs text-blue-700 font-medium mt-1"></div>
-                    </div>
-                </div>
-                <div class="grid grid-cols-1 gap-3">
-                    <div>
-                        <label class="block text-xs font-medium text-yellow-900 mb-1">Nợ cũ của khách hàng</label>
-                        <input type="text" id="current_debt" readonly class="w-full px-3 py-1.5 text-sm border border-yellow-300 rounded-lg bg-white font-bold text-orange-600">
+                        <label class="block text-xs font-medium text-gray-700 mb-1">Ngày bán <span
+                                class="text-red-500">*</span></label>
+                        <input type="date" name="sale_date" required
+                            class="w-full px-3 py-1.5 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                            value="{{ date('Y-m-d') }}">
                     </div>
                 </div>
             </div>
-        </div>
 
-        <!-- Ghi chú -->
-        <div class="mb-4">
-            <label class="block text-xs font-medium text-gray-700 mb-1">Ghi chú</label>
-            <textarea name="notes" rows="2" class="w-full px-3 py-1.5 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500" placeholder="Nhập ghi chú (không bắt buộc)..."></textarea>
-        </div>
-
-        <!-- Buttons -->
-        <div class="flex flex-col sm:flex-row gap-2 pt-4 border-t-2 border-gray-200">
-            <button type="button" onclick="confirmSaveOrder('save')" class="flex-1 bg-green-600 hover:bg-green-700 text-white py-2 rounded-lg transition-colors font-medium shadow-lg text-sm">
-                <i class="fas fa-save mr-1"></i>Lưu hóa đơn
-            </button>
-            <button type="button" onclick="confirmSaveOrder('save_and_print')" class="flex-1 bg-blue-600 hover:bg-blue-700 text-white py-2 rounded-lg transition-colors font-medium shadow-lg text-sm">
-                <i class="fas fa-print mr-1"></i>Lưu & In
-            </button>
-            <a href="{{ route('sales.index') }}" class="flex-1 bg-gray-500 hover:bg-gray-600 text-white py-2 rounded-lg transition-colors font-medium text-center shadow-lg text-sm">
-                <i class="fas fa-times mr-1"></i>Hủy bỏ
-            </a>
-        </div>
-        <!-- Hidden input for action -->
-        <input type="hidden" name="action" id="form-action" value="save">
-    </form>
-</div>
-
-<!-- Confirm Modal for Sales -->
-<x-confirm-modal 
-    id="confirm-save-modal"
-    title="Xác nhận lưu hóa đơn"
-    message="Bạn có chắc chắn muốn lưu hóa đơn này?"
-    confirmText="Đồng ý lưu"
-    cancelText="Quay lại"
-    type="success"
->
-    <div id="confirm-order-summary" class="bg-gray-50 rounded-lg p-3 text-sm">
-        <!-- Order summary will be populated by JavaScript -->
-    </div>
-</x-confirm-modal>
-
-@push('scripts')
-<script src="{{ asset('js/number-format.js') }}"></script>
-<script>
-let idx = 0;
-const paintings = @json($paintings);
-const supplies = @json($supplies);
-const customers = @json($customers);
-
-// Xử lý autocomplete khách hàng
-function filterCustomers(query) {
-    const suggestions = document.getElementById('customer-suggestions');
-    
-    if (!query) {
-        suggestions.classList.add('hidden');
-        return;
-    }
-    
-    const filtered = customers.filter(c => 
-        c.name.toLowerCase().includes(query.toLowerCase()) || 
-        c.phone.includes(query)
-    );
-    
-    if (filtered.length > 0) {
-        suggestions.innerHTML = filtered.map(c => `
-            <div class="px-3 py-2 hover:bg-blue-50 cursor-pointer border-b" onclick="selectCustomer(${c.id})">
-                <div class="font-medium">${c.name}</div>
-                <div class="text-xs text-gray-500">${c.phone}</div>
-            </div>
-        `).join('');
-        suggestions.classList.remove('hidden');
-    } else {
-        suggestions.classList.add('hidden');
-    }
-}
-
-// Hiển thị tất cả khách hàng khi hover/focus
-function showAllCustomers() {
-    const suggestions = document.getElementById('customer-suggestions');
-    const input = document.getElementById('customer_name');
-    
-    // Nếu đã có khách hàng được chọn, không hiển thị dropdown
-    if (document.getElementById('customer_id').value) {
-        return;
-    }
-    
-    if (customers.length > 0) {
-        suggestions.innerHTML = customers.map(c => `
-            <div class="px-3 py-2 hover:bg-blue-50 cursor-pointer border-b" onclick="selectCustomer(${c.id})">
-                <div class="font-medium">${c.name}</div>
-                <div class="text-xs text-gray-500">${c.phone}</div>
-            </div>
-        `).join('');
-        suggestions.classList.remove('hidden');
-    }
-}
-
-function selectCustomer(id) {
-    const customer = customers.find(c => c.id == id);
-    if (customer) {
-        document.getElementById('customer_id').value = customer.id;
-        document.getElementById('customer_name').value = customer.name;
-        document.getElementById('customer_phone').value = customer.phone || '';
-        document.getElementById('customer_email').value = customer.email || '';
-        document.getElementById('customer_address').value = customer.address || '';
-        document.getElementById('customer-suggestions').classList.add('hidden');
-        
-        // Hiển thị các trường thông tin khách hàng
-        document.getElementById('customer-details').classList.remove('hidden');
-        
-        // Load công nợ hiện tại
-        loadCurrentDebt(customer.id);
-    }
-}
-
-// Ẩn suggestions khi click bên ngoài
-document.addEventListener('click', function(e) {
-    // Hide customer suggestions
-    if (!e.target.closest('#customer_name') && !e.target.closest('#customer-suggestions')) {
-        document.getElementById('customer-suggestions').classList.add('hidden');
-    }
-    
-    // Hide item suggestions for all rows
-    document.querySelectorAll('[id^="item-suggestions-"]').forEach(suggestion => {
-        const idx = suggestion.id.replace('item-suggestions-', '');
-        if (!e.target.closest(`#item-search-${idx}`) && !e.target.closest(`#item-suggestions-${idx}`)) {
-            suggestion.classList.add('hidden');
-        }
-    });
-});
-
-function addItem() {
-    const tbody = document.getElementById('items-body');
-    const tr = document.createElement('tr');
-    tr.className = 'border hover:bg-purple-50';
-    tr.innerHTML = `
-        <td class="px-3 py-3 border">
-            <img id="img-${idx}" src="/images/no-image.svg" class="w-20 h-16 object-cover rounded border shadow-sm">
-        </td>
-        <td class="px-3 py-3 border">
-            <div class="relative">
-                <input type="text" 
-                       id="item-search-${idx}"
-                       class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 mb-2" 
-                       placeholder="Tìm tranh hoặc khung..."
-                       autocomplete="off"
-                       onkeyup="filterItems(this.value, ${idx})"
-                       onfocus="showItemSuggestions(${idx})">
-                <input type="hidden" name="items[${idx}][painting_id]" id="painting-id-${idx}">
-                <input type="hidden" name="items[${idx}][frame_id]" id="frame-id-${idx}">
-                <input type="hidden" name="items[${idx}][description]" id="desc-${idx}">
-                <div id="item-suggestions-${idx}" class="absolute z-20 w-full bg-white border border-gray-300 rounded-lg mt-1 max-h-60 overflow-y-auto hidden shadow-lg"></div>
-                <div id="item-details-${idx}" class="text-xs text-gray-600 space-y-0.5 hidden"></div>
-            </div>
-        </td>
-        <td class="px-3 py-3 border">
-            <input type="number" name="items[${idx}][quantity]" required class="w-full px-3 py-2 border border-gray-300 rounded-lg text-center font-medium" value="1" min="1" onchange="calc()">
-        </td>
-         <td class="px-3 py-3 border">
-            <select name="items[${idx}][currency]" class="w-full px-3 py-2 border border-gray-300 rounded-lg" onchange="togCur(this, ${idx})">
-                <option value="USD">USD</option>
-                <option value="VND" selected>VND</option>
-            </select>
-        </td>
-        <td class="px-3 py-3 border">
-            <input type="text" name="items[${idx}][price_usd]" id="usd-input-${idx}" class="usd-${idx} w-full px-3 py-2 border border-gray-300 rounded-lg text-right" value="0.00" oninput="formatUSD(this)" onblur="formatUSD(this)" onchange="calc()">
-        </td>
-        <td class="px-3 py-3 border">
-            <input type="text" name="items[${idx}][price_vnd]" id="vnd-input-${idx}" class="vnd-${idx} w-full px-3 py-2 border border-gray-300 rounded-lg text-right" value="0" oninput="formatVND(this)" onblur="formatVND(this)" onchange="calc()">
-        </td>
-        <td class="px-3 py-3 border text-center">
-            <input type="number" name="items[${idx}][discount_percent]" class="w-full px-3 py-2 border border-gray-300 rounded-lg text-center" value="0" min="0" max="100" step="1" onchange="calc()">
-        </td>
-        <td class="px-3 py-3 border text-center">
-            <button type="button" class="w-8 h-8 flex items-center justify-center bg-red-100 text-red-600 rounded-lg hover:bg-red-200 transition-colors" onclick="this.closest('tr').remove();calc()">
-                <i class="fas fa-trash"></i>
-            </button>
-        </td>
-    `;
-    tbody.appendChild(tr);
-    idx++;
-}
-
-// Search functions for paintings
-    function filterPaintings(query, idx) {
-        const suggestions = document.getElementById(`painting-suggestions-${idx}`);
-        
-        if (!query || query.length < 1) {
-            suggestions.classList.add('hidden');
-            return;
-        }
-    
-    fetch(`{{ route('sales.api.search.paintings') }}?q=${encodeURIComponent(query)}`)
-        .then(response => response.json())
-        .then(paintings => {
-            if (paintings.length > 0) {
-                suggestions.innerHTML = paintings.map(p => `
-                    <div class="px-3 py-2 hover:bg-blue-50 cursor-pointer border-b" onclick="selectPainting(${p.id}, ${idx})">
-                        <div class="font-medium text-sm">${p.code} - ${p.name}</div>
-                        <div class="text-xs text-gray-500">USD: $${p.price_usd || 0} | VND: ${(p.price_vnd || 0).toLocaleString()}đ</div>
-                    </div>
-                `).join('');
-                suggestions.classList.remove('hidden');
-            } else {
-                suggestions.classList.add('hidden');
-            }
-        })
-        .catch(error => {
-            console.error('Error searching paintings:', error);
-            suggestions.classList.add('hidden');
-        });
-}
-
-    function showPaintingSuggestions(idx) {
-        const input = document.getElementById(`painting-search-${idx}`);
-        const suggestions = document.getElementById(`painting-suggestions-${idx}`);
-        
-        if (input && input.value.length >= 1) {
-            filterPaintings(input.value, idx);
-        }
-    }
-
-// Search functions for supplies
-function filterSupplies(query, idx) {
-    const suggestions = document.getElementById(`supply-suggestions-${idx}`);
-    
-    if (!query || query.length < 1) {
-        suggestions.classList.add('hidden');
-        return;
-    }
-    
-    fetch(`{{ route('sales.api.search.supplies') }}?q=${encodeURIComponent(query)}`)
-        .then(response => response.json())
-        .then(supplies => {
-            if (supplies.length > 0) {
-                suggestions.innerHTML = supplies.map(s => `
-                    <div class="px-3 py-2 hover:bg-blue-50 cursor-pointer border-b" onclick="selectSupply(${s.id}, ${idx})">
-                        <div class="font-medium text-sm">${s.name}</div>
-                        <div class="text-xs text-gray-500">Đơn vị: ${s.unit || 'N/A'}</div>
-                    </div>
-                `).join('');
-                suggestions.classList.remove('hidden');
-            } else {
-                suggestions.classList.add('hidden');
-            }
-        })
-        .catch(error => {
-            console.error('Error searching supplies:', error);
-            suggestions.classList.add('hidden');
-        });
-}
-
-function showSupplySuggestions(idx) {
-    const input = document.getElementById(`supply-search-${idx}`);
-    const suggestions = document.getElementById(`supply-suggestions-${idx}`);
-    
-    if (input.value.length >= 1) {
-        filterSupplies(input.value, idx);
-    }
-}
-
-function selectSupply(supplyId, idx) {
-    fetch(`{{ route('sales.api.supply', '') }}/${supplyId}`)
-        .then(response => response.json())
-        .then(supply => {
-            document.getElementById(`supply-id-${idx}`).value = supply.id;
-            document.getElementById(`supply-search-${idx}`).value = supply.name;
-            
-            document.getElementById(`supply-suggestions-${idx}`).classList.add('hidden');
-        })
-        .catch(error => {
-            console.error('Error fetching supply:', error);
-        });
-}
-
-// Search functions for frames
-function filterFrames(query, idx) {
-    const suggestions = document.getElementById(`frame-suggestions-${idx}`);
-    
-    if (!query || query.length < 1) {
-        suggestions.classList.add('hidden');
-        return;
-    }
-    
-    fetch(`{{ route('sales.api.search.frames') }}?q=${encodeURIComponent(query)}`)
-        .then(response => response.json())
-        .then(frames => {
-            if (frames.length > 0) {
-                suggestions.innerHTML = frames.map(f => `
-                    <div class="px-3 py-2 hover:bg-blue-50 cursor-pointer border-b" onclick="selectFrame(${f.id}, ${idx})">
-                        <div class="font-medium text-sm">${f.name}</div>
-                        <div class="text-xs text-gray-500">Giá: ${(f.cost_price || 0).toLocaleString()}đ</div>
-                    </div>
-                `).join('');
-                suggestions.classList.remove('hidden');
-            } else {
-                suggestions.classList.add('hidden');
-            }
-        })
-        .catch(error => {
-            console.error('Error searching frames:', error);
-            suggestions.classList.add('hidden');
-        });
-}
-
-function showFrameSuggestions(idx) {
-    const input = document.getElementById(`frame-search-${idx}`);
-    const suggestions = document.getElementById(`frame-suggestions-${idx}`);
-    
-    if (input && input.value.length >= 1) {
-        filterFrames(input.value, idx);
-    }
-}
-
-
-// NEW: Search function for both paintings and frames
-function filterItems(query, idx) {
-    const suggestions = document.getElementById(`item-suggestions-${idx}`);
-    
-    if (!query || query.length < 1) {
-        suggestions.classList.add('hidden');
-        return;
-    }
-    
-    // Fetch both paintings and frames
-    Promise.all([
-        fetch(`{{ route('sales.api.search.paintings') }}?q=${encodeURIComponent(query)}`).then(r => r.json()),
-        fetch(`{{ route('sales.api.search.frames') }}?q=${encodeURIComponent(query)}`).then(r => r.json())
-    ])
-    .then(([paintings, frames]) => {
-        let html = '';
-        
-        // Add paintings section
-        if (paintings.length > 0) {
-            html += '<div class="px-3 py-1 bg-gray-100 text-xs font-bold text-gray-600">TRANH</div>';
-            html += paintings.map(p => {
-                const stock = p.quantity || 0;
-                const isOutOfStock = stock <= 0;
-                const bgClass = isOutOfStock ? 'bg-red-50 hover:bg-red-100' : 'hover:bg-blue-50';
-                const stockColor = isOutOfStock ? 'text-red-600 font-bold' : (stock < 5 ? 'text-orange-600' : 'text-green-600');
-                const stockText = isOutOfStock ? '❌ HẾT HÀNG' : `Tồn: ${stock}`;
-                
-                return `
-                    <div class="px-3 py-2 ${bgClass} cursor-pointer border-b" onclick="selectPainting(${p.id}, ${idx})">
-                        <div class="flex justify-between items-start">
-                            <div class="font-medium text-sm">${p.code} - ${p.name}</div>
-                            <span class="text-xs ${stockColor} ml-2 whitespace-nowrap">${stockText}</span>
+            <!-- BƯỚC 2: THÔNG TIN KHÁCH HÀNG -->
+            <div class="bg-blue-50 border-l-4 border-blue-500 p-4 rounded-lg mb-4">
+                <h3 class="text-base font-bold text-green-900 mb-3 flex items-center">
+                    <span
+                        class="bg-green-500 text-white w-7 h-7 rounded-full flex items-center justify-center mr-2 text-sm">2</span>
+                    Thông tin khách hàng
+                </h3>
+                <div class="grid grid-cols-1 gap-3 mb-3">
+                    <div class="relative">
+                        <label class="block text-xs font-medium text-gray-700 mb-1">Tên khách hàng <span
+                                class="text-red-500">*</span></label>
+                        <input type="text" name="customer_name" id="customer_name" required
+                            class="w-full px-3 py-1.5 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500"
+                            placeholder="Nhập tên khách hàng..." autocomplete="off" onkeyup="filterCustomers(this.value)"
+                            onfocus="showAllCustomers()" onclick="showAllCustomers()">
+                        <input type="hidden" name="customer_id" id="customer_id">
+                        <div id="customer-suggestions"
+                            class="absolute z-10 w-full bg-white border border-gray-300 rounded-lg mt-1 max-h-60 overflow-y-auto hidden shadow-lg">
                         </div>
-                        <div class="text-xs text-gray-500">USD: ${p.price_usd || 0} | VND: ${(p.price_vnd || 0).toLocaleString()}đ</div>
                     </div>
-                `;
-            }).join('');
-        }
-        
-        // Add frames section
-        if (frames.length > 0) {
-            html += '<div class="px-3 py-1 bg-gray-100 text-xs font-bold text-gray-600">KHUNG</div>';
-            html += frames.map(f => `
-                <div class="px-3 py-2 hover:bg-green-50 cursor-pointer border-b" onclick="selectFrame(${f.id}, ${idx})">
-                    <div class="font-medium text-sm">${f.name}</div>
-                    <div class="text-xs text-gray-500">Giá: ${(f.cost_price || 0).toLocaleString()}đ</div>
                 </div>
-            `).join('');
-        }
-        
-        if (html) {
-            suggestions.innerHTML = html;
-            suggestions.classList.remove('hidden');
-        } else {
-            suggestions.classList.add('hidden');
-        }
-    })
-    .catch(error => {
-        console.error('Error searching items:', error);
-        suggestions.classList.add('hidden');
-    });
-}
-
-function showItemSuggestions(idx) {
-    const input = document.getElementById(`item-search-${idx}`);
-    
-    if (input && input.value.length >= 1) {
-        filterItems(input.value, idx);
-    }
-}
-
-function selectPainting(paintingId, idx) {
-    fetch(`{{ route('sales.api.painting', '') }}/${paintingId}`)
-        .then(response => response.json())
-        .then(painting => {
-            // Clear frame selection
-            document.getElementById(`frame-id-${idx}`).value = '';
-            
-            // Set painting data
-            document.getElementById(`painting-id-${idx}`).value = painting.id;
-            document.getElementById(`item-search-${idx}`).value = `${painting.code} - ${painting.name}`;
-            document.getElementById(`desc-${idx}`).value = painting.name;
-            
-            const usdInput = document.querySelector(`.usd-${idx}`);
-            const vndInput = document.querySelector(`.vnd-${idx}`);
-            const currencySelect = document.querySelector(`select[name="items[${idx}][currency]"]`);
-            
-            const hasUsd = painting.price_usd && parseFloat(painting.price_usd) > 0;
-            const hasVnd = painting.price_vnd && parseFloat(painting.price_vnd) > 0;
-            
-            // Tự động chọn loại tiền dựa vào giá sản phẩm
-            if (hasUsd && hasVnd) {
-                // Có cả 2 giá → Chọn BOTH
-                if (currencySelect) {
-                    currencySelect.value = 'BOTH';
-                    togCur(currencySelect, idx);
-                }
-                if (usdInput) {
-                    usdInput.value = parseFloat(painting.price_usd).toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2});
-                }
-                if (vndInput) {
-                    vndInput.value = parseInt(painting.price_vnd).toLocaleString('en-US');
-                }
-            } else if (hasUsd) {
-                // Chỉ có giá USD → Chọn USD
-                if (currencySelect) {
-                    currencySelect.value = 'USD';
-                    togCur(currencySelect, idx);
-                }
-                if (usdInput) {
-                    usdInput.value = parseFloat(painting.price_usd).toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2});
-                }
-                if (vndInput) {
-                    vndInput.value = '0';
-                }
-            } else if (hasVnd) {
-                // Chỉ có giá VND → Chọn VND
-                if (currencySelect) {
-                    currencySelect.value = 'VND';
-                    togCur(currencySelect, idx);
-                }
-                if (usdInput) {
-                    usdInput.value = '0.00';
-                }
-                if (vndInput) {
-                    vndInput.value = parseInt(painting.price_vnd).toLocaleString('en-US');
-                }
-            } else {
-                // Không có giá nào → Mặc định VND
-                if (currencySelect) {
-                    currencySelect.value = 'VND';
-                    togCur(currencySelect, idx);
-                }
-                if (usdInput) usdInput.value = '0.00';
-                if (vndInput) vndInput.value = '0';
-            }
-            
-            const imgUrl = painting.image ? `/storage/${painting.image}` : '/images/no-image.svg';
-            const imgElement = document.getElementById(`img-${idx}`);
-            imgElement.src = imgUrl;
-            imgElement.onclick = () => showImageModal(imgUrl, painting.name);
-            imgElement.classList.add('cursor-pointer', 'hover:opacity-80', 'transition-opacity');
-            
-            // Display painting details
-            const detailsDiv = document.getElementById(`item-details-${idx}`);
-            if (detailsDiv) {
-                let detailsHTML = '';
-                if (painting.code) detailsHTML += `<div><span class="font-semibold">Mã:</span> ${painting.code}</div>`;
-                if (painting.artist) detailsHTML += `<div><span class="font-semibold">Họa sĩ:</span> ${painting.artist}</div>`;
-                if (painting.material) detailsHTML += `<div><span class="font-semibold">Chất liệu:</span> ${painting.material}</div>`;
-                if (painting.width && painting.height) detailsHTML += `<div><span class="font-semibold">Kích thước:</span> ${painting.width} x ${painting.height} cm</div>`;
-                if (painting.paint_year) detailsHTML += `<div><span class="font-semibold">Năm:</span> ${painting.paint_year}</div>`;
-                
-                if (detailsHTML) {
-                    detailsDiv.innerHTML = detailsHTML;
-                    detailsDiv.classList.remove('hidden');
-                } else {
-                    detailsDiv.classList.add('hidden');
-                }
-            }
-            
-            // Kiểm tra tồn kho
-            const stock = painting.quantity || 0;
-            const itemSearchInput = document.getElementById(`item-search-${idx}`);
-            
-            if (stock <= 0) {
-                // Tranh hết hàng - cảnh báo
-                itemSearchInput.classList.add('border-red-500', 'bg-red-50');
-                itemSearchInput.title = '⚠️ Tranh này đã hết hàng!';
-                
-                if (typeof showWarning === 'function') {
-                    showWarning(itemSearchInput, '❌ Tranh "' + painting.name + '" đã HẾT HÀNG! Tồn kho: 0');
-                }
-                
-                // Thêm badge hết hàng vào input
-                itemSearchInput.value = `${painting.code} - ${painting.name} [HẾT HÀNG]`;
-            } else if (stock < 5) {
-                // Sắp hết hàng - cảnh báo nhẹ
-                itemSearchInput.classList.add('border-orange-400', 'bg-orange-50');
-                itemSearchInput.title = ' Tranh này  Còn: ' + stock;
-                
-                if (typeof showWarning === 'function') {
-                    showWarning(itemSearchInput, ' Tranh "' + painting.name + '"  Còn: ' + stock);
-                }
-            } else {
-                itemSearchInput.classList.remove('border-red-500', 'bg-red-50', 'border-orange-400', 'bg-orange-50');
-                itemSearchInput.title = '';
-            }
-            
-            document.getElementById(`item-suggestions-${idx}`).classList.add('hidden');
-            calc();
-        })
-        .catch(error => {
-            console.error('Error fetching painting:', error);
-        });
-}
-
-function selectFrame(frameId, idx) {
-    fetch(`{{ route('frames.api.frame', '') }}/${frameId}`)
-        .then(response => response.json())
-        .then(frame => {
-            // Clear painting selection
-            document.getElementById(`painting-id-${idx}`).value = '';
-            
-            // Set frame data
-            document.getElementById(`frame-id-${idx}`).value = frame.id;
-            document.getElementById(`item-search-${idx}`).value = frame.name;
-            document.getElementById(`desc-${idx}`).value = frame.name;
-            
-            // Set price from frame cost_price
-            const vndInput = document.querySelector(`.vnd-${idx}`);
-            if (vndInput) {
-                const vndValue = parseInt(frame.cost_price) || 0;
-                vndInput.value = vndValue.toLocaleString('en-US');
-            }
-            
-            // Set currency dropdown to VND and hide USD input
-            const currencySelect = document.querySelector(`select[name="items[${idx}][currency]"]`);
-            if (currencySelect) {
-                currencySelect.value = 'VND';
-                // Trigger the togCur function to hide/show appropriate inputs
-                togCur(currencySelect, idx);
-            }
-            
-            // Clear image for frame
-            const imgElement = document.getElementById(`img-${idx}`);
-            imgElement.src = '/images/frame-placeholder.svg';
-            
-            document.getElementById(`item-suggestions-${idx}`).classList.add('hidden');
-            calc();
-        })
-        .catch(error => {
-            console.error('Error fetching frame:', error);
-        });
-}
-
-function togCur(sel, i) {
-    const cur = sel.value;
-    const usdInput = document.getElementById(`usd-input-${i}`);
-    const vndInput = document.getElementById(`vnd-input-${i}`);
-    
-    if (!usdInput || !vndInput) {
-        console.error('Inputs not found!');
-        return;
-    }
-    
-    if (cur === 'USD') {
-        usdInput.classList.remove('hidden');
-        vndInput.classList.add('hidden');
-    } else if (cur === 'VND') {
-        usdInput.classList.add('hidden');
-        vndInput.classList.remove('hidden');
-    } else { // BOTH
-        usdInput.classList.remove('hidden');
-        vndInput.classList.remove('hidden');
-    }
-    
-    calc();
-}
-
-function calc() {
-    const disc = parseFloat(document.getElementById('discount').value) || 0;
-    const rows = document.querySelectorAll('#items-body tr');
-    
-    // Lấy tỷ giá hiện tại
-    const rateEl = document.getElementById('rate');
-    const exchangeRate = parseFloat(unformatNumber(rateEl?.value || '0')) || 0;
-    
-    let totUsd = 0;
-    let totVnd = 0;
-    let hasUsdItems = false;
-    let hasVndItems = false;
-    
-    rows.forEach((row, i) => {
-        const qty = parseFloat(row.querySelector('[name*="[quantity]"]')?.value || 0);
-        const cur = row.querySelector('[name*="[currency]"]')?.value || 'USD';
-        const itemDiscountPercent = parseFloat(row.querySelector('[name*="[discount_percent]"]')?.value || 0);
-        
-        if (cur === 'USD') {
-            hasUsdItems = true;
-            // Sản phẩm giá USD
-            const usdVal = unformatNumber(row.querySelector('[name*="[price_usd]"]')?.value || '0');
-            const usd = parseFloat(usdVal);
-            const subtotal = usd * qty;
-            const itemDiscountAmt = subtotal * (itemDiscountPercent / 100);
-            const itemTotalUsd = subtotal - itemDiscountAmt;
-            totUsd += itemTotalUsd;
-        } else if (cur === 'VND') {
-            hasVndItems = true;
-            // Sản phẩm giá VND
-            const vndVal = unformatNumber(row.querySelector('[name*="[price_vnd]"]')?.value || '0');
-            const vnd = parseFloat(vndVal);
-            const subtotal = vnd * qty;
-            const itemDiscountAmt = subtotal * (itemDiscountPercent / 100);
-            const itemTotalVnd = subtotal - itemDiscountAmt;
-            totVnd += itemTotalVnd;
-        } else { // BOTH
-            hasUsdItems = true;
-            hasVndItems = true;
-            // Sản phẩm có cả 2 giá - tính riêng từng loại
-            const usdVal = unformatNumber(row.querySelector('[name*="[price_usd]"]')?.value || '0');
-            const vndVal = unformatNumber(row.querySelector('[name*="[price_vnd]"]')?.value || '0');
-            const usd = parseFloat(usdVal);
-            const vnd = parseFloat(vndVal);
-            const subtotalUsd = usd * qty;
-            const subtotalVnd = vnd * qty;
-            const itemDiscountAmtUsd = subtotalUsd * (itemDiscountPercent / 100);
-            const itemDiscountAmtVnd = subtotalVnd * (itemDiscountPercent / 100);
-            totUsd += subtotalUsd - itemDiscountAmtUsd;
-            totVnd += subtotalVnd - itemDiscountAmtVnd;
-        }
-    });
-    
-    // Áp dụng giảm giá chung
-    const discAmtUsd = totUsd * (disc / 100);
-    const discAmtVnd = totVnd * (disc / 100);
-    const finalUsd = totUsd - discAmtUsd;
-    const finalVnd = totVnd - discAmtVnd;
-    
-    // Hiển thị tổng tiền dựa trên loại item
-    const totalUsdEl = document.getElementById('total_usd');
-    const totalVndEl = document.getElementById('total_vnd');
-    
-    if (hasUsdItems && hasVndItems) {
-        // Có cả USD và VND - hiển thị cả 2
-        totalUsdEl.value = '$' + finalUsd.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2});
-        totalVndEl.value = finalVnd.toLocaleString('vi-VN') + 'đ';
-        totalUsdEl.parentElement.style.display = 'block';
-        totalVndEl.parentElement.style.display = 'block';
-    } else if (hasUsdItems) {
-        // Chỉ có item USD - chỉ hiển thị USD
-        totalUsdEl.value = '$' + finalUsd.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2});
-        totalVndEl.value = '';
-        totalUsdEl.parentElement.style.display = 'block';
-        totalVndEl.parentElement.style.display = 'none';
-    } else if (hasVndItems) {
-        // Chỉ có item VND - chỉ hiển thị VND
-        totalUsdEl.value = '';
-        totalVndEl.value = finalVnd.toLocaleString('vi-VN') + 'đ';
-        totalUsdEl.parentElement.style.display = 'none';
-        totalVndEl.parentElement.style.display = 'block';
-    } else {
-        // Không có item nào
-        totalUsdEl.value = '';
-        totalVndEl.value = '';
-        totalUsdEl.parentElement.style.display = 'block';
-        totalVndEl.parentElement.style.display = 'block';
-    }
-    
-    calcDebt();
-}
-
-
-// Generate invoice code from API
-function generateInvoiceCode() {
-    const showroomSelect = document.getElementById('showroom_id');
-    const showroomId = showroomSelect.value;
-    
-    if (!showroomId) {
-        alert('Vui lòng chọn showroom trước!');
-        showroomSelect.focus();
-        return;
-    }
-    
-    // Show loading
-    const invoiceInput = document.getElementById('invoice_code');
-    invoiceInput.value = 'Đang tạo...';
-    invoiceInput.disabled = true;
-    
-    // Call API to generate invoice code
-    fetch(`{{ route('sales.api.generate-invoice-code') }}?showroom_id=${showroomId}`)
-        .then(response => response.json())
-        .then(data => {
-            if (data.success) {
-                invoiceInput.value = data.invoice_code;
-            } else {
-                alert('Lỗi: ' + data.message);
-                invoiceInput.value = '';
-            }
-        })
-        .catch(error => {
-            console.error('Error:', error);
-            alert('Có lỗi xảy ra khi tạo mã hóa đơn');
-            invoiceInput.value = '';
-        })
-        .finally(() => {
-            invoiceInput.disabled = false;
-        });
-}
-
-// Auto-generate invoice code when showroom changes
-document.addEventListener('DOMContentLoaded', function() {
-    const showroomSelect = document.getElementById('showroom_id');
-    if (showroomSelect) {
-        showroomSelect.addEventListener('change', function() {
-            if (this.value) {
-                generateInvoiceCode();
-            }
-        });
-        
-        // Auto-generate on page load if showroom is already selected
-        if (showroomSelect.value) {
-            generateInvoiceCode();
-        }
-    }
-});
-
-// Format payment USD (giống format giá USD)
-function formatPaymentUSD(input) {
-    let value = input.value.replace(/[^\d.]/g, '');
-    const parts = value.split('.');
-    
-    // Chỉ cho phép 1 dấu chấm
-    if (parts.length > 2) {
-        value = parts[0] + '.' + parts.slice(1).join('');
-        parts.length = 2;
-        parts[0] = value.split('.')[0];
-        parts[1] = value.split('.')[1];
-    }
-    
-    // Lưu giá trị số thuần vào hidden input
-    const rawValue = value;
-    const hiddenInput = document.getElementById('paid_usd');
-    if (hiddenInput) {
-        hiddenInput.value = rawValue || '0';
-    }
-    
-    // Format phần nguyên với dấu phẩy
-    if (parts[0]) {
-        parts[0] = parseInt(parts[0]).toLocaleString('en-US');
-    }
-    
-    // Giới hạn 2 chữ số thập phân
-    if (parts[1]) {
-        parts[1] = parts[1].substring(0, 2);
-    }
-    
-    // Ghép lại và hiển thị
-    input.value = parts.length > 1 ? parts[0] + '.' + (parts[1] || '') : parts[0];
-    
-    // Tính tổng đã trả
-    calcTotalPaid();
-}
-
-// Format payment VND
-function formatPaymentVND(input) {
-    let value = input.value.replace(/[^\d]/g, '');
-    
-    // Lưu giá trị số thuần vào hidden input
-    const hiddenInput = document.getElementById('paid_vnd');
-    if (hiddenInput) {
-        hiddenInput.value = value || '0';
-    }
-    
-    // Format và hiển thị
-    if (value) {
-        input.value = parseInt(value).toLocaleString('vi-VN');
-    }
-    
-    // Tính tổng đã trả
-    calcTotalPaid();
-}
-
-// Calculate total paid (NEW LOGIC - theo quy tắc mới)
-function calcTotalPaid() {
-    // Kiểm tra các element tồn tại
-    const rateEl = document.getElementById('rate');
-    const paidUsdEl = document.getElementById('paid_usd'); // hidden input
-    const paidVndEl = document.getElementById('paid_vnd'); // hidden input
-    const totalPaidDisplayEl = document.getElementById('total_paid_display');
-    const totalPaidValueEl = document.getElementById('total_paid_value');
-    const totalPaidUsdDisplayEl = document.getElementById('total_paid_usd_display');
-    const totalPaidLabel = document.getElementById('total_paid_label');
-    const totalUsdEl = document.getElementById('total_usd');
-    const totalVndEl = document.getElementById('total_vnd');
-    const exchangeRateSection = document.getElementById('exchange-rate-section');
-    const rateDescText = document.getElementById('rate-desc-text');
-    
-    if (!paidUsdEl || !paidVndEl || !totalPaidDisplayEl || !totalPaidValueEl) {
-        return;
-    }
-    
-    // Get payment amounts
-    const paidUsd = parseFloat(paidUsdEl.value) || 0;
-    const paidVnd = parseFloat(paidVndEl.value) || 0;
-    
-    // Xác định loại tổng tiền (dựa vào items)
-    // Phải check element hiện hay không, không dựa vào value
-    const totalUsdVisible = totalUsdEl && totalUsdEl.parentElement.style.display !== 'none';
-    const totalVndVisible = totalVndEl && totalVndEl.parentElement.style.display !== 'none';
-    
-    const totalUsdValue = totalUsdVisible ? parseFloat(totalUsdEl.value.replace(/[^\d.]/g, '') || 0) : 0;
-    const totalVndValue = totalVndVisible ? parseFloat(totalVndEl.value.replace(/[^\d]/g, '') || 0) : 0;
-    
-    const hasUsdTotal = totalUsdValue > 0;
-    const hasVndTotal = totalVndValue > 0;
-    
-    // Xác định có cần tỷ giá không
-    let needsExchangeRate = false;
-    let exchangeRateMessage = '';
-    
-    if (hasUsdTotal && !hasVndTotal) {
-        // Chỉ có tổng USD
-        if (paidVnd > 0) {
-            needsExchangeRate = true;
-            exchangeRateMessage = 'Cần quy đổi VND → USD';
-        }
-    } else if (hasVndTotal && !hasUsdTotal) {
-        // Chỉ có tổng VND
-        if (paidUsd > 0) {
-            needsExchangeRate = true;
-            exchangeRateMessage = 'Cần quy đổi USD → VND';
-        }
-    } else if (hasUsdTotal && hasVndTotal) {
-        // Có cả hai loại tổng - cần tỷ giá nếu trả cả 2 loại hoặc trả khác loại
-        if (paidUsd > 0 || paidVnd > 0) {
-            needsExchangeRate = true;
-            exchangeRateMessage = 'Cần quy đổi giữa USD và VND';
-        }
-    }
-    
-    // Hiển thị/ẩn exchange rate section
-    if (exchangeRateSection) {
-        if (needsExchangeRate) {
-            exchangeRateSection.classList.remove('hidden');
-            if (rateDescText) rateDescText.textContent = exchangeRateMessage;
-        } else {
-            exchangeRateSection.classList.add('hidden');
-        }
-    }
-    
-    // Lấy tỷ giá (nếu cần)
-    const exchangeRate = needsExchangeRate ? (parseFloat(unformatNumber(rateEl?.value || '0')) || 0) : 0;
-    
-    // Tính toán tổng đã trả theo logic mới
-    let totalPaidUsd = 0;
-    let totalPaidVnd = 0;
-    
-    if (hasUsdTotal && !hasVndTotal) {
-        // A. Chỉ có tổng USD
-        totalPaidUsd = paidUsd + (paidVnd > 0 && exchangeRate > 0 ? paidVnd / exchangeRate : 0);
-        
-        // Cập nhật label
-        if (totalPaidLabel) totalPaidLabel.textContent = 'Tổng đã trả (USD)';
-        
-        // Hiển thị USD
-        totalPaidDisplayEl.value = '$' + totalPaidUsd.toFixed(2);
-        totalPaidValueEl.value = totalPaidUsd.toFixed(2);
-        
-        if (totalPaidUsdDisplayEl) {
-            if (paidUsd > 0 && paidVnd > 0 && exchangeRate > 0) {
-                totalPaidUsdDisplayEl.textContent = `($${paidUsd.toFixed(2)} USD + ${paidVnd.toLocaleString('vi-VN')}đ ÷ ${exchangeRate.toLocaleString('vi-VN')})`;
-            } else if (paidVnd > 0 && exchangeRate > 0) {
-                totalPaidUsdDisplayEl.textContent = `(${paidVnd.toLocaleString('vi-VN')}đ ÷ ${exchangeRate.toLocaleString('vi-VN')})`;
-            } else {
-                totalPaidUsdDisplayEl.textContent = '';
-            }
-        }
-    } else if (hasVndTotal && !hasUsdTotal) {
-        // B. Chỉ có tổng VND
-        totalPaidVnd = paidVnd + (paidUsd > 0 && exchangeRate > 0 ? paidUsd * exchangeRate : 0);
-        
-        // Cập nhật label
-        if (totalPaidLabel) totalPaidLabel.textContent = 'Tổng đã trả (VND)';
-        
-        // Hiển thị VND
-        totalPaidDisplayEl.value = totalPaidVnd.toLocaleString('vi-VN') + 'đ';
-        totalPaidValueEl.value = Math.round(totalPaidVnd);
-        
-        if (totalPaidUsdDisplayEl) {
-            if (paidUsd > 0 && paidVnd > 0 && exchangeRate > 0) {
-                totalPaidUsdDisplayEl.textContent = `(${paidVnd.toLocaleString('vi-VN')}đ + $${paidUsd.toFixed(2)} USD × ${exchangeRate.toLocaleString('vi-VN')})`;
-            } else if (paidUsd > 0 && exchangeRate > 0) {
-                totalPaidUsdDisplayEl.textContent = `($${paidUsd.toFixed(2)} USD × ${exchangeRate.toLocaleString('vi-VN')})`;
-            } else {
-                totalPaidUsdDisplayEl.textContent = '';
-            }
-        }
-    } else if (hasUsdTotal && hasVndTotal) {
-        // C. Có cả tổng USD và VND
-        totalPaidUsd = paidUsd + (paidVnd > 0 && exchangeRate > 0 ? paidVnd / exchangeRate : 0);
-        totalPaidVnd = paidVnd + (paidUsd > 0 && exchangeRate > 0 ? paidUsd * exchangeRate : 0);
-        
-        // Cập nhật label
-        if (totalPaidLabel) totalPaidLabel.textContent = 'Tổng đã trả (USD / VND)';
-        
-        // Hiển thị cả hai
-        totalPaidDisplayEl.value = `$${totalPaidUsd.toFixed(2)} / ${totalPaidVnd.toLocaleString('vi-VN')}đ`;
-        totalPaidValueEl.value = Math.round(totalPaidVnd);
-        
-        if (totalPaidUsdDisplayEl) {
-            if (paidUsd > 0 && paidVnd > 0) {
-                totalPaidUsdDisplayEl.textContent = `USD: $${paidUsd.toFixed(2)}, VND: ${paidVnd.toLocaleString('vi-VN')}đ`;
-            } else {
-                totalPaidUsdDisplayEl.textContent = '';
-            }
-        }
-    } else {
-        // Không có item nào
-        if (totalPaidLabel) totalPaidLabel.textContent = 'Tổng đã trả';
-        totalPaidDisplayEl.value = '0';
-        totalPaidValueEl.value = '0';
-        if (totalPaidUsdDisplayEl) totalPaidUsdDisplayEl.textContent = '';
-    }
-    
-    // Calculate debt
-    calcDebt();
-}
-
-
-function calcDebt() {
-    const totalUsdEl = document.getElementById('total_usd');
-    const totalVndEl = document.getElementById('total_vnd');
-    const totalPaidValueEl = document.getElementById('total_paid_value');
-    const debtUsdEl = document.getElementById('debt_usd');
-    const debtVndEl = document.getElementById('debt_vnd');
-    const totalPaidDisplayEl = document.getElementById('total_paid_display');
-    const rateEl = document.getElementById('rate');
-    const paidUsdEl = document.getElementById('paid_usd');
-    const paidVndEl = document.getElementById('paid_vnd');
-    
-    if (!totalUsdEl || !totalVndEl || !totalPaidValueEl || !debtUsdEl || !rateEl) {
-        return; // Nếu thiếu element thì không tính
-    }
-    
-    // Lấy tổng tiền USD
-    const totalUsdTxt = totalUsdEl.value.replace(/[^\d.]/g, '');
-    const totalUsd = parseFloat(totalUsdTxt) || 0;
-    
-    // Lấy tổng tiền VND
-    const totalVndTxt = totalVndEl.value.replace(/[^\d]/g, '');
-    const totalVnd = parseFloat(totalVndTxt) || 0;
-    
-    // Lấy tỉ giá
-    const rateTxt = rateEl.value.replace(/[^\d]/g, '');
-    const exchangeRate = parseFloat(rateTxt) || 0;
-    
-    // Lấy số tiền đã trả USD và VND
-    const paidUsdValue = parseFloat(paidUsdEl.value) || 0;
-    const paidVndValue = parseFloat(paidVndEl.value) || 0;
-    
-    // Tính tổng đã trả theo USD:
-    // - USD: cộng trực tiếp (không cần tỉ giá)
-    // - VND: quy đổi sang USD theo tỉ giá
-    const totalPaidUsd = paidUsdValue + (paidVndValue / exchangeRate);
-    
-    // Tính công nợ theo USD (USD làm chuẩn)
-    const debtUsd = Math.max(0, totalUsd - totalPaidUsd);
-    
-    // Tính công nợ VND (để tham khảo)
-    const debtVnd = debtUsd * exchangeRate;
-    
-    // Hiển thị công nợ USD
-    debtUsdEl.value = '$' + debtUsd.toFixed(2);
-    
-    // Hiển thị công nợ VND (quy đổi từ USD)
-    if (debtVndEl) {
-        if (debtUsd > 0) {
-            debtVndEl.value = '≈ ' + debtVnd.toLocaleString('vi-VN') + 'đ (theo tỉ giá ' + exchangeRate.toLocaleString('vi-VN') + ')';
-        } else {
-            debtVndEl.value = '';
-        }
-    }
-    
-    // Warning if overpaid
-    const totalPaidVnd = parseFloat(totalPaidValueEl.value) || 0;
-    if (totalPaidVnd > totalVnd && totalPaidVnd > 0 && totalPaidDisplayEl) {
-        totalPaidDisplayEl.classList.add('border-orange-500', 'bg-orange-100');
-        totalPaidDisplayEl.title = 'Số tiền trả vượt quá tổng tiền hóa đơn';
-        setTimeout(() => {
-            totalPaidDisplayEl.classList.remove('border-orange-500', 'bg-orange-100');
-            totalPaidDisplayEl.title = '';
-        }, 3000);
-    }
-}
-
-// Load công nợ hiện tại khi chọn khách hàng
-function loadCurrentDebt(customerId) {
-    if (customerId) {
-        fetch(`/sales/api/customers/${customerId}/debt`)
-            .then(response => response.json())
-            .then(data => {
-                const debtUsd = data.total_debt_usd || 0;
-                const debtVnd = data.total_debt_vnd || 0;
-                
-                // Hiển thị riêng USD và VND
-                let debtDisplay = '';
-                if (debtUsd > 0 && debtVnd > 0) {
-                    debtDisplay = '$' + debtUsd.toLocaleString('en-US', {minimumFractionDigits: 2}) + ' + ' + Math.round(debtVnd).toLocaleString('vi-VN') + 'đ';
-                } else if (debtUsd > 0) {
-                    debtDisplay = '$' + debtUsd.toLocaleString('en-US', {minimumFractionDigits: 2});
-                } else if (debtVnd > 0) {
-                    debtDisplay = Math.round(debtVnd).toLocaleString('vi-VN') + 'đ';
-                } else {
-                    debtDisplay = '0đ';
-                }
-                
-                document.getElementById('current_debt').value = debtDisplay;
-            })
-            .catch(error => {
-                console.error('Error loading customer debt:', error);
-                document.getElementById('current_debt').value = '0đ';
-            });
-    } else {
-        document.getElementById('current_debt').value = '0đ';
-    }
-}
-
-// Before form submit, validate and remove formatting (only for direct submit, not from confirm modal)
-document.getElementById('sales-form').addEventListener('submit', function(e) {
-    // If form is being submitted from confirm modal, allow it
-    if (this.dataset.confirmed === 'true') {
-        this.dataset.confirmed = 'false';
-        return true;
-    }
-    
-    // Otherwise prevent default and show confirm modal
-    e.preventDefault();
-    confirmSaveOrder('save');
-    return false;
-});
-
-document.addEventListener('DOMContentLoaded', () => {
-    addItem();
-    calcDebt(); // Tính công nợ ngay khi load trang
-});
-
-// Image modal functions
-function showImageModal(imageSrc, imageTitle) {
-    const modal = document.getElementById('imageModal');
-    const modalImage = document.getElementById('modalImage');
-    const modalTitle = document.getElementById('modalImageTitle');
-    
-    modalImage.src = imageSrc;
-    modalTitle.textContent = imageTitle;
-    modal.classList.remove('hidden');
-    document.body.style.overflow = 'hidden';
-}
-
-function closeImageModal() {
-    const modal = document.getElementById('imageModal');
-    modal.classList.add('hidden');
-    document.body.style.overflow = 'auto';
-}
-
-// Close modal with ESC key
-document.addEventListener('keydown', function(event) {
-    if (event.key === 'Escape') {
-        closeImageModal();
-    }
-});
-
-// Form validation không cần thiết nữa vì số tiền đã tự động điều chỉnh
-
-// Show notification function
-function showNotification(message, type = 'info') {
-    const notification = document.createElement('div');
-    notification.className = `fixed top-4 right-4 z-50 px-6 py-4 rounded-lg shadow-lg transform transition-all duration-300 ${
-        type === 'error' ? 'bg-red-500 text-white' :
-        type === 'success' ? 'bg-green-500 text-white' :
-        type === 'warning' ? 'bg-yellow-500 text-white' :
-        'bg-blue-500 text-white'
-    }`;
-    notification.innerHTML = `
-        <div class="flex items-center">
-            <i class="fas ${
-                type === 'error' ? 'fa-exclamation-circle' :
-                type === 'success' ? 'fa-check-circle' :
-                type === 'warning' ? 'fa-exclamation-triangle' :
-                'fa-info-circle'
-            } mr-2"></i>
-            <span>${message}</span>
-        </div>
-    `;
-    document.body.appendChild(notification);
-    
-    setTimeout(() => {
-        notification.classList.add('opacity-0', 'translate-x-full');
-        setTimeout(() => notification.remove(), 300);
-    }, 4000);
-}
-
-// Confirm save order function
-function confirmSaveOrder(action) {
-    // First validate the form
-    const form = document.getElementById('sales-form');
-    
-    // VALIDATION: Kiểm tra có ít nhất 1 sản phẩm với tranh HOẶC khung được chọn
-    const rows = document.querySelectorAll('#items-body tr');
-    let hasValidProduct = false;
-    let productCount = 0;
-    
-    rows.forEach((row, index) => {
-        const paintingInput = row.querySelector('input[name*="[painting_id]"]');
-        const paintingId = paintingInput ? paintingInput.value : '';
-        const frameInput = row.querySelector('input[name*="[frame_id]"]');
-        const frameId = frameInput ? frameInput.value : '';
-        const qtyInput = row.querySelector('input[name*="[quantity]"]');
-        const qty = qtyInput ? (parseInt(qtyInput.value) || 0) : 0;
-        
-        if ((paintingId || frameId) && qty > 0) {
-            hasValidProduct = true;
-            productCount++;
-        }
-    });
-    
-    if (!hasValidProduct) {
-        showNotification('Vui lòng chọn ít nhất 1 sản phẩm (tranh/khung) trước khi lưu!', 'error');
-        document.querySelector('#items-body')?.scrollIntoView({ behavior: 'smooth', block: 'center' });
-        return false;
-    }
-    
-    // Kiểm tra các trường bắt buộc khác
-    const showroomEl = document.getElementById('showroom_id');
-    if (showroomEl && !showroomEl.value) {
-        showNotification('Vui lòng chọn Showroom!', 'error');
-        showroomEl.focus();
-        return false;
-    }
-    
-    const customerNameEl = document.getElementById('customer_name');
-    if (customerNameEl && !customerNameEl.value.trim()) {
-        showNotification('Vui lòng nhập tên khách hàng!', 'error');
-        customerNameEl.focus();
-        return false;
-    }
-    
-    // Build order summary for confirmation
-    const customerName = customerNameEl.value;
-    const totalUsd = document.getElementById('total_usd').value;
-    const totalVnd = document.getElementById('total_vnd').value;
-    const paidUsdDisplay = document.getElementById('paid_usd_display').value;
-    const paidVndDisplay = document.getElementById('paid_vnd_display').value;
-    
-    let summaryHtml = `
-        <div class="space-y-2">
-            <div class="flex justify-between">
-                <span class="text-gray-600">Khách hàng:</span>
-                <span class="font-medium">${customerName}</span>
-            </div>
-            <div class="flex justify-between">
-                <span class="text-gray-600">Số sản phẩm:</span>
-                <span class="font-medium">${productCount} sản phẩm</span>
-            </div>
-            <div class="border-t pt-2 mt-2">
-                <div class="flex justify-between text-blue-600">
-                    <span>Tổng USD:</span>
-                    <span class="font-bold">${totalUsd}</span>
-                </div>
-                <div class="flex justify-between text-green-600">
-                    <span>Tổng VND:</span>
-                    <span class="font-bold">${totalVnd}</span>
+                <!-- Các trường ẩn sẽ hiển thị khi chọn khách hàng -->
+                <div id="customer-details" class="grid grid-cols-1 md:grid-cols-3 gap-3 hidden">
+                    <div>
+                        <label class="block text-xs font-medium text-gray-700 mb-1">Số điện thoại</label>
+                        <input type="tel" name="customer_phone" id="customer_phone" readonly
+                            class="w-full px-3 py-1.5 text-sm border border-gray-300 rounded-lg bg-gray-50 focus:ring-2 focus:ring-green-500"
+                            placeholder="Tự động điền...">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-medium text-gray-700 mb-1">Email</label>
+                        <input type="email" name="customer_email" id="customer_email" readonly
+                            class="w-full px-3 py-1.5 text-sm border border-gray-300 rounded-lg bg-gray-50 focus:ring-2 focus:ring-green-500"
+                            placeholder="Tự động điền...">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-medium text-gray-700 mb-1">Địa chỉ</label>
+                        <input type="text" name="customer_address" id="customer_address" readonly
+                            class="w-full px-3 py-1.5 text-sm border border-gray-300 rounded-lg bg-gray-50 focus:ring-2 focus:ring-green-500"
+                            placeholder="Tự động điền...">
+                    </div>
                 </div>
             </div>
-            <div class="border-t pt-2 mt-2">
-                <div class="flex justify-between">
-                    <span class="text-gray-600">Thanh toán USD:</span>
-                    <span class="font-medium">${paidUsdDisplay}</span>
+
+            <!-- BƯỚC 3: DANH SÁCH SẢN PHẨM -->
+            <div class="bg-blue-50 border-l-4 border-blue-500 p-4 rounded-lg mb-4">
+                <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-3 gap-2">
+                    <h3 class="text-base font-bold text-purple-900 flex items-center">
+                        <span
+                            class="bg-purple-500 text-white w-7 h-7 rounded-full flex items-center justify-center mr-2 text-sm">3</span>
+                        Danh sách sản phẩm
+                    </h3>
+                    <button type="button" onclick="addItem()"
+                        class="bg-purple-500 hover:bg-purple-600 text-white px-4 py-1.5 rounded-lg transition-colors font-medium text-sm whitespace-nowrap">
+                        <i class="fas fa-plus mr-1"></i>Thêm sản phẩm
+                    </button>
                 </div>
-                <div class="flex justify-between">
-                    <span class="text-gray-600">Thanh toán VND:</span>
-                    <span class="font-medium">${paidVndDisplay}</span>
+                <div class="#">
+                    <table class="w-full border-collapse text-sm">
+                        <thead>
+                            <tr class="bg-purple-100">
+                                <th class="px-2 py-2 text-left text-xs font-medium text-gray-700 border">Hình</th>
+                                <th class="px-2 py-2 text-left text-xs font-medium text-gray-700 border">Mô tả(Mã
+                                    tranh/Khung)</th>
+                                <th class="px-2 py-2 text-center text-xs font-medium text-gray-700 border">SL</th>
+                                <th class="px-2 py-2 text-center text-xs font-medium text-gray-700 border">Loại tiền</th>
+                                <th class="px-2 py-2 text-right text-xs font-medium text-gray-700 border">Giá USD</th>
+                                <th class="px-2 py-2 text-right text-xs font-medium text-gray-700 border">Giá VND</th>
+                                <th class="px-2 py-2 text-center text-xs font-medium text-gray-700 border">Giảm(%)</th>
+                                <th class="px-2 py-2 text-center text-xs font-medium text-gray-700 border">Giảm tiền</th>
+                                <th class="px-2 py-2 text-center text-xs font-medium text-gray-700 border">Xóa</th>
+                            </tr>
+                        </thead>
+                        <tbody id="items-body" class="bg-white"></tbody>
+                    </table>
                 </div>
             </div>
-        </div>
-    `;
-    
-    document.getElementById('confirm-order-summary').innerHTML = summaryHtml;
-    
-    // Set the action
-    document.getElementById('form-action').value = action;
-    
-    // Show confirmation modal
-    showConfirmModal('confirm-save-modal', {
-        title: action === 'save_and_print' ? 'Xác nhận lưu & in hóa đơn' : 'Xác nhận lưu hóa đơn',
-        message: 'Vui lòng kiểm tra thông tin hóa đơn trước khi lưu:',
-        onConfirm: function() {
-            // Submit the form
-            submitSalesForm();
-        }
-    });
-}
 
-// Submit form after confirmation
-function submitSalesForm() {
-    const form = document.getElementById('sales-form');
-    
-    // Mark form as confirmed
-    form.dataset.confirmed = 'true';
-    
-    // Unformat all values before submit
-    const rateEl = document.getElementById('rate');
-    if (rateEl) rateEl.value = unformatNumber(rateEl.value);
-    
-    document.querySelectorAll('[name*="[price_usd]"]').forEach(input => {
-        input.value = unformatNumber(input.value);
-    });
-    document.querySelectorAll('[name*="[price_vnd]"]').forEach(input => {
-        input.value = unformatNumber(input.value);
-    });
-    
-    // Unformat payment USD and VND
-    const paidUsdInput = document.getElementById('paid_usd');
-    const paidVndInput = document.getElementById('paid_vnd');
-    if (paidUsdInput) {
-        paidUsdInput.value = unformatNumber(paidUsdInput.value);
-    }
-    if (paidVndInput) {
-        paidVndInput.value = unformatNumber(paidVndInput.value);
-    }
-    
-    // Convert BOTH to USD or VND
-    document.querySelectorAll('[name*="[currency]"]').forEach(select => {
-        if (select.value === 'BOTH') {
-            const row = select.closest('tr');
-            const usdVal = parseFloat(unformatNumber(row.querySelector('[name*="[price_usd]"]').value)) || 0;
-            select.value = (usdVal > 0) ? 'USD' : 'VND';
-        }
-    });
-    
-    form.submit();
-}
-</script>
+            <!-- BƯỚC 4: TÍNH TOÁN & THANH TOÁN -->
+            <div class="bg-blue-50 border-l-4 border-blue-500 p-4 rounded-lg mb-4">
+                <h3 class="text-base font-bold text-orange-900 mb-3 flex items-center">
+                    <span
+                        class="bg-orange-500 text-white w-7 h-7 rounded-full flex items-center justify-center mr-2 text-sm">4</span>
+                    Tính toán & Thanh toán
+                </h3>
 
+                <!-- Giảm giá và Tổng tiền -->
+                <div class="grid grid-cols-2 md:grid-cols-5 gap-3 mb-3">
+                    <div>
+                        <label class="block text-xs font-medium text-gray-700 mb-1">Giảm giá (%)</label>
+                        <input type="number" name="discount_percent" id="discount"
+                            class="w-full px-3 py-1.5 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500"
+                            value="0" min="0" max="100" step="1" onchange="calc()">
+                    </div>
+                    <div id="discount-usd-section">
+                        <label class="block text-xs font-medium text-blue-700 mb-1">Giảm tiền (USD)</label>
+                        <input type="text" name="discount_amount_usd" id="discount_amount_usd"
+                            class="w-full px-3 py-1.5 text-sm border border-blue-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                            value="0.00" oninput="formatUSD(this); calc()" onblur="formatUSD(this)" placeholder="0.00">
+                    </div>
+                    <div id="discount-vnd-section">
+                        <label class="block text-xs font-medium text-green-700 mb-1">Giảm tiền (VND)</label>
+                        <input type="text" name="discount_amount_vnd" id="discount_amount_vnd"
+                            class="w-full px-3 py-1.5 text-sm border border-green-300 rounded-lg focus:ring-2 focus:ring-green-500"
+                            value="0" oninput="formatVND(this); calc()" onblur="formatVND(this)" placeholder="0">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-medium text-blue-700 mb-1">Phí vận chuyển (USD)</label>
+                        <input type="text" name="shipping_fee_usd" id="shipping_fee_usd"
+                            class="w-full px-3 py-1.5 text-sm border border-blue-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                            value="0.00" oninput="formatUSD(this); calc()" onblur="formatUSD(this)" placeholder="0.00">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-medium text-green-700 mb-1">Phí vận chuyển (VND)</label>
+                        <input type="text" name="shipping_fee_vnd" id="shipping_fee_vnd"
+                            class="w-full px-3 py-1.5 text-sm border border-green-300 rounded-lg focus:ring-2 focus:ring-green-500"
+                            value="0" oninput="formatVND(this); calc()" onblur="formatVND(this)" placeholder="0">
+                    </div>
+                </div>
 
-@endpush
+                <div class="grid grid-cols-2 gap-3 mb-3">
+                    <div>
+                        <label class="block text-xs font-medium text-blue-900 mb-1">Tổng USD</label>
+                        <input type="text" id="total_usd" readonly
+                            class="w-full px-3 py-1.5 text-sm border-2 border-blue-300 rounded-lg bg-white font-bold text-blue-600">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-medium text-green-900 mb-1">Tổng VND</label>
+                        <input type="text" id="total_vnd" readonly
+                            class="w-full px-3 py-1.5 text-sm border-2 border-green-300 rounded-lg bg-white font-bold text-green-600">
+                    </div>
+                </div>
 
-<!-- Image Modal -->
-<div id="imageModal" class="fixed inset-0 bg-black bg-opacity-75 z-50 hidden flex items-center justify-center p-4" onclick="closeImageModal()">
-    <div class="relative max-w-4xl max-h-full" onclick="event.stopPropagation()">
-        <button onclick="closeImageModal()" class="absolute -top-10 right-0 text-white hover:text-gray-300">
-            <i class="fas fa-times text-2xl"></i>
-        </button>
-        <img id="modalImage" src="" alt="" class="max-w-full max-h-[90vh] object-contain rounded-lg">
-        <p id="modalImageTitle" class="text-white text-center mt-4 text-lg"></p>
+                <!-- Thanh toán -->
+                <div class="bg-white p-3 rounded-lg border border-orange-200">
+                    <h4 class="text-sm font-semibold text-gray-700 mb-2">Thanh toán</h4>
+
+                    <!-- Tỷ giá (Hiện khi cần quy đổi) -->
+                    <div id="exchange-rate-section"
+                        class="mb-3 bg-yellow-50 border border-yellow-200 rounded-lg p-3 hidden">
+                        <label class="block text-xs font-medium text-yellow-900 mb-1">
+                            <i class="fas fa-exchange-alt mr-1"></i>Tỷ giá (VND/USD) <span id="rate-required-mark"
+                                class="text-red-500">*</span>
+                            <span class="text-xs font-normal" id="rate-hint-text">(Cần quy đổi)</span>
+                        </label>
+                        <input type="text" name="exchange_rate" id="rate"
+                            class="w-full px-3 py-1.5 text-sm border border-yellow-300 rounded-lg focus:ring-2 focus:ring-yellow-500 bg-white"
+                            value="{{ number_format(round($currentRate->rate ?? 0)) }}"
+                            oninput="formatVND(this); calcTotalPaid()" onblur="formatVND(this)">
+                        <p class="text-xs text-yellow-700 mt-1" id="rate-description">
+                            <i class="fas fa-info-circle mr-1"></i><span id="rate-desc-text">Tỷ giá để quy đổi giữa USD và
+                                VND</span>
+                        </p>
+                    </div>
+
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-3 mb-3">
+                        <div>
+                            <label class="block text-xs font-medium text-gray-700 mb-1">Trả bằng USD</label>
+                            <input type="text" id="paid_usd_display"
+                                class="w-full px-3 py-1.5 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500"
+                                value="0.00" oninput="formatPaymentUSD(this)" placeholder="0.00">
+                            <input type="hidden" name="payment_usd" id="paid_usd" value="0">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-medium text-gray-700 mb-1">Trả bằng VND</label>
+                            <input type="text" id="paid_vnd_display"
+                                class="w-full px-3 py-1.5 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500"
+                                value="0" oninput="formatPaymentVND(this)" placeholder="0">
+                            <input type="hidden" name="payment_vnd" id="paid_vnd" value="0">
+                        </div>
+                    </div>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-3 mb-3">
+                        <div>
+                            <label class="block text-xs font-medium text-gray-700 mb-1">Phương thức</label>
+                            <select name="payment_method" id="payment_method"
+                                class="w-full px-3 py-1.5 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500">
+                                <option value="cash">Tiền mặt</option>
+                                <option value="bank_transfer">Chuyển khoản</option>
+                                <option value="card">Thẻ</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block text-xs font-medium text-blue-900 mb-1" id="total_paid_label">Tổng đã
+                                trả</label>
+                            <input type="text" id="total_paid_display" readonly
+                                class="w-full px-3 py-1.5 text-sm border border-blue-300 rounded-lg bg-blue-50 font-bold text-blue-600">
+                            <input type="hidden" name="payment_amount" id="total_paid_value">
+                            <div id="total_paid_usd_display" class="text-xs text-blue-700 font-medium mt-1"></div>
+                        </div>
+                    </div>
+                    <div class="grid grid-cols-1 gap-3">
+                        <div>
+                            <label class="block text-xs font-medium text-yellow-900 mb-1">Nợ cũ của khách hàng</label>
+                            <input type="text" id="current_debt" readonly
+                                class="w-full px-3 py-1.5 text-sm border border-yellow-300 rounded-lg bg-white font-bold text-orange-600">
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Ghi chú -->
+            <div class="mb-4">
+                <label class="block text-xs font-medium text-gray-700 mb-1">Ghi chú</label>
+                <textarea name="notes" rows="2"
+                    class="w-full px-3 py-1.5 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                    placeholder="Nhập ghi chú (không bắt buộc)..."></textarea>
+            </div>
+
+            <!-- Buttons -->
+            <div class="flex flex-col sm:flex-row gap-2 pt-4 border-t-2 border-gray-200">
+                <button type="button" onclick="confirmSaveOrder('save')"
+                    class="flex-1 bg-green-600 hover:bg-green-700 text-white py-2 rounded-lg transition-colors font-medium shadow-lg text-sm">
+                    <i class="fas fa-save mr-1"></i>Lưu hóa đơn
+                </button>
+                <button type="button" onclick="confirmSaveOrder('save_and_print')"
+                    class="flex-1 bg-blue-600 hover:bg-blue-700 text-white py-2 rounded-lg transition-colors font-medium shadow-lg text-sm">
+                    <i class="fas fa-print mr-1"></i>Lưu & In
+                </button>
+                <a href="{{ route('sales.index') }}"
+                    class="flex-1 bg-gray-500 hover:bg-gray-600 text-white py-2 rounded-lg transition-colors font-medium text-center shadow-lg text-sm">
+                    <i class="fas fa-times mr-1"></i>Hủy bỏ
+                </a>
+            </div>
+            <!-- Hidden input for action -->
+            <input type="hidden" name="action" id="form-action" value="save">
+        </form>
     </div>
-</div>
+
+    <!-- Confirm Modal for Sales -->
+    <x-confirm-modal id="confirm-save-modal" title="Xác nhận lưu hóa đơn" message="Bạn có chắc chắn muốn lưu hóa đơn này?"
+        confirmText="Đồng ý lưu" cancelText="Quay lại" type="success">
+        <div id="confirm-order-summary" class="bg-gray-50 rounded-lg p-3 text-sm">
+            <!-- Order summary will be populated by JavaScript -->
+        </div>
+    </x-confirm-modal>
+
+    @push('scripts')
+        <script src="{{ asset('js/number-format.js') }}"></script>
+        <script>
+            let idx = 0;
+            const paintings = @json($paintings);
+            const supplies = @json($supplies);
+            const customers = @json($customers);
+
+            // Xử lý autocomplete khách hàng
+            function filterCustomers(query) {
+                const suggestions = document.getElementById('customer-suggestions');
+
+                if (!query) {
+                    suggestions.classList.add('hidden');
+                    return;
+                }
+
+                const filtered = customers.filter(c =>
+                    c.name.toLowerCase().includes(query.toLowerCase()) ||
+                    c.phone.includes(query)
+                );
+
+                if (filtered.length > 0) {
+                    suggestions.innerHTML = filtered.map(c => `
+                                            <div class="px-3 py-2 hover:bg-blue-50 cursor-pointer border-b" onclick="selectCustomer(${c.id})">
+                                                <div class="font-medium">${c.name}</div>
+                                                <div class="text-xs text-gray-500">${c.phone}</div>
+                                            </div>
+                                        `).join('');
+                    suggestions.classList.remove('hidden');
+                } else {
+                    suggestions.classList.add('hidden');
+                }
+            }
+
+            // Hiển thị tất cả khách hàng khi hover/focus
+            function showAllCustomers() {
+                const suggestions = document.getElementById('customer-suggestions');
+                const input = document.getElementById('customer_name');
+
+                // Nếu đã có khách hàng được chọn, không hiển thị dropdown
+                if (document.getElementById('customer_id').value) {
+                    return;
+                }
+
+                if (customers.length > 0) {
+                    suggestions.innerHTML = customers.map(c => `
+                                            <div class="px-3 py-2 hover:bg-blue-50 cursor-pointer border-b" onclick="selectCustomer(${c.id})">
+                                                <div class="font-medium">${c.name}</div>
+                                                <div class="text-xs text-gray-500">${c.phone}</div>
+                                            </div>
+                                        `).join('');
+                    suggestions.classList.remove('hidden');
+                }
+            }
+
+            function selectCustomer(id) {
+                const customer = customers.find(c => c.id == id);
+                if (customer) {
+                    document.getElementById('customer_id').value = customer.id;
+                    document.getElementById('customer_name').value = customer.name;
+                    document.getElementById('customer_phone').value = customer.phone || '';
+                    document.getElementById('customer_email').value = customer.email || '';
+                    document.getElementById('customer_address').value = customer.address || '';
+                    document.getElementById('customer-suggestions').classList.add('hidden');
+
+                    // Hiển thị các trường thông tin khách hàng
+                    document.getElementById('customer-details').classList.remove('hidden');
+
+                    // Load công nợ hiện tại
+                    loadCurrentDebt(customer.id);
+                }
+            }
+
+            // Ẩn suggestions khi click bên ngoài
+            document.addEventListener('click', function (e) {
+                // Hide customer suggestions
+                if (!e.target.closest('#customer_name') && !e.target.closest('#customer-suggestions')) {
+                    document.getElementById('customer-suggestions').classList.add('hidden');
+                }
+
+                // Hide item suggestions for all rows
+                document.querySelectorAll('[id^="item-suggestions-"]').forEach(suggestion => {
+                    const idx = suggestion.id.replace('item-suggestions-', '');
+                    if (!e.target.closest(`#item-search-${idx}`) && !e.target.closest(`#item-suggestions-${idx}`)) {
+                        suggestion.classList.add('hidden');
+                    }
+                });
+            });
+
+            function addItem() {
+                const tbody = document.getElementById('items-body');
+                const tr = document.createElement('tr');
+                tr.className = 'border hover:bg-purple-50';
+                tr.innerHTML = `
+                                        <td class="px-3 py-3 border">
+                                            <img id="img-${idx}" src="/images/no-image.svg" class="w-20 h-16 object-cover rounded border shadow-sm">
+                                        </td>
+                                        <td class="px-3 py-3 border">
+                                            <div class="relative">
+                                                <input type="text" 
+                                                       id="item-search-${idx}"
+                                                       class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 mb-2" 
+                                                       placeholder="Tìm tranh hoặc khung..."
+                                                       autocomplete="off"
+                                                       onkeyup="filterItems(this.value, ${idx})"
+                                                       onfocus="showItemSuggestions(${idx})">
+                                                <input type="hidden" name="items[${idx}][painting_id]" id="painting-id-${idx}">
+                                                <input type="hidden" name="items[${idx}][frame_id]" id="frame-id-${idx}">
+                                                <input type="hidden" name="items[${idx}][description]" id="desc-${idx}">
+                                                <div id="item-suggestions-${idx}" class="absolute z-20 w-full bg-white border border-gray-300 rounded-lg mt-1 max-h-60 overflow-y-auto hidden shadow-lg"></div>
+                                                <div id="item-details-${idx}" class="text-xs text-gray-600 space-y-0.5 hidden"></div>
+                                            </div>
+                                        </td>
+                                        <td class="px-3 py-3 border">
+                                            <input type="number" name="items[${idx}][quantity]" required class="w-full px-3 py-2 border border-gray-300 rounded-lg text-center font-medium" value="1" min="1" onchange="calc()">
+                                        </td>
+                                         <td class="px-3 py-3 border">
+                                            <select name="items[${idx}][currency]" class="w-full px-3 py-2 border border-gray-300 rounded-lg" onchange="togCur(this, ${idx})">
+                                                <option value="USD">USD</option>
+                                                <option value="VND" selected>VND</option>
+                                            </select>
+                                        </td>
+                                        <td class="px-3 py-3 border">
+                                            <input type="text" name="items[${idx}][price_usd]" id="usd-input-${idx}" class="usd-${idx} w-full px-3 py-2 border border-gray-300 rounded-lg text-right" value="0.00" oninput="formatUSD(this)" onblur="formatUSD(this)" onchange="calc()">
+                                        </td>
+                                        <td class="px-3 py-3 border">
+                                            <input type="text" name="items[${idx}][price_vnd]" id="vnd-input-${idx}" class="vnd-${idx} w-full px-3 py-2 border border-gray-300 rounded-lg text-right" value="0" oninput="formatVND(this)" onblur="formatVND(this)" onchange="calc()">
+                                        </td>
+                                        <td class="px-3 py-3 border text-center">
+                                            <input type="number" name="items[${idx}][discount_percent]" class="w-full px-3 py-2 border border-gray-300 rounded-lg text-center" value="0" min="0" max="100" step="1" onchange="calc()">
+                                        </td>
+                                        <td class="px-3 py-3 border text-center">
+                                            <div class="space-y-1">
+                                                <input type="text" name="items[${idx}][discount_amount_usd]" id="discount-usd-${idx}" class="discount-usd-${idx} w-full px-2 py-1 text-sm border border-blue-300 rounded text-right hidden" value="0.00" oninput="formatUSD(this); calc()" onblur="formatUSD(this)" placeholder="USD">
+                                                <input type="text" name="items[${idx}][discount_amount_vnd]" id="discount-vnd-${idx}" class="discount-vnd-${idx} w-full px-2 py-1 text-sm border border-green-300 rounded text-right" value="0" oninput="formatVND(this); calc()" onblur="formatVND(this)" placeholder="VND">
+                                            </div>
+                                        </td>
+                                        <td class="px-3 py-3 border text-center">
+                                            <button type="button" class="w-8 h-8 flex items-center justify-center bg-red-100 text-red-600 rounded-lg hover:bg-red-200 transition-colors" onclick="this.closest('tr').remove();calc()">
+                                                <i class="fas fa-trash"></i>
+                                            </button>
+                                        </td>
+                                    `;
+                tbody.appendChild(tr);
+                idx++;
+            }
+
+            // Search functions for paintings
+            function filterPaintings(query, idx) {
+                const suggestions = document.getElementById(`painting-suggestions-${idx}`);
+
+                if (!query || query.length < 1) {
+                    suggestions.classList.add('hidden');
+                    return;
+                }
+
+                fetch(`{{ route('sales.api.search.paintings') }}?q=${encodeURIComponent(query)}`)
+                    .then(response => response.json())
+                    .then(paintings => {
+                        if (paintings.length > 0) {
+                            suggestions.innerHTML = paintings.map(p => `
+                                                    <div class="px-3 py-2 hover:bg-blue-50 cursor-pointer border-b" onclick="selectPainting(${p.id}, ${idx})">
+                                                        <div class="font-medium text-sm">${p.code} - ${p.name}</div>
+                                                        <div class="text-xs text-gray-500">USD: $${p.price_usd || 0} | VND: ${(p.price_vnd || 0).toLocaleString()}đ</div>
+                                                    </div>
+                                                `).join('');
+                            suggestions.classList.remove('hidden');
+                        } else {
+                            suggestions.classList.add('hidden');
+                        }
+                    })
+                    .catch(error => {
+                        console.error('Error searching paintings:', error);
+                        suggestions.classList.add('hidden');
+                    });
+            }
+
+            function showPaintingSuggestions(idx) {
+                const input = document.getElementById(`painting-search-${idx}`);
+                const suggestions = document.getElementById(`painting-suggestions-${idx}`);
+
+                if (input && input.value.length >= 1) {
+                    filterPaintings(input.value, idx);
+                }
+            }
+
+            // Search functions for supplies
+            function filterSupplies(query, idx) {
+                const suggestions = document.getElementById(`supply-suggestions-${idx}`);
+
+                if (!query || query.length < 1) {
+                    suggestions.classList.add('hidden');
+                    return;
+                }
+
+                fetch(`{{ route('sales.api.search.supplies') }}?q=${encodeURIComponent(query)}`)
+                    .then(response => response.json())
+                    .then(supplies => {
+                        if (supplies.length > 0) {
+                            suggestions.innerHTML = supplies.map(s => `
+                                                    <div class="px-3 py-2 hover:bg-blue-50 cursor-pointer border-b" onclick="selectSupply(${s.id}, ${idx})">
+                                                        <div class="font-medium text-sm">${s.name}</div>
+                                                        <div class="text-xs text-gray-500">Đơn vị: ${s.unit || 'N/A'}</div>
+                                                    </div>
+                                                `).join('');
+                            suggestions.classList.remove('hidden');
+                        } else {
+                            suggestions.classList.add('hidden');
+                        }
+                    })
+                    .catch(error => {
+                        console.error('Error searching supplies:', error);
+                        suggestions.classList.add('hidden');
+                    });
+            }
+
+            function showSupplySuggestions(idx) {
+                const input = document.getElementById(`supply-search-${idx}`);
+                const suggestions = document.getElementById(`supply-suggestions-${idx}`);
+
+                if (input.value.length >= 1) {
+                    filterSupplies(input.value, idx);
+                }
+            }
+
+            function selectSupply(supplyId, idx) {
+                fetch(`{{ route('sales.api.supply', '') }}/${supplyId}`)
+                    .then(response => response.json())
+                    .then(supply => {
+                        document.getElementById(`supply-id-${idx}`).value = supply.id;
+                        document.getElementById(`supply-search-${idx}`).value = supply.name;
+
+                        document.getElementById(`supply-suggestions-${idx}`).classList.add('hidden');
+                    })
+                    .catch(error => {
+                        console.error('Error fetching supply:', error);
+                    });
+            }
+
+            // Search functions for frames
+            function filterFrames(query, idx) {
+                const suggestions = document.getElementById(`frame-suggestions-${idx}`);
+
+                if (!query || query.length < 1) {
+                    suggestions.classList.add('hidden');
+                    return;
+                }
+
+                fetch(`{{ route('sales.api.search.frames') }}?q=${encodeURIComponent(query)}`)
+                    .then(response => response.json())
+                    .then(frames => {
+                        if (frames.length > 0) {
+                            suggestions.innerHTML = frames.map(f => `
+                                                    <div class="px-3 py-2 hover:bg-blue-50 cursor-pointer border-b" onclick="selectFrame(${f.id}, ${idx})">
+                                                        <div class="font-medium text-sm">${f.name}</div>
+                                                        <div class="text-xs text-gray-500">Giá: ${(f.cost_price || 0).toLocaleString()}đ</div>
+                                                    </div>
+                                                `).join('');
+                            suggestions.classList.remove('hidden');
+                        } else {
+                            suggestions.classList.add('hidden');
+                        }
+                    })
+                    .catch(error => {
+                        console.error('Error searching frames:', error);
+                        suggestions.classList.add('hidden');
+                    });
+            }
+
+            function showFrameSuggestions(idx) {
+                const input = document.getElementById(`frame-search-${idx}`);
+                const suggestions = document.getElementById(`frame-suggestions-${idx}`);
+
+                if (input && input.value.length >= 1) {
+                    filterFrames(input.value, idx);
+                }
+            }
+
+
+            // NEW: Search function for both paintings and frames
+            function filterItems(query, idx) {
+                const suggestions = document.getElementById(`item-suggestions-${idx}`);
+
+                if (!query || query.length < 1) {
+                    suggestions.classList.add('hidden');
+                    return;
+                }
+
+                // Fetch both paintings and frames
+                Promise.all([
+                    fetch(`{{ route('sales.api.search.paintings') }}?q=${encodeURIComponent(query)}`).then(r => r.json()),
+                    fetch(`{{ route('sales.api.search.frames') }}?q=${encodeURIComponent(query)}`).then(r => r.json())
+                ])
+                    .then(([paintings, frames]) => {
+                        let html = '';
+
+                        // Add paintings section
+                        if (paintings.length > 0) {
+                            html += '<div class="px-3 py-1 bg-gray-100 text-xs font-bold text-gray-600">TRANH</div>';
+                            html += paintings.map(p => {
+                                const stock = p.quantity || 0;
+                                const isOutOfStock = stock <= 0;
+                                const bgClass = isOutOfStock ? 'bg-red-50 hover:bg-red-100' : 'hover:bg-blue-50';
+                                const stockColor = isOutOfStock ? 'text-red-600 font-bold' : (stock < 5 ? 'text-orange-600' : 'text-green-600');
+                                const stockText = isOutOfStock ? '❌ HẾT HÀNG' : `Tồn: ${stock}`;
+
+                                return `
+                                                    <div class="px-3 py-2 ${bgClass} cursor-pointer border-b" onclick="selectPainting(${p.id}, ${idx})">
+                                                        <div class="flex justify-between items-start">
+                                                            <div class="font-medium text-sm">${p.code} - ${p.name}</div>
+                                                            <span class="text-xs ${stockColor} ml-2 whitespace-nowrap">${stockText}</span>
+                                                        </div>
+                                                        <div class="text-xs text-gray-500">USD: ${p.price_usd || 0} | VND: ${(p.price_vnd || 0).toLocaleString()}đ</div>
+                                                    </div>
+                                                `;
+                            }).join('');
+                        }
+
+                        // Add frames section
+                        if (frames.length > 0) {
+                            html += '<div class="px-3 py-1 bg-gray-100 text-xs font-bold text-gray-600">KHUNG</div>';
+                            html += frames.map(f => `
+                                                <div class="px-3 py-2 hover:bg-green-50 cursor-pointer border-b" onclick="selectFrame(${f.id}, ${idx})">
+                                                    <div class="font-medium text-sm">${f.name}</div>
+                                                    <div class="text-xs text-gray-500">Giá: ${(f.cost_price || 0).toLocaleString()}đ</div>
+                                                </div>
+                                            `).join('');
+                        }
+
+                        if (html) {
+                            suggestions.innerHTML = html;
+                            suggestions.classList.remove('hidden');
+                        } else {
+                            suggestions.classList.add('hidden');
+                        }
+                    })
+                    .catch(error => {
+                        console.error('Error searching items:', error);
+                        suggestions.classList.add('hidden');
+                    });
+            }
+
+            function showItemSuggestions(idx) {
+                const input = document.getElementById(`item-search-${idx}`);
+
+                if (input && input.value.length >= 1) {
+                    filterItems(input.value, idx);
+                }
+            }
+
+            function selectPainting(paintingId, idx) {
+                fetch(`{{ route('sales.api.painting', '') }}/${paintingId}`)
+                    .then(response => response.json())
+                    .then(painting => {
+                        // Clear frame selection
+                        document.getElementById(`frame-id-${idx}`).value = '';
+
+                        // Set painting data
+                        document.getElementById(`painting-id-${idx}`).value = painting.id;
+                        document.getElementById(`item-search-${idx}`).value = `${painting.code} - ${painting.name}`;
+                        document.getElementById(`desc-${idx}`).value = painting.name;
+
+                        const usdInput = document.querySelector(`.usd-${idx}`);
+                        const vndInput = document.querySelector(`.vnd-${idx}`);
+                        const currencySelect = document.querySelector(`select[name="items[${idx}][currency]"]`);
+
+                        const hasUsd = painting.price_usd && parseFloat(painting.price_usd) > 0;
+                        const hasVnd = painting.price_vnd && parseFloat(painting.price_vnd) > 0;
+
+                        // Tự động chọn loại tiền dựa vào giá sản phẩm
+                        if (hasUsd && hasVnd) {
+                            // Có cả 2 giá → Chọn BOTH
+                            if (currencySelect) {
+                                currencySelect.value = 'BOTH';
+                                togCur(currencySelect, idx);
+                            }
+                            if (usdInput) {
+                                usdInput.value = parseFloat(painting.price_usd).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+                            }
+                            if (vndInput) {
+                                vndInput.value = parseInt(painting.price_vnd).toLocaleString('en-US');
+                            }
+                        } else if (hasUsd) {
+                            // Chỉ có giá USD → Chọn USD
+                            if (currencySelect) {
+                                currencySelect.value = 'USD';
+                                togCur(currencySelect, idx);
+                            }
+                            if (usdInput) {
+                                usdInput.value = parseFloat(painting.price_usd).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+                            }
+                            if (vndInput) {
+                                vndInput.value = '0';
+                            }
+                        } else if (hasVnd) {
+                            // Chỉ có giá VND → Chọn VND
+                            if (currencySelect) {
+                                currencySelect.value = 'VND';
+                                togCur(currencySelect, idx);
+                            }
+                            if (usdInput) {
+                                usdInput.value = '0.00';
+                            }
+                            if (vndInput) {
+                                vndInput.value = parseInt(painting.price_vnd).toLocaleString('en-US');
+                            }
+                        } else {
+                            // Không có giá nào → Mặc định VND
+                            if (currencySelect) {
+                                currencySelect.value = 'VND';
+                                togCur(currencySelect, idx);
+                            }
+                            if (usdInput) usdInput.value = '0.00';
+                            if (vndInput) vndInput.value = '0';
+                        }
+
+                        const imgUrl = painting.image ? `/storage/${painting.image}` : '/images/no-image.svg';
+                        const imgElement = document.getElementById(`img-${idx}`);
+                        imgElement.src = imgUrl;
+                        imgElement.onclick = () => showImageModal(imgUrl, painting.name);
+                        imgElement.classList.add('cursor-pointer', 'hover:opacity-80', 'transition-opacity');
+
+                        // Display painting details
+                        const detailsDiv = document.getElementById(`item-details-${idx}`);
+                        if (detailsDiv) {
+                            let detailsHTML = '';
+                            if (painting.code) detailsHTML += `<div><span class="font-semibold">Mã:</span> ${painting.code}</div>`;
+                            if (painting.artist) detailsHTML += `<div><span class="font-semibold">Họa sĩ:</span> ${painting.artist}</div>`;
+                            if (painting.material) detailsHTML += `<div><span class="font-semibold">Chất liệu:</span> ${painting.material}</div>`;
+                            if (painting.width && painting.height) detailsHTML += `<div><span class="font-semibold">Kích thước:</span> ${painting.width} x ${painting.height} cm</div>`;
+                            if (painting.paint_year) detailsHTML += `<div><span class="font-semibold">Năm:</span> ${painting.paint_year}</div>`;
+
+                            if (detailsHTML) {
+                                detailsDiv.innerHTML = detailsHTML;
+                                detailsDiv.classList.remove('hidden');
+                            } else {
+                                detailsDiv.classList.add('hidden');
+                            }
+                        }
+
+                        // Kiểm tra tồn kho
+                        const stock = painting.quantity || 0;
+                        const itemSearchInput = document.getElementById(`item-search-${idx}`);
+
+                        if (stock <= 0) {
+                            // Tranh hết hàng - cảnh báo
+                            itemSearchInput.classList.add('border-red-500', 'bg-red-50');
+                            itemSearchInput.title = '⚠️ Tranh này đã hết hàng!';
+
+                            if (typeof showWarning === 'function') {
+                                showWarning(itemSearchInput, '❌ Tranh "' + painting.name + '" đã HẾT HÀNG! Tồn kho: 0');
+                            }
+
+                            // Thêm badge hết hàng vào input
+                            itemSearchInput.value = `${painting.code} - ${painting.name} [HẾT HÀNG]`;
+                        } else if (stock < 5) {
+                            // Sắp hết hàng - cảnh báo nhẹ
+                            itemSearchInput.classList.add('border-orange-400', 'bg-orange-50');
+                            itemSearchInput.title = ' Tranh này  Còn: ' + stock;
+
+                            if (typeof showWarning === 'function') {
+                                showWarning(itemSearchInput, ' Tranh "' + painting.name + '"  Còn: ' + stock);
+                            }
+                        } else {
+                            itemSearchInput.classList.remove('border-red-500', 'bg-red-50', 'border-orange-400', 'bg-orange-50');
+                            itemSearchInput.title = '';
+                        }
+
+                        document.getElementById(`item-suggestions-${idx}`).classList.add('hidden');
+                        calc();
+                    })
+                    .catch(error => {
+                        console.error('Error fetching painting:', error);
+                    });
+            }
+
+            function selectFrame(frameId, idx) {
+                fetch(`{{ route('frames.api.frame', '') }}/${frameId}`)
+                    .then(response => response.json())
+                    .then(frame => {
+                        // Clear painting selection
+                        document.getElementById(`painting-id-${idx}`).value = '';
+
+                        // Set frame data
+                        document.getElementById(`frame-id-${idx}`).value = frame.id;
+                        document.getElementById(`item-search-${idx}`).value = frame.name;
+                        document.getElementById(`desc-${idx}`).value = frame.name;
+
+                        // Set price from frame cost_price
+                        const vndInput = document.querySelector(`.vnd-${idx}`);
+                        if (vndInput) {
+                            const vndValue = parseInt(frame.cost_price) || 0;
+                            vndInput.value = vndValue.toLocaleString('en-US');
+                        }
+
+                        // Set currency dropdown to VND and hide USD input
+                        const currencySelect = document.querySelector(`select[name="items[${idx}][currency]"]`);
+                        if (currencySelect) {
+                            currencySelect.value = 'VND';
+                            // Trigger the togCur function to hide/show appropriate inputs
+                            togCur(currencySelect, idx);
+                        }
+
+                        // Clear image for frame
+                        const imgElement = document.getElementById(`img-${idx}`);
+                        imgElement.src = '/images/frame-placeholder.svg';
+
+                        document.getElementById(`item-suggestions-${idx}`).classList.add('hidden');
+                        calc();
+                    })
+                    .catch(error => {
+                        console.error('Error fetching frame:', error);
+                    });
+            }
+
+            function togCur(sel, i) {
+                const cur = sel.value;
+                const usdInput = document.getElementById(`usd-input-${i}`);
+                const vndInput = document.getElementById(`vnd-input-${i}`);
+                const discountUsdInput = document.getElementById(`discount-usd-${i}`);
+                const discountVndInput = document.getElementById(`discount-vnd-${i}`);
+
+                if (!usdInput || !vndInput) {
+                    console.error('Inputs not found!');
+                    return;
+                }
+
+                if (cur === 'USD') {
+                    usdInput.classList.remove('hidden');
+                    vndInput.classList.add('hidden');
+                    // Hiện input giảm tiền USD, ẩn VND
+                    if (discountUsdInput) discountUsdInput.classList.remove('hidden');
+                    if (discountVndInput) discountVndInput.classList.add('hidden');
+                } else if (cur === 'VND') {
+                    usdInput.classList.add('hidden');
+                    vndInput.classList.remove('hidden');
+                    // Ẩn input giảm tiền USD, hiện VND
+                    if (discountUsdInput) discountUsdInput.classList.add('hidden');
+                    if (discountVndInput) discountVndInput.classList.remove('hidden');
+                } else { // BOTH
+                    usdInput.classList.remove('hidden');
+                    vndInput.classList.remove('hidden');
+                    // Hiện cả 2 input giảm tiền
+                    if (discountUsdInput) discountUsdInput.classList.remove('hidden');
+                    if (discountVndInput) discountVndInput.classList.remove('hidden');
+                }
+
+                calc();
+            }
+
+            function calc() {
+                const disc = parseFloat(document.getElementById('discount').value) || 0;
+                const rows = document.querySelectorAll('#items-body tr');
+
+                // Lấy tỷ giá hiện tại
+                const rateEl = document.getElementById('rate');
+                const exchangeRate = parseFloat(unformatNumber(rateEl?.value || '0')) || 0;
+
+                // Lấy giảm tiền cố định cho toàn bộ hóa đơn
+                const discountAmountUsdEl = document.getElementById('discount_amount_usd');
+                const discountAmountVndEl = document.getElementById('discount_amount_vnd');
+                const discountFixedUsd = parseFloat(unformatNumber(discountAmountUsdEl?.value || '0')) || 0;
+                const discountFixedVnd = parseFloat(unformatNumber(discountAmountVndEl?.value || '0')) || 0;
+
+                // Lấy phí vận chuyển
+                const shippingFeeUsdEl = document.getElementById('shipping_fee_usd');
+                const shippingFeeVndEl = document.getElementById('shipping_fee_vnd');
+                const shippingFeeUsd = parseFloat(unformatNumber(shippingFeeUsdEl?.value || '0')) || 0;
+                const shippingFeeVnd = parseFloat(unformatNumber(shippingFeeVndEl?.value || '0')) || 0;
+
+                let totUsd = 0;
+                let totVnd = 0;
+                let hasUsdItems = false;
+                let hasVndItems = false;
+
+                rows.forEach((row, i) => {
+                    const qty = parseFloat(row.querySelector('[name*="[quantity]"]')?.value || 0);
+                    const cur = row.querySelector('[name*="[currency]"]')?.value || 'USD';
+                    const itemDiscountPercent = parseFloat(row.querySelector('[name*="[discount_percent]"]')?.value || 0);
+
+                    // Lấy giảm tiền cố định của từng item
+                    const itemDiscountAmountUsd = parseFloat(unformatNumber(row.querySelector('[name*="[discount_amount_usd]"]')?.value || '0')) || 0;
+                    const itemDiscountAmountVnd = parseFloat(unformatNumber(row.querySelector('[name*="[discount_amount_vnd]"]')?.value || '0')) || 0;
+
+                    if (cur === 'USD') {
+                        hasUsdItems = true;
+                        // Sản phẩm giá USD
+                        const usdVal = unformatNumber(row.querySelector('[name*="[price_usd]"]')?.value || '0');
+                        const usd = parseFloat(usdVal);
+                        const subtotal = usd * qty;
+                        // Giảm % trước
+                        const itemDiscountAmtPercent = subtotal * (itemDiscountPercent / 100);
+                        // Sau đó trừ giảm tiền cố định (USD)
+                        const itemTotalUsd = Math.max(0, subtotal - itemDiscountAmtPercent - itemDiscountAmountUsd);
+                        totUsd += itemTotalUsd;
+                    } else if (cur === 'VND') {
+                        hasVndItems = true;
+                        // Sản phẩm giá VND
+                        const vndVal = unformatNumber(row.querySelector('[name*="[price_vnd]"]')?.value || '0');
+                        const vnd = parseFloat(vndVal);
+                        const subtotal = vnd * qty;
+                        // Giảm % trước
+                        const itemDiscountAmtPercent = subtotal * (itemDiscountPercent / 100);
+                        // Sau đó trừ giảm tiền cố định (VND)
+                        const itemTotalVnd = Math.max(0, subtotal - itemDiscountAmtPercent - itemDiscountAmountVnd);
+                        totVnd += itemTotalVnd;
+                    } else { // BOTH
+                        hasUsdItems = true;
+                        hasVndItems = true;
+                        // Sản phẩm có cả 2 giá - tính riêng từng loại
+                        const usdVal = unformatNumber(row.querySelector('[name*="[price_usd]"]')?.value || '0');
+                        const vndVal = unformatNumber(row.querySelector('[name*="[price_vnd]"]')?.value || '0');
+                        const usd = parseFloat(usdVal);
+                        const vnd = parseFloat(vndVal);
+                        const subtotalUsd = usd * qty;
+                        const subtotalVnd = vnd * qty;
+                        const itemDiscountAmtUsdPercent = subtotalUsd * (itemDiscountPercent / 100);
+                        const itemDiscountAmtVndPercent = subtotalVnd * (itemDiscountPercent / 100);
+                        totUsd += Math.max(0, subtotalUsd - itemDiscountAmtUsdPercent - itemDiscountAmountUsd);
+                        totVnd += Math.max(0, subtotalVnd - itemDiscountAmtVndPercent - itemDiscountAmountVnd);
+                    }
+                });
+
+                // Áp dụng giảm giá chung (% và số tiền cố định)
+                const discAmtPercentUsd = totUsd * (disc / 100);
+                const discAmtPercentVnd = totVnd * (disc / 100);
+                // Tổng giảm = giảm % + giảm số tiền cố định
+                // Tổng cộng = (Subtotal - Disount) + Shipping
+                const finalUsd = Math.max(0, totUsd - discAmtPercentUsd - discountFixedUsd) + shippingFeeUsd;
+                const finalVnd = Math.max(0, totVnd - discAmtPercentVnd - discountFixedVnd) + shippingFeeVnd;
+
+                // Hiển thị tổng tiền dựa trên loại item
+                const totalUsdEl = document.getElementById('total_usd');
+                const totalVndEl = document.getElementById('total_vnd');
+                const discountUsdSection = document.getElementById('discount-usd-section');
+                const discountVndSection = document.getElementById('discount-vnd-section');
+
+                if (hasUsdItems && hasVndItems) {
+                    // Có cả USD và VND - hiển thị cả 2
+                    totalUsdEl.value = '$' + finalUsd.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+                    totalVndEl.value = finalVnd.toLocaleString('vi-VN') + 'đ';
+                    totalUsdEl.parentElement.style.display = 'block';
+                    totalVndEl.parentElement.style.display = 'block';
+                    // Hiện cả 2 section giảm tiền
+                    if (discountUsdSection) discountUsdSection.style.display = 'block';
+                    if (discountVndSection) discountVndSection.style.display = 'block';
+                } else if (hasUsdItems) {
+                    // Chỉ có item USD - chỉ hiển thị USD
+                    totalUsdEl.value = '$' + finalUsd.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+                    totalVndEl.value = '';
+                    totalUsdEl.parentElement.style.display = 'block';
+                    totalVndEl.parentElement.style.display = 'none';
+                    // Chỉ hiện section giảm tiền USD
+                    if (discountUsdSection) discountUsdSection.style.display = 'block';
+                    if (discountVndSection) discountVndSection.style.display = 'none';
+                } else if (hasVndItems) {
+                    // Chỉ có item VND - chỉ hiển thị VND
+                    totalUsdEl.value = '';
+                    totalVndEl.value = finalVnd.toLocaleString('vi-VN') + 'đ';
+                    totalUsdEl.parentElement.style.display = 'none';
+                    totalVndEl.parentElement.style.display = 'block';
+                    // Chỉ hiện section giảm tiền VND
+                    if (discountUsdSection) discountUsdSection.style.display = 'none';
+                    if (discountVndSection) discountVndSection.style.display = 'block';
+                } else {
+                    // Không có item nào
+                    totalUsdEl.value = '';
+                    totalVndEl.value = '';
+                    totalUsdEl.parentElement.style.display = 'block';
+                    totalVndEl.parentElement.style.display = 'block';
+                    // Hiện cả 2 section giảm tiền
+                    if (discountUsdSection) discountUsdSection.style.display = 'block';
+                    if (discountVndSection) discountVndSection.style.display = 'block';
+                }
+
+                calcDebt();
+            }
+
+
+            // Generate invoice code from API
+            function generateInvoiceCode() {
+                const showroomSelect = document.getElementById('showroom_id');
+                const showroomId = showroomSelect.value;
+
+                if (!showroomId) {
+                    alert('Vui lòng chọn showroom trước!');
+                    showroomSelect.focus();
+                    return;
+                }
+
+                // Show loading
+                const invoiceInput = document.getElementById('invoice_code');
+                invoiceInput.value = 'Đang tạo...';
+                invoiceInput.disabled = true;
+
+                // Call API to generate invoice code
+                fetch(`{{ route('sales.api.generate-invoice-code') }}?showroom_id=${showroomId}`)
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.success) {
+                            invoiceInput.value = data.invoice_code;
+                        } else {
+                            alert('Lỗi: ' + data.message);
+                            invoiceInput.value = '';
+                        }
+                    })
+                    .catch(error => {
+                        console.error('Error:', error);
+                        alert('Có lỗi xảy ra khi tạo mã hóa đơn');
+                        invoiceInput.value = '';
+                    })
+                    .finally(() => {
+                        invoiceInput.disabled = false;
+                    });
+            }
+
+            // Auto-generate invoice code when showroom changes
+            document.addEventListener('DOMContentLoaded', function () {
+                const showroomSelect = document.getElementById('showroom_id');
+                if (showroomSelect) {
+                    showroomSelect.addEventListener('change', function () {
+                        if (this.value) {
+                            generateInvoiceCode();
+                        }
+                    });
+
+                    // Auto-generate on page load if showroom is already selected
+                    if (showroomSelect.value) {
+                        generateInvoiceCode();
+                    }
+                }
+            });
+
+            // Format payment USD (giống format giá USD)
+            function formatPaymentUSD(input) {
+                let value = input.value.replace(/[^\d.]/g, '');
+                const parts = value.split('.');
+
+                // Chỉ cho phép 1 dấu chấm
+                if (parts.length > 2) {
+                    value = parts[0] + '.' + parts.slice(1).join('');
+                    parts.length = 2;
+                    parts[0] = value.split('.')[0];
+                    parts[1] = value.split('.')[1];
+                }
+
+                // Lưu giá trị số thuần vào hidden input
+                const rawValue = value;
+                const hiddenInput = document.getElementById('paid_usd');
+                if (hiddenInput) {
+                    hiddenInput.value = rawValue || '0';
+                }
+
+                // Format phần nguyên với dấu phẩy
+                if (parts[0]) {
+                    parts[0] = parseInt(parts[0]).toLocaleString('en-US');
+                }
+
+                // Giới hạn 2 chữ số thập phân
+                if (parts[1]) {
+                    parts[1] = parts[1].substring(0, 2);
+                }
+
+                // Ghép lại và hiển thị
+                input.value = parts.length > 1 ? parts[0] + '.' + (parts[1] || '') : parts[0];
+
+                // Tính tổng đã trả
+                calcTotalPaid();
+            }
+
+            // Format payment VND
+            function formatPaymentVND(input) {
+                let value = input.value.replace(/[^\d]/g, '');
+
+                // Lưu giá trị số thuần vào hidden input
+                const hiddenInput = document.getElementById('paid_vnd');
+                if (hiddenInput) {
+                    hiddenInput.value = value || '0';
+                }
+
+                // Format và hiển thị
+                if (value) {
+                    input.value = parseInt(value).toLocaleString('vi-VN');
+                }
+
+                // Tính tổng đã trả
+                calcTotalPaid();
+            }
+
+            // Calculate total paid (NEW LOGIC - theo quy tắc mới)
+            function calcTotalPaid() {
+                // Kiểm tra các element tồn tại
+                const rateEl = document.getElementById('rate');
+                const paidUsdEl = document.getElementById('paid_usd'); // hidden input
+                const paidVndEl = document.getElementById('paid_vnd'); // hidden input
+                const totalPaidDisplayEl = document.getElementById('total_paid_display');
+                const totalPaidValueEl = document.getElementById('total_paid_value');
+                const totalPaidUsdDisplayEl = document.getElementById('total_paid_usd_display');
+                const totalPaidLabel = document.getElementById('total_paid_label');
+                const totalUsdEl = document.getElementById('total_usd');
+                const totalVndEl = document.getElementById('total_vnd');
+                const exchangeRateSection = document.getElementById('exchange-rate-section');
+                const rateDescText = document.getElementById('rate-desc-text');
+
+                if (!paidUsdEl || !paidVndEl || !totalPaidDisplayEl || !totalPaidValueEl) {
+                    return;
+                }
+
+                // Get payment amounts
+                const paidUsd = parseFloat(paidUsdEl.value) || 0;
+                const paidVnd = parseFloat(paidVndEl.value) || 0;
+
+                // Xác định loại tổng tiền (dựa vào items)
+                // Phải check element hiện hay không, không dựa vào value
+                const totalUsdVisible = totalUsdEl && totalUsdEl.parentElement.style.display !== 'none';
+                const totalVndVisible = totalVndEl && totalVndEl.parentElement.style.display !== 'none';
+
+                const totalUsdValue = totalUsdVisible ? parseFloat(totalUsdEl.value.replace(/[^\d.]/g, '') || 0) : 0;
+                const totalVndValue = totalVndVisible ? parseFloat(totalVndEl.value.replace(/[^\d]/g, '') || 0) : 0;
+
+                const hasUsdTotal = totalUsdValue > 0;
+                const hasVndTotal = totalVndValue > 0;
+
+                // Xác định có cần tỷ giá không
+                let needsExchangeRate = false;
+                let exchangeRateMessage = '';
+
+                if (hasUsdTotal && !hasVndTotal) {
+                    // Chỉ có tổng USD
+                    if (paidVnd > 0) {
+                        needsExchangeRate = true;
+                        exchangeRateMessage = 'Cần quy đổi VND → USD';
+                    }
+                } else if (hasVndTotal && !hasUsdTotal) {
+                    // Chỉ có tổng VND
+                    if (paidUsd > 0) {
+                        needsExchangeRate = true;
+                        exchangeRateMessage = 'Cần quy đổi USD → VND';
+                    }
+                } else if (hasUsdTotal && hasVndTotal) {
+                    // Có cả hai loại tổng - cần tỷ giá nếu trả cả 2 loại hoặc trả khác loại
+                    if (paidUsd > 0 || paidVnd > 0) {
+                        needsExchangeRate = true;
+                        exchangeRateMessage = 'Cần quy đổi giữa USD và VND';
+                    }
+                }
+
+                // Hiển thị/ẩn exchange rate section
+                if (exchangeRateSection) {
+                    if (needsExchangeRate) {
+                        exchangeRateSection.classList.remove('hidden');
+                        if (rateDescText) rateDescText.textContent = exchangeRateMessage;
+                    } else {
+                        exchangeRateSection.classList.add('hidden');
+                    }
+                }
+
+                // Lấy tỷ giá (nếu cần)
+                const exchangeRate = needsExchangeRate ? (parseFloat(unformatNumber(rateEl?.value || '0')) || 0) : 0;
+
+                // Tính toán tổng đã trả theo logic mới
+                let totalPaidUsd = 0;
+                let totalPaidVnd = 0;
+
+                if (hasUsdTotal && !hasVndTotal) {
+                    // A. Chỉ có tổng USD
+                    totalPaidUsd = paidUsd + (paidVnd > 0 && exchangeRate > 0 ? paidVnd / exchangeRate : 0);
+
+                    // Cập nhật label
+                    if (totalPaidLabel) totalPaidLabel.textContent = 'Tổng đã trả (USD)';
+
+                    // Hiển thị USD
+                    totalPaidDisplayEl.value = '$' + totalPaidUsd.toFixed(2);
+                    totalPaidValueEl.value = totalPaidUsd.toFixed(2);
+
+                    if (totalPaidUsdDisplayEl) {
+                        if (paidUsd > 0 && paidVnd > 0 && exchangeRate > 0) {
+                            totalPaidUsdDisplayEl.textContent = `($${paidUsd.toFixed(2)} USD + ${paidVnd.toLocaleString('vi-VN')}đ ÷ ${exchangeRate.toLocaleString('vi-VN')})`;
+                        } else if (paidVnd > 0 && exchangeRate > 0) {
+                            totalPaidUsdDisplayEl.textContent = `(${paidVnd.toLocaleString('vi-VN')}đ ÷ ${exchangeRate.toLocaleString('vi-VN')})`;
+                        } else {
+                            totalPaidUsdDisplayEl.textContent = '';
+                        }
+                    }
+                } else if (hasVndTotal && !hasUsdTotal) {
+                    // B. Chỉ có tổng VND
+                    totalPaidVnd = paidVnd + (paidUsd > 0 && exchangeRate > 0 ? paidUsd * exchangeRate : 0);
+
+                    // Cập nhật label
+                    if (totalPaidLabel) totalPaidLabel.textContent = 'Tổng đã trả (VND)';
+
+                    // Hiển thị VND
+                    totalPaidDisplayEl.value = totalPaidVnd.toLocaleString('vi-VN') + 'đ';
+                    totalPaidValueEl.value = Math.round(totalPaidVnd);
+
+                    if (totalPaidUsdDisplayEl) {
+                        if (paidUsd > 0 && paidVnd > 0 && exchangeRate > 0) {
+                            totalPaidUsdDisplayEl.textContent = `(${paidVnd.toLocaleString('vi-VN')}đ + $${paidUsd.toFixed(2)} USD × ${exchangeRate.toLocaleString('vi-VN')})`;
+                        } else if (paidUsd > 0 && exchangeRate > 0) {
+                            totalPaidUsdDisplayEl.textContent = `($${paidUsd.toFixed(2)} USD × ${exchangeRate.toLocaleString('vi-VN')})`;
+                        } else {
+                            totalPaidUsdDisplayEl.textContent = '';
+                        }
+                    }
+                } else if (hasUsdTotal && hasVndTotal) {
+                    // C. Có cả tổng USD và VND
+                    totalPaidUsd = paidUsd + (paidVnd > 0 && exchangeRate > 0 ? paidVnd / exchangeRate : 0);
+                    totalPaidVnd = paidVnd + (paidUsd > 0 && exchangeRate > 0 ? paidUsd * exchangeRate : 0);
+
+                    // Cập nhật label
+                    if (totalPaidLabel) totalPaidLabel.textContent = 'Tổng đã trả (USD / VND)';
+
+                    // Hiển thị cả hai
+                    totalPaidDisplayEl.value = `$${totalPaidUsd.toFixed(2)} / ${totalPaidVnd.toLocaleString('vi-VN')}đ`;
+                    totalPaidValueEl.value = Math.round(totalPaidVnd);
+
+                    if (totalPaidUsdDisplayEl) {
+                        if (paidUsd > 0 && paidVnd > 0) {
+                            totalPaidUsdDisplayEl.textContent = `USD: $${paidUsd.toFixed(2)}, VND: ${paidVnd.toLocaleString('vi-VN')}đ`;
+                        } else {
+                            totalPaidUsdDisplayEl.textContent = '';
+                        }
+                    }
+                } else {
+                    // Không có item nào
+                    if (totalPaidLabel) totalPaidLabel.textContent = 'Tổng đã trả';
+                    totalPaidDisplayEl.value = '0';
+                    totalPaidValueEl.value = '0';
+                    if (totalPaidUsdDisplayEl) totalPaidUsdDisplayEl.textContent = '';
+                }
+
+                // Calculate debt
+                calcDebt();
+            }
+
+
+            function calcDebt() {
+                const totalUsdEl = document.getElementById('total_usd');
+                const totalVndEl = document.getElementById('total_vnd');
+                const totalPaidValueEl = document.getElementById('total_paid_value');
+                const debtUsdEl = document.getElementById('debt_usd');
+                const debtVndEl = document.getElementById('debt_vnd');
+                const totalPaidDisplayEl = document.getElementById('total_paid_display');
+                const rateEl = document.getElementById('rate');
+                const paidUsdEl = document.getElementById('paid_usd');
+                const paidVndEl = document.getElementById('paid_vnd');
+
+                if (!totalUsdEl || !totalVndEl || !totalPaidValueEl || !debtUsdEl || !rateEl) {
+                    return; // Nếu thiếu element thì không tính
+                }
+
+                // Lấy tổng tiền USD
+                const totalUsdTxt = totalUsdEl.value.replace(/[^\d.]/g, '');
+                const totalUsd = parseFloat(totalUsdTxt) || 0;
+
+                // Lấy tổng tiền VND
+                const totalVndTxt = totalVndEl.value.replace(/[^\d]/g, '');
+                const totalVnd = parseFloat(totalVndTxt) || 0;
+
+                // Lấy tỉ giá
+                const rateTxt = rateEl.value.replace(/[^\d]/g, '');
+                const exchangeRate = parseFloat(rateTxt) || 0;
+
+                // Lấy số tiền đã trả USD và VND
+                const paidUsdValue = parseFloat(paidUsdEl.value) || 0;
+                const paidVndValue = parseFloat(paidVndEl.value) || 0;
+
+                // Tính tổng đã trả theo USD:
+                // - USD: cộng trực tiếp (không cần tỉ giá)
+                // - VND: quy đổi sang USD theo tỉ giá
+                const totalPaidUsd = paidUsdValue + (paidVndValue / exchangeRate);
+
+                // Tính công nợ theo USD (USD làm chuẩn)
+                const debtUsd = Math.max(0, totalUsd - totalPaidUsd);
+
+                // Tính công nợ VND (để tham khảo)
+                const debtVnd = debtUsd * exchangeRate;
+
+                // Hiển thị công nợ USD
+                debtUsdEl.value = '$' + debtUsd.toFixed(2);
+
+                // Hiển thị công nợ VND (quy đổi từ USD)
+                if (debtVndEl) {
+                    if (debtUsd > 0) {
+                        debtVndEl.value = '≈ ' + debtVnd.toLocaleString('vi-VN') + 'đ (theo tỉ giá ' + exchangeRate.toLocaleString('vi-VN') + ')';
+                    } else {
+                        debtVndEl.value = '';
+                    }
+                }
+
+                // Warning if overpaid
+                const totalPaidVnd = parseFloat(totalPaidValueEl.value) || 0;
+                if (totalPaidVnd > totalVnd && totalPaidVnd > 0 && totalPaidDisplayEl) {
+                    totalPaidDisplayEl.classList.add('border-orange-500', 'bg-orange-100');
+                    totalPaidDisplayEl.title = 'Số tiền trả vượt quá tổng tiền hóa đơn';
+                    setTimeout(() => {
+                        totalPaidDisplayEl.classList.remove('border-orange-500', 'bg-orange-100');
+                        totalPaidDisplayEl.title = '';
+                    }, 3000);
+                }
+            }
+
+            // Load công nợ hiện tại khi chọn khách hàng
+            function loadCurrentDebt(customerId) {
+                if (customerId) {
+                    fetch(`/sales/api/customers/${customerId}/debt`)
+                        .then(response => response.json())
+                        .then(data => {
+                            const debtUsd = data.total_debt_usd || 0;
+                            const debtVnd = data.total_debt_vnd || 0;
+
+                            // Hiển thị riêng USD và VND
+                            let debtDisplay = '';
+                            if (debtUsd > 0 && debtVnd > 0) {
+                                debtDisplay = '$' + debtUsd.toLocaleString('en-US', { minimumFractionDigits: 2 }) + ' + ' + Math.round(debtVnd).toLocaleString('vi-VN') + 'đ';
+                            } else if (debtUsd > 0) {
+                                debtDisplay = '$' + debtUsd.toLocaleString('en-US', { minimumFractionDigits: 2 });
+                            } else if (debtVnd > 0) {
+                                debtDisplay = Math.round(debtVnd).toLocaleString('vi-VN') + 'đ';
+                            } else {
+                                debtDisplay = '0đ';
+                            }
+
+                            document.getElementById('current_debt').value = debtDisplay;
+                        })
+                        .catch(error => {
+                            console.error('Error loading customer debt:', error);
+                            document.getElementById('current_debt').value = '0đ';
+                        });
+                } else {
+                    document.getElementById('current_debt').value = '0đ';
+                }
+            }
+
+            // Before form submit, validate and remove formatting (only for direct submit, not from confirm modal)
+            document.getElementById('sales-form').addEventListener('submit', function (e) {
+                // If form is being submitted from confirm modal, allow it
+                if (this.dataset.confirmed === 'true') {
+                    this.dataset.confirmed = 'false';
+                    return true;
+                }
+
+                // Otherwise prevent default and show confirm modal
+                e.preventDefault();
+                confirmSaveOrder('save');
+                return false;
+            });
+
+            document.addEventListener('DOMContentLoaded', () => {
+                addItem();
+                calcDebt(); // Tính công nợ ngay khi load trang
+            });
+
+            // Image modal functions
+            function showImageModal(imageSrc, imageTitle) {
+                const modal = document.getElementById('imageModal');
+                const modalImage = document.getElementById('modalImage');
+                const modalTitle = document.getElementById('modalImageTitle');
+
+                modalImage.src = imageSrc;
+                modalTitle.textContent = imageTitle;
+                modal.classList.remove('hidden');
+                document.body.style.overflow = 'hidden';
+            }
+
+            function closeImageModal() {
+                const modal = document.getElementById('imageModal');
+                modal.classList.add('hidden');
+                document.body.style.overflow = 'auto';
+            }
+
+            // Close modal with ESC key
+            document.addEventListener('keydown', function (event) {
+                if (event.key === 'Escape') {
+                    closeImageModal();
+                }
+            });
+
+            // Form validation không cần thiết nữa vì số tiền đã tự động điều chỉnh
+
+            // Show notification function
+            function showNotification(message, type = 'info') {
+                const notification = document.createElement('div');
+                notification.className = `fixed top-4 right-4 z-50 px-6 py-4 rounded-lg shadow-lg transform transition-all duration-300 ${type === 'error' ? 'bg-red-500 text-white' :
+                    type === 'success' ? 'bg-green-500 text-white' :
+                        type === 'warning' ? 'bg-yellow-500 text-white' :
+                            'bg-blue-500 text-white'
+                    }`;
+                notification.innerHTML = `
+                                        <div class="flex items-center">
+                                            <i class="fas ${type === 'error' ? 'fa-exclamation-circle' :
+                        type === 'success' ? 'fa-check-circle' :
+                            type === 'warning' ? 'fa-exclamation-triangle' :
+                                'fa-info-circle'
+                    } mr-2"></i>
+                                            <span>${message}</span>
+                                        </div>
+                                    `;
+                document.body.appendChild(notification);
+
+                setTimeout(() => {
+                    notification.classList.add('opacity-0', 'translate-x-full');
+                    setTimeout(() => notification.remove(), 300);
+                }, 4000);
+            }
+
+            // Confirm save order function
+            function confirmSaveOrder(action) {
+                // First validate the form
+                const form = document.getElementById('sales-form');
+
+                // VALIDATION: Kiểm tra có ít nhất 1 sản phẩm với tranh HOẶC khung được chọn
+                const rows = document.querySelectorAll('#items-body tr');
+                let hasValidProduct = false;
+                let productCount = 0;
+
+                rows.forEach((row, index) => {
+                    const paintingInput = row.querySelector('input[name*="[painting_id]"]');
+                    const paintingId = paintingInput ? paintingInput.value : '';
+                    const frameInput = row.querySelector('input[name*="[frame_id]"]');
+                    const frameId = frameInput ? frameInput.value : '';
+                    const qtyInput = row.querySelector('input[name*="[quantity]"]');
+                    const qty = qtyInput ? (parseInt(qtyInput.value) || 0) : 0;
+
+                    if ((paintingId || frameId) && qty > 0) {
+                        hasValidProduct = true;
+                        productCount++;
+                    }
+                });
+
+                if (!hasValidProduct) {
+                    showNotification('Vui lòng chọn ít nhất 1 sản phẩm (tranh/khung) trước khi lưu!', 'error');
+                    document.querySelector('#items-body')?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                    return false;
+                }
+
+                // Kiểm tra các trường bắt buộc khác
+                const showroomEl = document.getElementById('showroom_id');
+                if (showroomEl && !showroomEl.value) {
+                    showNotification('Vui lòng chọn Showroom!', 'error');
+                    showroomEl.focus();
+                    return false;
+                }
+
+                const customerNameEl = document.getElementById('customer_name');
+                if (customerNameEl && !customerNameEl.value.trim()) {
+                    showNotification('Vui lòng nhập tên khách hàng!', 'error');
+                    customerNameEl.focus();
+                    return false;
+                }
+
+                // Build order summary for confirmation
+                const customerName = customerNameEl.value;
+                const totalUsd = document.getElementById('total_usd').value;
+                const totalVnd = document.getElementById('total_vnd').value;
+                const paidUsdDisplay = document.getElementById('paid_usd_display').value;
+                const paidVndDisplay = document.getElementById('paid_vnd_display').value;
+
+                let summaryHtml = `
+                                        <div class="space-y-2">
+                                            <div class="flex justify-between">
+                                                <span class="text-gray-600">Khách hàng:</span>
+                                                <span class="font-medium">${customerName}</span>
+                                            </div>
+                                            <div class="flex justify-between">
+                                                <span class="text-gray-600">Số sản phẩm:</span>
+                                                <span class="font-medium">${productCount} sản phẩm</span>
+                                            </div>
+                                            <div class="border-t pt-2 mt-2">
+                                                <div class="flex justify-between text-blue-600">
+                                                    <span>Tổng USD:</span>
+                                                    <span class="font-bold">${totalUsd}</span>
+                                                </div>
+                                                <div class="flex justify-between text-green-600">
+                                                    <span>Tổng VND:</span>
+                                                    <span class="font-bold">${totalVnd}</span>
+                                                </div>
+                                            </div>
+                                            <div class="border-t pt-2 mt-2">
+                                                <div class="flex justify-between">
+                                                    <span class="text-gray-600">Thanh toán USD:</span>
+                                                    <span class="font-medium">${paidUsdDisplay}</span>
+                                                </div>
+                                                <div class="flex justify-between">
+                                                    <span class="text-gray-600">Thanh toán VND:</span>
+                                                    <span class="font-medium">${paidVndDisplay}</span>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    `;
+
+                document.getElementById('confirm-order-summary').innerHTML = summaryHtml;
+
+                // Set the action
+                document.getElementById('form-action').value = action;
+
+                // Show confirmation modal
+                showConfirmModal('confirm-save-modal', {
+                    title: action === 'save_and_print' ? 'Xác nhận lưu & in hóa đơn' : 'Xác nhận lưu hóa đơn',
+                    message: 'Vui lòng kiểm tra thông tin hóa đơn trước khi lưu:',
+                    onConfirm: function () {
+                        // Submit the form
+                        submitSalesForm();
+                    }
+                });
+            }
+
+            // Submit form after confirmation
+            function submitSalesForm() {
+                const form = document.getElementById('sales-form');
+
+                // Mark form as confirmed
+                form.dataset.confirmed = 'true';
+
+                // Unformat all values before submit
+                const rateEl = document.getElementById('rate');
+                if (rateEl) rateEl.value = unformatNumber(rateEl.value);
+
+                document.querySelectorAll('[name*="[price_usd]"]').forEach(input => {
+                    input.value = unformatNumber(input.value);
+                });
+                document.querySelectorAll('[name*="[price_vnd]"]').forEach(input => {
+                    input.value = unformatNumber(input.value);
+                });
+                document.querySelectorAll('[name*="shipping_fee_"]').forEach(input => {
+                    input.value = unformatNumber(input.value);
+                });
+
+                // Unformat payment USD and VND
+                const paidUsdInput = document.getElementById('paid_usd');
+                const paidVndInput = document.getElementById('paid_vnd');
+                if (paidUsdInput) {
+                    paidUsdInput.value = unformatNumber(paidUsdInput.value);
+                }
+                if (paidVndInput) {
+                    paidVndInput.value = unformatNumber(paidVndInput.value);
+                }
+
+                // Convert BOTH to USD or VND
+                document.querySelectorAll('[name*="[currency]"]').forEach(select => {
+                    if (select.value === 'BOTH') {
+                        const row = select.closest('tr');
+                        const usdVal = parseFloat(unformatNumber(row.querySelector('[name*="[price_usd]"]').value)) || 0;
+                        select.value = (usdVal > 0) ? 'USD' : 'VND';
+                    }
+                });
+
+                form.submit();
+            }
+        </script>
+
+
+    @endpush
+
+    <!-- Image Modal -->
+    <div id="imageModal" class="fixed inset-0 bg-black bg-opacity-75 z-50 hidden flex items-center justify-center p-4"
+        onclick="closeImageModal()">
+        <div class="relative max-w-4xl max-h-full" onclick="event.stopPropagation()">
+            <button onclick="closeImageModal()" class="absolute -top-10 right-0 text-white hover:text-gray-300">
+                <i class="fas fa-times text-2xl"></i>
+            </button>
+            <img id="modalImage" src="" alt="" class="max-w-full max-h-[90vh] object-contain rounded-lg">
+            <p id="modalImageTitle" class="text-white text-center mt-4 text-lg"></p>
+        </div>
+    </div>
 
 @endsection

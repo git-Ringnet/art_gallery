@@ -172,8 +172,17 @@ class ReportsController extends Controller
         $cashCollectionVnd = 0;
         $cardCollectionVnd = 0;
 
+        $processedSaleIds = [];
+
         foreach ($paymentsQuery as $payment) {
             $sale = $payment->sale;
+
+            // Kiểm tra xem sale này đã được tính toán trong báo cáo chưa (để tránh cộng dồn deposit/adjustment)
+            $isDuplicate = in_array($sale->id, $processedSaleIds);
+            if (!$isDuplicate) {
+                $processedSaleIds[] = $sale->id;
+            }
+
             $firstItem = $sale->items->first();
 
             if (!$firstItem) {
@@ -189,40 +198,47 @@ class ReportsController extends Controller
                 $idCode = 'FRAME' . $firstItem->frame_id;
             }
 
+            // Tính toán Gross Deposit (Tổng tiền hàng trước giảm giá)
             $saleDepositUsd = 0;
             $saleDepositVnd = 0;
-            $saleAdjustmentUsd = 0;
-            $saleAdjustmentVnd = 0;
 
             foreach ($sale->items as $item) {
                 if ($item->is_returned)
                     continue;
 
+                // Tính theo giá niêm yết (Gross Price)
                 $subtotal = $item->quantity * ($item->currency == 'USD' ? $item->price_usd : $item->price_vnd);
 
                 if ($item->currency == 'USD') {
                     $saleDepositUsd += $subtotal;
-                    if ($item->discount_percent > 0) {
-                        $discount = $subtotal * ($item->discount_percent / 100);
-                        $saleAdjustmentUsd += -$discount;
-                    }
                 } else {
                     $saleDepositVnd += $subtotal;
-                    if ($item->discount_percent > 0) {
-                        $discount = $subtotal * ($item->discount_percent / 100);
-                        $saleAdjustmentVnd += -$discount;
-                    }
                 }
             }
+
+            // Cộng thêm phí vận chuyển vào Gross Deposit để phần Adjustment chỉ thể hiện giảm giá
+            $saleDepositUsd += $sale->shipping_fee_usd ?? 0;
+            $saleDepositVnd += $sale->shipping_fee_vnd ?? 0;
+
+            // Tính Adjustment (Discount) = Total Final - Gross Deposit
+            // Adjustment sẽ là số âm
+            $saleAdjustmentUsd = $sale->total_usd - $saleDepositUsd;
+            $saleAdjustmentVnd = $sale->total_vnd - $saleDepositVnd;
+
+            // Chỉ hiển thị và cộng tổng Deposit/Adjustment nếu chưa bị trùng
+            $displayDepositUsd = $isDuplicate ? 0 : $saleDepositUsd;
+            $displayDepositVnd = $isDuplicate ? 0 : $saleDepositVnd;
+            $displayAdjustmentUsd = $isDuplicate ? 0 : $saleAdjustmentUsd;
+            $displayAdjustmentVnd = $isDuplicate ? 0 : $saleAdjustmentVnd;
 
             $rowData = [
                 'invoice_code' => $sale->invoice_code,
                 'id_code' => $idCode,
                 'customer_name' => $sale->customer->name,
-                'deposit_usd' => $saleDepositUsd,
-                'deposit_vnd' => $saleDepositVnd,
-                'adjustment_usd' => $saleAdjustmentUsd,
-                'adjustment_vnd' => $saleAdjustmentVnd,
+                'deposit_usd' => $displayDepositUsd,
+                'deposit_vnd' => $displayDepositVnd,
+                'adjustment_usd' => $displayAdjustmentUsd,
+                'adjustment_vnd' => $displayAdjustmentVnd,
                 'collection_usd' => $payment->payment_usd ?? 0,
                 'collection_vnd' => $payment->payment_vnd ?? 0,
                 'collection_adjustment_usd' => 0,
@@ -231,10 +247,15 @@ class ReportsController extends Controller
 
             $reportData[] = $rowData;
 
-            $totalDepositUsd += $saleDepositUsd;
-            $totalDepositVnd += $saleDepositVnd;
-            $totalAdjustmentUsd += $saleAdjustmentUsd;
-            $totalAdjustmentVnd += $saleAdjustmentVnd;
+            // Chỉ cộng vào tổng Deposit/Adjustment nếu chưa bị trùng
+            if (!$isDuplicate) {
+                $totalDepositUsd += $saleDepositUsd;
+                $totalDepositVnd += $saleDepositVnd;
+                $totalAdjustmentUsd += $saleAdjustmentUsd;
+                $totalAdjustmentVnd += $saleAdjustmentVnd;
+            }
+
+            // Collection thì luôn cộng
             $totalCollectionUsd += ($payment->payment_usd ?? 0);
             $totalCollectionVnd += ($payment->payment_vnd ?? 0);
 

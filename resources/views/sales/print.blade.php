@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="vi" id="html-root">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -8,25 +9,38 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
         @media print {
-            .no-print { display: none !important; }
-            .print-area { width: 100%; }
-            body { margin: 0; padding: 10px; }
-            
+            .no-print {
+                display: none !important;
+            }
+
+            .print-area {
+                width: 100%;
+            }
+
+            body {
+                margin: 0;
+                padding: 10px;
+            }
+
             /* Landscape mode */
             body.landscape-mode {
                 transform-origin: top left;
             }
+
             @page.landscape {
                 size: A4 landscape;
             }
         }
+
         @page {
             size: A4 portrait;
             margin: 0.5cm;
         }
+
         .field-hidden {
             display: none !important;
         }
+
         .painting-image {
             max-width: 100px;
             max-height: 100px;
@@ -34,14 +48,18 @@
             border: 1px solid #e5e7eb;
             border-radius: 4px;
         }
+
         .painting-details {
             font-size: 0.75rem;
             color: #4b5563;
             line-height: 1.3;
         }
-        .compact-table td, .compact-table th {
+
+        .compact-table td,
+        .compact-table th {
             padding: 0.375rem 0.5rem !important;
         }
+
         .detail-label {
             font-weight: 600;
             min-width: 60px;
@@ -49,28 +67,33 @@
         }
     </style>
 </head>
+
 <body class="bg-white">
     <!-- Print Buttons -->
     <div class="no-print fixed top-4 right-4 space-x-2 z-50 flex flex-wrap gap-2">
         <!-- <button onclick="toggleOrientation()" class="bg-orange-600 text-white px-3 py-2 rounded-lg hover:bg-orange-700 text-sm">
             <i class="fas fa-rotate mr-1"></i><span id="orientation-btn-text">Ngang</span>
         </button> -->
-        <button onclick="toggleLanguage()" class="bg-green-600 text-white px-3 py-2 rounded-lg hover:bg-green-700 text-sm">
+        <button onclick="toggleLanguage()"
+            class="bg-green-600 text-white px-3 py-2 rounded-lg hover:bg-green-700 text-sm">
             <i class="fas fa-language mr-1"></i><span id="lang-btn-text">English</span>
         </button>
-        <button onclick="openCustomizeModal()" class="bg-purple-600 text-white px-3 py-2 rounded-lg hover:bg-purple-700 text-sm">
+        <button onclick="openCustomizeModal()"
+            class="bg-purple-600 text-white px-3 py-2 rounded-lg hover:bg-purple-700 text-sm">
             <i class="fas fa-cog mr-1"></i>Tùy chỉnh
         </button>
         <button onclick="window.print()" class="bg-blue-600 text-white px-3 py-2 rounded-lg hover:bg-blue-700 text-sm">
             <i class="fas fa-print mr-1"></i>In
         </button>
-        <button onclick="closePrintView()" class="bg-gray-600 text-white px-3 py-2 rounded-lg hover:bg-gray-700 text-sm">
+        <button onclick="closePrintView()"
+            class="bg-gray-600 text-white px-3 py-2 rounded-lg hover:bg-gray-700 text-sm">
             <i class="fas fa-times mr-1"></i>Đóng
         </button>
     </div>
 
     <!-- Customize Modal -->
-    <div id="customizeModal" class="no-print hidden fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center">
+    <div id="customizeModal"
+        class="no-print hidden fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center">
         <div class="bg-white rounded-lg shadow-xl max-w-2xl w-full mx-4 max-h-[90vh] overflow-y-auto">
             <div class="sticky top-0 bg-white border-b px-6 py-4 flex justify-between items-center">
                 <h2 class="text-xl font-bold text-gray-800">
@@ -80,14 +103,16 @@
                     <i class="fas fa-times text-xl"></i>
                 </button>
             </div>
-            
+
             <div class="p-6">
                 <!-- Tabs -->
                 <div class="flex border-b mb-4">
-                    <button onclick="switchTab('visibility')" id="tab-visibility" class="px-4 py-2 font-medium text-purple-600 border-b-2 border-purple-600">
+                    <button onclick="switchTab('visibility')" id="tab-visibility"
+                        class="px-4 py-2 font-medium text-purple-600 border-b-2 border-purple-600">
                         <i class="fas fa-eye mr-2"></i>Ẩn/Hiện
                     </button>
-                    <button onclick="switchTab('content')" id="tab-content" class="px-4 py-2 font-medium text-gray-500 hover:text-gray-700">
+                    <button onclick="switchTab('content')" id="tab-content"
+                        class="px-4 py-2 font-medium text-gray-500 hover:text-gray-700">
                         <i class="fas fa-edit mr-2"></i>Chỉnh sửa nội dung
                     </button>
                 </div>
@@ -182,33 +207,37 @@
                                 </label>
                                 <div class="flex gap-3">
                                     <label class="flex items-center space-x-2 cursor-pointer">
-                                        <input type="radio" name="page-orientation" value="portrait" id="orientation-portrait" class="w-4 h-4 text-purple-600" checked>
+                                        <input type="radio" name="page-orientation" value="portrait"
+                                            id="orientation-portrait" class="w-4 h-4 text-purple-600" checked>
                                         <span class="text-sm">
                                             <i class="fas fa-file-alt mr-1"></i>Dọc (Portrait)
                                         </span>
                                     </label>
                                     <label class="flex items-center space-x-2 cursor-pointer">
-                                        <input type="radio" name="page-orientation" value="landscape" id="orientation-landscape" class="w-4 h-4 text-purple-600">
+                                        <input type="radio" name="page-orientation" value="landscape"
+                                            id="orientation-landscape" class="w-4 h-4 text-purple-600">
                                         <span class="text-sm">
                                             <i class="fas fa-file mr-1 rotate-90"></i>Ngang (Landscape)
                                         </span>
                                     </label>
                                 </div>
                             </div>
-                            
+
                             <div class="py-2 px-2 bg-gray-50 rounded">
                                 <label class="block text-sm font-medium text-gray-700 mb-2">
                                     <i class="fas fa-language mr-2 text-green-600"></i>Ngôn ngữ
                                 </label>
                                 <div class="flex gap-3">
                                     <label class="flex items-center space-x-2 cursor-pointer">
-                                        <input type="radio" name="invoice-language" value="vi" id="language-vi" class="w-4 h-4 text-purple-600" checked>
+                                        <input type="radio" name="invoice-language" value="vi" id="language-vi"
+                                            class="w-4 h-4 text-purple-600" checked>
                                         <span class="text-sm">
                                             <i class="fas fa-flag mr-1"></i>Tiếng Việt
                                         </span>
                                     </label>
                                     <label class="flex items-center space-x-2 cursor-pointer">
-                                        <input type="radio" name="invoice-language" value="en" id="language-en" class="w-4 h-4 text-purple-600">
+                                        <input type="radio" name="invoice-language" value="en" id="language-en"
+                                            class="w-4 h-4 text-purple-600">
                                         <span class="text-sm">
                                             <i class="fas fa-flag-usa mr-1"></i>English
                                         </span>
@@ -222,7 +251,7 @@
                 <!-- Content Edit Tab -->
                 <div id="content-tab" class="hidden space-y-4">
                     <p class="text-sm text-gray-600 mb-4">Chỉnh sửa nội dung các trường trên hóa đơn:</p>
-                    
+
                     <div class="space-y-4">
                         <!-- Company Info -->
                         <div class="border rounded-lg p-4 bg-gray-50">
@@ -234,16 +263,23 @@
                                     <label class="block text-sm font-medium text-gray-700 mb-2">Logo công ty</label>
                                     <div class="flex items-start space-x-3">
                                         <div class="flex-shrink-0">
-                                            <img id="logo-preview" src="{{ $sale->showroom->logo_url }}" alt="Logo preview" class="w-20 h-20 rounded-lg border-2 border-gray-300 object-cover">
+                                            <img id="logo-preview" src="{{ $sale->showroom->logo_url }}"
+                                                alt="Logo preview"
+                                                class="w-20 h-20 rounded-lg border-2 border-gray-300 object-cover">
                                         </div>
                                         <div class="flex-1">
                                             <input type="file" id="edit-logo-file" accept="image/*" class="hidden">
-                                            <button onclick="document.getElementById('edit-logo-file').click()" type="button" class="w-full px-4 py-2 bg-white border border-gray-300 rounded-lg text-sm hover:bg-gray-50 flex items-center justify-center">
+                                            <button onclick="document.getElementById('edit-logo-file').click()"
+                                                type="button"
+                                                class="w-full px-4 py-2 bg-white border border-gray-300 rounded-lg text-sm hover:bg-gray-50 flex items-center justify-center">
                                                 <i class="fas fa-upload mr-2"></i>Chọn ảnh từ máy
                                             </button>
                                             <p class="text-xs text-gray-500 mt-1">Hoặc nhập URL:</p>
-                                            <input type="text" id="edit-logo-url" class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm mt-1" placeholder="https://example.com/logo.png">
-                                            <button onclick="clearLogo()" type="button" class="text-xs text-red-600 hover:text-red-700 mt-1">
+                                            <input type="text" id="edit-logo-url"
+                                                class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm mt-1"
+                                                placeholder="https://example.com/logo.png">
+                                            <button onclick="clearLogo()" type="button"
+                                                class="text-xs text-red-600 hover:text-red-700 mt-1">
                                                 <i class="fas fa-times mr-1"></i>Xóa logo
                                             </button>
                                         </div>
@@ -260,32 +296,45 @@
                             <div class="space-y-3">
                                 <div>
                                     <label class="block text-sm font-medium text-gray-700 mb-1">Hotline</label>
-                                    <input type="text" id="edit-hotline" class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm" placeholder="0987 654 321">
+                                    <input type="text" id="edit-hotline"
+                                        class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm"
+                                        placeholder="0987 654 321">
                                 </div>
                                 <div>
                                     <label class="block text-sm font-medium text-gray-700 mb-1">Email</label>
-                                    <input type="email" id="edit-email" class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm" placeholder="info@benthanhart.com">
+                                    <input type="email" id="edit-email"
+                                        class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm"
+                                        placeholder="info@benthanhart.com">
                                 </div>
                                 <div>
-                                    <label class="block text-sm font-medium text-gray-700 mb-1">Thông tin ngân hàng</label>
-                                    <input type="text" id="edit-bank-info" class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm" placeholder="Vietcombank 0123456789">
+                                    <label class="block text-sm font-medium text-gray-700 mb-1">Thông tin ngân
+                                        hàng</label>
+                                    <input type="text" id="edit-bank-info"
+                                        class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm"
+                                        placeholder="Vietcombank 0123456789">
                                 </div>
                                 <div>
-                                    <label class="block text-sm font-medium text-gray-700 mb-1">Chi nhánh & Chủ tài khoản</label>
-                                    <input type="text" id="edit-bank-branch" class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm" placeholder="CN Sài Gòn - Chủ TK: Công ty TNHH ABC">
+                                    <label class="block text-sm font-medium text-gray-700 mb-1">Chi nhánh & Chủ tài
+                                        khoản</label>
+                                    <input type="text" id="edit-bank-branch"
+                                        class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm"
+                                        placeholder="CN Sài Gòn - Chủ TK: Công ty TNHH ABC">
                                 </div>
                                 <div>
                                     <label class="block text-sm font-medium text-gray-700 mb-1">Lời cảm ơn</label>
-                                    <input type="text" id="edit-thank-you" class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm" placeholder="Cảm ơn quý khách đã mua hàng!">
+                                    <input type="text" id="edit-thank-you"
+                                        class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm"
+                                        placeholder="Cảm ơn quý khách đã mua hàng!">
                                 </div>
                             </div>
                         </div>
-                        
+
                         <!-- Language Note -->
                         <div class="border rounded-lg p-3 bg-blue-50 border-blue-200">
                             <p class="text-xs text-blue-700">
                                 <i class="fas fa-info-circle mr-1"></i>
-                                <strong>Lưu ý:</strong> Tiêu đề hóa đơn và nhãn chữ ký sẽ tự động đổi theo ngôn ngữ được chọn (Tiếng Việt/English) trong phần "Cài đặt in" ở tab "Ẩn/Hiện".
+                                <strong>Lưu ý:</strong> Tiêu đề hóa đơn và nhãn chữ ký sẽ tự động đổi theo ngôn ngữ được
+                                chọn (Tiếng Việt/English) trong phần "Cài đặt in" ở tab "Ẩn/Hiện".
                             </p>
                         </div>
                     </div>
@@ -297,10 +346,12 @@
                     <i class="fas fa-undo mr-1"></i>Đặt lại mặc định
                 </button>
                 <div class="space-x-2">
-                    <button onclick="closeCustomizeModal()" class="px-4 py-2 text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50">
+                    <button onclick="closeCustomizeModal()"
+                        class="px-4 py-2 text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50">
                         Hủy
                     </button>
-                    <button onclick="applyCustomization()" class="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700">
+                    <button onclick="applyCustomization()"
+                        class="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700">
                         <i class="fas fa-check mr-2"></i>Áp dụng
                     </button>
                 </div>
@@ -317,21 +368,29 @@
                 <!-- Left: Logo + Showroom info -->
                 <div>
                     <div style="width: 280px; height: 140px; margin-bottom: -63px; overflow: hidden;">
-                        <img id="invoice-logo" src="{{ $sale->showroom->logo_url }}" alt="logo" class="rounded-lg field-logo" style="width: 120%; height: 120%; object-fit: contain; margin-left: -10%; margin-top: -15%;" data-field="logo" />
+                        <img id="invoice-logo" src="{{ $sale->showroom->logo_url }}" alt="logo"
+                            class="rounded-lg field-logo"
+                            style="width: 120%; height: 120%; object-fit: contain; margin-left: -10%; margin-top: -15%;"
+                            data-field="logo" />
                     </div>
                     <div class="field-showroom-info" data-field="showroom-info" style="margin-top: -10px;">
                         <p class="text-xs text-gray-600">{{ $sale->showroom->address }}</p>
                         <p class="text-xs text-gray-600">{{ $sale->showroom->phone }}</p>
                     </div>
                 </div>
-                
+
                 <!-- Right: Mã HĐ và Ngày -->
                 <div class="text-right">
-                    <p class="text-sm text-gray-600"><span class="lang-vi">Mã HD:</span><span class="lang-en hidden">Invoice:</span> <span class="font-semibold text-blue-600">{{ $sale->invoice_code }}</span></p>
-                    <p class="text-xs text-gray-600"><span class="lang-vi">Ngày:</span><span class="lang-en hidden">Date:</span> {{ $sale->sale_date->format('d/m/Y') }}</p>
+                    <p class="text-sm text-gray-600"><span class="lang-vi">Mã HD:</span><span
+                            class="lang-en hidden">Invoice:</span> <span
+                            class="font-semibold text-blue-600">{{ $sale->invoice_code }}</span></p>
+                    <p class="text-xs text-gray-600"><span class="lang-vi">Ngày:</span><span
+                            class="lang-en hidden">Date:</span> {{ $sale->sale_date->format('d/m/Y') }}</p>
                     <div class="mt-1 text-[10px] text-gray-500">
-                        <p class="field-employee" data-field="employee"><span class="lang-vi">Nhân viên:</span><span class="lang-en hidden">Staff:</span> {{ $sale->user ? $sale->user->name : 'N/A' }}</p>
-                        <p class="field-payment-status" data-field="payment-status"><span class="lang-vi">Thanh toán:</span><span class="lang-en hidden">Status:</span> 
+                        <p class="field-employee" data-field="employee"><span class="lang-vi">Nhân viên:</span><span
+                                class="lang-en hidden">Staff:</span> {{ $sale->user ? $sale->user->name : 'N/A' }}</p>
+                        <p class="field-payment-status" data-field="payment-status"><span class="lang-vi">Thanh
+                                toán:</span><span class="lang-en hidden">Status:</span>
                             @if($sale->payment_status == 'paid')
                                 <span class="text-green-600 font-semibold lang-vi">Đã TT</span>
                                 <span class="text-green-600 font-semibold lang-en hidden">Paid</span>
@@ -346,7 +405,7 @@
                     </div>
                 </div>
             </div>
-            
+
             <!-- Tiêu đề căn giữa -->
             <div class="text-center">
                 <h1 id="invoice-title" class="text-2xl font-bold text-gray-800">
@@ -364,24 +423,27 @@
             </h3>
             <div class="grid grid-cols-2 gap-2 text-xs">
                 <div>
-                    <span class="text-gray-600"><span class="lang-vi">Tên:</span><span class="lang-en hidden">Name:</span></span>
+                    <span class="text-gray-600"><span class="lang-vi">Tên:</span><span
+                            class="lang-en hidden">Name:</span></span>
                     <span class="font-medium">{{ $sale->customer->name }}</span>
                 </div>
                 <div>
-                    <span class="text-gray-600"><span class="lang-vi">SĐT:</span><span class="lang-en hidden">Phone:</span></span>
+                    <span class="text-gray-600"><span class="lang-vi">SĐT:</span><span
+                            class="lang-en hidden">Phone:</span></span>
                     <span class="font-medium">{{ $sale->customer->phone }}</span>
                 </div>
                 @if($sale->customer->email)
-                <div class="field-customer-email" data-field="customer-email">
-                    <span class="text-gray-600">Email:</span>
-                    <span class="font-medium">{{ $sale->customer->email }}</span>
-                </div>
+                    <div class="field-customer-email" data-field="customer-email">
+                        <span class="text-gray-600">Email:</span>
+                        <span class="font-medium">{{ $sale->customer->email }}</span>
+                    </div>
                 @endif
                 @if($sale->customer->address)
-                <div class="field-customer-address" data-field="customer-address">
-                    <span class="text-gray-600"><span class="lang-vi">Địa chỉ:</span><span class="lang-en hidden">Address:</span></span>
-                    <span class="font-medium">{{ $sale->customer->address }}</span>
-                </div>
+                    <div class="field-customer-address" data-field="customer-address">
+                        <span class="text-gray-600"><span class="lang-vi">Địa chỉ:</span><span
+                                class="lang-en hidden">Address:</span></span>
+                        <span class="font-medium">{{ $sale->customer->address }}</span>
+                    </div>
                 @endif
             </div>
         </div>
@@ -410,7 +472,8 @@
                             <span class="lang-vi">Đơn giá</span>
                             <span class="lang-en hidden">Unit Price</span>
                         </th>
-                        <th class="px-2 py-2 text-right text-xs font-semibold text-gray-700 field-item-discount" data-field="item-discount" style="width: 60px;">
+                        <th class="px-2 py-2 text-right text-xs font-semibold text-gray-700 field-item-discount"
+                            data-field="item-discount" style="width: 60px;">
                             <span class="lang-vi">Giảm</span>
                             <span class="lang-en hidden">Disc</span>
                         </th>
@@ -432,33 +495,44 @@
                                         <!-- Hình ảnh tranh -->
                                         @if($item->painting && $item->painting->image)
                                             <div class="flex-shrink-0">
-                                                <img src="{{ asset('storage/' . $item->painting->image) }}" 
-                                                     alt="{{ $item->painting->name }}" 
-                                                     class="painting-image">
+                                                <img src="{{ asset('storage/' . $item->painting->image) }}"
+                                                    alt="{{ $item->painting->name }}" class="painting-image">
                                             </div>
                                         @endif
-                                        
+
                                         <!-- Thông tin chi tiết -->
                                         <div class="flex-1 min-w-0">
                                             <div class="font-semibold text-sm mb-1">{{ $item->description }}</div>
                                             <div class="field-item-details painting-details" data-field="item-details">
                                                 @if($item->painting)
-                                                    <div><span class="detail-label lang-vi">Mã:</span><span class="detail-label lang-en hidden">Code:</span> {{ $item->painting->code }}</div>
+                                                    <div><span class="detail-label lang-vi">Mã:</span><span
+                                                            class="detail-label lang-en hidden">Code:</span>
+                                                        {{ $item->painting->code }}</div>
                                                     @if($item->painting->artist)
-                                                        <div><span class="detail-label lang-vi">Họa sĩ:</span><span class="detail-label lang-en hidden">Artist:</span> {{ $item->painting->artist }}</div>
+                                                        <div><span class="detail-label lang-vi">Họa sĩ:</span><span
+                                                                class="detail-label lang-en hidden">Artist:</span>
+                                                            {{ $item->painting->artist }}</div>
                                                     @endif
                                                     @if($item->painting->material)
-                                                        <div><span class="detail-label lang-vi">Chất liệu:</span><span class="detail-label lang-en hidden">Material:</span> {{ $item->painting->material }}</div>
+                                                        <div><span class="detail-label lang-vi">Chất liệu:</span><span
+                                                                class="detail-label lang-en hidden">Material:</span>
+                                                            {{ $item->painting->material }}</div>
                                                     @endif
                                                     @if($item->painting->width && $item->painting->height)
-                                                        <div><span class="detail-label lang-vi">Kích thước:</span><span class="detail-label lang-en hidden">Size:</span> {{ $item->painting->width }} x {{ $item->painting->height }} cm</div>
+                                                        <div><span class="detail-label lang-vi">Kích thước:</span><span
+                                                                class="detail-label lang-en hidden">Size:</span>
+                                                            {{ $item->painting->width }} x {{ $item->painting->height }} cm</div>
                                                     @endif
                                                     @if($item->painting->paint_year)
-                                                        <div><span class="detail-label lang-vi">Năm:</span><span class="detail-label lang-en hidden">Year:</span> {{ $item->painting->paint_year }}</div>
+                                                        <div><span class="detail-label lang-vi">Năm:</span><span
+                                                                class="detail-label lang-en hidden">Year:</span>
+                                                            {{ $item->painting->paint_year }}</div>
                                                     @endif
                                                 @endif
                                                 @if($item->frame)
-                                                    <div class="text-blue-600"><i class="fas fa-border-style"></i> <span class="lang-vi">Khung:</span><span class="lang-en hidden">Frame:</span> {{ $item->frame->name }}</div>
+                                                    <div class="text-blue-600"><i class="fas fa-border-style"></i> <span
+                                                            class="lang-vi">Khung:</span><span class="lang-en hidden">Frame:</span>
+                                                        {{ $item->frame->name }}</div>
                                                 @endif
                                             </div>
                                         </div>
@@ -467,12 +541,13 @@
                                 <td class="px-2 py-2 text-xs text-center align-top">{{ $item->quantity }}</td>
                                 <td class="px-2 py-2 text-xs text-right align-top">
                                     @if($item->currency == 'USD')
-                                        <div class="font-medium">${{ number_format((float)$item->price_usd, 2) }}</div>
+                                        <div class="font-medium">${{ number_format((float) $item->price_usd, 2) }}</div>
                                     @else
-                                        <div class="font-medium">{{ number_format((float)$item->price_vnd) }}đ</div>
+                                        <div class="font-medium">{{ number_format((float) $item->price_vnd) }}đ</div>
                                     @endif
                                 </td>
-                                <td class="px-2 py-2 text-xs text-right align-top field-item-discount" data-field="item-discount">
+                                <td class="px-2 py-2 text-xs text-right align-top field-item-discount"
+                                    data-field="item-discount">
                                     @if($item->discount_percent > 0)
                                         <span class="text-red-600">{{ number_format($item->discount_percent, 0) }}%</span>
                                     @else
@@ -481,9 +556,9 @@
                                 </td>
                                 <td class="px-2 py-2 text-xs text-right font-semibold align-top">
                                     @if($item->currency == 'USD')
-                                        <div class="text-sm">${{ number_format((float)$item->total_usd, 2) }}</div>
+                                        <div class="text-sm">${{ number_format((float) $item->total_usd, 2) }}</div>
                                     @else
-                                        <div class="text-sm">{{ number_format((float)$item->total_vnd) }}đ</div>
+                                        <div class="text-sm">{{ number_format((float) $item->total_vnd) }}đ</div>
                                     @endif
                                 </td>
                             </tr>
@@ -498,138 +573,153 @@
             <div class="w-full md:w-1/2">
                 <div class="space-y-1">
                     <div class="flex justify-between text-xs py-1 border-b">
-                        <span class="text-gray-700"><span class="lang-vi">Tạm tính:</span><span class="lang-en hidden">Subtotal:</span></span>
+                        <span class="text-gray-700"><span class="lang-vi">Tạm tính:</span><span
+                                class="lang-en hidden">Subtotal:</span></span>
                         <div class="text-right">
                             @if($hasUsdItems)
-                            <div class="font-medium text-gray-900">${{ number_format((float)$sale->subtotal_usd, 2) }}</div>
+                                <div class="font-medium text-gray-900">${{ number_format((float) $sale->subtotal_usd, 2) }}
+                                </div>
                             @endif
                             @if($hasVndItems)
-                            <div class="{{ $hasUsdItems ? 'text-[10px] text-gray-700' : 'font-medium text-gray-900' }}">{{ number_format((float)$sale->subtotal_vnd) }}đ</div>
+                                <div class="{{ $hasUsdItems ? 'text-[10px] text-gray-700' : 'font-medium text-gray-900' }}">
+                                    {{ number_format((float) $sale->subtotal_vnd) }}đ</div>
                             @endif
                         </div>
                     </div>
                     @if($sale->discount_percent > 0)
-                    <div class="flex justify-between text-xs py-1 border-b field-total-discount" data-field="total-discount">
-                        <span class="text-gray-700"><span class="lang-vi">Giảm ({{ $sale->discount_percent }}%):</span><span class="lang-en hidden">Disc ({{ $sale->discount_percent }}%):</span></span>
-                        <div class="text-right">
-                            @if($hasUsdItems)
-                            <div class="font-medium text-red-600">-${{ number_format((float)$sale->discount_usd, 2) }}</div>
-                            @endif
-                            @if($hasVndItems)
-                            <div class="{{ $hasUsdItems ? 'text-[10px] text-red-500' : 'font-medium text-red-600' }}">-{{ number_format((float)$sale->discount_vnd) }}đ</div>
-                            @endif
+                        <div class="flex justify-between text-xs py-1 border-b field-total-discount"
+                            data-field="total-discount">
+                            <span class="text-gray-700"><span class="lang-vi">Giảm
+                                    ({{ $sale->discount_percent }}%):</span><span class="lang-en hidden">Disc
+                                    ({{ $sale->discount_percent }}%):</span></span>
+                            <div class="text-right">
+                                @if($hasUsdItems)
+                                    <div class="font-medium text-red-600">-${{ number_format((float) $sale->discount_usd, 2) }}
+                                    </div>
+                                @endif
+                                @if($hasVndItems)
+                                    <div class="{{ $hasUsdItems ? 'text-[10px] text-red-500' : 'font-medium text-red-600' }}">
+                                        -{{ number_format((float) $sale->discount_vnd) }}đ</div>
+                                @endif
+                            </div>
                         </div>
-                    </div>
                     @endif
                     <div class="flex justify-between text-sm font-bold py-2 border-t-2 border-gray-300">
-                        <span class="text-gray-900"><span class="lang-vi">Tổng cộng:</span><span class="lang-en hidden">Total:</span></span>
+                        <span class="text-gray-900"><span class="lang-vi">Tổng cộng:</span><span
+                                class="lang-en hidden">Total:</span></span>
                         <div class="text-right">
                             @if($hasUsdItems)
-                            <div class="text-gray-900">${{ number_format((float)$sale->total_usd, 2) }}</div>
+                                <div class="text-gray-900">${{ number_format((float) $sale->total_usd, 2) }}</div>
                             @endif
                             @if($hasVndItems)
-                            <div class="{{ $hasUsdItems ? 'text-xs text-gray-900' : 'text-sm text-gray-900' }}">{{ number_format((float)$sale->total_vnd) }}đ</div>
+                                <div class="{{ $hasUsdItems ? 'text-xs text-gray-900' : 'text-sm text-gray-900' }}">
+                                    {{ number_format((float) $sale->total_vnd) }}đ</div>
                             @endif
                         </div>
                     </div>
                     {{-- Chi tiết các lần thanh toán --}}
                     @if($sale->payments->count() > 0)
-                    <div class="py-1 border-t border-gray-200">
-                        <!-- <p class="text-xs text-gray-700 font-medium mb-1">
-                            <span class="lang-vi">Lịch sử thanh toán:</span>
-                            <span class="lang-en hidden">Payment History:</span>
-                        </p> -->
-                        @php
-                            $totalPaidUsd = 0;
-                            $totalPaidVnd = 0;
-                        @endphp
-                        @foreach($sale->payments->sortBy('payment_date') as $payment)
-                        @php
-                            $totalPaidUsd += $payment->payment_usd ?? 0;
-                            $totalPaidVnd += $payment->payment_vnd ?? 0;
-                        @endphp
-                        <div class="flex justify-between text-[10px] py-0.5 text-gray-600">
-                            <span>{{ $payment->payment_date->format('d/m/Y') }}</span>
-                            <span>
-                                @if(($payment->payment_usd ?? 0) != 0)
-                                    ${{ number_format($payment->payment_usd, 2) }}
-                                @endif
-                                @if(($payment->payment_usd ?? 0) != 0 && ($payment->payment_vnd ?? 0) != 0)
-                                    +
-                                @endif
-                                @if(($payment->payment_vnd ?? 0) != 0)
-                                    {{ number_format($payment->payment_vnd) }}đ
-                                @endif
-                            </span>
+                        <div class="py-1 border-t border-gray-200">
+                            <!-- <p class="text-xs text-gray-700 font-medium mb-1">
+                                <span class="lang-vi">Lịch sử thanh toán:</span>
+                                <span class="lang-en hidden">Payment History:</span>
+                            </p> -->
+                            @php
+                                $totalPaidUsd = 0;
+                                $totalPaidVnd = 0;
+                            @endphp
+                            @foreach($sale->payments->sortBy('payment_date') as $payment)
+                                @php
+                                    $totalPaidUsd += $payment->payment_usd ?? 0;
+                                    $totalPaidVnd += $payment->payment_vnd ?? 0;
+                                @endphp
+                                <div class="flex justify-between text-[10px] py-0.5 text-gray-600">
+                                    <span>{{ $payment->payment_date->format('d/m/Y') }}</span>
+                                    <span>
+                                        @if(($payment->payment_usd ?? 0) != 0)
+                                            ${{ number_format($payment->payment_usd, 2) }}
+                                        @endif
+                                        @if(($payment->payment_usd ?? 0) != 0 && ($payment->payment_vnd ?? 0) != 0)
+                                            +
+                                        @endif
+                                        @if(($payment->payment_vnd ?? 0) != 0)
+                                            {{ number_format($payment->payment_vnd) }}đ
+                                        @endif
+                                    </span>
+                                </div>
+                            @endforeach
+                            {{-- Tổng đã thanh toán --}}
+                            <div class="flex justify-between text-xs py-1 mt-1 border-t border-dashed border-gray-300">
+                                <span class="text-gray-700 font-medium">
+                                    <span class="lang-vi">Tổng đã TT:</span>
+                                    <span class="lang-en hidden">Total Paid:</span>
+                                </span>
+                                <div class="text-right font-medium text-gray-900">
+                                    @if($totalPaidUsd > 0)
+                                        <span>${{ number_format($totalPaidUsd, 2) }}</span>
+                                    @endif
+                                    @if($totalPaidUsd > 0 && $totalPaidVnd > 0)
+                                        <span class="text-gray-500">+</span>
+                                    @endif
+                                    @if($totalPaidVnd > 0)
+                                        <span>{{ number_format($totalPaidVnd) }}đ</span>
+                                    @endif
+                                    @if($totalPaidUsd == 0 && $totalPaidVnd == 0)
+                                        <span>0đ</span>
+                                    @endif
+                                </div>
+                            </div>
                         </div>
-                        @endforeach
-                        {{-- Tổng đã thanh toán --}}
-                        <div class="flex justify-between text-xs py-1 mt-1 border-t border-dashed border-gray-300">
-                            <span class="text-gray-700 font-medium">
-                                <span class="lang-vi">Tổng đã TT:</span>
-                                <span class="lang-en hidden">Total Paid:</span>
-                            </span>
+                    @else
+                        {{-- Nếu chưa có payment records (phiếu pending), hiển thị thanh toán ban đầu từ sale --}}
+                        @php
+                            // Với phiếu pending, dùng payment_usd và payment_vnd (thanh toán ban đầu)
+                            $initialPaidUsd = $sale->payment_usd ?? 0;
+                            $initialPaidVnd = $sale->payment_vnd ?? 0;
+                        @endphp
+                        <div class="flex justify-between text-xs py-1">
+                            <span class="text-gray-700"><span class="lang-vi">Đã TT:</span><span
+                                    class="lang-en hidden">Paid:</span></span>
                             <div class="text-right font-medium text-gray-900">
-                                @if($totalPaidUsd > 0)
-                                    <span>${{ number_format($totalPaidUsd, 2) }}</span>
+                                @if($initialPaidUsd > 0)
+                                    <span>${{ number_format($initialPaidUsd, 2) }}</span>
                                 @endif
-                                @if($totalPaidUsd > 0 && $totalPaidVnd > 0)
+                                @if($initialPaidUsd > 0 && $initialPaidVnd > 0)
                                     <span class="text-gray-500">+</span>
                                 @endif
-                                @if($totalPaidVnd > 0)
-                                    <span>{{ number_format($totalPaidVnd) }}đ</span>
+                                @if($initialPaidVnd > 0)
+                                    <span>{{ number_format($initialPaidVnd) }}đ</span>
                                 @endif
-                                @if($totalPaidUsd == 0 && $totalPaidVnd == 0)
+                                @if($initialPaidUsd == 0 && $initialPaidVnd == 0)
                                     <span>0đ</span>
                                 @endif
                             </div>
                         </div>
-                    </div>
-                    @else
-                    {{-- Nếu chưa có payment records (phiếu pending), hiển thị thanh toán ban đầu từ sale --}}
-                    @php
-                        // Với phiếu pending, dùng payment_usd và payment_vnd (thanh toán ban đầu)
-                        $initialPaidUsd = $sale->payment_usd ?? 0;
-                        $initialPaidVnd = $sale->payment_vnd ?? 0;
-                    @endphp
-                    <div class="flex justify-between text-xs py-1">
-                        <span class="text-gray-700"><span class="lang-vi">Đã TT:</span><span class="lang-en hidden">Paid:</span></span>
-                        <div class="text-right font-medium text-gray-900">
-                            @if($initialPaidUsd > 0)
-                                <span>${{ number_format($initialPaidUsd, 2) }}</span>
-                            @endif
-                            @if($initialPaidUsd > 0 && $initialPaidVnd > 0)
-                                <span class="text-gray-500">+</span>
-                            @endif
-                            @if($initialPaidVnd > 0)
-                                <span>{{ number_format($initialPaidVnd) }}đ</span>
-                            @endif
-                            @if($initialPaidUsd == 0 && $initialPaidVnd == 0)
-                                <span>0đ</span>
-                            @endif
-                        </div>
-                    </div>
                     @endif
                     @if(($sale->debt_usd ?? 0) > 0 || ($sale->debt_vnd ?? 0) > 0)
-                    <div class="flex justify-between text-xs py-1 bg-red-50 px-2 rounded field-debt-amount" data-field="debt-amount">
-                        <span class="text-red-700 font-medium"><span class="lang-vi">Còn nợ:</span><span class="lang-en hidden">Balance:</span></span>
-                        <div class="text-right font-bold text-red-600">
-                            @if(($sale->debt_usd ?? 0) > 0)
-                                <span>${{ number_format($sale->debt_usd, 2) }}</span>
-                            @endif
-                            @if(($sale->debt_usd ?? 0) > 0 && ($sale->debt_vnd ?? 0) > 0)
-                                <span class="text-red-400">+</span>
-                            @endif
-                            @if(($sale->debt_vnd ?? 0) > 0)
-                                <span>{{ number_format($sale->debt_vnd) }}đ</span>
-                            @endif
+                        <div class="flex justify-between text-xs py-1 bg-red-50 px-2 rounded field-debt-amount"
+                            data-field="debt-amount">
+                            <span class="text-red-700 font-medium"><span class="lang-vi">Còn nợ:</span><span
+                                    class="lang-en hidden">Balance:</span></span>
+                            <div class="text-right font-bold text-red-600">
+                                @if(($sale->debt_usd ?? 0) > 0)
+                                    <span>${{ number_format($sale->debt_usd, 2) }}</span>
+                                @endif
+                                @if(($sale->debt_usd ?? 0) > 0 && ($sale->debt_vnd ?? 0) > 0)
+                                    <span class="text-red-400">+</span>
+                                @endif
+                                @if(($sale->debt_vnd ?? 0) > 0)
+                                    <span>{{ number_format($sale->debt_vnd) }}đ</span>
+                                @endif
+                            </div>
                         </div>
-                    </div>
                     @endif
                     @if($hasUsdItems && $hasVndItems)
-                    <div class="text-[10px] text-gray-700 text-right mt-1 field-exchange-rate" data-field="exchange-rate">
-                        <span class="lang-vi">Tỷ giá:</span><span class="lang-en hidden">Rate:</span> 1 USD = {{ number_format($sale->exchange_rate) }} VND
-                    </div>
+                        <div class="text-[10px] text-gray-700 text-right mt-1 field-exchange-rate"
+                            data-field="exchange-rate">
+                            <span class="lang-vi">Tỷ giá:</span><span class="lang-en hidden">Rate:</span> 1 USD =
+                            {{ number_format($sale->exchange_rate) }} VND
+                        </div>
                     @endif
                 </div>
             </div>
@@ -750,27 +840,24 @@
         // Apply content configuration to page
         function applyContentToPage(config) {
             const logo = document.getElementById('invoice-logo');
-            // Chỉ apply logo từ localStorage nếu không phải placeholder cũ
-            // Ưu tiên logo showroom thật
-            if (logo && config.logoUrl && !config.logoUrl.includes('via.placeholder.com')) {
-                logo.src = config.logoUrl;
-            }
-            
+            // Logo Logic removed as user requested to stop using localStorage for logo
+
+
             // Don't override title, seller label, and customer label as they have multi-language support
             // Only apply if user has customized them
-            
+
             const hotline = document.getElementById('footer-hotline');
             if (hotline && config.hotline) hotline.textContent = config.hotline;
-            
+
             const email = document.getElementById('footer-email');
             if (email && config.email) email.textContent = config.email;
-            
+
             const bankInfo = document.getElementById('footer-bank-info');
             if (bankInfo && config.bankInfo) bankInfo.textContent = config.bankInfo;
-            
+
             const bankBranch = document.getElementById('footer-bank-branch');
             if (bankBranch && config.bankBranch) bankBranch.textContent = config.bankBranch;
-            
+
             const thankYou = document.getElementById('footer-thank-you');
             if (thankYou && config.thankYou) thankYou.textContent = config.thankYou;
         }
@@ -781,7 +868,7 @@
             const contentTab = document.getElementById('content-tab');
             const visibilityBtn = document.getElementById('tab-visibility');
             const contentBtn = document.getElementById('tab-content');
-            
+
             if (tabName === 'visibility') {
                 visibilityTab.classList.remove('hidden');
                 contentTab.classList.add('hidden');
@@ -817,28 +904,28 @@
         function handleLogoUpload(event) {
             const file = event.target.files[0];
             if (!file) return;
-            
+
             // Validate file type
             if (!file.type.startsWith('image/')) {
                 showNotification('Vui lòng chọn file ảnh!', 'error');
                 return;
             }
-            
+
             // Validate file size (max 2MB)
             if (file.size > 2 * 1024 * 1024) {
                 showNotification('Kích thước ảnh không được vượt quá 2MB!', 'error');
                 return;
             }
-            
+
             // Convert to base64
             const reader = new FileReader();
-            reader.onload = function(e) {
+            reader.onload = function (e) {
                 const base64 = e.target.result;
                 document.getElementById('edit-logo-url').value = base64;
                 document.getElementById('logo-preview').src = base64;
                 showNotification('Đã tải ảnh lên thành công!', 'success');
             };
-            reader.onerror = function() {
+            reader.onerror = function () {
                 showNotification('Lỗi khi đọc file ảnh!', 'error');
             };
             reader.readAsDataURL(file);
@@ -865,7 +952,7 @@
             const modal = document.getElementById('customizeModal');
             const config = loadConfig();
             const contentConfig = loadContentConfig();
-            
+
             // Set checkbox states
             Object.keys(config).forEach(field => {
                 const checkbox = document.getElementById(`field-${field}`);
@@ -873,7 +960,7 @@
                     checkbox.checked = config[field];
                 }
             });
-            
+
             // Set content input values
             const logoUrl = contentConfig.logoUrl || defaultContentConfig.logoUrl;
             document.getElementById('edit-logo-url').value = logoUrl;
@@ -883,7 +970,7 @@
             document.getElementById('edit-bank-info').value = contentConfig.bankInfo || '';
             document.getElementById('edit-bank-branch').value = contentConfig.bankBranch || '';
             document.getElementById('edit-thank-you').value = contentConfig.thankYou || '';
-            
+
             // Set orientation radio buttons
             const savedOrientation = localStorage.getItem(ORIENTATION_KEY) || 'portrait';
             if (savedOrientation === 'landscape') {
@@ -891,7 +978,7 @@
             } else {
                 document.getElementById('orientation-portrait').checked = true;
             }
-            
+
             // Set language radio buttons
             const savedLang = localStorage.getItem(LANGUAGE_KEY) || 'vi';
             if (savedLang === 'en') {
@@ -899,7 +986,7 @@
             } else {
                 document.getElementById('language-vi').checked = true;
             }
-            
+
             modal.classList.remove('hidden');
         }
 
@@ -912,7 +999,7 @@
         // Apply customization
         function applyCustomization() {
             const config = {};
-            
+
             // Get all checkbox values
             Object.keys(defaultConfig).forEach(field => {
                 const checkbox = document.getElementById(`field-${field}`);
@@ -920,7 +1007,7 @@
                     config[field] = checkbox.checked;
                 }
             });
-            
+
             // Get all content values
             const contentConfig = {
                 logoUrl: document.getElementById('edit-logo-url').value || defaultContentConfig.logoUrl,
@@ -930,7 +1017,7 @@
                 bankBranch: document.getElementById('edit-bank-branch').value || defaultContentConfig.bankBranch,
                 thankYou: document.getElementById('edit-thank-you').value || defaultContentConfig.thankYou
             };
-            
+
             // Get orientation setting
             const orientationRadio = document.querySelector('input[name="page-orientation"]:checked');
             if (orientationRadio) {
@@ -938,7 +1025,7 @@
                 localStorage.setItem(ORIENTATION_KEY, newOrientation);
                 applyOrientation(newOrientation);
             }
-            
+
             // Get language setting
             const languageRadio = document.querySelector('input[name="invoice-language"]:checked');
             if (languageRadio) {
@@ -946,14 +1033,14 @@
                 localStorage.setItem(LANGUAGE_KEY, newLang);
                 applyLanguage(newLang);
             }
-            
+
             // Save and apply
             saveConfig(config);
             saveContentConfig(contentConfig);
             applyConfigToPage(config);
             applyContentToPage(contentConfig);
             closeCustomizeModal();
-            
+
             // Show success message
             showNotification('Đã áp dụng cấu hình thành công!');
         }
@@ -967,7 +1054,7 @@
                     checkbox.checked = true;
                 }
             });
-            
+
             // Reset content inputs
             document.getElementById('edit-logo-url').value = defaultContentConfig.logoUrl;
             document.getElementById('edit-hotline').value = defaultContentConfig.hotline;
@@ -975,13 +1062,13 @@
             document.getElementById('edit-bank-info').value = defaultContentConfig.bankInfo;
             document.getElementById('edit-bank-branch').value = defaultContentConfig.bankBranch;
             document.getElementById('edit-thank-you').value = defaultContentConfig.thankYou;
-            
+
             // Reset orientation to portrait
             document.getElementById('orientation-portrait').checked = true;
-            
+
             // Reset language to Vietnamese
             document.getElementById('language-vi').checked = true;
-            
+
             showNotification('Đã đặt lại về mặc định!');
         }
 
@@ -993,7 +1080,7 @@
             notification.className = `no-print fixed top-20 right-4 ${bgColor} text-white px-6 py-3 rounded-lg shadow-lg z-50 animate-fade-in`;
             notification.innerHTML = `<i class="fas ${icon} mr-2"></i>${message}`;
             document.body.appendChild(notification);
-            
+
             setTimeout(() => {
                 notification.style.opacity = '0';
                 notification.style.transition = 'opacity 0.3s';
@@ -1002,7 +1089,7 @@
         }
 
         // Close modal when clicking outside
-        document.getElementById('customizeModal')?.addEventListener('click', function(e) {
+        document.getElementById('customizeModal')?.addEventListener('click', function (e) {
             if (e.target === this) {
                 closeCustomizeModal();
             }
@@ -1011,20 +1098,20 @@
         // Language toggle functionality
         const LANGUAGE_KEY = 'invoice_language';
         const ORIENTATION_KEY = 'invoice_orientation';
-        
+
         function toggleLanguage() {
             const currentLang = localStorage.getItem(LANGUAGE_KEY) || 'vi';
             const newLang = currentLang === 'vi' ? 'en' : 'vi';
             localStorage.setItem(LANGUAGE_KEY, newLang);
             applyLanguage(newLang);
         }
-        
+
         function applyLanguage(lang) {
             const htmlRoot = document.getElementById('html-root');
             const viElements = document.querySelectorAll('.lang-vi');
             const enElements = document.querySelectorAll('.lang-en');
             const langBtnText = document.getElementById('lang-btn-text');
-            
+
             if (lang === 'en') {
                 htmlRoot.setAttribute('lang', 'en');
                 viElements.forEach(el => el.classList.add('hidden'));
@@ -1037,12 +1124,12 @@
                 if (langBtnText) langBtnText.textContent = 'English';
             }
         }
-        
+
         function loadLanguage() {
             const savedLang = localStorage.getItem(LANGUAGE_KEY) || 'vi';
             applyLanguage(savedLang);
         }
-        
+
         // Orientation toggle functionality
         function toggleOrientation() {
             const currentOrientation = localStorage.getItem(ORIENTATION_KEY) || 'portrait';
@@ -1050,19 +1137,19 @@
             localStorage.setItem(ORIENTATION_KEY, newOrientation);
             applyOrientation(newOrientation);
         }
-        
+
         function applyOrientation(orientation) {
             const body = document.body;
             const orientationBtnText = document.getElementById('orientation-btn-text');
             const style = document.createElement('style');
             style.id = 'orientation-style';
-            
+
             // Remove existing orientation style
             const existingStyle = document.getElementById('orientation-style');
             if (existingStyle) {
                 existingStyle.remove();
             }
-            
+
             if (orientation === 'landscape') {
                 style.textContent = '@page { size: A4 landscape; margin: 0.5cm; }';
                 body.classList.add('landscape-mode');
@@ -1072,10 +1159,10 @@
                 body.classList.remove('landscape-mode');
                 if (orientationBtnText) orientationBtnText.textContent = 'Ngang';
             }
-            
+
             document.head.appendChild(style);
         }
-        
+
         function loadOrientation() {
             const savedOrientation = localStorage.getItem(ORIENTATION_KEY) || 'portrait';
             applyOrientation(savedOrientation);
@@ -1087,10 +1174,10 @@
             if (window.opener) {
                 window.close();
             }
-            
+
             // Nếu vẫn chưa đóng (hoặc không phải popup), chuyển hướng về trang chi tiết
             // Sử dụng setTimeout để window.close() có thời gian thực thi nếu có thể
-            setTimeout(function() {
+            setTimeout(function () {
                 if (!window.closed) {
                     window.location.href = "{{ route('sales.show', $sale->id) }}";
                 }
@@ -1098,28 +1185,29 @@
         }
 
         // Initialize on page load
-        window.onload = function() {
+        window.onload = function () {
             const config = loadConfig();
             const contentConfig = loadContentConfig();
             applyConfigToPage(config);
             applyContentToPage(contentConfig);
             loadLanguage();
             loadOrientation();
-            
+
             // Add event listeners
             const logoFileInput = document.getElementById('edit-logo-file');
             if (logoFileInput) {
                 logoFileInput.addEventListener('change', handleLogoUpload);
             }
-            
+
             const logoUrlInput = document.getElementById('edit-logo-url');
             if (logoUrlInput) {
                 logoUrlInput.addEventListener('input', handleLogoUrlInput);
             }
-            
+
             // Auto print when page loads (optional)
             // window.print();
         };
     </script>
 </body>
+
 </html>

@@ -21,6 +21,8 @@ class SaleItem extends Model
         'price_usd',
         'price_vnd',
         'discount_percent',
+        'discount_amount_usd',
+        'discount_amount_vnd',
         'total_usd',
         'total_vnd',
         'is_returned',
@@ -35,6 +37,8 @@ class SaleItem extends Model
             'price_usd' => 'decimal:2',
             'price_vnd' => 'decimal:2',
             'discount_percent' => 'decimal:2',
+            'discount_amount_usd' => 'decimal:2',
+            'discount_amount_vnd' => 'decimal:2',
             'total_usd' => 'decimal:2',
             'total_vnd' => 'decimal:2',
         ];
@@ -64,23 +68,41 @@ class SaleItem extends Model
     {
         // Lấy exchange_rate từ sale
         $exchangeRate = $this->sale->exchange_rate ?? 0;
-        
+
         if ($this->currency === 'USD') {
             // Item USD - CHỈ tính USD, KHÔNG tính VND
             $subtotal = $this->quantity * $this->price_usd;
-            $discountAmount = $subtotal * ($this->discount_percent / 100);
-            $this->total_usd = $subtotal - $discountAmount;
+
+            // Giảm theo %
+            $discountPercentAmount = $subtotal * ($this->discount_percent / 100);
+
+            // Giảm theo số tiền cố định (USD)
+            $discountFixedAmount = $this->discount_amount_usd ?? 0;
+
+            // Tổng giảm = giảm % + giảm số tiền
+            $totalDiscount = $discountPercentAmount + $discountFixedAmount;
+
+            $this->total_usd = max(0, $subtotal - $totalDiscount);
             $this->total_vnd = 0; // Item USD không có VND
             $this->price_vnd = 0;
         } else {
             // Item VND - CHỈ tính VND, KHÔNG tính USD
             $subtotal = $this->quantity * $this->price_vnd;
-            $discountAmount = $subtotal * ($this->discount_percent / 100);
-            $this->total_vnd = $subtotal - $discountAmount;
+
+            // Giảm theo %
+            $discountPercentAmount = $subtotal * ($this->discount_percent / 100);
+
+            // Giảm theo số tiền cố định (VND)
+            $discountFixedAmount = $this->discount_amount_vnd ?? 0;
+
+            // Tổng giảm = giảm % + giảm số tiền
+            $totalDiscount = $discountPercentAmount + $discountFixedAmount;
+
+            $this->total_vnd = max(0, $subtotal - $totalDiscount);
             $this->total_usd = 0; // Item VND không có USD
             $this->price_usd = 0;
         }
-        
+
         $this->save();
     }
 
@@ -88,7 +110,7 @@ class SaleItem extends Model
     {
         if ($this->painting_id) {
             $painting = $this->painting;
-            
+
             if ($painting->isInStock() && $painting->reduceQuantity($this->quantity)) {
                 InventoryTransaction::create([
                     'transaction_type' => 'export',
@@ -101,13 +123,13 @@ class SaleItem extends Model
                     'notes' => "Bán trong hóa đơn {$this->sale->invoice_code}",
                     'created_by' => $this->sale->user_id,
                 ]);
-                
+
                 return true;
             }
-            
+
             return false;
         }
-        
+
         return true;
     }
 }
