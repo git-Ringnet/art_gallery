@@ -6,14 +6,8 @@
 
 @section('content')
     <!-- Confirm Modal -->
-    <x-confirm-modal 
-        id="confirm-showroom-modal"
-        title="Xác nhận tạo Showroom"
-        message="Bạn có chắc chắn muốn tạo Showroom này?"
-        confirmText="Xác nhận"
-        cancelText="Quay lại"
-        type="info"
-    >
+    <x-confirm-modal id="confirm-showroom-modal" title="Xác nhận tạo Showroom"
+        message="Bạn có chắc chắn muốn tạo Showroom này?" confirmText="Xác nhận" cancelText="Quay lại" type="info">
         <div id="confirm-showroom-summary" class="text-sm"></div>
     </x-confirm-modal>
 
@@ -55,6 +49,18 @@
                         class="w-full px-2 py-1.5 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                         placeholder="VD: 0123 456 789">
                 </div>
+                <div>
+                    <label class="block text-xs font-medium text-gray-700 mb-1">Email</label>
+                    <input type="email" name="email"
+                        class="w-full px-2 py-1.5 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                        placeholder="Email">
+                </div>
+                <div>
+                    <label class="block text-xs font-medium text-gray-700 mb-1">Hotline</label>
+                    <input type="text" name="hotline"
+                        class="w-full px-2 py-1.5 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                        placeholder="Hotline">
+                </div>
                 <div class="md:col-span-2">
                     <label class="block text-xs font-medium text-gray-700 mb-1">Địa chỉ <span
                             class="text-red-500">*</span></label>
@@ -91,10 +97,12 @@
                 </div>
             </div>
             <div class="mt-3 flex justify-end space-x-2">
-                <button type="button" onclick="confirmCreateShowroom()" class="px-3 py-1.5 text-sm rounded bg-green-600 text-white hover:bg-green-700">
+                <button type="button" onclick="confirmCreateShowroom()"
+                    class="px-3 py-1.5 text-sm rounded bg-green-600 text-white hover:bg-green-700">
                     <i class="fas fa-save mr-1"></i>Lưu
                 </button>
-                <a href="{{ route('showrooms.index') }}" class="px-3 py-1.5 text-sm rounded bg-gray-600 text-white hover:bg-gray-700">
+                <a href="{{ route('showrooms.index') }}"
+                    class="px-3 py-1.5 text-sm rounded bg-gray-600 text-white hover:bg-gray-700">
                     <i class="fas fa-times mr-1"></i>Hủy
                 </a>
             </div>
@@ -108,24 +116,24 @@
             const code = document.querySelector('input[name="code"]').value.trim();
             const name = document.querySelector('input[name="name"]').value.trim();
             const address = document.querySelector('input[name="address"]').value.trim();
-            
+
             if (!code) { alert('Vui lòng nhập mã phòng!'); return; }
             if (!name) { alert('Vui lòng nhập tên phòng!'); return; }
-            
+
             let summaryHtml = `
-                <div class="space-y-2">
-                    <div class="flex justify-between"><span class="text-gray-600">Mã phòng:</span><span class="font-medium">${code}</span></div>
-                    <div class="flex justify-between"><span class="text-gray-600">Tên phòng:</span><span class="font-medium">${name}</span></div>
-                    ${address ? `<div class="flex justify-between"><span class="text-gray-600">Địa chỉ:</span><span class="font-medium">${address}</span></div>` : ''}
-                </div>
-            `;
-            
+                    <div class="space-y-2">
+                        <div class="flex justify-between"><span class="text-gray-600">Mã phòng:</span><span class="font-medium">${code}</span></div>
+                        <div class="flex justify-between"><span class="text-gray-600">Tên phòng:</span><span class="font-medium">${name}</span></div>
+                        ${address ? `<div class="flex justify-between"><span class="text-gray-600">Địa chỉ:</span><span class="font-medium">${address}</span></div>` : ''}
+                    </div>
+                `;
+
             document.getElementById('confirm-showroom-summary').innerHTML = summaryHtml;
-            
+
             showConfirmModal('confirm-showroom-modal', {
                 title: 'Xác nhận tạo Showroom',
                 message: 'Vui lòng kiểm tra thông tin trước khi lưu:',
-                onConfirm: function() {
+                onConfirm: function () {
                     document.getElementById('showroom-form').submit();
                 }
             });
@@ -168,17 +176,17 @@
             }
 
             bankDropdown.innerHTML = filtered.map(bank => `
-            <div class="px-2 py-1.5 hover:bg-blue-50 cursor-pointer border-b border-gray-100 last:border-b-0" 
-                 onclick="selectBank('${bank.shortName}', '${bank.name}')">
-                <div class="flex items-center space-x-2">
-                    <img src="${bank.logo}" class="w-6 h-6 object-contain" alt="${bank.shortName}">
-                    <div>
-                        <div class="font-medium text-xs">${bank.shortName}</div>
-                        <div class="text-xs text-gray-500">${bank.name}</div>
+                <div class="px-2 py-1.5 hover:bg-blue-50 cursor-pointer border-b border-gray-100 last:border-b-0" 
+                     onclick="selectBank('${bank.shortName}', '${bank.name}')">
+                    <div class="flex items-center space-x-2">
+                        <img src="${bank.logo}" class="w-6 h-6 object-contain" alt="${bank.shortName}">
+                        <div>
+                            <div class="font-medium text-xs">${bank.shortName}</div>
+                            <div class="text-xs text-gray-500">${bank.name}</div>
+                        </div>
                     </div>
                 </div>
-            </div>
-        `).join('');
+            `).join('');
 
             bankDropdown.classList.remove('hidden');
         }

@@ -18,19 +18,19 @@ class ShowroomController extends Controller
     public function index(Request $request)
     {
         $search = $request->get('search');
-        
+
         $showrooms = Showroom::query()
             ->when($search, function ($query, $search) {
                 $query->where(function ($q) use ($search) {
                     $q->where('code', 'like', "%{$search}%")
-                      ->orWhere('name', 'like', "%{$search}%")
-                      ->orWhere('address', 'like', "%{$search}%")
-                      ->orWhere('phone', 'like', "%{$search}%");
+                        ->orWhere('name', 'like', "%{$search}%")
+                        ->orWhere('address', 'like', "%{$search}%")
+                        ->orWhere('phone', 'like', "%{$search}%");
                 });
             })
             ->latest()
             ->get();
-            
+
         return view('showrooms.index', compact('showrooms'));
     }
 
@@ -45,6 +45,8 @@ class ShowroomController extends Controller
             'code' => 'required|string|max:50|unique:showrooms,code',
             'name' => 'required|string|max:255',
             'phone' => 'required|string|max:50',
+            'email' => 'nullable|email|max:255',
+            'hotline' => 'nullable|string|max:50',
             'address' => 'required|string',
             'bank_name' => 'nullable|string|max:100',
             'bank_account' => 'nullable|string|max:50',
@@ -58,14 +60,14 @@ class ShowroomController extends Controller
         }
 
         $showroom = Showroom::create($validated);
-        
+
         // Log activity
         $this->activityLogger->logCreate(
             \App\Models\ActivityLog::MODULE_SHOWROOMS,
             $showroom,
             "Tạo showroom mới: {$showroom->name}"
         );
-        
+
         return redirect()->route('showrooms.index')
             ->with('success', 'Đã tạo phòng trưng bày thành công');
     }
@@ -79,11 +81,13 @@ class ShowroomController extends Controller
     public function update(Request $request, $id)
     {
         $showroom = Showroom::findOrFail($id);
-        
+
         $validated = $request->validate([
             'code' => 'required|string|max:50|unique:showrooms,code,' . $id,
             'name' => 'required|string|max:255',
             'phone' => 'required|string|max:50',
+            'email' => 'nullable|email|max:255',
+            'hotline' => 'nullable|string|max:50',
             'address' => 'required|string',
             'bank_name' => 'nullable|string|max:100',
             'bank_account' => 'nullable|string|max:50',
@@ -109,7 +113,7 @@ class ShowroomController extends Controller
         }
 
         $showroom->update($validated);
-        
+
         // Log activity
         $this->activityLogger->logUpdate(
             \App\Models\ActivityLog::MODULE_SHOWROOMS,
@@ -117,7 +121,7 @@ class ShowroomController extends Controller
             [],
             "Cập nhật showroom: {$showroom->name}"
         );
-        
+
         return redirect()->route('showrooms.index')
             ->with('success', 'Đã cập nhật phòng trưng bày thành công');
     }
@@ -125,7 +129,7 @@ class ShowroomController extends Controller
     public function destroy($id)
     {
         $showroom = Showroom::findOrFail($id);
-        
+
         // Log activity before deletion
         $showroomData = [
             'code' => $showroom->code,
@@ -138,9 +142,9 @@ class ShowroomController extends Controller
             $showroomData,
             "Xóa showroom: {$showroom->name}"
         );
-        
+
         $showroom->delete();
-        
+
         return redirect()->route('showrooms.index')
             ->with('success', 'Đã xóa phòng trưng bày thành công');
     }

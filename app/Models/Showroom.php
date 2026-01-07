@@ -13,6 +13,8 @@ class Showroom extends Model
         'code',
         'name',
         'phone',
+        'email',
+        'hotline',
         'address',
         'bank_name',
         'bank_account',
@@ -54,7 +56,7 @@ class Showroom extends Model
     {
         return $query->where(function ($q) use ($search) {
             $q->where('code', 'like', "%{$search}%")
-              ->orWhere('name', 'like', "%{$search}%");
+                ->orWhere('name', 'like', "%{$search}%");
         });
     }
 

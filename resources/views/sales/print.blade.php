@@ -582,7 +582,8 @@
                             @endif
                             @if($hasVndItems)
                                 <div class="{{ $hasUsdItems ? 'text-[10px] text-gray-700' : 'font-medium text-gray-900' }}">
-                                    {{ number_format((float) $sale->subtotal_vnd) }}đ</div>
+                                    {{ number_format((float) $sale->subtotal_vnd) }}đ
+                                </div>
                             @endif
                         </div>
                     </div>
@@ -613,7 +614,8 @@
                             @endif
                             @if($hasVndItems)
                                 <div class="{{ $hasUsdItems ? 'text-xs text-gray-900' : 'text-sm text-gray-900' }}">
-                                    {{ number_format((float) $sale->total_vnd) }}đ</div>
+                                    {{ number_format((float) $sale->total_vnd) }}đ
+                                </div>
                             @endif
                         </div>
                     </div>
@@ -621,9 +623,9 @@
                     @if($sale->payments->count() > 0)
                         <div class="py-1 border-t border-gray-200">
                             <!-- <p class="text-xs text-gray-700 font-medium mb-1">
-                                <span class="lang-vi">Lịch sử thanh toán:</span>
-                                <span class="lang-en hidden">Payment History:</span>
-                            </p> -->
+                                        <span class="lang-vi">Lịch sử thanh toán:</span>
+                                        <span class="lang-en hidden">Payment History:</span>
+                                    </p> -->
                             @php
                                 $totalPaidUsd = 0;
                                 $totalPaidVnd = 0;
@@ -753,12 +755,14 @@
         <div class="border-t pt-4 mt-8 field-footer" data-field="footer">
             <div class="flex justify-between text-xs text-gray-600">
                 <div>
-                    <p id="footer-hotline">Hotline: 0987 654 321</p>
-                    <p id="footer-email">Email: info@benthanhart.com</p>
+                    <p id="footer-hotline">Hotline: {{ $sale->showroom->hotline ?? '' }}</p>
+                    <p id="footer-email">Email: {{ $sale->showroom->email ?? '' }}</p>
                 </div>
                 <div class="text-right">
-                    <p id="footer-bank-info">Ngân hàng: Vietcombank 0123456789</p>
-                    <p id="footer-bank-branch">CN Sài Gòn - Chủ TK: Công ty TNHH ABC</p>
+                    <p id="footer-bank-info">Ngân hàng: {{ $sale->showroom->bank_name ?? '' }}
+                        {{ $sale->showroom->bank_account ?? '' }}
+                    </p>
+                    <p id="footer-bank-branch">Chủ TK: {{ $sale->showroom->bank_holder ?? '' }}</p>
                 </div>
             </div>
             <p id="footer-thank-you" class="text-center text-xs text-gray-500 mt-4">Cảm ơn quý khách đã mua hàng!</p>
@@ -790,10 +794,10 @@
         // Default content configuration
         const defaultContentConfig = {
             'logoUrl': '{{ $sale->showroom->logo_url }}',
-            'hotline': 'Hotline: 0987 654 321',
-            'email': 'Email: info@benthanhart.com',
-            'bankInfo': 'Ngân hàng: Vietcombank 0123456789',
-            'bankBranch': 'CN Sài Gòn - Chủ TK: Công ty TNHH ABC',
+            'hotline': 'Hotline: {{ $sale->showroom->hotline ?? "" }}',
+            'email': 'Email: {{ $sale->showroom->email ?? "" }}',
+            'bankInfo': 'Ngân hàng: {{ ($sale->showroom->bank_name ?? "") . " " . ($sale->showroom->bank_account ?? "") }}',
+            'bankBranch': 'Chủ TK: {{ $sale->showroom->bank_holder ?? "" }}',
             'thankYou': 'Cảm ơn quý khách đã mua hàng!'
         };
 
