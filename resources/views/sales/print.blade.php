@@ -849,7 +849,9 @@
 
             // Don't override title, seller label, and customer label as they have multi-language support
             // Only apply if user has customized them
-
+            
+            // Footer content logic removed to prevent localStorage override
+            /*
             const hotline = document.getElementById('footer-hotline');
             if (hotline && config.hotline) hotline.textContent = config.hotline;
 
@@ -861,6 +863,7 @@
 
             const bankBranch = document.getElementById('footer-bank-branch');
             if (bankBranch && config.bankBranch) bankBranch.textContent = config.bankBranch;
+            */
 
             const thankYou = document.getElementById('footer-thank-you');
             if (thankYou && config.thankYou) thankYou.textContent = config.thankYou;
