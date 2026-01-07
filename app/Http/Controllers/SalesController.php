@@ -311,12 +311,29 @@ class SalesController extends Controller
             if ($request->filled('customer_id')) {
                 $customer = Customer::find($request->customer_id);
             } else {
-                $customer = Customer::create([
-                    'name' => $request->customer_name,
-                    'phone' => $request->customer_phone,
-                    'email' => $request->customer_email,
-                    'address' => $request->customer_address,
-                ]);
+                // Kiểm tra xem có khách hàng trùng tên không
+                $existingCustomer = Customer::where('name', $request->customer_name)->first();
+                
+                if ($existingCustomer && !$request->input('force_new_customer')) {
+                    // Nếu tìm thấy KH cùng tên và không force tạo mới → sử dụng KH có sẵn
+                    // Cập nhật thông tin nếu có thay đổi
+                    if ($request->customer_phone || $request->customer_email || $request->customer_address) {
+                        $existingCustomer->update([
+                            'phone' => $request->customer_phone ?: $existingCustomer->phone,
+                            'email' => $request->customer_email ?: $existingCustomer->email,
+                            'address' => $request->customer_address ?: $existingCustomer->address,
+                        ]);
+                    }
+                    $customer = $existingCustomer;
+                } else {
+                    // Tạo khách hàng mới (khi force_new_customer=true hoặc không tìm thấy khách hàng cùng tên)
+                    $customer = Customer::create([
+                        'name' => $request->customer_name,
+                        'phone' => $request->customer_phone,
+                        'email' => $request->customer_email,
+                        'address' => $request->customer_address,
+                    ]);
+                }
             }
 
             // Get default user
@@ -641,13 +658,54 @@ class SalesController extends Controller
             // Create or get customer
             if ($request->filled('customer_id')) {
                 $customer = Customer::find($request->customer_id);
+                
+                // Cho phép cập nhật thông tin khách hàng khi edit
+                if ($customer) {
+                    $updateData = [];
+                    
+                    // Chỉ cập nhật các trường có giá trị mới
+                    if ($request->filled('customer_name') && $request->customer_name !== $customer->name) {
+                        $updateData['name'] = $request->customer_name;
+                    }
+                    if ($request->filled('customer_phone') && $request->customer_phone !== $customer->phone) {
+                        $updateData['phone'] = $request->customer_phone;
+                    }
+                    if ($request->filled('customer_email') && $request->customer_email !== $customer->email) {
+                        $updateData['email'] = $request->customer_email;
+                    }
+                    if ($request->filled('customer_address') && $request->customer_address !== $customer->address) {
+                        $updateData['address'] = $request->customer_address;
+                    }
+                    
+                    // Cập nhật nếu có thay đổi
+                    if (!empty($updateData)) {
+                        $customer->update($updateData);
+                    }
+                }
             } else {
-                $customer = Customer::create([
-                    'name' => $request->customer_name,
-                    'phone' => $request->customer_phone,
-                    'email' => $request->customer_email,
-                    'address' => $request->customer_address,
-                ]);
+                // Kiểm tra xem có khách hàng trùng tên không
+                $existingCustomer = Customer::where('name', $request->customer_name)->first();
+                
+                if ($existingCustomer && !$request->input('force_new_customer')) {
+                    // Nếu tìm thấy KH cùng tên và không force tạo mới → sử dụng KH có sẵn
+                    // Cập nhật thông tin nếu có thay đổi
+                    if ($request->customer_phone || $request->customer_email || $request->customer_address) {
+                        $existingCustomer->update([
+                            'phone' => $request->customer_phone ?: $existingCustomer->phone,
+                            'email' => $request->customer_email ?: $existingCustomer->email,
+                            'address' => $request->customer_address ?: $existingCustomer->address,
+                        ]);
+                    }
+                    $customer = $existingCustomer;
+                } else {
+                    // Tạo khách hàng mới
+                    $customer = Customer::create([
+                        'name' => $request->customer_name,
+                        'phone' => $request->customer_phone,
+                        'email' => $request->customer_email,
+                        'address' => $request->customer_address,
+                    ]);
+                }
             }
 
             // Get default user

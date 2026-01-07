@@ -136,6 +136,27 @@
                         </button>
                     </div>
                 </div>
+                <!-- Cảnh báo trùng tên khách hàng -->
+                <div id="customer-duplicate-warning" class="hidden mt-2 p-3 bg-yellow-100 border border-yellow-400 rounded-lg">
+                    <div class="flex items-start gap-2">
+                        <i class="fas fa-exclamation-triangle text-yellow-600 mt-0.5"></i>
+                        <div class="flex-1">
+                            <p class="text-sm font-medium text-yellow-800">Phát hiện khách hàng trùng tên!</p>
+                            <p class="text-xs text-yellow-700 mt-1" id="duplicate-customer-info"></p>
+                            <div class="flex gap-2 mt-2">
+                                <button type="button" onclick="useExistingCustomer()" 
+                                    class="px-3 py-1 text-xs bg-green-500 text-white rounded hover:bg-green-600 transition-colors">
+                                    <i class="fas fa-user-check mr-1"></i>Dùng KH có sẵn
+                                </button>
+                                <button type="button" onclick="forceCreateNewCustomer()" 
+                                    class="px-3 py-1 text-xs bg-orange-500 text-white rounded hover:bg-orange-600 transition-colors">
+                                    <i class="fas fa-user-plus mr-1"></i>Tạo KH mới (trùng tên)
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <input type="hidden" name="force_new_customer" id="force_new_customer" value="0">
             </div>
 
             <!-- BƯỚC 3: DANH SÁCH SẢN PHẨM -->
@@ -644,14 +665,15 @@
 
                 const filtered = customers.filter(c =>
                     c.name.toLowerCase().includes(query.toLowerCase()) ||
-                    c.phone.includes(query)
+                    (c.phone && c.phone.includes(query)) ||
+                    (c.email && c.email.toLowerCase().includes(query.toLowerCase()))
                 );
 
                 if (filtered.length > 0) {
                     suggestions.innerHTML = filtered.map(c => `
                                                                                                     <div class="px-3 py-2 hover:bg-blue-50 cursor-pointer border-b" onclick="selectCustomer(${c.id})">
                                                                                                         <div class="font-medium">${c.name}</div>
-                                                                                                        <div class="text-xs text-gray-500">${c.phone}</div>
+                                                                                                        <div class="text-xs text-gray-500">${c.phone || 'Không có SĐT'} | ${c.email || 'Không có email'}</div>
                                                                                                     </div>
                                                                                                 `).join('');
                     suggestions.classList.remove('hidden');
@@ -669,7 +691,7 @@
                     suggestions.innerHTML = customers.map(c => `
                                                                                                     <div class="px-3 py-2 hover:bg-blue-50 cursor-pointer border-b" onclick="selectCustomer(${c.id})">
                                                                                                         <div class="font-medium">${c.name}</div>
-                                                                                                        <div class="text-xs text-gray-500">${c.phone}</div>
+                                                                                                        <div class="text-xs text-gray-500">${c.phone || 'Không có SĐT'} | ${c.email || 'Không có email'}</div>
                                                                                                     </div>
                                                                                                 `).join('');
                     suggestions.classList.remove('hidden');
@@ -724,6 +746,55 @@
                         document.getElementById('current_debt').value = '';
                     }
                 }
+                
+                // Kiểm tra trùng tên
+                checkDuplicateCustomer();
+            }
+
+            // Biến lưu khách hàng trùng tên (nếu có)
+            let duplicateCustomer = null;
+
+            // Kiểm tra xem có khách hàng trùng tên không
+            function checkDuplicateCustomer() {
+                const customerName = document.getElementById('customer_name').value.trim();
+                const customerId = document.getElementById('customer_id').value;
+                
+                // Ẩn cảnh báo trước
+                document.getElementById('customer-duplicate-warning').classList.add('hidden');
+                duplicateCustomer = null;
+                
+                if (!customerName || customerId) return;
+                
+                // Tìm khách hàng trùng tên (case-insensitive)
+                const matchingCustomer = customers.find(c => 
+                    c.name.toLowerCase() === customerName.toLowerCase()
+                );
+                
+                if (matchingCustomer) {
+                    duplicateCustomer = matchingCustomer;
+                    const infoText = `Đã tồn tại: "${matchingCustomer.name}" - SĐT: ${matchingCustomer.phone || 'Không có'} - Email: ${matchingCustomer.email || 'Không có'}`;
+                    document.getElementById('duplicate-customer-info').textContent = infoText;
+                    document.getElementById('customer-duplicate-warning').classList.remove('hidden');
+                }
+            }
+
+            // Sử dụng khách hàng có sẵn (khi trùng tên)
+            function useExistingCustomer() {
+                if (duplicateCustomer) {
+                    selectCustomer(duplicateCustomer.id);
+                    document.getElementById('customer-duplicate-warning').classList.add('hidden');
+                    document.getElementById('force_new_customer').value = '0';
+                }
+            }
+
+            // Tạo khách hàng mới (dù trùng tên)
+            function forceCreateNewCustomer() {
+                document.getElementById('customer-duplicate-warning').classList.add('hidden');
+                document.getElementById('force_new_customer').value = '1';
+                duplicateCustomer = null;
+                
+                // Hiển thị thông báo đang tạo mới
+                alert('Sẽ tạo khách hàng MỚI với tên này (có thể trùng với khách hàng đã tồn tại)');
             }
 
             // Reset tất cả các trường khách hàng để nhập mới
@@ -734,6 +805,9 @@
                 document.getElementById('customer_email').value = '';
                 document.getElementById('customer_address').value = '';
                 document.getElementById('customer-selected-notice').classList.add('hidden');
+                document.getElementById('customer-duplicate-warning').classList.add('hidden');
+                document.getElementById('force_new_customer').value = '0';
+                duplicateCustomer = null;
                 
                 // Reset style các input
                 const inputs = ['customer_phone', 'customer_email', 'customer_address'];
