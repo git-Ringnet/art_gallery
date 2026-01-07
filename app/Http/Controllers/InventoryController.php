@@ -149,7 +149,7 @@ class InventoryController extends Controller
                 $firstSale = $completedSalesMap[$painting->id]->first();
                 $exportDate = $firstSale->sale_date?->format('d/m/Y');
             }
-            
+
             return [
                 'id' => $painting->id,
                 'code' => $painting->code,
@@ -343,14 +343,14 @@ class InventoryController extends Controller
         $inventory = $itemsForPage->map(function ($item) use ($paintings, $supplies, $completedSalesMap) {
             if ($item['type'] === 'painting' && isset($paintings[$item['id']])) {
                 $painting = $paintings[$item['id']];
-                
+
                 // Lấy ngày xuất từ sale đầu tiên nếu có
                 $exportDate = null;
                 if (isset($completedSalesMap[$painting->id]) && $completedSalesMap[$painting->id]->isNotEmpty()) {
                     $firstSale = $completedSalesMap[$painting->id]->first();
                     $exportDate = $firstSale->sale_date?->format('d/m/Y');
                 }
-                
+
                 return [
                     'id' => $painting->id,
                     'code' => $painting->code,
@@ -473,7 +473,7 @@ class InventoryController extends Controller
             'height' => 'nullable|numeric|min:0|max:100000',
             'depth' => 'nullable|numeric|min:0|max:100000',
             'year' => 'nullable',
-            'price_usd' => 'required|numeric|min:0',
+            'price_usd' => 'nullable|numeric|min:0',
             'price_vnd' => 'nullable|numeric|min:0',
             'import_date' => 'required|date',
             'export_date' => 'nullable|date|after:import_date',
@@ -654,7 +654,8 @@ class InventoryController extends Controller
                 'height' => 'nullable|numeric|min:0|max:100000',
                 'depth' => 'nullable|numeric|min:0|max:100000',
                 'paint_year' => 'nullable',
-                'price_usd' => 'required|numeric|min:0',
+                'price_usd' => 'nullable|numeric|min:0',
+                'price_vnd' => 'nullable|numeric|min:0',
                 'import_date' => 'nullable|date',
                 'export_date' => 'nullable|date|after:import_date',
                 'notes' => 'nullable|string',
@@ -967,7 +968,7 @@ class InventoryController extends Controller
             } else {
                 $description .= " ({$deletedSupplies} vật tư)";
             }
-            
+
             $this->activityLogger->log(
                 \App\Models\ActivityLog::TYPE_DELETE,
                 \App\Models\ActivityLog::MODULE_INVENTORY,

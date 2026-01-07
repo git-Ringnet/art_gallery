@@ -71,7 +71,7 @@ class PaintingTemplateExport implements FromArray, WithHeadings, WithStyles, Wit
             'Chiều cao (cm)',
             'Chiều sâu (cm)',
             'Năm vẽ',
-            'Giá (USD) (*)',
+            'Giá (USD)',
             'Giá (VND)',
             'Ngày nhập kho (*)',
             'Ghi chú'
@@ -81,10 +81,13 @@ class PaintingTemplateExport implements FromArray, WithHeadings, WithStyles, Wit
     public function styles(Worksheet $sheet)
     {
         return [
-            1 => ['font' => ['bold' => true, 'size' => 12], 'fill' => [
-                'fillType' => \PhpOffice\PhpSpreadsheet\Style\Fill::FILL_SOLID,
-                'startColor' => ['rgb' => 'E2EFDA']
-            ]],
+            1 => [
+                'font' => ['bold' => true, 'size' => 12],
+                'fill' => [
+                    'fillType' => \PhpOffice\PhpSpreadsheet\Style\Fill::FILL_SOLID,
+                    'startColor' => ['rgb' => 'E2EFDA']
+                ]
+            ],
         ];
     }
 
@@ -110,7 +113,7 @@ class PaintingTemplateExport implements FromArray, WithHeadings, WithStyles, Wit
     public function registerEvents(): array
     {
         return [
-            AfterSheet::class => function(AfterSheet $event) {
+            AfterSheet::class => function (AfterSheet $event) {
                 // Set default row height for data rows to accommodate images
                 // We have 3 sample rows (row 2, 3, 4)
                 $event->sheet->getDelegate()->getRowDimension(2)->setRowHeight(80);

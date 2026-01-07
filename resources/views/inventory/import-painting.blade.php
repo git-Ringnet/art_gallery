@@ -6,14 +6,8 @@
 
 @section('content')
     <!-- Confirm Modal -->
-    <x-confirm-modal 
-        id="confirm-painting-modal"
-        title="Xác nhận nhập tranh"
-        message="Bạn có chắc chắn muốn nhập tranh này?"
-        confirmText="Xác nhận"
-        cancelText="Quay lại"
-        type="info"
-    >
+    <x-confirm-modal id="confirm-painting-modal" title="Xác nhận nhập tranh" message="Bạn có chắc chắn muốn nhập tranh này?"
+        confirmText="Xác nhận" cancelText="Quay lại" type="info">
         <div id="confirm-painting-summary" class="text-sm"></div>
     </x-confirm-modal>
 
@@ -81,7 +75,8 @@
         <!-- Manual Form -->
         <div id="form-manual" class="tab-content">
 
-            <form action="{{ route('inventory.import.painting') }}" method="POST" enctype="multipart/form-data" id="painting-manual-form">
+            <form action="{{ route('inventory.import.painting') }}" method="POST" enctype="multipart/form-data"
+                id="painting-manual-form">
                 @csrf
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
                     <div>
@@ -167,9 +162,8 @@
                             placeholder="Ví dụ: 2019">
                     </div>
                     <div>
-                        <label class="block text-xs font-medium text-gray-700 mb-1">Giá (USD) <span
-                                class="text-red-500">*</span></label>
-                        <input type="number" name="price_usd" value="{{ old('price_usd') }}" step="0.01" min="0" required
+                        <label class="block text-xs font-medium text-gray-700 mb-1">Giá (USD)</label>
+                        <input type="number" name="price_usd" value="{{ old('price_usd') }}" step="0.01" min="0"
                             class="w-full px-2 py-1.5 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent @error('price_usd') border-red-500 @enderror"
                             placeholder="Ví dụ: 4500">
                         @error('price_usd')
@@ -239,7 +233,8 @@
                 </div>
             </div>
 
-            <form action="{{ route('inventory.import.painting.excel') }}" method="POST" enctype="multipart/form-data" id="painting-excel-form">
+            <form action="{{ route('inventory.import.painting.excel') }}" method="POST" enctype="multipart/form-data"
+                id="painting-excel-form">
                 @csrf
                 <div class="mb-4">
                     <label class="block text-sm font-medium text-gray-700 mb-2">
@@ -306,26 +301,37 @@
             const code = document.querySelector('input[name="code"]').value.trim();
             const name = document.querySelector('input[name="name"]').value.trim();
             const artist = document.querySelector('input[name="artist"]').value.trim();
+            const material = document.querySelector('input[name="material"]').value.trim();
+            const importDate = document.querySelector('input[name="import_date"]').value;
             const priceUsd = document.querySelector('input[name="price_usd"]').value || '0';
-            
+
             if (!code) { alert('Vui lòng nhập mã tranh!'); return; }
             if (!name) { alert('Vui lòng nhập tên tranh!'); return; }
-            
+            if (!artist) { alert('Vui lòng nhập tên họa sĩ!'); return; }
+            if (!material) { alert('Vui lòng nhập chất liệu tranh!'); return; }
+            if (!importDate) { alert('Vui lòng chọn ngày nhập kho!'); return; }
+
+            // Format date for display (yyyy-mm-dd -> dd/mm/yyyy)
+            const dateParts = importDate.split('-');
+            const formattedDate = dateParts.length === 3 ? `${dateParts[2]}/${dateParts[1]}/${dateParts[0]}` : importDate;
+
             let summaryHtml = `
-                <div class="space-y-2">
-                    <div class="flex justify-between"><span class="text-gray-600">Mã tranh:</span><span class="font-medium">${code}</span></div>
-                    <div class="flex justify-between"><span class="text-gray-600">Tên tranh:</span><span class="font-medium">${name}</span></div>
-                    ${artist ? `<div class="flex justify-between"><span class="text-gray-600">Họa sĩ:</span><span class="font-medium">${artist}</span></div>` : ''}
-                    <div class="flex justify-between"><span class="text-gray-600">Giá USD:</span><span class="font-medium text-blue-600">$${parseFloat(priceUsd).toLocaleString('en-US')}</span></div>
-                </div>
-            `;
-            
+                        <div class="space-y-2">
+                            <div class="flex justify-between"><span class="text-gray-600">Mã tranh:</span><span class="font-medium">${code}</span></div>
+                            <div class="flex justify-between"><span class="text-gray-600">Tên tranh:</span><span class="font-medium">${name}</span></div>
+                            <div class="flex justify-between"><span class="text-gray-600">Họa sĩ:</span><span class="font-medium">${artist}</span></div>
+                            <div class="flex justify-between"><span class="text-gray-600">Chất liệu:</span><span class="font-medium">${material}</span></div>
+                            <div class="flex justify-between"><span class="text-gray-600">Ngày nhập:</span><span class="font-medium">${formattedDate}</span></div>
+                            <div class="flex justify-between"><span class="text-gray-600">Giá USD:</span><span class="font-medium text-blue-600">${priceUsd ? '$' + parseFloat(priceUsd).toLocaleString('en-US') : 'Chưa cập nhật'}</span></div>
+                        </div>
+                    `;
+
             document.getElementById('confirm-painting-summary').innerHTML = summaryHtml;
-            
+
             showConfirmModal('confirm-painting-modal', {
                 title: 'Xác nhận nhập tranh',
                 message: 'Vui lòng kiểm tra thông tin trước khi lưu:',
-                onConfirm: function() {
+                onConfirm: function () {
                     document.getElementById('painting-manual-form').submit();
                 }
             });
@@ -441,7 +447,7 @@
             const preview = document.getElementById('image-preview');
             const form = document.getElementById('painting-excel-form');
             const submitBtn = document.getElementById('painting-submit-btn');
-            
+
             const MAX_FILES = 200;
 
             // Preview handler
@@ -458,7 +464,7 @@
                     }
 
                     const fileNames = Array.from(files).map(f => f.name).join(', ');
-                    
+
                     if (files.length > MAX_FILES) {
                         if (submitBtn) {
                             submitBtn.setAttribute('disabled', 'disabled');
@@ -470,7 +476,7 @@
                             submitBtn.removeAttribute('disabled');
                             submitBtn.classList.remove('opacity-50', 'cursor-not-allowed', 'pointer-events-none');
                         }
-                        
+
                         if (files.length > 150) {
                             preview.innerHTML = `<i class="fas fa-exclamation-circle text-yellow-600 mr-1"></i><span class="text-yellow-700">Đã chọn <strong>${files.length}</strong> ảnh (gần đạt giới hạn ${MAX_FILES} ảnh)</span><br><span class="text-xs text-gray-600">${fileNames}</span>`;
                         } else {

@@ -25,14 +25,15 @@ class PaintingImportWithImages implements ToCollection
     public function collection(Collection $rows)
     {
         Log::info('Processing Excel rows', ['total_rows' => count($rows)]);
-        
+
         foreach ($rows as $index => $row) {
             // Index 0 is Header (Row 1 in Excel)
             // Index 1 is Data (Row 2 in Excel)
             $excelRow = $index + 1;
 
             // Skip header
-            if ($index === 0) continue;
+            if ($index === 0)
+                continue;
 
             try {
                 // Validate có đủ cột không
@@ -42,12 +43,12 @@ class PaintingImportWithImages implements ToCollection
                     $this->errors[] = "Dòng {$excelRow}: Không đủ cột dữ liệu (cần ít nhất 4 cột)";
                     continue;
                 }
-                
-                $code = isset($row[0]) ? trim((string)$row[0]) : null;
+
+                $code = isset($row[0]) ? trim((string) $row[0]) : null;
                 // Clean code: remove extra spaces
                 $code = preg_replace('/\s+/', ' ', $code);
                 $code = trim($code);
-                
+
                 if (empty($code)) {
                     continue;
                 }
@@ -58,47 +59,47 @@ class PaintingImportWithImages implements ToCollection
                     $this->errors[] = "Dòng {$excelRow}: Mã tranh '{$code}' đã tồn tại";
                     continue;
                 }
-                
+
                 // Validate required fields and clean data
-                $name = isset($row[1]) ? trim((string)$row[1]) : '';
-                $artist = isset($row[2]) ? trim((string)$row[2]) : '';
-                $material = isset($row[3]) ? trim((string)$row[3]) : '';
-                
+                $name = isset($row[1]) ? trim((string) $row[1]) : '';
+                $artist = isset($row[2]) ? trim((string) $row[2]) : '';
+                $material = isset($row[3]) ? trim((string) $row[3]) : '';
+
                 // Clean duplicate text (e.g., "Tranh mẫu 1Tranh mẫu 1" -> "Tranh mẫu 1")
                 $name = $this->cleanDuplicateText($name);
                 $artist = $this->cleanDuplicateText($artist);
                 $material = $this->cleanDuplicateText($material);
-                
+
                 // Validate and truncate if too long
                 if (empty($name)) {
                     $this->skippedCount++;
                     $this->errors[] = "Dòng {$excelRow}: Thiếu tên tranh";
                     continue;
                 }
-                
+
                 if (mb_strlen($name) > 500) {
                     $this->skippedCount++;
                     $this->errors[] = "Dòng {$excelRow}: Tên tranh quá dài (tối đa 500 ký tự, hiện tại: " . mb_strlen($name) . " ký tự)";
                     continue;
                 }
-                
+
                 if (empty($artist)) {
                     $this->skippedCount++;
                     $this->errors[] = "Dòng {$excelRow}: Thiếu tên họa sĩ";
                     continue;
                 }
-                
+
                 if (mb_strlen($artist) > 255) {
                     $artist = mb_substr($artist, 0, 255);
                     Log::warning("Artist name truncated", ['row' => $excelRow, 'original_length' => mb_strlen($artist)]);
                 }
-                
+
                 if (empty($material)) {
                     $this->skippedCount++;
                     $this->errors[] = "Dòng {$excelRow}: Thiếu chất liệu";
                     continue;
                 }
-                
+
                 if (mb_strlen($material) > 100) {
                     $material = mb_substr($material, 0, 100);
                 }
@@ -108,10 +109,10 @@ class PaintingImportWithImages implements ToCollection
                 // 2. Embedded images (by row)
                 // 3. Image path from Excel column (index 11)
                 $imagePath = null;
-                
+
                 // Normalize code for comparison (remove extra spaces)
                 $normalizedCode = $this->normalizeWhitespace($code);
-                
+
                 // Try exact match first
                 if (isset($this->uploadedImages[$code])) {
                     $imagePath = $this->uploadedImages[$code];
@@ -127,7 +128,7 @@ class PaintingImportWithImages implements ToCollection
                     foreach ($this->uploadedImages as $filename => $path) {
                         // Normalize filename for comparison
                         $normalizedFilename = $this->normalizeWhitespace($filename);
-                        
+
                         // Check if normalized filename starts with normalized code
                         if (stripos($normalizedFilename, $normalizedCode) === 0) {
                             $imagePath = $path;
@@ -142,47 +143,47 @@ class PaintingImportWithImages implements ToCollection
                         }
                     }
                 }
-                
+
                 // If still no image, try embedded images
                 if (!$imagePath && isset($this->excelImages[$excelRow])) {
                     $imagePath = $this->excelImages[$excelRow];
                     Log::info('Using embedded image', ['row' => $excelRow, 'path' => $imagePath]);
                 }
-                
+
                 // If still no image, try path from Excel
-                if (!$imagePath && isset($row[12]) && !empty(trim((string)$row[12]))) {
+                if (!$imagePath && isset($row[12]) && !empty(trim((string) $row[12]))) {
                     // Try to copy image from the path specified in Excel
-                    $imagePath = $this->copyImageFromPath(trim((string)$row[12]), $code);
+                    $imagePath = $this->copyImageFromPath(trim((string) $row[12]), $code);
                 }
-                
+
                 // Parse numeric fields safely
                 $width = null;
                 if (isset($row[4]) && !empty($row[4])) {
-                    $width = is_numeric($row[4]) ? (float)$row[4] : null;
+                    $width = is_numeric($row[4]) ? (float) $row[4] : null;
                 }
-                
+
                 $height = null;
                 if (isset($row[5]) && !empty($row[5])) {
-                    $height = is_numeric($row[5]) ? (float)$row[5] : null;
+                    $height = is_numeric($row[5]) ? (float) $row[5] : null;
                 }
-                
+
                 $depth = null;
                 if (isset($row[6]) && !empty($row[6])) {
-                    $depth = is_numeric($row[6]) ? (float)$row[6] : null;
+                    $depth = is_numeric($row[6]) ? (float) $row[6] : null;
                 }
-                
-                $priceUsd = 0;
-                if (isset($row[8]) && !empty($row[8])) {
-                    $priceUsd = is_numeric($row[8]) ? (float)$row[8] : 0;
+
+                $priceUsd = null;
+                if (isset($row[8]) && $row[8] !== '' && $row[8] !== null) {
+                    $priceUsd = is_numeric($row[8]) ? (float) $row[8] : 0;
                 }
-                
+
                 $priceVnd = null;
                 if (isset($row[9]) && !empty($row[9])) {
-                    $priceVnd = is_numeric($row[9]) ? (float)$row[9] : null;
+                    $priceVnd = is_numeric($row[9]) ? (float) $row[9] : null;
                 }
-                
+
                 // Clean notes
-                $notes = isset($row[11]) ? trim((string)$row[11]) : null;
+                $notes = isset($row[11]) ? trim((string) $row[11]) : null;
                 if ($notes && mb_strlen($notes) > 1000) {
                     $notes = mb_substr($notes, 0, 1000);
                 }
@@ -239,7 +240,7 @@ class PaintingImportWithImages implements ToCollection
                 ]);
             }
         }
-        
+
         Log::info('Finished processing Excel rows', [
             'imported' => $this->importedCount,
             'skipped' => $this->skippedCount,
@@ -259,10 +260,10 @@ class PaintingImportWithImages implements ToCollection
         if (empty($text)) {
             return $text;
         }
-        
+
         // Replace multiple spaces with single space
         $text = preg_replace('/\s+/', ' ', $text);
-        
+
         // Trim leading/trailing spaces
         return trim($text);
     }
@@ -279,26 +280,26 @@ class PaintingImportWithImages implements ToCollection
         if (empty($text)) {
             return $text;
         }
-        
+
         $text = trim($text);
         $originalLength = mb_strlen($text);
-        
+
         // Try to detect repeating patterns
         // Check if text is repeated 2+ times
         for ($len = 1; $len <= mb_strlen($text) / 2; $len++) {
             $pattern = mb_substr($text, 0, $len);
-            $repeated = str_repeat($pattern, (int)(mb_strlen($text) / $len));
-            
+            $repeated = str_repeat($pattern, (int) (mb_strlen($text) / $len));
+
             if ($repeated === $text) {
                 Log::info('Detected repeated pattern', [
                     'original' => $text,
                     'pattern' => $pattern,
-                    'times' => (int)(mb_strlen($text) / $len)
+                    'times' => (int) (mb_strlen($text) / $len)
                 ]);
                 return $pattern;
             }
         }
-        
+
         return $text;
     }
 
@@ -318,19 +319,19 @@ class PaintingImportWithImages implements ToCollection
         try {
             // Clean up the path
             $imagePath = trim($imagePath);
-            
+
             // Try to resolve the actual file path
             $resolvedPath = $this->resolveImagePath($imagePath);
-            
+
             if (!$resolvedPath) {
                 Log::warning('Image file not found after trying all paths', [
-                    'original_path' => $imagePath, 
+                    'original_path' => $imagePath,
                     'code' => $code
                 ]);
                 $this->errors[] = "Không tìm thấy file ảnh: {$imagePath} cho mã {$code}";
                 return null;
             }
-            
+
             // Validate it's an image file
             $imageInfo = @getimagesize($resolvedPath);
             if ($imageInfo === false) {
@@ -338,7 +339,7 @@ class PaintingImportWithImages implements ToCollection
                 $this->errors[] = "File không phải là ảnh hợp lệ: {$imagePath} cho mã {$code}";
                 return null;
             }
-            
+
             // Get file extension
             $extension = pathinfo($resolvedPath, PATHINFO_EXTENSION);
             if (empty($extension)) {
@@ -351,11 +352,11 @@ class PaintingImportWithImages implements ToCollection
                 ];
                 $extension = $mimeToExt[$imageInfo['mime']] ?? 'jpg';
             }
-            
+
             // Generate unique filename
             $uniqueName = uniqid() . '_' . time() . '.' . $extension;
             $storagePath = 'paintings/' . $uniqueName;
-            
+
             // Copy file to storage
             $imageContent = file_get_contents($resolvedPath);
             if ($imageContent === false) {
@@ -363,18 +364,18 @@ class PaintingImportWithImages implements ToCollection
                 $this->errors[] = "Không thể đọc file ảnh: {$imagePath} cho mã {$code}";
                 return null;
             }
-            
+
             Storage::disk('public')->put($storagePath, $imageContent);
-            
+
             Log::info('Copied image from path', [
                 'original_path' => $imagePath,
                 'resolved_path' => $resolvedPath,
                 'destination' => $storagePath,
                 'code' => $code
             ]);
-            
+
             return $storagePath;
-            
+
         } catch (\Exception $e) {
             Log::error('Error copying image from path', [
                 'path' => $imagePath,
@@ -398,32 +399,32 @@ class PaintingImportWithImages implements ToCollection
         if (file_exists($path)) {
             return $path;
         }
-        
+
         // Try 2: Relative to public/temp-imports
         $tempImportsPath = public_path('temp-imports/' . $path);
         if (file_exists($tempImportsPath)) {
             return $tempImportsPath;
         }
-        
+
         // Try 3: Just filename in public/temp-imports
         $filename = basename($path);
         $tempImportsFilePath = public_path('temp-imports/' . $filename);
         if (file_exists($tempImportsFilePath)) {
             return $tempImportsFilePath;
         }
-        
+
         // Try 4: Relative to storage/app/public/temp-imports
         $storageTempPath = storage_path('app/public/temp-imports/' . $path);
         if (file_exists($storageTempPath)) {
             return $storageTempPath;
         }
-        
+
         // Try 5: Just filename in storage/app/public/temp-imports
         $storageTempFilePath = storage_path('app/public/temp-imports/' . $filename);
         if (file_exists($storageTempFilePath)) {
             return $storageTempFilePath;
         }
-        
+
         return null;
     }
 
@@ -433,15 +434,15 @@ class PaintingImportWithImages implements ToCollection
             if (empty($date)) {
                 return now()->format('Y-m-d');
             }
-            
+
             // If it's a numeric value, it's likely an Excel serial date
             if (is_numeric($date)) {
                 return \PhpOffice\PhpSpreadsheet\Shared\Date::excelToDateTimeObject($date)->format('Y-m-d');
             }
-            
+
             // Convert to string and trim
-            $date = trim((string)$date);
-            
+            $date = trim((string) $date);
+
             // Try to parse various date formats
             // Format: dd.mm.yyyy (European format with dots)
             if (preg_match('/^(\d{1,2})\.(\d{1,2})\.(\d{4})$/', $date, $matches)) {
@@ -450,7 +451,7 @@ class PaintingImportWithImages implements ToCollection
                 $year = $matches[3];
                 return "{$year}-{$month}-{$day}";
             }
-            
+
             // Format: dd/mm/yyyy
             if (preg_match('/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/', $date, $matches)) {
                 $day = str_pad($matches[1], 2, '0', STR_PAD_LEFT);
@@ -458,7 +459,7 @@ class PaintingImportWithImages implements ToCollection
                 $year = $matches[3];
                 return "{$year}-{$month}-{$day}";
             }
-            
+
             // Format: dd-mm-yyyy
             if (preg_match('/^(\d{1,2})-(\d{1,2})-(\d{4})$/', $date, $matches)) {
                 $day = str_pad($matches[1], 2, '0', STR_PAD_LEFT);
@@ -466,17 +467,17 @@ class PaintingImportWithImages implements ToCollection
                 $year = $matches[3];
                 return "{$year}-{$month}-{$day}";
             }
-            
+
             // Try strtotime for other formats (yyyy-mm-dd, etc.)
             $timestamp = strtotime($date);
             if ($timestamp !== false) {
                 return date('Y-m-d', $timestamp);
             }
-            
+
             // If all else fails, return current date
             Log::warning('Could not parse date, using current date', ['date' => $date]);
             return now()->format('Y-m-d');
-            
+
         } catch (\Exception $e) {
             Log::error('Error parsing date', ['date' => $date, 'error' => $e->getMessage()]);
             return now()->format('Y-m-d');
