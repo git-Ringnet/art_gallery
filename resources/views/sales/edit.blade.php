@@ -92,33 +92,48 @@
                                 class="text-red-500">*</span></label>
                         <input type="text" name="customer_name" id="customer_name" required
                             class="w-full px-3 py-1.5 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500"
-                            value="{{ $sale->customer->name }}" autocomplete="off" onkeyup="filterCustomers(this.value)"
+                            value="{{ $sale->customer->name }}" autocomplete="off" 
+                            onkeyup="filterCustomers(this.value); clearCustomerId()"
                             onfocus="showAllCustomers()" onclick="showAllCustomers()">
                         <input type="hidden" name="customer_id" id="customer_id" value="{{ $sale->customer_id }}">
                         <div id="customer-suggestions"
                             class="absolute z-10 w-full bg-white border border-gray-300 rounded-lg mt-1 max-h-60 overflow-y-auto hidden shadow-lg">
                         </div>
+                        <p class="text-xs text-gray-500 mt-1">
+                            <i class="fas fa-info-circle mr-1"></i>Nhập tên để tìm khách hàng cũ hoặc nhập thông tin mới để tạo khách hàng mới
+                        </p>
                     </div>
                 </div>
-                <!-- Các trường hiển thị khi đã chọn khách hàng -->
+                <!-- Các trường thông tin khách hàng - LUÔN HIỂN THỊ -->
                 <div id="customer-details" class="grid grid-cols-1 md:grid-cols-3 gap-3">
                     <div>
                         <label class="block text-xs font-medium text-gray-700 mb-1">Số điện thoại</label>
-                        <input type="tel" name="customer_phone" id="customer_phone" readonly
-                            class="w-full px-3 py-1.5 text-sm border border-gray-300 rounded-lg bg-gray-50 focus:ring-2 focus:ring-green-500"
-                            value="{{ $sale->customer->phone }}">
+                        <input type="tel" name="customer_phone" id="customer_phone"
+                            class="w-full px-3 py-1.5 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500"
+                            value="{{ $sale->customer->phone }}" placeholder="Nhập số điện thoại...">
                     </div>
                     <div>
                         <label class="block text-xs font-medium text-gray-700 mb-1">Email</label>
-                        <input type="email" name="customer_email" id="customer_email" readonly
-                            class="w-full px-3 py-1.5 text-sm border border-gray-300 rounded-lg bg-gray-50 focus:ring-2 focus:ring-green-500"
-                            value="{{ $sale->customer->email }}">
+                        <input type="email" name="customer_email" id="customer_email"
+                            class="w-full px-3 py-1.5 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500"
+                            value="{{ $sale->customer->email }}" placeholder="Nhập email...">
                     </div>
                     <div>
                         <label class="block text-xs font-medium text-gray-700 mb-1">Địa chỉ</label>
-                        <input type="text" name="customer_address" id="customer_address" readonly
-                            class="w-full px-3 py-1.5 text-sm border border-gray-300 rounded-lg bg-gray-50 focus:ring-2 focus:ring-green-500"
-                            value="{{ $sale->customer->address }}">
+                        <input type="text" name="customer_address" id="customer_address"
+                            class="w-full px-3 py-1.5 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500"
+                            value="{{ $sale->customer->address }}" placeholder="Nhập địa chỉ...">
+                    </div>
+                </div>
+                <!-- Thông báo khi chọn khách hàng có sẵn -->
+                <div id="customer-selected-notice" class="hidden mt-2 p-2 bg-green-100 border border-green-300 rounded-lg">
+                    <div class="flex items-center justify-between">
+                        <span class="text-sm text-green-700">
+                            <i class="fas fa-check-circle mr-1"></i>Đã chọn khách hàng có sẵn
+                        </span>
+                        <button type="button" onclick="resetCustomerFields()" class="text-sm text-red-600 hover:text-red-800">
+                            <i class="fas fa-times mr-1"></i>Xóa & Nhập mới
+                        </button>
                     </div>
                 </div>
             </div>
@@ -671,13 +686,69 @@
                     document.getElementById('customer_address').value = customer.address || '';
                     document.getElementById('customer-suggestions').classList.add('hidden');
 
-                    // Hiển thị các trường thông tin khách hàng (trong edit thì luôn hiển thị)
-                    document.getElementById('customer-details').classList.remove('hidden');
+                    // Hiển thị thông báo đã chọn khách hàng có sẵn
+                    document.getElementById('customer-selected-notice').classList.remove('hidden');
+                    
+                    // Đánh dấu các input là đã chọn (thay đổi style)
+                    const inputs = ['customer_phone', 'customer_email', 'customer_address'];
+                    inputs.forEach(inputId => {
+                        const input = document.getElementById(inputId);
+                        input.classList.add('bg-green-50', 'border-green-300');
+                    });
 
                     // Load công nợ hiện tại
                     loadCurrentDebt(customer.id);
                 }
             }
+
+            // Xóa customer_id khi người dùng thay đổi tên khách hàng
+            function clearCustomerId() {
+                const customerId = document.getElementById('customer_id');
+                const customerName = document.getElementById('customer_name');
+                
+                // Nếu đã có customer_id và tên bị thay đổi, xóa customer_id
+                if (customerId.value) {
+                    const selectedCustomer = customers.find(c => c.id == customerId.value);
+                    if (selectedCustomer && customerName.value !== selectedCustomer.name) {
+                        customerId.value = '';
+                        document.getElementById('customer-selected-notice').classList.add('hidden');
+                        
+                        // Reset style các input
+                        const inputs = ['customer_phone', 'customer_email', 'customer_address'];
+                        inputs.forEach(inputId => {
+                            const input = document.getElementById(inputId);
+                            input.classList.remove('bg-green-50', 'border-green-300');
+                        });
+                        
+                        // Clear old debt display
+                        document.getElementById('current_debt').value = '';
+                    }
+                }
+            }
+
+            // Reset tất cả các trường khách hàng để nhập mới
+            function resetCustomerFields() {
+                document.getElementById('customer_id').value = '';
+                document.getElementById('customer_name').value = '';
+                document.getElementById('customer_phone').value = '';
+                document.getElementById('customer_email').value = '';
+                document.getElementById('customer_address').value = '';
+                document.getElementById('customer-selected-notice').classList.add('hidden');
+                
+                // Reset style các input
+                const inputs = ['customer_phone', 'customer_email', 'customer_address'];
+                inputs.forEach(inputId => {
+                    const input = document.getElementById(inputId);
+                    input.classList.remove('bg-green-50', 'border-green-300');
+                });
+                
+                // Clear debt display
+                document.getElementById('current_debt').value = '';
+                
+                // Focus vào ô tên khách hàng
+                document.getElementById('customer_name').focus();
+            }
+
 
             // Ẩn suggestions khi click bên ngoài
             document.addEventListener('click', function (e) {
