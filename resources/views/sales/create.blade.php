@@ -186,100 +186,115 @@
                             class="w-full px-3 py-1.5 text-sm border-2 border-green-300 rounded-lg bg-white font-bold text-green-600">
                     </div>
                 </div>
+            </div>
 
-                <!-- Thanh toán -->
-                <div class="bg-white p-3 rounded-lg border border-orange-200">
-                    <h4 class="text-sm font-semibold text-gray-700 mb-2">Thanh toán</h4>
-
-                    <!-- Tỷ giá (Hiện khi cần quy đổi) -->
-                    <div id="exchange-rate-section"
-                        class="mb-3 bg-yellow-50 border border-yellow-200 rounded-lg p-3 hidden">
-                        <label class="block text-xs font-medium text-yellow-900 mb-1">
-                            <i class="fas fa-exchange-alt mr-1"></i>Tỷ giá (VND/USD) <span id="rate-required-mark"
-                                class="text-red-500">*</span>
-                            <span class="text-xs font-normal" id="rate-hint-text">(Cần quy đổi)</span>
-                        </label>
-                        <input type="text" name="exchange_rate" id="rate"
-                            class="w-full px-3 py-1.5 text-sm border border-yellow-300 rounded-lg focus:ring-2 focus:ring-yellow-500 bg-white"
-                            value="{{ number_format(round($currentRate->rate ?? 0)) }}"
-                            oninput="formatVND(this); calcTotalPaid()" onblur="formatVND(this)">
-                        <p class="text-xs text-yellow-700 mt-1" id="rate-description">
-                            <i class="fas fa-info-circle mr-1"></i><span id="rate-desc-text">Tỷ giá để quy đổi giữa USD và
-                                VND</span>
-                        </p>
+            <!-- Tổng tiền quy đổi (Hiển thị khi có USD) -->
+            <div id="converted-total-wrapper" class="mb-4 hidden">
+                <div class="p-3 bg-blue-50 border border-blue-100 rounded-lg">
+                    <div class="flex justify-between items-center">
+                        <span class="text-sm font-bold text-blue-900">
+                            <i class="fas fa-calculator mr-1"></i>Tổng tiền quy đổi (VND)
+                        </span>
+                        <span id="converted_total_vnd" class="text-lg font-bold text-blue-700">0đ</span>
                     </div>
-
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-3 mb-3">
-                        <div>
-                            <label class="block text-xs font-medium text-gray-700 mb-1">Trả bằng USD</label>
-                            <input type="text" id="paid_usd_display"
-                                class="w-full px-3 py-1.5 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500"
-                                value="0.00" oninput="formatPaymentUSD(this)" placeholder="0.00">
-                            <input type="hidden" name="payment_usd" id="paid_usd" value="0">
-                        </div>
-                        <div>
-                            <label class="block text-xs font-medium text-gray-700 mb-1">Trả bằng VND</label>
-                            <input type="text" id="paid_vnd_display"
-                                class="w-full px-3 py-1.5 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500"
-                                value="0" oninput="formatPaymentVND(this)" placeholder="0">
-                            <input type="hidden" name="payment_vnd" id="paid_vnd" value="0">
-                        </div>
-                    </div>
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-3 mb-3">
-                        <div>
-                            <label class="block text-xs font-medium text-gray-700 mb-1">Phương thức</label>
-                            <select name="payment_method" id="payment_method"
-                                class="w-full px-3 py-1.5 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500">
-                                <option value="cash">Tiền mặt</option>
-                                <option value="bank_transfer">Chuyển khoản</option>
-                                <option value="card">Thẻ</option>
-                            </select>
-                        </div>
-                        <div>
-                            <label class="block text-xs font-medium text-blue-900 mb-1" id="total_paid_label">Tổng đã
-                                trả</label>
-                            <input type="text" id="total_paid_display" readonly
-                                class="w-full px-3 py-1.5 text-sm border border-blue-300 rounded-lg bg-blue-50 font-bold text-blue-600">
-                            <input type="hidden" name="payment_amount" id="total_paid_value">
-                            <div id="total_paid_usd_display" class="text-xs text-blue-700 font-medium mt-1"></div>
-                        </div>
-                    </div>
-                    <div class="grid grid-cols-1 gap-3">
-                        <div>
-                            <label class="block text-xs font-medium text-yellow-900 mb-1">Nợ cũ của khách hàng</label>
-                            <input type="text" id="current_debt" readonly
-                                class="w-full px-3 py-1.5 text-sm border border-yellow-300 rounded-lg bg-white font-bold text-orange-600">
-                        </div>
+                    <div class="text-[11px] text-blue-600 text-right mt-1 font-medium italic">
+                        (Tổng USD x Tỷ giá + Tổng VND)
                     </div>
                 </div>
             </div>
 
-            <!-- Ghi chú -->
-            <div class="mb-4">
-                <label class="block text-xs font-medium text-gray-700 mb-1">Ghi chú</label>
-                <textarea name="notes" rows="2"
-                    class="w-full px-3 py-1.5 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
-                    placeholder="Nhập ghi chú (không bắt buộc)..."></textarea>
-            </div>
+            <!-- Thanh toán -->
+            <div class="bg-white p-3 rounded-lg border border-orange-200">
+                <h4 class="text-sm font-semibold text-gray-700 mb-2">Thanh toán</h4>
 
-            <!-- Buttons -->
-            <div class="flex flex-col sm:flex-row gap-2 pt-4 border-t-2 border-gray-200">
-                <button type="button" onclick="confirmSaveOrder('save')"
-                    class="flex-1 bg-green-600 hover:bg-green-700 text-white py-2 rounded-lg transition-colors font-medium shadow-lg text-sm">
-                    <i class="fas fa-save mr-1"></i>Lưu hóa đơn
-                </button>
-                <button type="button" onclick="confirmSaveOrder('save_and_print')"
-                    class="flex-1 bg-blue-600 hover:bg-blue-700 text-white py-2 rounded-lg transition-colors font-medium shadow-lg text-sm">
-                    <i class="fas fa-print mr-1"></i>Lưu & In
-                </button>
-                <a href="{{ route('sales.index') }}"
-                    class="flex-1 bg-gray-500 hover:bg-gray-600 text-white py-2 rounded-lg transition-colors font-medium text-center shadow-lg text-sm">
-                    <i class="fas fa-times mr-1"></i>Hủy bỏ
-                </a>
+                <!-- Tỷ giá (Hiện khi cần quy đổi) -->
+                <div id="exchange-rate-section" class="mb-3 bg-yellow-50 border border-yellow-200 rounded-lg p-3">
+                    <label class="block text-xs font-medium text-yellow-900 mb-1">
+                        <i class="fas fa-exchange-alt mr-1"></i>Tỷ giá (VND/USD) <span id="rate-required-mark"
+                            class="text-red-500">*</span>
+                        <span class="text-xs font-normal" id="rate-hint-text">(Cần quy đổi)</span>
+                    </label>
+                    <input type="text" name="exchange_rate" id="rate"
+                        class="w-full px-3 py-1.5 text-sm border border-yellow-300 rounded-lg focus:ring-2 focus:ring-yellow-500 bg-white"
+                        value="{{ number_format(round($currentRate->rate ?? 0)) }}"
+                        oninput="formatVND(this); calc(); calcTotalPaid()" onblur="formatVND(this)">
+                    <p class="text-xs text-yellow-700 mt-1" id="rate-description">
+                        <i class="fas fa-info-circle mr-1"></i><span id="rate-desc-text">Tỷ giá để quy đổi giữa USD và
+                            VND</span>
+                    </p>
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-3 mb-3">
+                    <div>
+                        <label class="block text-xs font-medium text-gray-700 mb-1">Trả bằng USD</label>
+                        <input type="text" id="paid_usd_display"
+                            class="w-full px-3 py-1.5 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500"
+                            value="0.00" oninput="formatPaymentUSD(this)" placeholder="0.00">
+                        <input type="hidden" name="payment_usd" id="paid_usd" value="0">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-medium text-gray-700 mb-1">Trả bằng VND</label>
+                        <input type="text" id="paid_vnd_display"
+                            class="w-full px-3 py-1.5 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500"
+                            value="0" oninput="formatPaymentVND(this)" placeholder="0">
+                        <input type="hidden" name="payment_vnd" id="paid_vnd" value="0">
+                    </div>
+                </div>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-3 mb-3">
+                    <div>
+                        <label class="block text-xs font-medium text-gray-700 mb-1">Phương thức</label>
+                        <select name="payment_method" id="payment_method"
+                            class="w-full px-3 py-1.5 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500">
+                            <option value="cash">Tiền mặt</option>
+                            <option value="bank_transfer">Chuyển khoản</option>
+                            <option value="card">Thẻ</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-xs font-medium text-blue-900 mb-1" id="total_paid_label">Tổng đã
+                            trả</label>
+                        <input type="text" id="total_paid_display" readonly
+                            class="w-full px-3 py-1.5 text-sm border border-blue-300 rounded-lg bg-blue-50 font-bold text-blue-600">
+                        <input type="hidden" name="payment_amount" id="total_paid_value">
+                        <div id="total_paid_usd_display" class="text-xs text-blue-700 font-medium mt-1"></div>
+                    </div>
+                </div>
+                <div class="grid grid-cols-1 gap-3">
+                    <div>
+                        <label class="block text-xs font-medium text-yellow-900 mb-1">Nợ cũ của khách hàng</label>
+                        <input type="text" id="current_debt" readonly
+                            class="w-full px-3 py-1.5 text-sm border border-yellow-300 rounded-lg bg-white font-bold text-orange-600">
+                    </div>
+                </div>
             </div>
-            <!-- Hidden input for action -->
-            <input type="hidden" name="action" id="form-action" value="save">
-        </form>
+    </div>
+
+    <!-- Ghi chú -->
+    <div class="mb-4">
+        <label class="block text-xs font-medium text-gray-700 mb-1">Ghi chú</label>
+        <textarea name="notes" rows="2"
+            class="w-full px-3 py-1.5 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+            placeholder="Nhập ghi chú (không bắt buộc)..."></textarea>
+    </div>
+
+    <!-- Buttons -->
+    <div class="flex flex-col sm:flex-row gap-2 pt-4 border-t-2 border-gray-200">
+        <button type="button" onclick="confirmSaveOrder('save')"
+            class="flex-1 bg-green-600 hover:bg-green-700 text-white py-2 rounded-lg transition-colors font-medium shadow-lg text-sm">
+            <i class="fas fa-save mr-1"></i>Lưu hóa đơn
+        </button>
+        <button type="button" onclick="confirmSaveOrder('save_and_print')"
+            class="flex-1 bg-blue-600 hover:bg-blue-700 text-white py-2 rounded-lg transition-colors font-medium shadow-lg text-sm">
+            <i class="fas fa-print mr-1"></i>Lưu & In
+        </button>
+        <a href="{{ route('sales.index') }}"
+            class="flex-1 bg-gray-500 hover:bg-gray-600 text-white py-2 rounded-lg transition-colors font-medium text-center shadow-lg text-sm">
+            <i class="fas fa-times mr-1"></i>Hủy bỏ
+        </a>
+    </div>
+    <!-- Hidden input for action -->
+    <input type="hidden" name="action" id="form-action" value="save">
+    </form>
     </div>
 
     <!-- Confirm Modal for Sales -->
@@ -314,11 +329,11 @@
 
                 if (filtered.length > 0) {
                     suggestions.innerHTML = filtered.map(c => `
-                                            <div class="px-3 py-2 hover:bg-blue-50 cursor-pointer border-b" onclick="selectCustomer(${c.id})">
-                                                <div class="font-medium">${c.name}</div>
-                                                <div class="text-xs text-gray-500">${c.phone}</div>
-                                            </div>
-                                        `).join('');
+                                                                    <div class="px-3 py-2 hover:bg-blue-50 cursor-pointer border-b" onclick="selectCustomer(${c.id})">
+                                                                        <div class="font-medium">${c.name}</div>
+                                                                        <div class="text-xs text-gray-500">${c.phone}</div>
+                                                                    </div>
+                                                                `).join('');
                     suggestions.classList.remove('hidden');
                 } else {
                     suggestions.classList.add('hidden');
@@ -337,11 +352,11 @@
 
                 if (customers.length > 0) {
                     suggestions.innerHTML = customers.map(c => `
-                                            <div class="px-3 py-2 hover:bg-blue-50 cursor-pointer border-b" onclick="selectCustomer(${c.id})">
-                                                <div class="font-medium">${c.name}</div>
-                                                <div class="text-xs text-gray-500">${c.phone}</div>
-                                            </div>
-                                        `).join('');
+                                                                    <div class="px-3 py-2 hover:bg-blue-50 cursor-pointer border-b" onclick="selectCustomer(${c.id})">
+                                                                        <div class="font-medium">${c.name}</div>
+                                                                        <div class="text-xs text-gray-500">${c.phone}</div>
+                                                                    </div>
+                                                                `).join('');
                     suggestions.classList.remove('hidden');
                 }
             }
@@ -385,55 +400,55 @@
                 const tr = document.createElement('tr');
                 tr.className = 'border hover:bg-purple-50';
                 tr.innerHTML = `
-                                        <td class="px-3 py-3 border">
-                                            <img id="img-${idx}" src="/images/no-image.svg" class="w-20 h-16 object-cover rounded border shadow-sm">
-                                        </td>
-                                        <td class="px-3 py-3 border">
-                                            <div class="relative">
-                                                <input type="text" 
-                                                       id="item-search-${idx}"
-                                                       class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 mb-2" 
-                                                       placeholder="Tìm tranh hoặc khung..."
-                                                       autocomplete="off"
-                                                       onkeyup="filterItems(this.value, ${idx})"
-                                                       onfocus="showItemSuggestions(${idx})">
-                                                <input type="hidden" name="items[${idx}][painting_id]" id="painting-id-${idx}">
-                                                <input type="hidden" name="items[${idx}][frame_id]" id="frame-id-${idx}">
-                                                <input type="hidden" name="items[${idx}][description]" id="desc-${idx}">
-                                                <div id="item-suggestions-${idx}" class="absolute z-20 w-full bg-white border border-gray-300 rounded-lg mt-1 max-h-60 overflow-y-auto hidden shadow-lg"></div>
-                                                <div id="item-details-${idx}" class="text-xs text-gray-600 space-y-0.5 hidden"></div>
-                                            </div>
-                                        </td>
-                                        <td class="px-3 py-3 border">
-                                            <input type="number" name="items[${idx}][quantity]" required class="w-full px-3 py-2 border border-gray-300 rounded-lg text-center font-medium" value="1" min="1" onchange="calc()">
-                                        </td>
-                                         <td class="px-3 py-3 border">
-                                            <select name="items[${idx}][currency]" class="w-full px-3 py-2 border border-gray-300 rounded-lg" onchange="togCur(this, ${idx})">
-                                                <option value="USD">USD</option>
-                                                <option value="VND" selected>VND</option>
-                                            </select>
-                                        </td>
-                                        <td class="px-3 py-3 border">
-                                            <input type="text" name="items[${idx}][price_usd]" id="usd-input-${idx}" class="usd-${idx} w-full px-3 py-2 border border-gray-300 rounded-lg text-right" value="0.00" oninput="formatUSD(this)" onblur="formatUSD(this)" onchange="calc()">
-                                        </td>
-                                        <td class="px-3 py-3 border">
-                                            <input type="text" name="items[${idx}][price_vnd]" id="vnd-input-${idx}" class="vnd-${idx} w-full px-3 py-2 border border-gray-300 rounded-lg text-right" value="0" oninput="formatVND(this)" onblur="formatVND(this)" onchange="calc()">
-                                        </td>
-                                        <td class="px-3 py-3 border text-center">
-                                            <input type="number" name="items[${idx}][discount_percent]" class="w-full px-3 py-2 border border-gray-300 rounded-lg text-center" value="0" min="0" max="100" step="1" onchange="calc()">
-                                        </td>
-                                        <td class="px-3 py-3 border text-center">
-                                            <div class="space-y-1">
-                                                <input type="text" name="items[${idx}][discount_amount_usd]" id="discount-usd-${idx}" class="discount-usd-${idx} w-full px-2 py-1 text-sm border border-blue-300 rounded text-right hidden" value="0.00" oninput="formatUSD(this); calc()" onblur="formatUSD(this)" placeholder="USD">
-                                                <input type="text" name="items[${idx}][discount_amount_vnd]" id="discount-vnd-${idx}" class="discount-vnd-${idx} w-full px-2 py-1 text-sm border border-green-300 rounded text-right" value="0" oninput="formatVND(this); calc()" onblur="formatVND(this)" placeholder="VND">
-                                            </div>
-                                        </td>
-                                        <td class="px-3 py-3 border text-center">
-                                            <button type="button" class="w-8 h-8 flex items-center justify-center bg-red-100 text-red-600 rounded-lg hover:bg-red-200 transition-colors" onclick="this.closest('tr').remove();calc()">
-                                                <i class="fas fa-trash"></i>
-                                            </button>
-                                        </td>
-                                    `;
+                                                                <td class="px-3 py-3 border">
+                                                                    <img id="img-${idx}" src="/images/no-image.svg" class="w-20 h-16 object-cover rounded border shadow-sm">
+                                                                </td>
+                                                                <td class="px-3 py-3 border">
+                                                                    <div class="relative">
+                                                                        <input type="text" 
+                                                                               id="item-search-${idx}"
+                                                                               class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 mb-2" 
+                                                                               placeholder="Tìm tranh hoặc khung..."
+                                                                               autocomplete="off"
+                                                                               onkeyup="filterItems(this.value, ${idx})"
+                                                                               onfocus="showItemSuggestions(${idx})">
+                                                                        <input type="hidden" name="items[${idx}][painting_id]" id="painting-id-${idx}">
+                                                                        <input type="hidden" name="items[${idx}][frame_id]" id="frame-id-${idx}">
+                                                                        <input type="hidden" name="items[${idx}][description]" id="desc-${idx}">
+                                                                        <div id="item-suggestions-${idx}" class="absolute z-20 w-full bg-white border border-gray-300 rounded-lg mt-1 max-h-60 overflow-y-auto hidden shadow-lg"></div>
+                                                                        <div id="item-details-${idx}" class="text-xs text-gray-600 space-y-0.5 hidden"></div>
+                                                                    </div>
+                                                                </td>
+                                                                <td class="px-3 py-3 border">
+                                                                    <input type="number" name="items[${idx}][quantity]" required class="w-full px-3 py-2 border border-gray-300 rounded-lg text-center font-medium" value="1" min="1" onchange="calc()">
+                                                                </td>
+                                                                 <td class="px-3 py-3 border">
+                                                                    <select name="items[${idx}][currency]" class="w-full px-3 py-2 border border-gray-300 rounded-lg" onchange="togCur(this, ${idx})">
+                                                                        <option value="USD">USD</option>
+                                                                        <option value="VND" selected>VND</option>
+                                                                    </select>
+                                                                </td>
+                                                                <td class="px-3 py-3 border">
+                                                                    <input type="text" name="items[${idx}][price_usd]" id="usd-input-${idx}" class="usd-${idx} w-full px-3 py-2 border border-gray-300 rounded-lg text-right" value="0.00" oninput="formatUSD(this)" onblur="formatUSD(this)" onchange="calc()">
+                                                                </td>
+                                                                <td class="px-3 py-3 border">
+                                                                    <input type="text" name="items[${idx}][price_vnd]" id="vnd-input-${idx}" class="vnd-${idx} w-full px-3 py-2 border border-gray-300 rounded-lg text-right" value="0" oninput="formatVND(this)" onblur="formatVND(this)" onchange="calc()">
+                                                                </td>
+                                                                <td class="px-3 py-3 border text-center">
+                                                                    <input type="number" name="items[${idx}][discount_percent]" class="w-full px-3 py-2 border border-gray-300 rounded-lg text-center" value="0" min="0" max="100" step="1" onchange="calc()">
+                                                                </td>
+                                                                <td class="px-3 py-3 border text-center">
+                                                                    <div class="space-y-1">
+                                                                        <input type="text" name="items[${idx}][discount_amount_usd]" id="discount-usd-${idx}" class="discount-usd-${idx} w-full px-2 py-1 text-sm border border-blue-300 rounded text-right hidden" value="0.00" oninput="formatUSD(this); calc()" onblur="formatUSD(this)" placeholder="USD">
+                                                                        <input type="text" name="items[${idx}][discount_amount_vnd]" id="discount-vnd-${idx}" class="discount-vnd-${idx} w-full px-2 py-1 text-sm border border-green-300 rounded text-right" value="0" oninput="formatVND(this); calc()" onblur="formatVND(this)" placeholder="VND">
+                                                                    </div>
+                                                                </td>
+                                                                <td class="px-3 py-3 border text-center">
+                                                                    <button type="button" class="w-8 h-8 flex items-center justify-center bg-red-100 text-red-600 rounded-lg hover:bg-red-200 transition-colors" onclick="this.closest('tr').remove();calc()">
+                                                                        <i class="fas fa-trash"></i>
+                                                                    </button>
+                                                                </td>
+                                                            `;
                 tbody.appendChild(tr);
                 idx++;
             }
@@ -452,11 +467,11 @@
                     .then(paintings => {
                         if (paintings.length > 0) {
                             suggestions.innerHTML = paintings.map(p => `
-                                                    <div class="px-3 py-2 hover:bg-blue-50 cursor-pointer border-b" onclick="selectPainting(${p.id}, ${idx})">
-                                                        <div class="font-medium text-sm">${p.code} - ${p.name}</div>
-                                                        <div class="text-xs text-gray-500">USD: $${p.price_usd || 0} | VND: ${(p.price_vnd || 0).toLocaleString()}đ</div>
-                                                    </div>
-                                                `).join('');
+                                                                            <div class="px-3 py-2 hover:bg-blue-50 cursor-pointer border-b" onclick="selectPainting(${p.id}, ${idx})">
+                                                                                <div class="font-medium text-sm">${p.code} - ${p.name}</div>
+                                                                                <div class="text-xs text-gray-500">USD: $${p.price_usd || 0} | VND: ${(p.price_vnd || 0).toLocaleString()}đ</div>
+                                                                            </div>
+                                                                        `).join('');
                             suggestions.classList.remove('hidden');
                         } else {
                             suggestions.classList.add('hidden');
@@ -491,11 +506,11 @@
                     .then(supplies => {
                         if (supplies.length > 0) {
                             suggestions.innerHTML = supplies.map(s => `
-                                                    <div class="px-3 py-2 hover:bg-blue-50 cursor-pointer border-b" onclick="selectSupply(${s.id}, ${idx})">
-                                                        <div class="font-medium text-sm">${s.name}</div>
-                                                        <div class="text-xs text-gray-500">Đơn vị: ${s.unit || 'N/A'}</div>
-                                                    </div>
-                                                `).join('');
+                                                                            <div class="px-3 py-2 hover:bg-blue-50 cursor-pointer border-b" onclick="selectSupply(${s.id}, ${idx})">
+                                                                                <div class="font-medium text-sm">${s.name}</div>
+                                                                                <div class="text-xs text-gray-500">Đơn vị: ${s.unit || 'N/A'}</div>
+                                                                            </div>
+                                                                        `).join('');
                             suggestions.classList.remove('hidden');
                         } else {
                             suggestions.classList.add('hidden');
@@ -544,11 +559,11 @@
                     .then(frames => {
                         if (frames.length > 0) {
                             suggestions.innerHTML = frames.map(f => `
-                                                    <div class="px-3 py-2 hover:bg-blue-50 cursor-pointer border-b" onclick="selectFrame(${f.id}, ${idx})">
-                                                        <div class="font-medium text-sm">${f.name}</div>
-                                                        <div class="text-xs text-gray-500">Giá: ${(f.cost_price || 0).toLocaleString()}đ</div>
-                                                    </div>
-                                                `).join('');
+                                                                            <div class="px-3 py-2 hover:bg-blue-50 cursor-pointer border-b" onclick="selectFrame(${f.id}, ${idx})">
+                                                                                <div class="font-medium text-sm">${f.name}</div>
+                                                                                <div class="text-xs text-gray-500">Giá: ${(f.cost_price || 0).toLocaleString()}đ</div>
+                                                                            </div>
+                                                                        `).join('');
                             suggestions.classList.remove('hidden');
                         } else {
                             suggestions.classList.add('hidden');
@@ -598,14 +613,14 @@
                                 const stockText = isOutOfStock ? '❌ HẾT HÀNG' : `Tồn: ${stock}`;
 
                                 return `
-                                                    <div class="px-3 py-2 ${bgClass} cursor-pointer border-b" onclick="selectPainting(${p.id}, ${idx})">
-                                                        <div class="flex justify-between items-start">
-                                                            <div class="font-medium text-sm">${p.code} - ${p.name}</div>
-                                                            <span class="text-xs ${stockColor} ml-2 whitespace-nowrap">${stockText}</span>
-                                                        </div>
-                                                        <div class="text-xs text-gray-500">USD: ${p.price_usd || 0} | VND: ${(p.price_vnd || 0).toLocaleString()}đ</div>
-                                                    </div>
-                                                `;
+                                                                            <div class="px-3 py-2 ${bgClass} cursor-pointer border-b" onclick="selectPainting(${p.id}, ${idx})">
+                                                                                <div class="flex justify-between items-start">
+                                                                                    <div class="font-medium text-sm">${p.code} - ${p.name}</div>
+                                                                                    <span class="text-xs ${stockColor} ml-2 whitespace-nowrap">${stockText}</span>
+                                                                                </div>
+                                                                                <div class="text-xs text-gray-500">USD: ${p.price_usd || 0} | VND: ${(p.price_vnd || 0).toLocaleString()}đ</div>
+                                                                            </div>
+                                                                        `;
                             }).join('');
                         }
 
@@ -613,11 +628,11 @@
                         if (frames.length > 0) {
                             html += '<div class="px-3 py-1 bg-gray-100 text-xs font-bold text-gray-600">KHUNG</div>';
                             html += frames.map(f => `
-                                                <div class="px-3 py-2 hover:bg-green-50 cursor-pointer border-b" onclick="selectFrame(${f.id}, ${idx})">
-                                                    <div class="font-medium text-sm">${f.name}</div>
-                                                    <div class="text-xs text-gray-500">Giá: ${(f.cost_price || 0).toLocaleString()}đ</div>
-                                                </div>
-                                            `).join('');
+                                                                        <div class="px-3 py-2 hover:bg-green-50 cursor-pointer border-b" onclick="selectFrame(${f.id}, ${idx})">
+                                                                            <div class="font-medium text-sm">${f.name}</div>
+                                                                            <div class="text-xs text-gray-500">Giá: ${(f.cost_price || 0).toLocaleString()}đ</div>
+                                                                        </div>
+                                                                    `).join('');
                         }
 
                         if (html) {
@@ -940,9 +955,17 @@
                 } else if (hasUsdItems) {
                     // Chỉ có item USD - chỉ hiển thị USD
                     totalUsdEl.value = '$' + finalUsd.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+
+                    // Reset VND fields completely
                     totalVndEl.value = '';
-                    totalUsdEl.parentElement.style.display = 'block';
                     totalVndEl.parentElement.style.display = 'none';
+                    if (totalVndEl.dataset.isEstimate) {
+                        delete totalVndEl.dataset.isEstimate;
+                        totalVndEl.classList.remove('text-gray-500', 'italic');
+                        totalVndEl.classList.add('font-bold', 'text-green-600');
+                    }
+
+                    totalUsdEl.parentElement.style.display = 'block';
                     // Chỉ hiện section giảm tiền USD
                     if (discountUsdSection) discountUsdSection.style.display = 'block';
                     if (discountVndSection) discountVndSection.style.display = 'none';
@@ -964,6 +987,26 @@
                     // Hiện cả 2 section giảm tiền
                     if (discountUsdSection) discountUsdSection.style.display = 'block';
                     if (discountVndSection) discountVndSection.style.display = 'block';
+                }
+
+                // LOGIC HIỂN THỊ TỔNG QUY ĐỔI MỚI
+                const convertedWrapper = document.getElementById('converted-total-wrapper');
+                const convertedValue = document.getElementById('converted_total_vnd');
+
+                // Chỉ hiển thị khi có item USD và đã nhập tỷ giá
+                if (finalUsd > 0 && exchangeRate > 0) {
+                    const totalConverted = finalVnd + (finalUsd * exchangeRate);
+                    convertedValue.textContent = Math.round(totalConverted).toLocaleString('vi-VN') + 'đ';
+
+                    // Update explanation explicitly
+                    const explanation = convertedWrapper.querySelector('.italic');
+                    if (explanation) {
+                        explanation.textContent = `(${finalUsd.toLocaleString('en-US')} USD x ${exchangeRate.toLocaleString('vi-VN')} + ${finalVnd.toLocaleString('vi-VN')} VND)`;
+                    }
+
+                    convertedWrapper.classList.remove('hidden');
+                } else {
+                    if (convertedWrapper) convertedWrapper.classList.add('hidden');
                 }
 
                 calcDebt();
@@ -1109,7 +1152,12 @@
                 const totalVndVisible = totalVndEl && totalVndEl.parentElement.style.display !== 'none';
 
                 const totalUsdValue = totalUsdVisible ? parseFloat(totalUsdEl.value.replace(/[^\d.]/g, '') || 0) : 0;
-                const totalVndValue = totalVndVisible ? parseFloat(totalVndEl.value.replace(/[^\d]/g, '') || 0) : 0;
+                let totalVndValue = totalVndVisible ? parseFloat(totalVndEl.value.replace(/[^\d]/g, '') || 0) : 0;
+
+                // Nếu là giá trị ước tính (quy đổi hiển thị), coi như không có nghĩa vụ thanh toán VND gốc
+                if (totalVndEl && totalVndEl.dataset.isEstimate === 'true') {
+                    totalVndValue = 0;
+                }
 
                 const hasUsdTotal = totalUsdValue > 0;
                 const hasVndTotal = totalVndValue > 0;
@@ -1139,12 +1187,13 @@
                 }
 
                 // Hiển thị/ẩn exchange rate section
+                // Hiển thị/ẩn exchange rate section - LUÔN HIỆN
                 if (exchangeRateSection) {
+                    exchangeRateSection.classList.remove('hidden');
                     if (needsExchangeRate) {
-                        exchangeRateSection.classList.remove('hidden');
                         if (rateDescText) rateDescText.textContent = exchangeRateMessage;
                     } else {
-                        exchangeRateSection.classList.add('hidden');
+                        if (rateDescText) rateDescText.textContent = 'Tỷ giá để quy đổi giữa USD và VND';
                     }
                 }
 
@@ -1380,15 +1429,15 @@
                             'bg-blue-500 text-white'
                     }`;
                 notification.innerHTML = `
-                                        <div class="flex items-center">
-                                            <i class="fas ${type === 'error' ? 'fa-exclamation-circle' :
+                                                                <div class="flex items-center">
+                                                                    <i class="fas ${type === 'error' ? 'fa-exclamation-circle' :
                         type === 'success' ? 'fa-check-circle' :
                             type === 'warning' ? 'fa-exclamation-triangle' :
                                 'fa-info-circle'
                     } mr-2"></i>
-                                            <span>${message}</span>
-                                        </div>
-                                    `;
+                                                                    <span>${message}</span>
+                                                                </div>
+                                                            `;
                 document.body.appendChild(notification);
 
                 setTimeout(() => {
@@ -1450,37 +1499,37 @@
                 const paidVndDisplay = document.getElementById('paid_vnd_display').value;
 
                 let summaryHtml = `
-                                        <div class="space-y-2">
-                                            <div class="flex justify-between">
-                                                <span class="text-gray-600">Khách hàng:</span>
-                                                <span class="font-medium">${customerName}</span>
-                                            </div>
-                                            <div class="flex justify-between">
-                                                <span class="text-gray-600">Số sản phẩm:</span>
-                                                <span class="font-medium">${productCount} sản phẩm</span>
-                                            </div>
-                                            <div class="border-t pt-2 mt-2">
-                                                <div class="flex justify-between text-blue-600">
-                                                    <span>Tổng USD:</span>
-                                                    <span class="font-bold">${totalUsd}</span>
-                                                </div>
-                                                <div class="flex justify-between text-green-600">
-                                                    <span>Tổng VND:</span>
-                                                    <span class="font-bold">${totalVnd}</span>
-                                                </div>
-                                            </div>
-                                            <div class="border-t pt-2 mt-2">
-                                                <div class="flex justify-between">
-                                                    <span class="text-gray-600">Thanh toán USD:</span>
-                                                    <span class="font-medium">${paidUsdDisplay}</span>
-                                                </div>
-                                                <div class="flex justify-between">
-                                                    <span class="text-gray-600">Thanh toán VND:</span>
-                                                    <span class="font-medium">${paidVndDisplay}</span>
-                                                </div>
-                                            </div>
-                                        </div>
-                                    `;
+                                                                <div class="space-y-2">
+                                                                    <div class="flex justify-between">
+                                                                        <span class="text-gray-600">Khách hàng:</span>
+                                                                        <span class="font-medium">${customerName}</span>
+                                                                    </div>
+                                                                    <div class="flex justify-between">
+                                                                        <span class="text-gray-600">Số sản phẩm:</span>
+                                                                        <span class="font-medium">${productCount} sản phẩm</span>
+                                                                    </div>
+                                                                    <div class="border-t pt-2 mt-2">
+                                                                        <div class="flex justify-between text-blue-600">
+                                                                            <span>Tổng USD:</span>
+                                                                            <span class="font-bold">${totalUsd}</span>
+                                                                        </div>
+                                                                        <div class="flex justify-between text-green-600">
+                                                                            <span>Tổng VND:</span>
+                                                                            <span class="font-bold">${totalVnd}</span>
+                                                                        </div>
+                                                                    </div>
+                                                                    <div class="border-t pt-2 mt-2">
+                                                                        <div class="flex justify-between">
+                                                                            <span class="text-gray-600">Thanh toán USD:</span>
+                                                                            <span class="font-medium">${paidUsdDisplay}</span>
+                                                                        </div>
+                                                                        <div class="flex justify-between">
+                                                                            <span class="text-gray-600">Thanh toán VND:</span>
+                                                                            <span class="font-medium">${paidVndDisplay}</span>
+                                                                        </div>
+                                                                    </div>
+                                                                </div>
+                                                            `;
 
                 document.getElementById('confirm-order-summary').innerHTML = summaryHtml;
 
