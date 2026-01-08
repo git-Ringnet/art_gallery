@@ -123,14 +123,9 @@ class SalesController extends Controller
             $query->where('total_vnd', '<=', $request->max_amount);
         }
 
-        // Filter by debt status
-        if ($request->filled('has_debt')) {
-            if ($request->has_debt == '1') {
-                $query->where('debt_amount', '>', 0);
-            } elseif ($request->has_debt == '0') {
-                $query->where('debt_amount', '=', 0);
-            }
-        }
+        // Filter by debt status - Sử dụng accessor debt_usd và debt_vnd
+        // Logic: Nhìn vào cột "Còn nợ (USD/VND)" - nếu > 0 thì có nợ, = 0 thì không nợ
+        $filterDebt = $request->filled('has_debt') ? $request->has_debt : null;
 
         // Sort
         $sortBy = $request->get('sort_by', 'sale_date');
@@ -140,7 +135,48 @@ class SalesController extends Controller
             $query->orderBy($sortBy, $sortOrder);
         }
 
-        $sales = $query->paginate(10)->withQueryString();
+        // Nếu có filter theo công nợ, phải lọc bằng PHP vì accessor không thể dùng trong SQL
+        if ($filterDebt !== null) {
+            // Lấy tất cả dữ liệu và filter bằng accessor
+            $allSales = $query->get();
+            
+            // Filter dựa trên accessor debt_usd và debt_vnd (giống hệt cột "Còn nợ" trên UI)
+            $filteredSales = $allSales->filter(function ($sale) use ($filterDebt) {
+                // Phiếu đã hủy: không có công nợ
+                if ($sale->sale_status === 'cancelled') {
+                    return $filterDebt == '0'; // Chỉ hiển thị khi lọc "Không công nợ"
+                }
+                
+                // Tính công nợ thực tế từ accessor (giống view)
+                $hasDebtUsd = $sale->debt_usd > 0.01;
+                $hasDebtVnd = $sale->debt_vnd > 1;
+                $hasAnyDebt = $hasDebtUsd || $hasDebtVnd;
+                
+                if ($filterDebt == '1') {
+                    // Có công nợ: debt_usd > 0 HOẶC debt_vnd > 0
+                    return $hasAnyDebt;
+                } else {
+                    // Không công nợ: debt_usd = 0 VÀ debt_vnd = 0
+                    return !$hasAnyDebt;
+                }
+            });
+            
+            // Tạo custom paginator từ collection đã filter
+            $page = $request->get('page', 1);
+            $perPage = 10;
+            $total = $filteredSales->count();
+            $items = $filteredSales->forPage($page, $perPage);
+            
+            $sales = new \Illuminate\Pagination\LengthAwarePaginator(
+                $items,
+                $total,
+                $perPage,
+                $page,
+                ['path' => $request->url(), 'query' => $request->query()]
+            );
+        } else {
+            $sales = $query->paginate(10)->withQueryString();
+        }
 
         // Get filter options - chỉ lấy showroom được phép xem
         $showrooms = \App\Helpers\PermissionHelper::getAllowedShowrooms('sales');
