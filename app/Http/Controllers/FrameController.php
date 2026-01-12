@@ -330,6 +330,13 @@ class FrameController extends Controller
             return redirect()->route('frames.index')
                 ->with('error', 'Không thể xóa khung đã bán');
         }
+
+        // Kiểm tra khung có trong hóa đơn nào không (kể cả hóa đơn chưa duyệt)
+        $usedInSales = \App\Models\SaleItem::where('frame_id', $frame->id)->exists();
+        if ($usedInSales) {
+            return redirect()->route('frames.index')
+                ->with('error', 'Không thể xóa khung đã có trong hóa đơn bán hàng');
+        }
         
         DB::beginTransaction();
         try {
