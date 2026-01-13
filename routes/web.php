@@ -57,6 +57,11 @@ Route::middleware(['auth', 'archive.readonly'])->group(function () {
         Route::post('/{id}/collect', [DebtController::class, 'collect'])->middleware('permission:debt,can_edit')->name('collect');
     });
 
+    // Payment routes
+    Route::prefix('payments')->name('payments.')->group(function () {
+        Route::put('/{id}', [App\Http\Controllers\PaymentController::class, 'update'])->middleware('permission:sales,can_edit')->name('update');
+    });
+
     // Returns routes
     Route::prefix('returns')->name('returns.')->group(function () {
         Route::get('/', [App\Http\Controllers\ReturnController::class, 'index'])->middleware('permission:returns,can_view')->name('index');

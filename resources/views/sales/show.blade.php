@@ -396,6 +396,18 @@
                                     @elseif($payment->payment_method == 'card') Thẻ
                                     @else Khác
                                     @endif
+                                    
+                                    @if($sale->canEdit())
+                                    <button type="button" 
+                                        onclick="openEditPaymentModal(this)"
+                                        data-id="{{ $payment->id }}"
+                                        data-method="{{ $payment->payment_method }}"
+                                        data-notes="{{ $payment->notes }}"
+                                        class="ml-2 text-gray-400 hover:text-blue-600 transition-colors" 
+                                        title="Chỉnh sửa TT thanh toán">
+                                        <i class="fas fa-pen text-xs"></i>
+                                    </button>
+                                    @endif
                                 </p>
                             </div>
                             @if($payment->notes)
@@ -874,3 +886,71 @@ document.addEventListener('keydown', function(event) {
 @endpush
 
 @endsection
+
+@push('scripts')
+<!-- Edit Payment Modal -->
+<div id="editPaymentModal" class="fixed inset-0 z-50 hidden overflow-y-auto" aria-labelledby="modal-title" role="dialog" aria-modal="true">
+    <div class="flex items-end justify-center min-h-screen px-4 pt-4 pb-20 text-center sm:block sm:p-0">
+        <div class="fixed inset-0 transition-opacity bg-gray-500 bg-opacity-75" aria-hidden="true" onclick="closeEditPaymentModal()"></div>
+        <span class="hidden sm:inline-block sm:align-middle sm:h-screen" aria-hidden="true">&#8203;</span>
+        <div class="inline-block overflow-hidden text-left align-bottom transition-all transform bg-white rounded-lg shadow-xl sm:my-8 sm:align-middle sm:max-w-lg sm:w-full">
+            <form id="editPaymentForm" method="POST" action="">
+                @csrf
+                @method('PUT')
+                <div class="px-4 pt-5 pb-4 bg-white sm:p-6 sm:pb-4">
+                    <div class="sm:flex sm:items-start">
+                        <div class="mt-3 text-center sm:mt-0 sm:ml-4 sm:text-left w-full">
+                            <h3 class="text-lg font-medium leading-6 text-gray-900" id="modal-title">
+                                Cập nhật thông tin thanh toán
+                            </h3>
+                            <div class="mt-4 space-y-4">
+                                <div>
+                                    <label for="payment_method" class="block text-sm font-medium text-gray-700">Hình thức thanh toán</label>
+                                    <select name="payment_method" id="payment_method" class="mt-1 block w-full pl-3 pr-10 py-2 text-base border focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm rounded-md">
+                                        <option value="cash">Tiền mặt</option>
+                                        <option value="bank_transfer">Chuyển khoản</option>
+                                        <option value="card">Thẻ</option>
+                                        <option value="other">Khác</option>
+                                    </select>
+                                </div>
+                                <div>
+                                    <label for="notes" class="block text-sm font-medium text-gray-700">Ghi chú</label>
+                                    <textarea name="notes" id="notes" rows="3" class="mt-1 block w-full shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm border rounded-md"></textarea>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="px-4 py-3 bg-gray-50 sm:px-6 sm:flex sm:flex-row-reverse">
+                    <button type="submit" class="inline-flex justify-center w-full px-4 py-2 text-base font-medium text-white bg-blue-600 border border-transparent rounded-md shadow-sm hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 sm:ml-3 sm:w-auto sm:text-sm">
+                        Cập nhật
+                    </button>
+                    <button type="button" onclick="closeEditPaymentModal()" class="mt-3 inline-flex justify-center w-full px-4 py-2 text-base font-medium text-gray-700 bg-white border border-gray-300 rounded-md shadow-sm hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 sm:mt-0 sm:ml-3 sm:w-auto sm:text-sm">
+                        Hủy
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<script>
+    function openEditPaymentModal(btn) {
+        const id = btn.dataset.id;
+        const method = btn.dataset.method;
+        const notes = btn.dataset.notes;
+        
+        let url = "{{ route('payments.update', ':id') }}";
+        url = url.replace(':id', id);
+        
+        document.getElementById('editPaymentForm').action = url;
+        document.getElementById('payment_method').value = method;
+        document.getElementById('notes').value = notes || '';
+        document.getElementById('editPaymentModal').classList.remove('hidden');
+    }
+
+    function closeEditPaymentModal() {
+        document.getElementById('editPaymentModal').classList.add('hidden');
+    }
+</script>
+@endpush
