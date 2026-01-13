@@ -415,7 +415,12 @@ class Sale extends Model
                 if ($hasUsdTotal && !$hasVndTotal && $payment->payment_vnd > 0) {
                     $exchangeRate = $payment->payment_exchange_rate ?? $this->exchange_rate;
                     if ($exchangeRate > 0) {
-                        $totalPaidUsd += $payment->payment_vnd / $exchangeRate;
+                        $converted = $payment->payment_vnd / $exchangeRate;
+                        // Smart rounding: Nếu gần số nguyên (sai số < 0.05) làm tròn
+                        if (abs($converted - round($converted)) < 0.05) {
+                            $converted = round($converted);
+                        }
+                        $totalPaidUsd += $converted;
                     }
                 }
             }
@@ -428,7 +433,12 @@ class Sale extends Model
             // Quy đổi payment_vnd → USD CHỈ KHI hóa đơn CHỈ có USD
             if ($hasUsdTotal && !$hasVndTotal && isset($this->attributes['payment_vnd']) && $this->attributes['payment_vnd'] > 0) {
                 if ($this->exchange_rate > 0) {
-                    $totalPaidUsd += $this->attributes['payment_vnd'] / $this->exchange_rate;
+                    $converted = $this->attributes['payment_vnd'] / $this->exchange_rate;
+                    // Smart rounding
+                    if (abs($converted - round($converted)) < 0.05) {
+                        $converted = round($converted);
+                    }
+                    $totalPaidUsd += $converted;
                 }
             }
         }

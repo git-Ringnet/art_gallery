@@ -92,15 +92,16 @@
                                 class="text-red-500">*</span></label>
                         <input type="text" name="customer_name" id="customer_name" required
                             class="w-full px-3 py-1.5 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500"
-                            value="{{ $sale->customer->name }}" autocomplete="off" 
-                            onkeyup="filterCustomers(this.value); clearCustomerId()"
-                            onfocus="showAllCustomers()" onclick="showAllCustomers()">
+                            value="{{ $sale->customer->name }}" autocomplete="off"
+                            onkeyup="filterCustomers(this.value); clearCustomerId()" onfocus="showAllCustomers()"
+                            onclick="showAllCustomers()">
                         <input type="hidden" name="customer_id" id="customer_id" value="{{ $sale->customer_id }}">
                         <div id="customer-suggestions"
                             class="absolute z-10 w-full bg-white border border-gray-300 rounded-lg mt-1 max-h-60 overflow-y-auto hidden shadow-lg">
                         </div>
                         <p class="text-xs text-gray-500 mt-1">
-                            <i class="fas fa-info-circle mr-1"></i>Nhập tên để tìm khách hàng cũ hoặc nhập thông tin mới để tạo khách hàng mới
+                            <i class="fas fa-info-circle mr-1"></i>Nhập tên để tìm khách hàng cũ hoặc nhập thông tin mới để
+                            tạo khách hàng mới
                         </p>
                     </div>
                 </div>
@@ -131,24 +132,26 @@
                         <span class="text-sm text-green-700">
                             <i class="fas fa-check-circle mr-1"></i>Đã chọn khách hàng có sẵn
                         </span>
-                        <button type="button" onclick="resetCustomerFields()" class="text-sm text-red-600 hover:text-red-800">
+                        <button type="button" onclick="resetCustomerFields()"
+                            class="text-sm text-red-600 hover:text-red-800">
                             <i class="fas fa-times mr-1"></i>Xóa & Nhập mới
                         </button>
                     </div>
                 </div>
                 <!-- Cảnh báo trùng tên khách hàng -->
-                <div id="customer-duplicate-warning" class="hidden mt-2 p-3 bg-yellow-100 border border-yellow-400 rounded-lg">
+                <div id="customer-duplicate-warning"
+                    class="hidden mt-2 p-3 bg-yellow-100 border border-yellow-400 rounded-lg">
                     <div class="flex items-start gap-2">
                         <i class="fas fa-exclamation-triangle text-yellow-600 mt-0.5"></i>
                         <div class="flex-1">
                             <p class="text-sm font-medium text-yellow-800">Phát hiện khách hàng trùng tên!</p>
                             <p class="text-xs text-yellow-700 mt-1" id="duplicate-customer-info"></p>
                             <div class="flex gap-2 mt-2">
-                                <button type="button" onclick="useExistingCustomer()" 
+                                <button type="button" onclick="useExistingCustomer()"
                                     class="px-3 py-1 text-xs bg-green-500 text-white rounded hover:bg-green-600 transition-colors">
                                     <i class="fas fa-user-check mr-1"></i>Dùng KH có sẵn
                                 </button>
-                                <button type="button" onclick="forceCreateNewCustomer()" 
+                                <button type="button" onclick="forceCreateNewCustomer()"
                                     class="px-3 py-1 text-xs bg-orange-500 text-white rounded hover:bg-orange-600 transition-colors">
                                     <i class="fas fa-user-plus mr-1"></i>Tạo KH mới (trùng tên)
                                 </button>
@@ -312,14 +315,14 @@
                             class="w-full px-3 py-1.5 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500"
                             value="{{ round($sale->discount_percent) }}" min="0" max="100" step="1" onchange="calc()">
                     </div>
-                    <div id="discount-usd-section" class="{{ $sale->discount_amount_usd > 0 ? '' : 'hidden' }}">
+                    <div id="discount-usd-section">
                         <label class="block text-xs font-medium text-blue-700 mb-1">Giảm tiền (USD)</label>
                         <input type="text" name="discount_amount_usd" id="discount_amount_usd"
                             class="w-full px-3 py-1.5 text-sm border border-blue-300 rounded-lg focus:ring-2 focus:ring-blue-500"
                             value="{{ $sale->discount_amount_usd > 0 ? number_format($sale->discount_amount_usd, 2) : '0.00' }}"
                             oninput="formatUSD(this); calc()" onblur="formatUSD(this)" placeholder="0.00">
                     </div>
-                    <div id="discount-vnd-section" class="{{ $sale->discount_amount_vnd > 0 ? '' : 'hidden' }}">
+                    <div id="discount-vnd-section">
                         <label class="block text-xs font-medium text-green-700 mb-1">Giảm tiền (VND)</label>
                         <input type="text" name="discount_amount_vnd" id="discount_amount_vnd"
                             class="w-full px-3 py-1.5 text-sm border border-green-300 rounded-lg focus:ring-2 focus:ring-green-500"
@@ -671,11 +674,11 @@
 
                 if (filtered.length > 0) {
                     suggestions.innerHTML = filtered.map(c => `
-                                                                                                    <div class="px-3 py-2 hover:bg-blue-50 cursor-pointer border-b" onclick="selectCustomer(${c.id})">
-                                                                                                        <div class="font-medium">${c.name}</div>
-                                                                                                        <div class="text-xs text-gray-500">${c.phone || 'Không có SĐT'} | ${c.email || 'Không có email'}</div>
-                                                                                                    </div>
-                                                                                                `).join('');
+                                                                                                                    <div class="px-3 py-2 hover:bg-blue-50 cursor-pointer border-b" onclick="selectCustomer(${c.id})">
+                                                                                                                        <div class="font-medium">${c.name}</div>
+                                                                                                                        <div class="text-xs text-gray-500">${c.phone || 'Không có SĐT'} | ${c.email || 'Không có email'}</div>
+                                                                                                                    </div>
+                                                                                                                `).join('');
                     suggestions.classList.remove('hidden');
                 } else {
                     suggestions.classList.add('hidden');
@@ -689,11 +692,11 @@
 
                 if (customers.length > 0) {
                     suggestions.innerHTML = customers.map(c => `
-                                                                                                    <div class="px-3 py-2 hover:bg-blue-50 cursor-pointer border-b" onclick="selectCustomer(${c.id})">
-                                                                                                        <div class="font-medium">${c.name}</div>
-                                                                                                        <div class="text-xs text-gray-500">${c.phone || 'Không có SĐT'} | ${c.email || 'Không có email'}</div>
-                                                                                                    </div>
-                                                                                                `).join('');
+                                                                                                                    <div class="px-3 py-2 hover:bg-blue-50 cursor-pointer border-b" onclick="selectCustomer(${c.id})">
+                                                                                                                        <div class="font-medium">${c.name}</div>
+                                                                                                                        <div class="text-xs text-gray-500">${c.phone || 'Không có SĐT'} | ${c.email || 'Không có email'}</div>
+                                                                                                                    </div>
+                                                                                                                `).join('');
                     suggestions.classList.remove('hidden');
                 }
             }
@@ -710,7 +713,7 @@
 
                     // Hiển thị thông báo đã chọn khách hàng có sẵn
                     document.getElementById('customer-selected-notice').classList.remove('hidden');
-                    
+
                     // Đánh dấu các input là đã chọn (thay đổi style)
                     const inputs = ['customer_phone', 'customer_email', 'customer_address'];
                     inputs.forEach(inputId => {
@@ -727,26 +730,26 @@
             function clearCustomerId() {
                 const customerId = document.getElementById('customer_id');
                 const customerName = document.getElementById('customer_name');
-                
+
                 // Nếu đã có customer_id và tên bị thay đổi, xóa customer_id
                 if (customerId.value) {
                     const selectedCustomer = customers.find(c => c.id == customerId.value);
                     if (selectedCustomer && customerName.value !== selectedCustomer.name) {
                         customerId.value = '';
                         document.getElementById('customer-selected-notice').classList.add('hidden');
-                        
+
                         // Reset style các input
                         const inputs = ['customer_phone', 'customer_email', 'customer_address'];
                         inputs.forEach(inputId => {
                             const input = document.getElementById(inputId);
                             input.classList.remove('bg-green-50', 'border-green-300');
                         });
-                        
+
                         // Clear old debt display
                         document.getElementById('current_debt').value = '';
                     }
                 }
-                
+
                 // Kiểm tra trùng tên
                 checkDuplicateCustomer();
             }
@@ -758,18 +761,18 @@
             function checkDuplicateCustomer() {
                 const customerName = document.getElementById('customer_name').value.trim();
                 const customerId = document.getElementById('customer_id').value;
-                
+
                 // Ẩn cảnh báo trước
                 document.getElementById('customer-duplicate-warning').classList.add('hidden');
                 duplicateCustomer = null;
-                
+
                 if (!customerName || customerId) return;
-                
+
                 // Tìm khách hàng trùng tên (case-insensitive)
-                const matchingCustomer = customers.find(c => 
+                const matchingCustomer = customers.find(c =>
                     c.name.toLowerCase() === customerName.toLowerCase()
                 );
-                
+
                 if (matchingCustomer) {
                     duplicateCustomer = matchingCustomer;
                     const infoText = `Đã tồn tại: "${matchingCustomer.name}" - SĐT: ${matchingCustomer.phone || 'Không có'} - Email: ${matchingCustomer.email || 'Không có'}`;
@@ -792,7 +795,7 @@
                 document.getElementById('customer-duplicate-warning').classList.add('hidden');
                 document.getElementById('force_new_customer').value = '1';
                 duplicateCustomer = null;
-                
+
                 // Hiển thị thông báo đang tạo mới
                 alert('Sẽ tạo khách hàng MỚI với tên này (có thể trùng với khách hàng đã tồn tại)');
             }
@@ -808,17 +811,17 @@
                 document.getElementById('customer-duplicate-warning').classList.add('hidden');
                 document.getElementById('force_new_customer').value = '0';
                 duplicateCustomer = null;
-                
+
                 // Reset style các input
                 const inputs = ['customer_phone', 'customer_email', 'customer_address'];
                 inputs.forEach(inputId => {
                     const input = document.getElementById(inputId);
                     input.classList.remove('bg-green-50', 'border-green-300');
                 });
-                
+
                 // Clear debt display
                 document.getElementById('current_debt').value = '';
-                
+
                 // Focus vào ô tên khách hàng
                 document.getElementById('customer_name').focus();
             }
@@ -845,55 +848,55 @@
                 const tr = document.createElement('tr');
                 tr.className = 'border hover:bg-purple-50';
                 tr.innerHTML = `
-                                                                                                <td class="px-3 py-3 border">
-                                                                                                    <img id="img-${idx}" src="/images/no-image.svg" class="w-20 h-16 object-cover rounded border shadow-sm">
-                                                                                                </td>
-                                                                                                <td class="px-3 py-3 border">
-                                                                                                    <div class="relative">
-                                                                                                        <input type="text" 
-                                                                                                               id="item-search-${idx}"
-                                                                                                               class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 mb-2" 
-                                                                                                               placeholder="Tìm tranh hoặc khung..."
-                                                                                                               autocomplete="off"
-                                                                                                               onkeyup="filterItems(this.value, ${idx})"
-                                                                                                               onfocus="showItemSuggestions(${idx})">
-                                                                                                        <input type="hidden" name="items[${idx}][painting_id]" id="painting-id-${idx}">
-                                                                                                        <input type="hidden" name="items[${idx}][frame_id]" id="frame-id-${idx}">
-                                                                                                        <input type="hidden" name="items[${idx}][description]" id="desc-${idx}">
-                                                                                                        <div id="item-suggestions-${idx}" class="absolute z-20 w-full bg-white border border-gray-300 rounded-lg mt-1 max-h-60 overflow-y-auto hidden shadow-lg"></div>
-                                                                                                        <div id="item-details-${idx}" class="text-xs text-gray-600 space-y-0.5 hidden"></div>
-                                                                                                    </div>
-                                                                                                </td>
-                                                                                                <td class="px-3 py-3 border">
-                                                                                                    <input type="number" name="items[${idx}][quantity]" required class="w-full px-3 py-2 border border-gray-300 rounded-lg text-center font-medium" value="1" min="1" onchange="calc()">
-                                                                                                </td>
-                                                                                               <td class="px-3 py-3 border">
-                                                                                                    <select name="items[${idx}][currency]" class="w-full px-3 py-2 border border-gray-300 rounded-lg" onchange="togCur(this, ${idx})">
-                                                                                                        <option value="USD">USD</option>
-                                                                                                        <option value="VND" selected>VND</option>
-                                                                                                    </select>
-                                                                                                </td>
-                                                                                                <td class="px-3 py-3 border">
-                                                                                                    <input type="text" name="items[${idx}][price_usd]" id="usd-input-${idx}" class="usd-${idx} w-full px-3 py-2 border border-gray-300 rounded-lg text-right" value="0.00" oninput="formatUSD(this)" onblur="formatUSD(this)" onchange="calc()">
-                                                                                                </td>
-                                                                                                <td class="px-3 py-3 border">
-                                                                                                    <input type="text" name="items[${idx}][price_vnd]" id="vnd-input-${idx}" class="vnd-${idx} w-full px-3 py-2 border border-gray-300 rounded-lg text-right" value="0" oninput="formatVND(this)" onblur="formatVND(this)" onchange="calc()">
-                                                                                                </td>
-                                                                                                <td class="px-3 py-3 border text-center">
-                                                                                                    <input type="number" name="items[${idx}][discount_percent]" class="w-full px-3 py-2 border border-gray-300 rounded-lg text-center" value="0" min="0" max="100" step="1" onchange="calc()">
-                                                                                                </td>
-                                                                                                <td class="px-3 py-3 border text-center">
-                                                                                                    <div class="space-y-1">
-                                                                                                        <input type="text" name="items[${idx}][discount_amount_usd]" id="discount-usd-${idx}" class="discount-usd-${idx} w-full px-2 py-1 text-sm border border-blue-300 rounded text-right hidden" value="0.00" oninput="formatUSD(this); calc()" onblur="formatUSD(this)" placeholder="USD">
-                                                                                                        <input type="text" name="items[${idx}][discount_amount_vnd]" id="discount-vnd-${idx}" class="discount-vnd-${idx} w-full px-2 py-1 text-sm border border-green-300 rounded text-right" value="0" oninput="formatVND(this); calc()" onblur="formatVND(this)" placeholder="VND">
-                                                                                                    </div>
-                                                                                                </td>
-                                                                                                <td class="px-3 py-3 border text-center">
-                                                                                                    <button type="button" class="w-8 h-8 flex items-center justify-center bg-red-100 text-red-600 rounded-lg hover:bg-red-200 transition-colors" onclick="this.closest('tr').remove();calc()">
-                                                                                                        <i class="fas fa-trash"></i>
-                                                                                                    </button>
-                                                                                                </td>
-                                                                                            `;
+                                                                                                                <td class="px-3 py-3 border">
+                                                                                                                    <img id="img-${idx}" src="/images/no-image.svg" class="w-20 h-16 object-cover rounded border shadow-sm">
+                                                                                                                </td>
+                                                                                                                <td class="px-3 py-3 border">
+                                                                                                                    <div class="relative">
+                                                                                                                        <input type="text" 
+                                                                                                                               id="item-search-${idx}"
+                                                                                                                               class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 mb-2" 
+                                                                                                                               placeholder="Tìm tranh hoặc khung..."
+                                                                                                                               autocomplete="off"
+                                                                                                                               onkeyup="filterItems(this.value, ${idx})"
+                                                                                                                               onfocus="showItemSuggestions(${idx})">
+                                                                                                                        <input type="hidden" name="items[${idx}][painting_id]" id="painting-id-${idx}">
+                                                                                                                        <input type="hidden" name="items[${idx}][frame_id]" id="frame-id-${idx}">
+                                                                                                                        <input type="hidden" name="items[${idx}][description]" id="desc-${idx}">
+                                                                                                                        <div id="item-suggestions-${idx}" class="absolute z-20 w-full bg-white border border-gray-300 rounded-lg mt-1 max-h-60 overflow-y-auto hidden shadow-lg"></div>
+                                                                                                                        <div id="item-details-${idx}" class="text-xs text-gray-600 space-y-0.5 hidden"></div>
+                                                                                                                    </div>
+                                                                                                                </td>
+                                                                                                                <td class="px-3 py-3 border">
+                                                                                                                    <input type="number" name="items[${idx}][quantity]" required class="w-full px-3 py-2 border border-gray-300 rounded-lg text-center font-medium" value="1" min="1" onchange="calc()">
+                                                                                                                </td>
+                                                                                                               <td class="px-3 py-3 border">
+                                                                                                                    <select name="items[${idx}][currency]" class="w-full px-3 py-2 border border-gray-300 rounded-lg" onchange="togCur(this, ${idx})">
+                                                                                                                        <option value="USD">USD</option>
+                                                                                                                        <option value="VND" selected>VND</option>
+                                                                                                                    </select>
+                                                                                                                </td>
+                                                                                                                <td class="px-3 py-3 border">
+                                                                                                                    <input type="text" name="items[${idx}][price_usd]" id="usd-input-${idx}" class="usd-${idx} w-full px-3 py-2 border border-gray-300 rounded-lg text-right" value="0.00" oninput="formatUSD(this)" onblur="formatUSD(this)" onchange="calc()">
+                                                                                                                </td>
+                                                                                                                <td class="px-3 py-3 border">
+                                                                                                                    <input type="text" name="items[${idx}][price_vnd]" id="vnd-input-${idx}" class="vnd-${idx} w-full px-3 py-2 border border-gray-300 rounded-lg text-right" value="0" oninput="formatVND(this)" onblur="formatVND(this)" onchange="calc()">
+                                                                                                                </td>
+                                                                                                                <td class="px-3 py-3 border text-center">
+                                                                                                                    <input type="number" name="items[${idx}][discount_percent]" class="w-full px-3 py-2 border border-gray-300 rounded-lg text-center" value="0" min="0" max="100" step="1" onchange="calc()">
+                                                                                                                </td>
+                                                                                                                <td class="px-3 py-3 border text-center">
+                                                                                                                    <div class="space-y-1">
+                                                                                                                        <input type="text" name="items[${idx}][discount_amount_usd]" id="discount-usd-${idx}" class="discount-usd-${idx} w-full px-2 py-1 text-sm border border-blue-300 rounded text-right hidden" value="0.00" oninput="formatUSD(this); calc()" onblur="formatUSD(this)" placeholder="USD">
+                                                                                                                        <input type="text" name="items[${idx}][discount_amount_vnd]" id="discount-vnd-${idx}" class="discount-vnd-${idx} w-full px-2 py-1 text-sm border border-green-300 rounded text-right" value="0" oninput="formatVND(this); calc()" onblur="formatVND(this)" placeholder="VND">
+                                                                                                                    </div>
+                                                                                                                </td>
+                                                                                                                <td class="px-3 py-3 border text-center">
+                                                                                                                    <button type="button" class="w-8 h-8 flex items-center justify-center bg-red-100 text-red-600 rounded-lg hover:bg-red-200 transition-colors" onclick="this.closest('tr').remove();calc()">
+                                                                                                                        <i class="fas fa-trash"></i>
+                                                                                                                    </button>
+                                                                                                                </td>
+                                                                                                            `;
                 tbody.appendChild(tr);
                 idx++;
             }
@@ -912,11 +915,11 @@
                     .then(paintings => {
                         if (paintings.length > 0) {
                             suggestions.innerHTML = paintings.map(p => `
-                                                                                                            <div class="px-3 py-2 hover:bg-blue-50 cursor-pointer border-b" onclick="selectPainting(${p.id}, ${idx})">
-                                                                                                                <div class="font-medium text-sm">${p.code} - ${p.name}</div>
-                                                                                                                <div class="text-xs text-gray-500">USD: $${p.price_usd || 0} | VND: ${(p.price_vnd || 0).toLocaleString()}đ</div>
-                                                                                                            </div>
-                                                                                                        `).join('');
+                                                                                                                            <div class="px-3 py-2 hover:bg-blue-50 cursor-pointer border-b" onclick="selectPainting(${p.id}, ${idx})">
+                                                                                                                                <div class="font-medium text-sm">${p.code} - ${p.name}</div>
+                                                                                                                                <div class="text-xs text-gray-500">USD: $${p.price_usd || 0} | VND: ${(p.price_vnd || 0).toLocaleString()}đ</div>
+                                                                                                                            </div>
+                                                                                                                        `).join('');
                             suggestions.classList.remove('hidden');
                         } else {
                             suggestions.classList.add('hidden');
@@ -1017,11 +1020,11 @@
                     .then(supplies => {
                         if (supplies.length > 0) {
                             suggestions.innerHTML = supplies.map(s => `
-                                                                                                            <div class="px-3 py-2 hover:bg-blue-50 cursor-pointer border-b" onclick="selectSupply(${s.id}, ${idx})">
-                                                                                                                <div class="font-medium text-sm">${s.name}</div>
-                                                                                                                <div class="text-xs text-gray-500">Đơn vị: ${s.unit || 'N/A'}</div>
-                                                                                                            </div>
-                                                                                                        `).join('');
+                                                                                                                            <div class="px-3 py-2 hover:bg-blue-50 cursor-pointer border-b" onclick="selectSupply(${s.id}, ${idx})">
+                                                                                                                                <div class="font-medium text-sm">${s.name}</div>
+                                                                                                                                <div class="text-xs text-gray-500">Đơn vị: ${s.unit || 'N/A'}</div>
+                                                                                                                            </div>
+                                                                                                                        `).join('');
                             suggestions.classList.remove('hidden');
                         } else {
                             suggestions.classList.add('hidden');
@@ -1070,11 +1073,11 @@
                     .then(frames => {
                         if (frames.length > 0) {
                             suggestions.innerHTML = frames.map(f => `
-                                                                                                            <div class="px-3 py-2 hover:bg-blue-50 cursor-pointer border-b" onclick="selectFrame(${f.id}, ${idx})">
-                                                                                                                <div class="font-medium text-sm">${f.name}</div>
-                                                                                                                <div class="text-xs text-gray-500">Giá: ${(f.cost_price || 0).toLocaleString()}đ</div>
-                                                                                                            </div>
-                                                                                                        `).join('');
+                                                                                                                            <div class="px-3 py-2 hover:bg-blue-50 cursor-pointer border-b" onclick="selectFrame(${f.id}, ${idx})">
+                                                                                                                                <div class="font-medium text-sm">${f.name}</div>
+                                                                                                                                <div class="text-xs text-gray-500">Giá: ${(f.cost_price || 0).toLocaleString()}đ</div>
+                                                                                                                            </div>
+                                                                                                                        `).join('');
                             suggestions.classList.remove('hidden');
                         } else {
                             suggestions.classList.add('hidden');
@@ -1137,14 +1140,14 @@
                                 const stockText = isOutOfStock ? '❌ HẾT HÀNG' : `Tồn: ${stock}`;
 
                                 return `
-                                                                                                            <div class="px-3 py-2 ${bgClass} cursor-pointer border-b" onclick="selectPainting(${p.id}, ${idx})">
-                                                                                                                <div class="flex justify-between items-start">
-                                                                                                                    <div class="font-medium text-sm">${p.code} - ${p.name}</div>
-                                                                                                                    <span class="text-xs ${stockColor} ml-2 whitespace-nowrap">${stockText}</span>
-                                                                                                                </div>
-                                                                                                                <div class="text-xs text-gray-500">USD: ${p.price_usd || 0} | VND: ${(p.price_vnd || 0).toLocaleString()}đ</div>
-                                                                                                            </div>
-                                                                                                        `;
+                                                                                                                            <div class="px-3 py-2 ${bgClass} cursor-pointer border-b" onclick="selectPainting(${p.id}, ${idx})">
+                                                                                                                                <div class="flex justify-between items-start">
+                                                                                                                                    <div class="font-medium text-sm">${p.code} - ${p.name}</div>
+                                                                                                                                    <span class="text-xs ${stockColor} ml-2 whitespace-nowrap">${stockText}</span>
+                                                                                                                                </div>
+                                                                                                                                <div class="text-xs text-gray-500">USD: ${p.price_usd || 0} | VND: ${(p.price_vnd || 0).toLocaleString()}đ</div>
+                                                                                                                            </div>
+                                                                                                                        `;
                             }).join('');
                         }
 
@@ -1152,11 +1155,11 @@
                         if (frames.length > 0) {
                             html += '<div class="px-3 py-1 bg-gray-100 text-xs font-bold text-gray-600">KHUNG</div>';
                             html += frames.map(f => `
-                                                                                                        <div class="px-3 py-2 hover:bg-green-50 cursor-pointer border-b" onclick="selectFrame(${f.id}, ${idx})">
-                                                                                                            <div class="font-medium text-sm">${f.name}</div>
-                                                                                                            <div class="text-xs text-gray-500">Giá: ${(f.cost_price || 0).toLocaleString()}đ</div>
-                                                                                                        </div>
-                                                                                                    `).join('');
+                                                                                                                        <div class="px-3 py-2 hover:bg-green-50 cursor-pointer border-b" onclick="selectFrame(${f.id}, ${idx})">
+                                                                                                                            <div class="font-medium text-sm">${f.name}</div>
+                                                                                                                            <div class="text-xs text-gray-500">Giá: ${(f.cost_price || 0).toLocaleString()}đ</div>
+                                                                                                                        </div>
+                                                                                                                    `).join('');
                         }
 
                         if (html) {
@@ -1452,7 +1455,13 @@
                 // LOGIC MỚI: Tính theo loại hóa đơn
                 if (hasUsdTotal && !hasVndTotal) {
                     // A. Chỉ có USD - Quy đổi VND → USD (thanh toán chéo)
-                    const totalPaidUsd = paidUsd + (rate > 0 && paidVnd > 0 ? paidVnd / rate : 0);
+                    let convertedUsd = (rate > 0 && paidVnd > 0 ? paidVnd / rate : 0);
+                    // Smart rounding: Nếu gần số nguyên (sai số < 0.05) thì làm tròn
+                    if (Math.abs(convertedUsd - Math.round(convertedUsd)) < 0.05) {
+                        convertedUsd = Math.round(convertedUsd);
+                    }
+
+                    const totalPaidUsd = paidUsd + convertedUsd;
                     totalPaidDisplayEl.value = '$' + totalPaidUsd.toFixed(2);
                     if (totalPaidValueEl) totalPaidValueEl.value = totalPaidUsd.toFixed(2);
 
@@ -1669,7 +1678,13 @@
                     if (hasUsdTotal && !hasVndTotal) {
                         // A. Hóa đơn USD: CHỈ quy đổi tiền TRẢ THÊM (additionalPaidVnd), KHÔNG quy đổi tiền cũ
                         // Tiền cũ đã được lưu đúng theo tỷ giá lúc trả
-                        const additionalPaidInUsd = additionalPaidUsd + (rate > 0 && additionalPaidVnd > 0 ? additionalPaidVnd / rate : 0);
+                        let convertedAdditionalUsd = (rate > 0 && additionalPaidVnd > 0 ? additionalPaidVnd / rate : 0);
+                        // Smart rounding
+                        if (Math.abs(convertedAdditionalUsd - Math.round(convertedAdditionalUsd)) < 0.05) {
+                            convertedAdditionalUsd = Math.round(convertedAdditionalUsd);
+                        }
+
+                        const additionalPaidInUsd = additionalPaidUsd + convertedAdditionalUsd;
                         totalPaidInUsd = currentPaidUsd + additionalPaidInUsd;
                         const debtUsd = Math.max(0, totalUsd - totalPaidInUsd);
                         debtEl.value = '$' + debtUsd.toFixed(2);
@@ -1714,8 +1729,8 @@
                         }
                     }
                 @else
-                                                                                                                                    // Phiếu pending: Chỉ có số tiền trả ban đầu
-                                                                                                                                    const paidUsdValue = paidUsdEl ? (parseFloat(paidUsdEl.value) || 0) : 0;
+                                                                                                                                                            // Phiếu pending: Chỉ có số tiền trả ban đầu
+                                                                                                                                                            const paidUsdValue = paidUsdEl ? (parseFloat(paidUsdEl.value) || 0) : 0;
                     const paidVndValue = paidVndEl ? (parseFloat(paidVndEl.value) || 0) : 0;
 
                     // Khai báo biến trước
@@ -1725,7 +1740,11 @@
                     // LOGIC MỚI: Tính nợ theo loại hóa đơn
                     if (hasUsdTotal && !hasVndTotal) {
                         // A. Hóa đơn USD: Quy đổi VND → USD nếu có thanh toán chéo
-                        totalPaidInUsd = paidUsdValue + (rate > 0 && paidVndValue > 0 ? paidVndValue / rate : 0);
+                        let convertedUsd = (rate > 0 && paidVndValue > 0 ? paidVndValue / rate : 0);
+                        if (Math.abs(convertedUsd - Math.round(convertedUsd)) < 0.05) {
+                            convertedUsd = Math.round(convertedUsd);
+                        }
+                        totalPaidInUsd = paidUsdValue + convertedUsd;
                         const debtUsd = Math.max(0, totalUsd - totalPaidInUsd);
 
                         debtEl.value = '$' + debtUsd.toFixed(2);
@@ -1753,552 +1772,552 @@
                     }
 
                     // Warning if overpaid
-                    const isOverpaid = (hasUsdTotal && !hasVndTotal && (paidUsdValue + (rate > 0 ? paidVndValue / rate : 0)) > totalUsd) ||
-                        (hasVndTotal && !hasUsdTotal && (paidVndValue + (rate > 0 ? paidUsdValue * rate : 0)) > totalVnd) ||
-                        (hasUsdTotal && hasVndTotal && (paidUsdValue > totalUsd || paidVndValue > totalVnd));
+                    const isOverpaid = (hasUsdTotal && !hasVndTotal && totalPaidInUsd > totalUsd) ||
+                                    (hasVndTotal && !hasUsdTotal && totalPaidInVnd > totalVnd) ||
+                                    (hasUsdTotal && hasVndTotal && (paidUsdValue > totalUsd || paidVndValue > totalVnd));
 
-                    if (isOverpaid && (paidUsdValue > 0 || paidVndValue > 0)) {
-                        const paidDisplay = document.getElementById('total_paid_display');
-                        if (paidDisplay) {
-                            paidDisplay.classList.add('border-orange-500', 'bg-orange-100');
-                            paidDisplay.title = 'Số tiền trả vượt quá tổng tiền hóa đơn';
-                            setTimeout(() => {
-                                paidDisplay.classList.remove('border-orange-500', 'bg-orange-100');
-                                paidDisplay.title = '';
-                            }, 3000);
-                        }
-                    }
+                                if (isOverpaid && (paidUsdValue > 0 || paidVndValue > 0)) {
+                                    const paidDisplay = document.getElementById('total_paid_display');
+                                    if (paidDisplay) {
+                                        paidDisplay.classList.add('border-orange-500', 'bg-orange-100');
+                                        paidDisplay.title = 'Số tiền trả vượt quá tổng tiền hóa đơn';
+                                        setTimeout(() => {
+                                            paidDisplay.classList.remove('border-orange-500', 'bg-orange-100');
+                                            paidDisplay.title = '';
+                                        }, 3000);
+                                    }
+                                }
                 @endif
-                                                                                        }
-            function loadCurrentDebt(customerId) {
-                if (customerId) {
-                    fetch(`/sales/api/customers/${customerId}/debt`)
-                        .then(response => response.json())
-                        .then(data => {
-                            const debtUsd = data.total_debt_usd || 0;
-                            const debtVnd = data.total_debt_vnd || 0;
+                                                                                                        }
+                    function loadCurrentDebt(customerId) {
+                        if (customerId) {
+                            fetch(`/sales/api/customers/${customerId}/debt`)
+                                .then(response => response.json())
+                                .then(data => {
+                                    const debtUsd = data.total_debt_usd || 0;
+                                    const debtVnd = data.total_debt_vnd || 0;
 
-                            // Hiển thị riêng USD và VND
-                            let debtDisplay = '';
-                            if (debtUsd > 0 && debtVnd > 0) {
-                                debtDisplay = '$' + debtUsd.toLocaleString('en-US', { minimumFractionDigits: 2 }) + ' + ' + Math.round(debtVnd).toLocaleString('vi-VN') + 'đ';
-                            } else if (debtUsd > 0) {
-                                debtDisplay = '$' + debtUsd.toLocaleString('en-US', { minimumFractionDigits: 2 });
-                            } else if (debtVnd > 0) {
-                                debtDisplay = Math.round(debtVnd).toLocaleString('vi-VN') + 'đ';
-                            } else {
-                                debtDisplay = '0đ';
-                            }
+                                    // Hiển thị riêng USD và VND
+                                    let debtDisplay = '';
+                                    if (debtUsd > 0 && debtVnd > 0) {
+                                        debtDisplay = '$' + debtUsd.toLocaleString('en-US', { minimumFractionDigits: 2 }) + ' + ' + Math.round(debtVnd).toLocaleString('vi-VN') + 'đ';
+                                    } else if (debtUsd > 0) {
+                                        debtDisplay = '$' + debtUsd.toLocaleString('en-US', { minimumFractionDigits: 2 });
+                                    } else if (debtVnd > 0) {
+                                        debtDisplay = Math.round(debtVnd).toLocaleString('vi-VN') + 'đ';
+                                    } else {
+                                        debtDisplay = '0đ';
+                                    }
 
-                            document.getElementById('current_debt').value = debtDisplay;
-                        })
-                        .catch(error => {
-                            console.error('Error loading customer debt:', error);
-                            document.getElementById('current_debt').value = '0đ';
-                        });
-                } else {
-                    document.getElementById('current_debt').value = '0đ';
-                }
-            }
-
-            // Generate invoice code from API
-            function generateInvoiceCode() {
-                const showroomSelect = document.getElementById('showroom_id');
-                const showroomId = showroomSelect.value;
-
-                if (!showroomId) {
-                    alert('Vui lòng chọn showroom trước!');
-                    showroomSelect.focus();
-                    return;
-                }
-
-                // Show loading
-                const invoiceInput = document.getElementById('invoice_code');
-                invoiceInput.value = 'Đang tạo...';
-                invoiceInput.disabled = true;
-
-                // Call API to generate invoice code
-                fetch(`{{ route('sales.api.generate-invoice-code') }}?showroom_id=${showroomId}`)
-                    .then(response => response.json())
-                    .then(data => {
-                        if (data.success) {
-                            invoiceInput.value = data.invoice_code;
+                                    document.getElementById('current_debt').value = debtDisplay;
+                                })
+                                .catch(error => {
+                                    console.error('Error loading customer debt:', error);
+                                    document.getElementById('current_debt').value = '0đ';
+                                });
                         } else {
-                            alert('Lỗi: ' + data.message);
-                            invoiceInput.value = '';
+                            document.getElementById('current_debt').value = '0đ';
                         }
-                    })
-                    .catch(error => {
-                        console.error('Error:', error);
-                        alert('Có lỗi xảy ra khi tạo mã hóa đơn');
-                        invoiceInput.value = '';
-                    })
-                    .finally(() => {
-                        invoiceInput.disabled = false;
-                    });
-            }
-
-            // Load existing sale items
-            function loadExistingItems() {
-                let displayIndex = 0;
-                saleItems.forEach((item, originalIndex) => {
-                    // Bỏ qua sản phẩm đã trả
-                    if (item.is_returned) {
-                        return; // Skip this item
                     }
 
-                    const index = displayIndex;
-                    addItem();
+                    // Generate invoice code from API
+                    function generateInvoiceCode() {
+                        const showroomSelect = document.getElementById('showroom_id');
+                        const showroomId = showroomSelect.value;
 
-                    // Set painting or frame
-                    if (item.painting_id) {
-                        document.getElementById(`painting-id-${index}`).value = item.painting_id;
-                        document.getElementById(`frame-id-${index}`).value = ''; // Clear frame
-                        document.getElementById(`item-search-${index}`).value = `${item.painting?.code || ''} - ${item.description}`;
-                        document.getElementById(`desc-${index}`).value = item.description;
-
-                        if (item.painting?.image) {
-                            const imgElement = document.getElementById(`img-${index}`);
-                            imgElement.src = `/storage/${item.painting.image}`;
-                            imgElement.onclick = () => showImageModal(`/storage/${item.painting.image}`, item.description);
-                            imgElement.classList.add('cursor-pointer', 'hover:opacity-80', 'transition-opacity');
+                        if (!showroomId) {
+                            alert('Vui lòng chọn showroom trước!');
+                            showroomSelect.focus();
+                            return;
                         }
 
-                        // Display painting details
-                        const detailsDiv = document.getElementById(`item-details-${index}`);
-                        if (detailsDiv && item.painting) {
-                            let detailsHTML = '';
-                            if (item.painting.code) detailsHTML += `<div><span class="font-semibold">Mã:</span> ${item.painting.code}</div>`;
-                            if (item.painting.artist) detailsHTML += `<div><span class="font-semibold">Họa sĩ:</span> ${item.painting.artist}</div>`;
-                            if (item.painting.material) detailsHTML += `<div><span class="font-semibold">Chất liệu:</span> ${item.painting.material}</div>`;
-                            if (item.painting.width && item.painting.height) detailsHTML += `<div><span class="font-semibold">Kích thước:</span> ${item.painting.width} x ${item.painting.height} cm</div>`;
-                            if (item.painting.paint_year) detailsHTML += `<div><span class="font-semibold">Năm:</span> ${item.painting.paint_year}</div>`;
+                        // Show loading
+                        const invoiceInput = document.getElementById('invoice_code');
+                        invoiceInput.value = 'Đang tạo...';
+                        invoiceInput.disabled = true;
 
-                            if (detailsHTML) {
-                                detailsDiv.innerHTML = detailsHTML;
-                                detailsDiv.classList.remove('hidden');
+                        // Call API to generate invoice code
+                        fetch(`{{ route('sales.api.generate-invoice-code') }}?showroom_id=${showroomId}`)
+                            .then(response => response.json())
+                            .then(data => {
+                                if (data.success) {
+                                    invoiceInput.value = data.invoice_code;
+                                } else {
+                                    alert('Lỗi: ' + data.message);
+                                    invoiceInput.value = '';
+                                }
+                            })
+                            .catch(error => {
+                                console.error('Error:', error);
+                                alert('Có lỗi xảy ra khi tạo mã hóa đơn');
+                                invoiceInput.value = '';
+                            })
+                            .finally(() => {
+                                invoiceInput.disabled = false;
+                            });
+                    }
+
+                    // Load existing sale items
+                    function loadExistingItems() {
+                        let displayIndex = 0;
+                        saleItems.forEach((item, originalIndex) => {
+                            // Bỏ qua sản phẩm đã trả
+                            if (item.is_returned) {
+                                return; // Skip this item
                             }
-                        }
-                    } else if (item.frame_id) {
-                        document.getElementById(`frame-id-${index}`).value = item.frame_id;
-                        document.getElementById(`painting-id-${index}`).value = ''; // Clear painting
-                        document.getElementById(`item-search-${index}`).value = item.frame?.name || item.description;
-                        document.getElementById(`desc-${index}`).value = item.description;
-                        document.getElementById(`img-${index}`).src = '/images/frame-placeholder.svg';
-                    } else {
-                        document.getElementById(`item-search-${index}`).value = item.description;
-                        document.getElementById(`desc-${index}`).value = item.description;
+
+                            const index = displayIndex;
+                            addItem();
+
+                            // Set painting or frame
+                            if (item.painting_id) {
+                                document.getElementById(`painting-id-${index}`).value = item.painting_id;
+                                document.getElementById(`frame-id-${index}`).value = ''; // Clear frame
+                                document.getElementById(`item-search-${index}`).value = `${item.painting?.code || ''} - ${item.description}`;
+                                document.getElementById(`desc-${index}`).value = item.description;
+
+                                if (item.painting?.image) {
+                                    const imgElement = document.getElementById(`img-${index}`);
+                                    imgElement.src = `/storage/${item.painting.image}`;
+                                    imgElement.onclick = () => showImageModal(`/storage/${item.painting.image}`, item.description);
+                                    imgElement.classList.add('cursor-pointer', 'hover:opacity-80', 'transition-opacity');
+                                }
+
+                                // Display painting details
+                                const detailsDiv = document.getElementById(`item-details-${index}`);
+                                if (detailsDiv && item.painting) {
+                                    let detailsHTML = '';
+                                    if (item.painting.code) detailsHTML += `<div><span class="font-semibold">Mã:</span> ${item.painting.code}</div>`;
+                                    if (item.painting.artist) detailsHTML += `<div><span class="font-semibold">Họa sĩ:</span> ${item.painting.artist}</div>`;
+                                    if (item.painting.material) detailsHTML += `<div><span class="font-semibold">Chất liệu:</span> ${item.painting.material}</div>`;
+                                    if (item.painting.width && item.painting.height) detailsHTML += `<div><span class="font-semibold">Kích thước:</span> ${item.painting.width} x ${item.painting.height} cm</div>`;
+                                    if (item.painting.paint_year) detailsHTML += `<div><span class="font-semibold">Năm:</span> ${item.painting.paint_year}</div>`;
+
+                                    if (detailsHTML) {
+                                        detailsDiv.innerHTML = detailsHTML;
+                                        detailsDiv.classList.remove('hidden');
+                                    }
+                                }
+                            } else if (item.frame_id) {
+                                document.getElementById(`frame-id-${index}`).value = item.frame_id;
+                                document.getElementById(`painting-id-${index}`).value = ''; // Clear painting
+                                document.getElementById(`item-search-${index}`).value = item.frame?.name || item.description;
+                                document.getElementById(`desc-${index}`).value = item.description;
+                                document.getElementById(`img-${index}`).src = '/images/frame-placeholder.svg';
+                            } else {
+                                document.getElementById(`item-search-${index}`).value = item.description;
+                                document.getElementById(`desc-${index}`).value = item.description;
+                            }
+
+                            // Set other fields
+                            document.querySelector(`[name="items[${index}][quantity]"]`).value = item.quantity;
+                            document.querySelector(`[name="items[${index}][currency]"]`).value = item.currency;
+
+                            // Format prices
+                            const usdInput = document.querySelector(`[name="items[${index}][price_usd]"]`);
+                            const vndInput = document.querySelector(`[name="items[${index}][price_vnd]"]`);
+                            if (usdInput && vndInput) {
+                                const usdVal = parseFloat(item.price_usd) || 0;
+                                const vndVal = parseInt(item.price_vnd) || 0;
+                                usdInput.value = usdVal.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+                                vndInput.value = vndVal.toLocaleString('en-US');
+                            }
+
+                            document.querySelector(`[name="items[${index}][discount_percent]"]`).value = Math.round(item.discount_percent || 0);
+
+                            // Add Populate Discount Amount
+                            if (document.getElementById(`discount-usd-${index}`)) {
+                                document.getElementById(`discount-usd-${index}`).value = (parseFloat(item.discount_amount_usd) || 0).toLocaleString('en-US', { minimumFractionDigits: 2 });
+                            }
+                            if (document.getElementById(`discount-vnd-${index}`)) {
+                                document.getElementById(`discount-vnd-${index}`).value = (parseInt(item.discount_amount_vnd) || 0).toLocaleString('en-US');
+                            }
+
+                            // Set currency display
+                            togCur(document.querySelector(`[name="items[${index}][currency]"]`), index);
+
+                            displayIndex++; // Tăng index cho item tiếp theo
+                        });
                     }
 
-                    // Set other fields
-                    document.querySelector(`[name="items[${index}][quantity]"]`).value = item.quantity;
-                    document.querySelector(`[name="items[${index}][currency]"]`).value = item.currency;
+                    // Before form submit, validate and remove formatting
+                    document.getElementById('sales-form').addEventListener('submit', function (e) {
+                        // Allow form submission - validation is done in confirmUpdateOrder
+                        // This handler is kept for any direct form submissions
 
-                    // Format prices
-                    const usdInput = document.querySelector(`[name="items[${index}][price_usd]"]`);
-                    const vndInput = document.querySelector(`[name="items[${index}][price_vnd]"]`);
-                    if (usdInput && vndInput) {
-                        const usdVal = parseFloat(item.price_usd) || 0;
-                        const vndVal = parseInt(item.price_vnd) || 0;
-                        usdInput.value = usdVal.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-                        vndInput.value = vndVal.toLocaleString('en-US');
-                    }
+                        // VALIDATION: Kiểm tra có ít nhất 1 sản phẩm với tranh HOẶC khung được chọn
+                        const rows = document.querySelectorAll('#items-body tr');
+                        let hasValidProduct = false;
 
-                    document.querySelector(`[name="items[${index}][discount_percent]"]`).value = Math.round(item.discount_percent || 0);
+                        rows.forEach((row, index) => {
+                            const paintingInput = row.querySelector('input[name*="[painting_id]"]');
+                            const paintingId = paintingInput ? paintingInput.value : '';
+                            const frameInput = row.querySelector('input[name*="[frame_id]"]');
+                            const frameId = frameInput ? frameInput.value : '';
+                            const qtyInput = row.querySelector('input[name*="[quantity]"]');
+                            const qty = qtyInput ? (parseInt(qtyInput.value) || 0) : 0;
 
-                    // Add Populate Discount Amount
-                    if (document.getElementById(`discount-usd-${index}`)) {
-                        document.getElementById(`discount-usd-${index}`).value = (parseFloat(item.discount_amount_usd) || 0).toLocaleString('en-US', { minimumFractionDigits: 2 });
-                    }
-                    if (document.getElementById(`discount-vnd-${index}`)) {
-                        document.getElementById(`discount-vnd-${index}`).value = (parseInt(item.discount_amount_vnd) || 0).toLocaleString('en-US');
-                    }
+                            // Hợp lệ nếu có tranh HOẶC có khung, và số lượng > 0
+                            if ((paintingId || frameId) && qty > 0) {
+                                hasValidProduct = true;
+                            }
+                        });
 
-                    // Set currency display
-                    togCur(document.querySelector(`[name="items[${index}][currency]"]`), index);
-
-                    displayIndex++; // Tăng index cho item tiếp theo
-                });
-            }
-
-            // Before form submit, validate and remove formatting
-            document.getElementById('sales-form').addEventListener('submit', function (e) {
-                // Allow form submission - validation is done in confirmUpdateOrder
-                // This handler is kept for any direct form submissions
-
-                // VALIDATION: Kiểm tra có ít nhất 1 sản phẩm với tranh HOẶC khung được chọn
-                const rows = document.querySelectorAll('#items-body tr');
-                let hasValidProduct = false;
-
-                rows.forEach((row, index) => {
-                    const paintingInput = row.querySelector('input[name*="[painting_id]"]');
-                    const paintingId = paintingInput ? paintingInput.value : '';
-                    const frameInput = row.querySelector('input[name*="[frame_id]"]');
-                    const frameId = frameInput ? frameInput.value : '';
-                    const qtyInput = row.querySelector('input[name*="[quantity]"]');
-                    const qty = qtyInput ? (parseInt(qtyInput.value) || 0) : 0;
-
-                    // Hợp lệ nếu có tranh HOẶC có khung, và số lượng > 0
-                    if ((paintingId || frameId) && qty > 0) {
-                        hasValidProduct = true;
-                    }
-                });
-
-                if (!hasValidProduct) {
-                    e.preventDefault();
-                    showNotification('Vui lòng chọn ít nhất 1 sản phẩm (tranh/khung) trước khi lưu!', 'error');
-                    document.querySelector('#items-body')?.scrollIntoView({ behavior: 'smooth', block: 'center' });
-                    return false;
-                }
-            });
-
-            document.addEventListener('DOMContentLoaded', () => {
-                loadExistingItems();
-                calc();
-                calcTotalPaid(); // Tính tổng đã trả
-                calcDebt(); // Tính còn nợ ngay khi load trang
-
-                // Load công nợ hiện tại của khách hàng
-                const customerId = document.getElementById('customer_id').value;
-                if (customerId) {
-                    loadCurrentDebt(customerId);
-                }
-
-                // Auto-generate invoice code when showroom changes
-                const showroomSelect = document.getElementById('showroom_id');
-                if (showroomSelect) {
-                    showroomSelect.addEventListener('change', function () {
-                        if (this.value) {
-                            generateInvoiceCode();
+                        if (!hasValidProduct) {
+                            e.preventDefault();
+                            showNotification('Vui lòng chọn ít nhất 1 sản phẩm (tranh/khung) trước khi lưu!', 'error');
+                            document.querySelector('#items-body')?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                            return false;
                         }
                     });
-                }
 
-                // Form validation và unformat trước khi submit
-                const form = document.getElementById('sales-form');
-                if (form) {
-                    form.addEventListener('submit', function (e) {
-                        // Unformat tất cả giá USD và VND của items trước khi submit
-                        const priceUsdInputs = document.querySelectorAll('input[name*="[price_usd]"]');
-                        const priceVndInputs = document.querySelectorAll('input[name*="[price_vnd]"]');
+                    document.addEventListener('DOMContentLoaded', () => {
+                        loadExistingItems();
+                        calc();
+                        calcTotalPaid(); // Tính tổng đã trả
+                        calcDebt(); // Tính còn nợ ngay khi load trang
 
-                        priceUsdInputs.forEach(input => {
-                            input.value = unformatNumber(input.value);
+                        // Load công nợ hiện tại của khách hàng
+                        const customerId = document.getElementById('customer_id').value;
+                        if (customerId) {
+                            loadCurrentDebt(customerId);
+                        }
+
+                        // Auto-generate invoice code when showroom changes
+                        const showroomSelect = document.getElementById('showroom_id');
+                        if (showroomSelect) {
+                            showroomSelect.addEventListener('change', function () {
+                                if (this.value) {
+                                    generateInvoiceCode();
+                                }
+                            });
+                        }
+
+                        // Form validation và unformat trước khi submit
+                        const form = document.getElementById('sales-form');
+                        if (form) {
+                            form.addEventListener('submit', function (e) {
+                                // Unformat tất cả giá USD và VND của items trước khi submit
+                                const priceUsdInputs = document.querySelectorAll('input[name*="[price_usd]"]');
+                                const priceVndInputs = document.querySelectorAll('input[name*="[price_vnd]"]');
+
+                                priceUsdInputs.forEach(input => {
+                                    input.value = unformatNumber(input.value);
+                                });
+
+                                priceVndInputs.forEach(input => {
+                                    input.value = unformatNumber(input.value);
+                                });
+
+                                document.querySelectorAll('[name*="shipping_fee_"]').forEach(input => {
+                                    input.value = unformatNumber(input.value);
+                                });
+
+                                // Validation - LOGIC MỚI
+                                const totalUsdEl = document.getElementById('total_usd');
+                                const totalVndEl = document.getElementById('total_vnd');
+                                const paidUsdHiddenEl = document.getElementById('paid_usd');
+                                const paidVndHiddenEl = document.getElementById('paid_vnd');
+
+                                if (!totalUsdEl || !totalVndEl || !paidUsdHiddenEl || !paidVndHiddenEl) return;
+
+                                // Lấy tổng tiền
+                                const totalUsd = parseFloat(totalUsdEl.value.replace(/[^\d.]/g, '')) || 0;
+                                const totalVnd = parseFloat(totalVndEl.value.replace(/[^\d]/g, '')) || 0;
+
+                                // Lấy số tiền trả
+                                const paidUsd = parseFloat(paidUsdHiddenEl.value) || 0;
+                                const paidVnd = parseFloat(paidVndHiddenEl.value) || 0;
+
+                                // Xác định loại hóa đơn
+                                const hasUsdTotal = totalUsd > 0;
+                                const hasVndTotal = totalVnd > 0;
+
+                                // Lấy tỷ giá
+                                const rateEl = document.getElementById('rate');
+                                const rate = rateEl ? (parseFloat(rateEl.value.replace(/[^\d]/g, '')) || 0) : 0;
+
+                                // Validation: CHỈ áp dụng cho phiếu có CẢ USD VÀ VND
+                                if (hasUsdTotal && hasVndTotal) {
+                                    @if($sale->sale_status === 'completed')
+                                        // Phiếu đã duyệt: kiểm tra trả thêm không vượt quá nợ còn lại
+                                        const currentPaidUsd = {{ $sale->paid_usd }};
+                                        const currentPaidVnd = {{ $sale->paid_vnd }};
+                                        const debtUsd = totalUsd - currentPaidUsd;
+                                        const debtVnd = totalVnd - currentPaidVnd;
+
+                                        const tolerance = 0.01; // Sai số USD
+
+                                        if (paidUsd > debtUsd + tolerance) {
+                                            e.preventDefault();
+                                            alert('Số tiền USD trả thêm ($' + paidUsd.toFixed(2) + ') vượt quá nợ USD còn lại ($' + debtUsd.toFixed(2) + ')');
+                                            return false;
+                                        }
+
+                                        if (paidVnd > debtVnd + 1) { // Tolerance 1 VND
+                                            e.preventDefault();
+                                            alert('Số tiền VND trả thêm (' + paidVnd.toLocaleString('vi-VN') + 'đ) vượt quá nợ VND còn lại (' + debtVnd.toLocaleString('vi-VN') + 'đ)');
+                                            return false;
+                                        }
+                                    @else
+                                                                                                                                                                    // Phiếu pending: kiểm tra không vượt quá tổng
+                                                                                                                                                                    const tolerance = 0.01; // Sai số USD
+
+                                        if (paidUsd > totalUsd + tolerance) {
+                                            e.preventDefault();
+                                            alert('Số tiền USD thanh toán ($' + paidUsd.toFixed(2) + ') vượt quá tổng USD ($' + totalUsd.toFixed(2) + ')');
+                                            return false;
+                                        }
+
+                                        if (paidVnd > totalVnd + 1) { // Tolerance 1 VND
+                                            e.preventDefault();
+                                            alert('Số tiền VND thanh toán (' + paidVnd.toLocaleString('vi-VN') + 'đ) vượt quá tổng VND (' + totalVnd.toLocaleString('vi-VN') + 'đ)');
+                                            return false;
+                                        }
+                                    @endif
+                                                                                                                    }
+                            });
+                        }
+                    });
+                    // Show exchange rate info modal
+                    function showExchangeRateInfo() {
+                        const modal = document.getElementById('exchangeRateInfoModal');
+                        modal.classList.remove('hidden');
+                        modal.classList.add('flex');
+                    }
+
+                    function closeExchangeRateInfo() {
+                        const modal = document.getElementById('exchangeRateInfoModal');
+                        modal.classList.add('hidden');
+                        modal.classList.remove('flex');
+                    }
+                </script>
+
+                <!-- Exchange Rate Info Modal -->
+                <div id="exchangeRateInfoModal" class="hidden fixed inset-0 bg-black bg-opacity-50 items-center justify-center z-50"
+                    onclick="closeExchangeRateInfo()">
+                    <div class="bg-white rounded-xl shadow-2xl max-w-md w-full mx-4 overflow-hidden" onclick="event.stopPropagation()">
+                        <!-- Header -->
+                        <div class="bg-blue-600 p-6 text-white">
+                            <div class="flex items-center justify-between">
+                                <div class="flex items-center">
+                                    <div class="bg-white bg-opacity-20 rounded-full p-3 mr-3">
+                                        <i class="fas fa-info-circle text-2xl"></i>
+                                    </div>
+                                    <h3 class="text-xl font-bold">Lưu ý về Tỷ giá</h3>
+                                </div>
+                                <button onclick="closeExchangeRateInfo()"
+                                    class="text-white hover:bg-white hover:bg-opacity-20 rounded-full p-2 transition-all">
+                                    <i class="fas fa-times text-xl"></i>
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- Content -->
+                        <div class="p-6 space-y-3">
+                            <!-- USD Payment -->
+                            <div class="bg-blue-50 rounded-lg p-4 border-l-4 border-blue-500">
+                                <div class="flex items-start">
+                                    <div
+                                        class="bg-blue-500 text-white rounded-full w-8 h-8 flex items-center justify-center mr-3 mt-0.5 flex-shrink-0">
+                                        <i class="fas fa-dollar-sign text-sm"></i>
+                                    </div>
+                                    <div>
+                                        <h4 class="font-bold text-gray-800 mb-1">Khi trả USD</h4>
+                                        <p class="text-sm text-gray-600">Không áp dụng tỷ giá, trừ trực tiếp vào công nợ USD, giá VND
+                                            hiện tại là giá trị áp dụng với tỉ giá cũ nên không được chính xác (có sai số)</p>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- VND Payment -->
+                            <div class="bg-blue-50 rounded-lg p-4 border-l-4 border-blue-500">
+                                <div class="flex items-start">
+                                    <div
+                                        class="bg-blue-500 text-white rounded-full w-8 h-8 flex items-center justify-center mr-3 mt-0.5 flex-shrink-0">
+                                        <i class="fas fa-dong-sign text-sm"></i>
+                                    </div>
+                                    <div>
+                                        <h4 class="font-bold text-gray-800 mb-1">Khi trả VND</h4>
+                                        <p class="text-sm text-gray-600">Áp dụng tỷ giá hiện tại để quy đổi sang USD</p>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Important Note -->
+                            <div class="bg-amber-50 rounded-lg p-4 border-l-4 border-amber-500">
+                                <div class="flex items-start">
+                                    <div
+                                        class="bg-amber-500 text-white rounded-full w-8 h-8 flex items-center justify-center mr-3 mt-0.5 flex-shrink-0">
+                                        <i class="fas fa-exclamation-triangle text-sm"></i>
+                                    </div>
+                                    <div>
+                                        <h4 class="font-bold text-gray-800 mb-1">Lưu ý quan trọng</h4>
+                                        <p class="text-sm text-gray-600">Nếu bạn trả USD thì số tiền VND hiển thị chỉ là <span
+                                                class="font-semibold">tham khảo</span> (dùng tỷ giá gốc), không phải số tiền thực tế
+                                            thanh toán.</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Footer -->
+                        <div class="bg-gray-50 px-6 py-4 flex justify-end">
+                            <button onclick="closeExchangeRateInfo()"
+                                class="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 rounded-lg font-medium transition-all">
+                                <i class="fas fa-check mr-2"></i>Đã hiểu
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <script>
+                    // Show notification function
+                    function showNotification(message, type = 'info') {
+                        const notification = document.createElement('div');
+                        notification.className = `fixed top-4 right-4 z-50 px-6 py-4 rounded-lg shadow-lg transform transition-all duration-300 ${type === 'error' ? 'bg-red-500 text-white' :
+                            type === 'success' ? 'bg-green-500 text-white' :
+                                type === 'warning' ? 'bg-yellow-500 text-white' :
+                                    'bg-blue-500 text-white'
+                            }`;
+                        notification.innerHTML = `
+                                                                                                                <div class="flex items-center">
+                                                                                                                    <i class="fas ${type === 'error' ? 'fa-exclamation-circle' :
+                                type === 'success' ? 'fa-check-circle' :
+                                    type === 'warning' ? 'fa-exclamation-triangle' :
+                                        'fa-info-circle'
+                            } mr-2"></i>
+                                                                                                                    <span>${message}</span>
+                                                                                                                </div>
+                                                                                                            `;
+                        document.body.appendChild(notification);
+
+                        setTimeout(() => {
+                            notification.classList.add('opacity-0', 'translate-x-full');
+                            setTimeout(() => notification.remove(), 300);
+                        }, 4000);
+                    }
+
+                    // Confirm update order function
+                    function confirmUpdateOrder() {
+                        const form = document.getElementById('sales-form');
+
+                        // VALIDATION: Kiểm tra có ít nhất 1 sản phẩm với tranh HOẶC khung được chọn
+                        const rows = document.querySelectorAll('#items-body tr');
+                        let hasValidProduct = false;
+                        let productCount = 0;
+
+                        rows.forEach((row, index) => {
+                            const paintingInput = row.querySelector('input[name*="[painting_id]"]');
+                            const paintingId = paintingInput ? paintingInput.value : '';
+                            const frameInput = row.querySelector('input[name*="[frame_id]"]');
+                            const frameId = frameInput ? frameInput.value : '';
+                            const qtyInput = row.querySelector('input[name*="[quantity]"]');
+                            const qty = qtyInput ? (parseInt(qtyInput.value) || 0) : 0;
+
+                            if ((paintingId || frameId) && qty > 0) {
+                                hasValidProduct = true;
+                                productCount++;
+                            }
                         });
 
-                        priceVndInputs.forEach(input => {
-                            input.value = unformatNumber(input.value);
-                        });
+                        if (!hasValidProduct) {
+                            showNotification('Vui lòng chọn ít nhất 1 sản phẩm (tranh/khung) trước khi lưu!', 'error');
+                            document.querySelector('#items-body')?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                            return false;
+                        }
 
-                        document.querySelectorAll('[name*="shipping_fee_"]').forEach(input => {
-                            input.value = unformatNumber(input.value);
-                        });
+                        // Kiểm tra các trường bắt buộc khác
+                        const showroomEl = document.getElementById('showroom_id');
+                        if (showroomEl && !showroomEl.value) {
+                            showNotification('Vui lòng chọn Showroom!', 'error');
+                            showroomEl.focus();
+                            return false;
+                        }
 
-                        // Validation - LOGIC MỚI
+                        const customerNameEl = document.getElementById('customer_name');
+                        if (customerNameEl && !customerNameEl.value.trim()) {
+                            showNotification('Vui lòng nhập tên khách hàng!', 'error');
+                            customerNameEl.focus();
+                            return false;
+                        }
+
+                        // Build order summary for confirmation
+                        const customerName = customerNameEl.value;
+                        const invoiceCode = document.getElementById('invoice_code').value;
                         const totalUsdEl = document.getElementById('total_usd');
                         const totalVndEl = document.getElementById('total_vnd');
-                        const paidUsdHiddenEl = document.getElementById('paid_usd');
-                        const paidVndHiddenEl = document.getElementById('paid_vnd');
+                        const totalUsd = totalUsdEl ? totalUsdEl.value : '0';
+                        const totalVnd = totalVndEl ? totalVndEl.value : '0đ';
 
-                        if (!totalUsdEl || !totalVndEl || !paidUsdHiddenEl || !paidVndHiddenEl) return;
+                        let summaryHtml = `
+                                                                                                                <div class="space-y-2">
+                                                                                                                    <div class="flex justify-between">
+                                                                                                                        <span class="text-gray-600">Số hóa đơn:</span>
+                                                                                                                        <span class="font-medium text-blue-600">${invoiceCode}</span>
+                                                                                                                    </div>
+                                                                                                                    <div class="flex justify-between">
+                                                                                                                        <span class="text-gray-600">Khách hàng:</span>
+                                                                                                                        <span class="font-medium">${customerName}</span>
+                                                                                                                    </div>
+                                                                                                                    <div class="flex justify-between">
+                                                                                                                        <span class="text-gray-600">Số sản phẩm:</span>
+                                                                                                                        <span class="font-medium">${productCount} sản phẩm</span>
+                                                                                                                    </div>
+                                                                                                                    <div class="border-t pt-2 mt-2">
+                                                                                                                        <div class="flex justify-between text-blue-600">
+                                                                                                                            <span>Tổng USD:</span>
+                                                                                                                            <span class="font-bold">${totalUsd}</span>
+                                                                                                                        </div>
+                                                                                                                        <div class="flex justify-between text-green-600">
+                                                                                                                            <span>Tổng VND:</span>
+                                                                                                                            <span class="font-bold">${totalVnd}</span>
+                                                                                                                        </div>
+                                                                                                                    </div>
+                                                                                                                </div>
+                                                                                                            `;
 
-                        // Lấy tổng tiền
-                        const totalUsd = parseFloat(totalUsdEl.value.replace(/[^\d.]/g, '')) || 0;
-                        const totalVnd = parseFloat(totalVndEl.value.replace(/[^\d]/g, '')) || 0;
+                        document.getElementById('confirm-edit-summary').innerHTML = summaryHtml;
 
-                        // Lấy số tiền trả
-                        const paidUsd = parseFloat(paidUsdHiddenEl.value) || 0;
-                        const paidVnd = parseFloat(paidVndHiddenEl.value) || 0;
-
-                        // Xác định loại hóa đơn
-                        const hasUsdTotal = totalUsd > 0;
-                        const hasVndTotal = totalVnd > 0;
-
-                        // Lấy tỷ giá
-                        const rateEl = document.getElementById('rate');
-                        const rate = rateEl ? (parseFloat(rateEl.value.replace(/[^\d]/g, '')) || 0) : 0;
-
-                        // Validation: CHỈ áp dụng cho phiếu có CẢ USD VÀ VND
-                        if (hasUsdTotal && hasVndTotal) {
-                            @if($sale->sale_status === 'completed')
-                                // Phiếu đã duyệt: kiểm tra trả thêm không vượt quá nợ còn lại
-                                const currentPaidUsd = {{ $sale->paid_usd }};
-                                const currentPaidVnd = {{ $sale->paid_vnd }};
-                                const debtUsd = totalUsd - currentPaidUsd;
-                                const debtVnd = totalVnd - currentPaidVnd;
-
-                                const tolerance = 0.01; // Sai số USD
-
-                                if (paidUsd > debtUsd + tolerance) {
-                                    e.preventDefault();
-                                    alert('Số tiền USD trả thêm ($' + paidUsd.toFixed(2) + ') vượt quá nợ USD còn lại ($' + debtUsd.toFixed(2) + ')');
-                                    return false;
-                                }
-
-                                if (paidVnd > debtVnd + 1) { // Tolerance 1 VND
-                                    e.preventDefault();
-                                    alert('Số tiền VND trả thêm (' + paidVnd.toLocaleString('vi-VN') + 'đ) vượt quá nợ VND còn lại (' + debtVnd.toLocaleString('vi-VN') + 'đ)');
-                                    return false;
-                                }
-                            @else
-                                                                                                                                                // Phiếu pending: kiểm tra không vượt quá tổng
-                                                                                                                                                const tolerance = 0.01; // Sai số USD
-
-                                if (paidUsd > totalUsd + tolerance) {
-                                    e.preventDefault();
-                                    alert('Số tiền USD thanh toán ($' + paidUsd.toFixed(2) + ') vượt quá tổng USD ($' + totalUsd.toFixed(2) + ')');
-                                    return false;
-                                }
-
-                                if (paidVnd > totalVnd + 1) { // Tolerance 1 VND
-                                    e.preventDefault();
-                                    alert('Số tiền VND thanh toán (' + paidVnd.toLocaleString('vi-VN') + 'đ) vượt quá tổng VND (' + totalVnd.toLocaleString('vi-VN') + 'đ)');
-                                    return false;
-                                }
-                            @endif
-                                                                                                    }
-                    });
-                }
-            });
-            // Show exchange rate info modal
-            function showExchangeRateInfo() {
-                const modal = document.getElementById('exchangeRateInfoModal');
-                modal.classList.remove('hidden');
-                modal.classList.add('flex');
-            }
-
-            function closeExchangeRateInfo() {
-                const modal = document.getElementById('exchangeRateInfoModal');
-                modal.classList.add('hidden');
-                modal.classList.remove('flex');
-            }
-        </script>
-
-        <!-- Exchange Rate Info Modal -->
-        <div id="exchangeRateInfoModal" class="hidden fixed inset-0 bg-black bg-opacity-50 items-center justify-center z-50"
-            onclick="closeExchangeRateInfo()">
-            <div class="bg-white rounded-xl shadow-2xl max-w-md w-full mx-4 overflow-hidden" onclick="event.stopPropagation()">
-                <!-- Header -->
-                <div class="bg-blue-600 p-6 text-white">
-                    <div class="flex items-center justify-between">
-                        <div class="flex items-center">
-                            <div class="bg-white bg-opacity-20 rounded-full p-3 mr-3">
-                                <i class="fas fa-info-circle text-2xl"></i>
-                            </div>
-                            <h3 class="text-xl font-bold">Lưu ý về Tỷ giá</h3>
-                        </div>
-                        <button onclick="closeExchangeRateInfo()"
-                            class="text-white hover:bg-white hover:bg-opacity-20 rounded-full p-2 transition-all">
-                            <i class="fas fa-times text-xl"></i>
-                        </button>
-                    </div>
-                </div>
-
-                <!-- Content -->
-                <div class="p-6 space-y-3">
-                    <!-- USD Payment -->
-                    <div class="bg-blue-50 rounded-lg p-4 border-l-4 border-blue-500">
-                        <div class="flex items-start">
-                            <div
-                                class="bg-blue-500 text-white rounded-full w-8 h-8 flex items-center justify-center mr-3 mt-0.5 flex-shrink-0">
-                                <i class="fas fa-dollar-sign text-sm"></i>
-                            </div>
-                            <div>
-                                <h4 class="font-bold text-gray-800 mb-1">Khi trả USD</h4>
-                                <p class="text-sm text-gray-600">Không áp dụng tỷ giá, trừ trực tiếp vào công nợ USD, giá VND
-                                    hiện tại là giá trị áp dụng với tỉ giá cũ nên không được chính xác (có sai số)</p>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- VND Payment -->
-                    <div class="bg-blue-50 rounded-lg p-4 border-l-4 border-blue-500">
-                        <div class="flex items-start">
-                            <div
-                                class="bg-blue-500 text-white rounded-full w-8 h-8 flex items-center justify-center mr-3 mt-0.5 flex-shrink-0">
-                                <i class="fas fa-dong-sign text-sm"></i>
-                            </div>
-                            <div>
-                                <h4 class="font-bold text-gray-800 mb-1">Khi trả VND</h4>
-                                <p class="text-sm text-gray-600">Áp dụng tỷ giá hiện tại để quy đổi sang USD</p>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- Important Note -->
-                    <div class="bg-amber-50 rounded-lg p-4 border-l-4 border-amber-500">
-                        <div class="flex items-start">
-                            <div
-                                class="bg-amber-500 text-white rounded-full w-8 h-8 flex items-center justify-center mr-3 mt-0.5 flex-shrink-0">
-                                <i class="fas fa-exclamation-triangle text-sm"></i>
-                            </div>
-                            <div>
-                                <h4 class="font-bold text-gray-800 mb-1">Lưu ý quan trọng</h4>
-                                <p class="text-sm text-gray-600">Nếu bạn trả USD thì số tiền VND hiển thị chỉ là <span
-                                        class="font-semibold">tham khảo</span> (dùng tỷ giá gốc), không phải số tiền thực tế
-                                    thanh toán.</p>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Footer -->
-                <div class="bg-gray-50 px-6 py-4 flex justify-end">
-                    <button onclick="closeExchangeRateInfo()"
-                        class="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 rounded-lg font-medium transition-all">
-                        <i class="fas fa-check mr-2"></i>Đã hiểu
-                    </button>
-                </div>
-            </div>
-        </div>
-
-        <script>
-            // Show notification function
-            function showNotification(message, type = 'info') {
-                const notification = document.createElement('div');
-                notification.className = `fixed top-4 right-4 z-50 px-6 py-4 rounded-lg shadow-lg transform transition-all duration-300 ${type === 'error' ? 'bg-red-500 text-white' :
-                    type === 'success' ? 'bg-green-500 text-white' :
-                        type === 'warning' ? 'bg-yellow-500 text-white' :
-                            'bg-blue-500 text-white'
-                    }`;
-                notification.innerHTML = `
-                                                                                                <div class="flex items-center">
-                                                                                                    <i class="fas ${type === 'error' ? 'fa-exclamation-circle' :
-                        type === 'success' ? 'fa-check-circle' :
-                            type === 'warning' ? 'fa-exclamation-triangle' :
-                                'fa-info-circle'
-                    } mr-2"></i>
-                                                                                                    <span>${message}</span>
-                                                                                                </div>
-                                                                                            `;
-                document.body.appendChild(notification);
-
-                setTimeout(() => {
-                    notification.classList.add('opacity-0', 'translate-x-full');
-                    setTimeout(() => notification.remove(), 300);
-                }, 4000);
-            }
-
-            // Confirm update order function
-            function confirmUpdateOrder() {
-                const form = document.getElementById('sales-form');
-
-                // VALIDATION: Kiểm tra có ít nhất 1 sản phẩm với tranh HOẶC khung được chọn
-                const rows = document.querySelectorAll('#items-body tr');
-                let hasValidProduct = false;
-                let productCount = 0;
-
-                rows.forEach((row, index) => {
-                    const paintingInput = row.querySelector('input[name*="[painting_id]"]');
-                    const paintingId = paintingInput ? paintingInput.value : '';
-                    const frameInput = row.querySelector('input[name*="[frame_id]"]');
-                    const frameId = frameInput ? frameInput.value : '';
-                    const qtyInput = row.querySelector('input[name*="[quantity]"]');
-                    const qty = qtyInput ? (parseInt(qtyInput.value) || 0) : 0;
-
-                    if ((paintingId || frameId) && qty > 0) {
-                        hasValidProduct = true;
-                        productCount++;
+                        // Show confirmation modal
+                        showConfirmModal('confirm-edit-modal', {
+                            title: 'Xác nhận cập nhật hóa đơn',
+                            message: 'Vui lòng kiểm tra thông tin hóa đơn trước khi cập nhật:',
+                            onConfirm: function () {
+                                submitEditForm();
+                            }
+                        });
                     }
-                });
 
-                if (!hasValidProduct) {
-                    showNotification('Vui lòng chọn ít nhất 1 sản phẩm (tranh/khung) trước khi lưu!', 'error');
-                    document.querySelector('#items-body')?.scrollIntoView({ behavior: 'smooth', block: 'center' });
-                    return false;
-                }
+                    // Submit form after confirmation
+                    function submitEditForm() {
+                        const form = document.getElementById('sales-form');
 
-                // Kiểm tra các trường bắt buộc khác
-                const showroomEl = document.getElementById('showroom_id');
-                if (showroomEl && !showroomEl.value) {
-                    showNotification('Vui lòng chọn Showroom!', 'error');
-                    showroomEl.focus();
-                    return false;
-                }
+                        // Unformat all values before submit
+                        document.getElementById('rate').value = unformatNumber(document.getElementById('rate').value);
 
-                const customerNameEl = document.getElementById('customer_name');
-                if (customerNameEl && !customerNameEl.value.trim()) {
-                    showNotification('Vui lòng nhập tên khách hàng!', 'error');
-                    customerNameEl.focus();
-                    return false;
-                }
+                        const paidEl = document.getElementById('paid');
+                        if (paidEl) paidEl.value = unformatNumber(paidEl.value);
 
-                // Build order summary for confirmation
-                const customerName = customerNameEl.value;
-                const invoiceCode = document.getElementById('invoice_code').value;
-                const totalUsdEl = document.getElementById('total_usd');
-                const totalVndEl = document.getElementById('total_vnd');
-                const totalUsd = totalUsdEl ? totalUsdEl.value : '0';
-                const totalVnd = totalVndEl ? totalVndEl.value : '0đ';
+                        document.querySelectorAll('[name*="[price_usd]"]').forEach(input => {
+                            input.value = unformatNumber(input.value);
+                        });
+                        document.querySelectorAll('[name*="[price_vnd]"]').forEach(input => {
+                            input.value = unformatNumber(input.value);
+                        });
 
-                let summaryHtml = `
-                                                                                                <div class="space-y-2">
-                                                                                                    <div class="flex justify-between">
-                                                                                                        <span class="text-gray-600">Số hóa đơn:</span>
-                                                                                                        <span class="font-medium text-blue-600">${invoiceCode}</span>
-                                                                                                    </div>
-                                                                                                    <div class="flex justify-between">
-                                                                                                        <span class="text-gray-600">Khách hàng:</span>
-                                                                                                        <span class="font-medium">${customerName}</span>
-                                                                                                    </div>
-                                                                                                    <div class="flex justify-between">
-                                                                                                        <span class="text-gray-600">Số sản phẩm:</span>
-                                                                                                        <span class="font-medium">${productCount} sản phẩm</span>
-                                                                                                    </div>
-                                                                                                    <div class="border-t pt-2 mt-2">
-                                                                                                        <div class="flex justify-between text-blue-600">
-                                                                                                            <span>Tổng USD:</span>
-                                                                                                            <span class="font-bold">${totalUsd}</span>
-                                                                                                        </div>
-                                                                                                        <div class="flex justify-between text-green-600">
-                                                                                                            <span>Tổng VND:</span>
-                                                                                                            <span class="font-bold">${totalVnd}</span>
-                                                                                                        </div>
-                                                                                                    </div>
-                                                                                                </div>
-                                                                                            `;
+                        // Convert BOTH to USD or VND
+                        document.querySelectorAll('[name*="[currency]"]').forEach(select => {
+                            if (select.value === 'BOTH') {
+                                const row = select.closest('tr');
+                                const usdVal = parseFloat(unformatNumber(row.querySelector('[name*="[price_usd]"]').value)) || 0;
+                                select.value = (usdVal > 0) ? 'USD' : 'VND';
+                            }
+                        });
 
-                document.getElementById('confirm-edit-summary').innerHTML = summaryHtml;
-
-                // Show confirmation modal
-                showConfirmModal('confirm-edit-modal', {
-                    title: 'Xác nhận cập nhật hóa đơn',
-                    message: 'Vui lòng kiểm tra thông tin hóa đơn trước khi cập nhật:',
-                    onConfirm: function () {
-                        submitEditForm();
+                        form.submit();
                     }
-                });
-            }
-
-            // Submit form after confirmation
-            function submitEditForm() {
-                const form = document.getElementById('sales-form');
-
-                // Unformat all values before submit
-                document.getElementById('rate').value = unformatNumber(document.getElementById('rate').value);
-
-                const paidEl = document.getElementById('paid');
-                if (paidEl) paidEl.value = unformatNumber(paidEl.value);
-
-                document.querySelectorAll('[name*="[price_usd]"]').forEach(input => {
-                    input.value = unformatNumber(input.value);
-                });
-                document.querySelectorAll('[name*="[price_vnd]"]').forEach(input => {
-                    input.value = unformatNumber(input.value);
-                });
-
-                // Convert BOTH to USD or VND
-                document.querySelectorAll('[name*="[currency]"]').forEach(select => {
-                    if (select.value === 'BOTH') {
-                        const row = select.closest('tr');
-                        const usdVal = parseFloat(unformatNumber(row.querySelector('[name*="[price_usd]"]').value)) || 0;
-                        select.value = (usdVal > 0) ? 'USD' : 'VND';
-                    }
-                });
-
-                form.submit();
-            }
-        </script>
+                </script>
 
     @endpush
 @endsection
