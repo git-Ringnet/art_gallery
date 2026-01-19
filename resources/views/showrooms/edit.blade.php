@@ -64,6 +64,12 @@
                         class="w-full px-2 py-1.5 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                         placeholder="Hotline">
                 </div>
+                <div>
+                    <label class="block text-xs font-medium text-gray-700 mb-1">Website</label>
+                    <input type="url" name="website" value="{{ $showroom->website }}"
+                        class="w-full px-2 py-1.5 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                        placeholder="https://example.com">
+                </div>
                 <div class="md:col-span-2">
                     <label class="block text-xs font-medium text-gray-700 mb-1">Địa chỉ <span
                             class="text-red-500">*</span></label>
