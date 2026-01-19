@@ -141,19 +141,7 @@
                         </label>
                     </div>
 
-                    <!-- Customer Section -->
-                    <div class="border-b pb-3">
-                        <h3 class="font-semibold text-gray-700 mb-2">Thông tin khách hàng</h3>
-                        <label class="flex items-center space-x-3 py-2 hover:bg-gray-50 px-2 rounded cursor-pointer">
-                            <input type="checkbox" id="field-customer-email" class="w-4 h-4 text-purple-600" checked>
-                            <span class="text-sm">Email khách hàng</span>
-                        </label>
-                        <label class="flex items-center space-x-3 py-2 hover:bg-gray-50 px-2 rounded cursor-pointer">
-                            <input type="checkbox" id="field-customer-address" class="w-4 h-4 text-purple-600" checked>
-                            <span class="text-sm">Địa chỉ khách hàng</span>
-                        </label>
-                    </div>
-
+                    
                     <!-- Items Table Section -->
                     <div class="border-b pb-3">
                         <h3 class="font-semibold text-gray-700 mb-2">Bảng sản phẩm</h3>
@@ -363,53 +351,60 @@
     <div class="print-area max-w-4xl mx-auto bg-white p-8">
         <!-- Header -->
         <div class="mb-4">
-            <!-- Logo ở trên cùng -->
-            <div class="flex justify-between items-start mb-3">
-                <!-- Left: Logo + Showroom info -->
-                <div>
-                    <div style="width: 280px; height: 140px; margin-bottom: -63px; overflow: hidden;">
-                        <img id="invoice-logo" src="{{ $sale->showroom->logo_url }}" alt="logo"
-                            class="rounded-lg field-logo"
-                            style="width: 120%; height: 120%; object-fit: contain; margin-left: -10%; margin-top: -15%;"
-                            data-field="logo" />
-                    </div>
-                    <div class="field-showroom-info" data-field="showroom-info" style="margin-top: -10px;">
-                        <p class="text-xs text-gray-600">{{ $sale->showroom->address }}</p>
-                        <p class="text-xs text-gray-600">{{ $sale->showroom->phone }}</p>
+            <!-- Logo ở trên riêng -->
+            <div class="mb-3">
+                <div style="width: 280px; height: 140px; margin-bottom: -63px; overflow: hidden;">
+                    <img id="invoice-logo" src="{{ $sale->showroom->logo_url }}" alt="logo"
+                        class="rounded-lg field-logo"
+                        style="width: 120%; height: 120%; object-fit: contain; margin-left: -10%; margin-top: -15%;"
+                        data-field="logo" />
+                </div>
+            </div>
+
+            <!-- 2 cột thông tin bên dưới cân bằng -->
+            <div class="flex justify-between items-start" style="margin-top: -10px;">
+                <!-- Cột trái: Địa chỉ, phone, website, bank -->
+                <div class="field-showroom-info" data-field="showroom-info" style="flex: 1; max-width: 45%;">
+                    <p class="text-xs text-gray-600">{{ $sale->showroom->address }}</p>
+                    <p class="text-xs text-gray-600">{{ $sale->showroom->phone }}</p>
+                    
+                    
+                    <!-- Thông tin thanh toán ngân hàng -->
+                    <div class="mt-2  border-gray-200">
+                        <p class="text-[10px] text-gray-700 font-medium">
+                            {{ $sale->showroom->bank_name ?? 'Vietcombank' }} - STK: {{ $sale->showroom->bank_account ?? '0987654321' }}
+                        </p>
+                        <p class="text-[10px] text-gray-600">
+                            Chủ TK: {{ $sale->showroom->bank_holder ?? 'canh bro' }}
+                        </p>
                     </div>
                 </div>
 
-                <!-- Right: Mã HĐ và Ngày -->
-                <div class="text-right">
-                    <p class="text-sm text-gray-600"><span class="lang-vi">Mã HD:</span><span
-                            class="lang-en hidden">Invoice:</span> <span
-                            class="font-semibold text-blue-600">{{ $sale->invoice_code }}</span></p>
-                    <p class="text-xs text-gray-600"><span class="lang-vi">Ngày:</span><span
-                            class="lang-en hidden">Date:</span> {{ $sale->sale_date->format('d/m/Y') }}</p>
-                    <div class="mt-1 text-[10px] text-gray-500">
-                        <p class="field-employee" data-field="employee"><span class="lang-vi">Nhân viên:</span><span
-                                class="lang-en hidden">Staff:</span> {{ $sale->user ? $sale->user->name : 'N/A' }}</p>
-                        <p class="field-payment-status" data-field="payment-status"><span class="lang-vi">Thanh
-                                toán:</span><span class="lang-en hidden">Status:</span>
-                            @if($sale->payment_status == 'paid')
-                                <span class="text-green-600 font-semibold lang-vi">Đã TT</span>
-                                <span class="text-green-600 font-semibold lang-en hidden">Paid</span>
-                            @elseif($sale->payment_status == 'partial')
-                                <span class="text-yellow-600 font-semibold lang-vi">TT 1 phần</span>
-                                <span class="text-yellow-600 font-semibold lang-en hidden">Partial</span>
-                            @else
-                                <span class="text-red-600 font-semibold lang-vi">Chưa TT</span>
-                                <span class="text-red-600 font-semibold lang-en hidden">Unpaid</span>
-                            @endif
-                        </p>
-                    </div>
+                <!-- Cột phải: Invoice, Date, Staff, Status -->
+                <div class="text-right" style="flex: 1; max-width: 45%;">
+                    <p class="text-sm text-gray-600">
+                        <span class="lang-vi">Invoice:</span><span class="lang-en hidden">Invoice:</span> 
+                        <span class="font-semibold text-blue-600">{{ $sale->invoice_code }}</span>
+                    </p>
+                    <p class="text-xs text-gray-600">
+                        <span class="lang-vi">Date:</span><span class="lang-en hidden">Date:</span> 
+                        {{ $sale->sale_date->format('d/m/Y') }}
+                    </p>
+                    <p class="text-[10px] text-gray-500 mt-1 field-employee" data-field="employee">
+                        <span class="lang-vi">Staff:</span><span class="lang-en hidden">Staff:</span> 
+                        {{ $sale->user ? $sale->user->name : 'N/A' }}
+                    </p>
+                    
+                    @if($sale->showroom->website ?? false)
+                        <p class="text-xs text-blue-600 font-medium">{{ $sale->showroom->website }}</p>
+                    @endif
                 </div>
             </div>
 
             <!-- Tiêu đề căn giữa -->
             <div class="text-center">
                 <h1 id="invoice-title" class="text-2xl font-bold text-gray-800">
-                    <span class="lang-vi">INVOICE/HÓA ĐƠN BÁN HÀNG</span>
+                    <span class="lang-vi">HÓA ĐƠN BÁN HÀNG</span>
                     <span class="lang-en hidden">SALES INVOICE</span>
                 </h1>
             </div>
@@ -417,10 +412,7 @@
 
         <!-- Customer Info -->
         <div class="mb-3 p-2 bg-gray-50 rounded">
-            <h3 class="font-semibold text-sm mb-2 text-gray-800">
-                <span class="lang-vi">Thông tin khách hàng</span>
-                <span class="lang-en hidden">Customer Information</span>
-            </h3>
+          
             <div class="grid grid-cols-2 gap-2 text-xs">
                 <div>
                     <span class="text-gray-600"><span class="lang-vi">Tên:</span><span
@@ -463,6 +455,11 @@
                         <th class="px-2 py-2 text-left text-xs font-semibold text-gray-700">
                             <span class="lang-vi">Sản phẩm</span>
                             <span class="lang-en hidden">Product</span>
+                        </th>
+                        <!-- Task 2: Thêm cột Kích thước -->
+                        <th class="px-2 py-2 text-center text-xs font-semibold text-gray-700" style="width: 80px;">
+                            <span class="lang-vi">Kích thước</span>
+                            <span class="lang-en hidden">Size</span>
                         </th>
                         <th class="px-2 py-2 text-center text-xs font-semibold text-gray-700" style="width: 40px;">
                             <span class="lang-vi">SL</span>
@@ -508,26 +505,26 @@
                                                     <div><span class="detail-label lang-vi">Mã:</span><span
                                                             class="detail-label lang-en hidden">Code:</span>
                                                         {{ $item->painting->code }}</div>
+                                                    {{-- Task 3: Ẩn họa sĩ
                                                     @if($item->painting->artist)
                                                         <div><span class="detail-label lang-vi">Họa sĩ:</span><span
                                                                 class="detail-label lang-en hidden">Artist:</span>
                                                             {{ $item->painting->artist }}</div>
                                                     @endif
+                                                    --}}
                                                     @if($item->painting->material)
                                                         <div><span class="detail-label lang-vi">Chất liệu:</span><span
                                                                 class="detail-label lang-en hidden">Material:</span>
                                                             {{ $item->painting->material }}</div>
                                                     @endif
-                                                    @if($item->painting->width && $item->painting->height)
-                                                        <div><span class="detail-label lang-vi">Kích thước:</span><span
-                                                                class="detail-label lang-en hidden">Size:</span>
-                                                            {{ $item->painting->width }} x {{ $item->painting->height }} cm</div>
-                                                    @endif
+                                                   
+                                                    {{-- Task 3: Ẩn năm vẽ
                                                     @if($item->painting->paint_year)
                                                         <div><span class="detail-label lang-vi">Năm:</span><span
                                                                 class="detail-label lang-en hidden">Year:</span>
                                                             {{ $item->painting->paint_year }}</div>
                                                     @endif
+                                                    --}}
                                                 @endif
                                                 @if($item->frame)
                                                     <div class="text-blue-600"><i class="fas fa-border-style"></i> <span
@@ -537,6 +534,14 @@
                                             </div>
                                         </div>
                                     </div>
+                                </td>
+                                <!-- Task 2: Cell cho cột Kích thước -->
+                                <td class="px-2 py-2 text-xs text-center align-top">
+                                    @if($item->painting && $item->painting->width && $item->painting->height)
+                                        {{ $item->painting->width }}x{{ $item->painting->height }}
+                                    @else
+                                        -
+                                    @endif
                                 </td>
                                 <td class="px-2 py-2 text-xs text-center align-top">{{ $item->quantity }}</td>
                                 <td class="px-2 py-2 text-xs text-right align-top">
@@ -573,7 +578,7 @@
             <div class="w-full md:w-1/2">
                 <div class="space-y-1">
                     <div class="flex justify-between text-xs py-1 border-b">
-                        <span class="text-gray-700"><span class="lang-vi">Tạm tính:</span><span
+                        <span class="text-gray-700"><span class="lang-vi">Thành tiền:</span><span
                                 class="lang-en hidden">Subtotal:</span></span>
                         <div class="text-right">
                             @if($hasUsdItems)
@@ -671,6 +676,11 @@
                                     @endif
                                 </div>
                             </div>
+                            <!-- Hiển thị tỷ giá - DEBUG: Bỏ điều kiện để test -->
+                            <div class="text-[10px] text-gray-600 text-right mt-1">
+                                <span class="lang-vi">Tỷ giá:</span><span class="lang-en hidden">Rate:</span> 
+                                1 USD = {{ number_format($sale->exchange_rate ?? 0) }} VND
+                            </div>
                         </div>
                     @else
                         {{-- Nếu chưa có payment records (phiếu pending), hiển thị thanh toán ban đầu từ sale --}}
@@ -697,25 +707,75 @@
                                 @endif
                             </div>
                         </div>
+                        <!-- Hiển thị tỷ giá cho pending payment -->
+                        <div class="text-[10px] text-gray-600 text-right mt-1">
+                            <span class="lang-vi">Tỷ giá:</span><span class="lang-en hidden">Rate:</span> 
+                            1 USD = {{ number_format($sale->exchange_rate ?? 0) }} VND
+                        </div>
                     @endif
-                    @if(($sale->debt_usd ?? 0) > 0 || ($sale->debt_vnd ?? 0) > 0)
+                    
+                    {{-- Logic mới: Hiển thị công nợ hoặc tổng đã trả --}}
+                    @php
+                        $hasDebt = ($sale->debt_usd ?? 0) > 0 || ($sale->debt_vnd ?? 0) > 0;
+                        $isPaid = $sale->payment_status == 'paid';
+                        
+                        // Tính tổng đã thanh toán
+                        if($sale->payments->count() > 0) {
+                            $totalPaidUsd = $sale->payments->sum('payment_usd');
+                            $totalPaidVnd = $sale->payments->sum('payment_vnd');
+                        } else {
+                            $totalPaidUsd = $sale->payment_usd ?? 0;
+                            $totalPaidVnd = $sale->payment_vnd ?? 0;
+                        }
+                    @endphp
+                    
+                    @if($hasDebt)
+                        {{-- CÒN NỢ: Hiển thị số tiền còn nợ (ưu tiên USD) --}}
                         <div class="flex justify-between text-xs py-1 bg-red-50 px-2 rounded field-debt-amount"
                             data-field="debt-amount">
-                            <span class="text-red-700 font-medium"><span class="lang-vi">Còn nợ:</span><span
-                                    class="lang-en hidden">Balance:</span></span>
+                            <span class="text-red-700 font-medium">
+                                <span class="lang-vi">Còn lại:</span>
+                                <span class="lang-en hidden">Balance:</span>
+                            </span>
                             <div class="text-right font-bold text-red-600">
                                 @if(($sale->debt_usd ?? 0) > 0)
+                                    {{-- Ưu tiên hiển thị USD --}}
                                     <span>${{ number_format($sale->debt_usd, 2) }}</span>
-                                @endif
-                                @if(($sale->debt_usd ?? 0) > 0 && ($sale->debt_vnd ?? 0) > 0)
-                                    <span class="text-red-400">+</span>
-                                @endif
-                                @if(($sale->debt_vnd ?? 0) > 0)
+                                @elseif(($sale->debt_vnd ?? 0) > 0)
+                                    {{-- Nếu không có USD thì hiển thị VND --}}
                                     <span>{{ number_format($sale->debt_vnd) }}đ</span>
                                 @endif
                             </div>
                         </div>
+                    @elseif($isPaid)
+                        {{-- ĐÃ TRẢ HẾT: Hiển thị tổng theo loại tiền đã trả --}}
+                        @if($totalPaidVnd > 0 && $totalPaidUsd == 0)
+                            {{-- Trả hết bằng VND: Hiển thị tổng VND --}}
+                            <div class="flex justify-between text-xs py-1 bg-green-50 px-2 rounded">
+                                <span class="text-green-700 font-medium">
+                                    <span class="lang-vi">Tổng VND:</span>
+                                    <span class="lang-en hidden">Total VND:</span>
+                                </span>
+                                <div class="text-right font-bold text-green-600">
+                                    {{ number_format($totalPaidVnd) }}đ
+                                </div>
+                            </div>
+                        @elseif($totalPaidUsd > 0 && $totalPaidVnd == 0)
+                            {{-- Trả hết bằng USD: Không cần hiển thị gì thêm (đã có tổng USD ở trên) --}}
+                        @elseif($totalPaidUsd > 0 && $totalPaidVnd > 0)
+                            {{-- Trả hỗn hợp: Hiển thị cả hai --}}
+                            <div class="flex justify-between text-xs py-1 bg-green-50 px-2 rounded">
+                                <span class="text-green-700 font-medium">
+                                    <span class="lang-vi">Tổng thanh toán:</span>
+                                    <span class="lang-en hidden">Total Paid:</span>
+                                </span>
+                                <div class="text-right font-bold text-green-600">
+                                    ${{ number_format($totalPaidUsd, 2) }} + {{ number_format($totalPaidVnd) }}đ
+                                </div>
+                            </div>
+                        @endif
                     @endif
+
                     @if($hasUsdItems && $hasVndItems)
                         <div class="text-[10px] text-gray-700 text-right mt-1 field-exchange-rate"
                             data-field="exchange-rate">
@@ -730,29 +790,35 @@
         <!-- Signatures -->
         <div class="grid grid-cols-2 gap-6 mt-8 mb-4 field-signatures" data-field="signatures">
             <div class="text-center">
-                <p id="seller-label" class="font-semibold text-sm mb-12">
+                <p id="seller-label" class="font-semibold text-sm mb-2">
                     <span class="lang-vi">Người bán hàng</span>
                     <span class="lang-en hidden">Seller</span>
                 </p>
-                <p class="text-xs text-gray-700">
-                    <span class="lang-vi">(Ký và ghi rõ họ tên)</span>
-                    <span class="lang-en hidden">(Signature)</span>
+                <!-- Khoảng trống cho chữ ký (giảm từ mb-12 xuống mb-2, thêm khoảng chữ ký) -->
+                <div class="h-16 mb-2"></div>
+                <!-- Tên nhân viên tự động điền -->
+                <p class="text-sm font-medium text-gray-800 border-t border-gray-400 pt-1 inline-block min-w-[200px]">
+                    {{ $sale->user ? $sale->user->name : 'N/A' }}
                 </p>
             </div>
             <div class="text-center">
-                <p id="customer-signature-label" class="font-semibold text-sm mb-12">
+                <p id="customer-signature-label" class="font-semibold text-sm mb-2">
                     <span class="lang-vi">Khách hàng</span>
                     <span class="lang-en hidden">Customer</span>
                 </p>
-                <p class="text-sm text-gray-700">
-                    <span class="lang-vi">(Ký và ghi rõ họ tên)</span>
-                    <span class="lang-en hidden">(Signature and full name)</span>
+                <!-- Khoảng trống cho chữ ký -->
+                <div class="h-16 mb-2"></div>
+                <!-- Tên khách hàng tự động điền -->
+                <p class="text-sm font-medium text-gray-800 border-t border-gray-400 pt-1 inline-block min-w-[200px]">
+                    {{ $sale->customer->name }}
                 </p>
             </div>
         </div>
 
+
         <!-- Footer -->
-        <div class="border-t pt-4 mt-8 field-footer" data-field="footer">
+        <div class=" pt-4 mt-8 field-footer" data-field="footer">
+            {{-- Task 3: Ẩn hotline và email
             <div class="flex justify-between text-xs text-gray-600">
                 <div>
                     <p id="footer-hotline">Hotline: {{ $sale->showroom->hotline ?? '' }}</p>
@@ -765,7 +831,15 @@
                     <p id="footer-bank-branch">Chủ TK: {{ $sale->showroom->bank_holder ?? '' }}</p>
                 </div>
             </div>
+            --}}
+            <!-- Chỉ hiển thị thông tin ngân hàng -->
+            <!-- <div class="text-center text-xs text-gray-600">
+                <p id="footer-bank-info">{{ $sale->showroom->bank_name ?? '' }} - STK: {{ $sale->showroom->bank_account ?? '' }}</p>
+                <p id="footer-bank-branch">Chủ TK: {{ $sale->showroom->bank_holder ?? '' }}</p>
+            </div> -->
+            {{-- Task 3: Ẩn lời cảm ơn
             <p id="footer-thank-you" class="text-center text-xs text-gray-500 mt-4">Cảm ơn quý khách đã mua hàng!</p>
+            --}}
         </div>
     </div>
 

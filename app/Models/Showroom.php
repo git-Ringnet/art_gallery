@@ -16,6 +16,7 @@ class Showroom extends Model
         'email',
         'hotline',
         'address',
+        'website',
         'bank_name',
         'bank_account',
         'bank_holder',
