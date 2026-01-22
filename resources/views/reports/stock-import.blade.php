@@ -52,42 +52,21 @@
             
             <!-- Row 2: Export Actions -->
             <div class="flex gap-2">
-                @if($exchangeRate <= 1)
-                    <!-- Chưa nhập tỷ giá → Vô hiệu hóa Excel/PDF/Print -->
-                    <button type="button" disabled class="flex-1 bg-gray-400 cursor-not-allowed text-white px-4 py-2.5 rounded-lg font-semibold shadow-lg opacity-60 relative group">
-                        <i class="fas fa-file-excel mr-2"></i>Excel
-                        <span class="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-3 py-2 bg-gray-800 text-white text-xs rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap z-10">
-                            ⚠️ Cần nhập tỷ giá trước khi xuất
-                        </span>
-                    </button>
-                    <button type="button" disabled class="flex-1 bg-gray-400 cursor-not-allowed text-white px-4 py-2.5 rounded-lg font-semibold shadow-lg opacity-60 relative group">
-                        <i class="fas fa-file-pdf mr-2"></i>PDF
-                        <span class="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-3 py-2 bg-gray-800 text-white text-xs rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap z-10">
-                            ⚠️ Cần nhập tỷ giá trước khi xuất
-                        </span>
-                    </button>
-                    @if($canPrint)
-                    <button type="button" disabled class="flex-1 bg-gray-400 cursor-not-allowed text-white px-4 py-2.5 rounded-lg font-semibold shadow-lg opacity-60 relative group">
-                        <i class="fas fa-print mr-2"></i>In báo cáo
-                        <span class="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-3 py-2 bg-gray-800 text-white text-xs rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap z-10">
-                            ⚠️ Cần nhập tỷ giá trước khi in
-                        </span>
-                    </button>
-                    @endif
-                @else
-                    <!-- Đã nhập tỷ giá → Cho phép xuất -->
-                    <a href="{{ route('reports.stock-import.export.excel', request()->all()) }}" class="flex-1 bg-gradient-to-r from-green-600 to-green-700 hover:from-green-700 hover:to-green-800 text-white px-4 py-2.5 rounded-lg font-semibold shadow-lg transition-all duration-200 flex items-center justify-center">
-                        <i class="fas fa-file-excel mr-2"></i>Excel
-                    </a>
-                    <a href="{{ route('reports.stock-import.export.pdf', request()->all()) }}" class="flex-1 bg-gradient-to-r from-red-600 to-red-700 hover:from-red-700 hover:to-red-800 text-white px-4 py-2.5 rounded-lg font-semibold shadow-lg transition-all duration-200 flex items-center justify-center">
-                        <i class="fas fa-file-pdf mr-2"></i>PDF
-                    </a>
-                    @if($canPrint)
-                    <button type="button" onclick="window.print()" class="flex-1 bg-gradient-to-r from-purple-600 to-purple-700 hover:from-purple-700 hover:to-purple-800 text-white px-4 py-2.5 rounded-lg font-semibold shadow-lg transition-all duration-200">
-                        <i class="fas fa-print mr-2"></i>In báo cáo
-                    </button>
-                    @endif
+            <!-- Row 2: Export Actions -->
+            <div class="flex gap-2">
+                <!-- Cho phép xuất Excel/PDF bất kể có tỷ giá hay không -->
+                <a href="{{ route('reports.stock-import.export.excel', request()->all()) }}" class="flex-1 bg-gradient-to-r from-green-600 to-green-700 hover:from-green-700 hover:to-green-800 text-white px-4 py-2.5 rounded-lg font-semibold shadow-lg transition-all duration-200 flex items-center justify-center">
+                    <i class="fas fa-file-excel mr-2"></i>Excel
+                </a>
+                <a href="{{ route('reports.stock-import.export.pdf', request()->all()) }}" class="flex-1 bg-gradient-to-r from-red-600 to-red-700 hover:from-red-700 hover:to-red-800 text-white px-4 py-2.5 rounded-lg font-semibold shadow-lg transition-all duration-200 flex items-center justify-center">
+                    <i class="fas fa-file-pdf mr-2"></i>PDF
+                </a>
+                @if($canPrint)
+                <button type="button" onclick="window.print()" class="flex-1 bg-gradient-to-r from-purple-600 to-purple-700 hover:from-purple-700 hover:to-purple-800 text-white px-4 py-2.5 rounded-lg font-semibold shadow-lg transition-all duration-200">
+                    <i class="fas fa-print mr-2"></i>In báo cáo
+                </button>
                 @endif
+            </div>
             </div>
         </div>
     </form>
@@ -119,12 +98,16 @@
     </div>
     <div class="bg-gradient-to-br from-blue-500 to-blue-600 rounded-xl shadow-lg p-5 text-white">
         <p class="text-sm opacity-90">Tổng giá trị (USD)</p>
-        <p class="text-2xl font-bold">${{ number_format($totalPriceUsd, 2) }}</p>
+        <p class="text-2xl font-bold">${{ $totalPriceUsd == floor($totalPriceUsd) ? number_format($totalPriceUsd, 0) : number_format($totalPriceUsd, 2) }}</p>
     </div>
     <div class="bg-gradient-to-br from-purple-500 to-purple-600 rounded-xl shadow-lg p-5 text-white">
         <p class="text-sm opacity-90">Tổng giá trị (VND)</p>
         @if($totalPriceUsd > 0 && $exchangeRate <= 1)
-            <p class="text-lg font-bold text-yellow-300">Cần nhập tỷ giá</p>
+            <!-- Hiển thị riêng -->
+            <div class="flex flex-col">
+                <span class="text-xl font-bold">USD: ${{ $totalPriceUsd == floor($totalPriceUsd) ? number_format($totalPriceUsd, 0) : number_format($totalPriceUsd, 2) }}</span>
+                <span class="text-lg">VND: {{ number_format($grandTotalVnd, 0) }}đ</span>
+            </div>
         @else
             <p class="text-2xl font-bold">{{ number_format($grandTotalVnd, 0) }} đ</p>
         @endif
@@ -154,6 +137,7 @@
                         <th class="px-3 py-2 text-left text-xs font-bold text-gray-700">Kích thước</th>
                         <th class="px-3 py-2 text-center text-xs font-bold text-gray-700">SL</th>
                         <th class="px-3 py-2 text-right text-xs font-bold text-gray-700">Giá (USD)</th>
+                        <th class="px-3 py-2 text-right text-xs font-bold text-gray-700">Giá (VND)</th>
                         <th class="px-3 py-2 text-center text-xs font-bold text-gray-700">Trạng thái</th>
                     </tr>
                 </thead>
@@ -169,6 +153,7 @@
                         <td class="px-3 py-2 text-gray-600">{{ $item['dimensions'] }}</td>
                         <td class="px-3 py-2 text-center">{{ $item['quantity'] }}</td>
                         <td class="px-3 py-2 text-right font-medium">${{ number_format($item['price_usd'], 2) }}</td>
+                        <td class="px-3 py-2 text-right font-medium">{{ number_format($item['price_vnd'], 0) }}</td>
                         <td class="px-3 py-2 text-center">
                             @if($item['status'] == 'Còn hàng')
                                 <span class="px-2 py-1 text-xs bg-green-100 text-green-700 rounded-full">{{ $item['status'] }}</span>
@@ -180,7 +165,7 @@
                         </td>
                     </tr>
                     @empty
-                    <tr><td colspan="10" class="px-3 py-8 text-center text-gray-500">Không có tranh nhập trong khoảng thời gian này</td></tr>
+                    <tr><td colspan="11" class="px-3 py-8 text-center text-gray-500">Không có tranh nhập trong khoảng thời gian này</td></tr>
                     @endforelse
                     
                     @if(count($reportData) > 0)
@@ -188,6 +173,7 @@
                         <td colspan="7" class="px-3 py-3">TỔNG CỘNG</td>
                         <td class="px-3 py-3 text-center">{{ $totalQuantity }}</td>
                         <td class="px-3 py-3 text-right">${{ number_format($totalPriceUsd, 2) }}</td>
+                        <td class="px-3 py-3 text-right">{{ number_format($totalPriceVnd, 0) }}</td>
                         <td class="px-3 py-3"></td>
                     </tr>
                     @endif
@@ -206,13 +192,14 @@
                 </div>
                 <div class="flex justify-between items-center py-2 border-b border-gray-200">
                     <span class="text-gray-700 font-medium">Tổng giá trị (USD):</span>
-                    <span class="text-lg font-bold text-blue-700">${{ number_format($totalPriceUsd, 2) }}</span>
+                    <span class="text-lg font-bold text-blue-700">${{ $totalPriceUsd == floor($totalPriceUsd) ? number_format($totalPriceUsd, 0) : number_format($totalPriceUsd, 2) }}</span>
                 </div>
                 <div class="flex justify-between items-center py-3 bg-gradient-to-r from-green-100 to-blue-100 rounded-lg px-4">
                     <span class="text-gray-800 font-bold text-lg">Tổng giá trị (VND):</span>
-                    <span class="text-xl font-bold text-purple-700">
+                    <span class="text-xl font-bold text-purple-700 text-right">
                         @if($totalPriceUsd > 0 && $exchangeRate <= 1)
-                            Cần nhập tỷ giá
+                            <div>USD: ${{ $totalPriceUsd == floor($totalPriceUsd) ? number_format($totalPriceUsd, 0) : number_format($totalPriceUsd, 2) }}</div>
+                            <div>VND: {{ number_format($grandTotalVnd, 0) }}đ</div>
                         @else
                             VND {{ number_format($grandTotalVnd, 0) }}
                         @endif
@@ -221,7 +208,7 @@
                 @if($totalPriceUsd > 0 && $exchangeRate > 1)
                 <p class="text-xs text-gray-500 italic">
                     <i class="fas fa-info-circle mr-1"></i>
-                    (${{ number_format($totalPriceUsd, 2) }} × {{ number_format($exchangeRate, 0) }} + {{ number_format($totalPriceVnd, 0) }}đ)
+                    (${{ $totalPriceUsd == floor($totalPriceUsd) ? number_format($totalPriceUsd, 0) : number_format($totalPriceUsd, 2) }} × {{ number_format($exchangeRate, 0) }} + {{ number_format($totalPriceVnd, 0) }}đ)
                 </p>
                 @endif
             </div>
@@ -259,6 +246,7 @@
                 <th style="border: 1px solid #000; padding: 3px;">Dimensions</th>
                 <th style="border: 1px solid #000; padding: 3px;">Qty</th>
                 <th style="border: 1px solid #000; padding: 3px;">Price (USD)</th>
+                <th style="border: 1px solid #000; padding: 3px;">Price (VND)</th>
                 <th style="border: 1px solid #000; padding: 3px;">Status</th>
             </tr>
         </thead>
@@ -274,6 +262,7 @@
                 <td style="border: 1px solid #000; padding: 2px;">{{ $item['dimensions'] }}</td>
                 <td style="border: 1px solid #000; padding: 2px; text-align: center;">{{ $item['quantity'] }}</td>
                 <td style="border: 1px solid #000; padding: 2px; text-align: right;">{{ number_format($item['price_usd'], 2) }}</td>
+                <td style="border: 1px solid #000; padding: 2px; text-align: right;">{{ number_format($item['price_vnd'], 0) }}</td>
                 <td style="border: 1px solid #000; padding: 2px;">{{ $item['status'] }}</td>
             </tr>
             @endforeach
@@ -281,6 +270,7 @@
                 <td colspan="7" style="border: 1px solid #000; padding: 4px;">GRAND TOTAL</td>
                 <td style="border: 1px solid #000; padding: 4px; text-align: center;">{{ $totalQuantity }}</td>
                 <td style="border: 1px solid #000; padding: 4px; text-align: right;">{{ number_format($totalPriceUsd, 2) }}</td>
+                <td style="border: 1px solid #000; padding: 4px; text-align: right;">{{ number_format($totalPriceVnd, 0) }}</td>
                 <td style="border: 1px solid #000; padding: 4px;"></td>
             </tr>
         </tbody>
@@ -288,7 +278,9 @@
 
     <div style="margin-top: 15px; font-size: 10px;">
         <p style="margin: 3px 0;"><strong>Total Paintings:</strong> {{ $totalQuantity }}</p>
+        @if($totalPriceUsd > 0 && $exchangeRate <= 1)
         <p style="margin: 3px 0;"><strong>Total Value (USD):</strong> ${{ number_format($totalPriceUsd, 2) }}</p>
+        @endif
         <p style="border-top: 2px solid #000; border-bottom: 2px double #000; padding: 6px 0; margin-top: 6px; font-weight: bold;">
             <strong>TOTAL VALUE (VND):</strong> {{ number_format($grandTotalVnd, 0) }}
         </p>

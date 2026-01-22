@@ -114,8 +114,6 @@
                 <th class="text-right">Adj. VND</th>
                 <th class="text-right">Collect USD</th>
                 <th class="text-right">Collect VND</th>
-                <th class="text-right">Adj. USD</th>
-                <th class="text-right">Adj. VND</th>
             </tr>
         </thead>
         <tbody>
@@ -127,7 +125,11 @@
                     <td>{{ $item['customer_name'] }}</td>
                     <td class="text-right">
                         @if($item['adjustment_usd'] != 0)
-                            ${{ number_format($item['adjustment_usd'], 2) }}
+                            @php
+                                $val = $item['adjustment_usd'];
+                                $formatted = $val == floor($val) ? number_format($val, 0) : number_format($val, 2);
+                            @endphp
+                            ${{ $formatted }}
                         @endif
                     </td>
                     <td class="text-right">
@@ -137,22 +139,16 @@
                     </td>
                     <td class="text-right">
                         @if($item['collection_usd'] > 0)
-                            ${{ number_format($item['collection_usd'], 2) }}
+                            @php
+                                $val = $item['collection_usd'];
+                                $formatted = $val == floor($val) ? number_format($val, 0) : number_format($val, 2);
+                            @endphp
+                            ${{ $formatted }}
                         @endif
                     </td>
                     <td class="text-right">
                         @if($item['collection_vnd'] > 0)
                             {{ number_format($item['collection_vnd'], 0) }}đ
-                        @endif
-                    </td>
-                    <td class="text-right">
-                        @if(isset($item['collection_adjustment_usd']) && $item['collection_adjustment_usd'] != 0)
-                            ${{ number_format($item['collection_adjustment_usd'], 2) }}
-                        @endif
-                    </td>
-                    <td class="text-right">
-                        @if(isset($item['collection_adjustment_vnd']) && $item['collection_adjustment_vnd'] != 0)
-                            {{ number_format($item['collection_adjustment_vnd'], 0) }}đ
                         @endif
                     </td>
                 </tr>
@@ -161,7 +157,11 @@
                 <td colspan="4">GRAND TOTAL</td>
                 <td class="text-right">
                     @if($totalAdjustmentUsd != 0)
-                        ${{ number_format($totalAdjustmentUsd, 2) }}
+                        @php
+                            $val = $totalAdjustmentUsd;
+                            $formatted = $val == floor($val) ? number_format($val, 0) : number_format($val, 2);
+                        @endphp
+                        ${{ $formatted }}
                     @endif
                 </td>
                 <td class="text-right">
@@ -171,22 +171,16 @@
                 </td>
                 <td class="text-right">
                     @if($totalCollectionUsd > 0)
-                        ${{ number_format($totalCollectionUsd, 2) }}
+                        @php
+                            $val = $totalCollectionUsd;
+                            $formatted = $val == floor($val) ? number_format($val, 0) : number_format($val, 2);
+                        @endphp
+                        ${{ $formatted }}
                     @endif
                 </td>
                 <td class="text-right">
                     @if($totalCollectionVnd > 0)
                         {{ number_format($totalCollectionVnd, 0) }}đ
-                    @endif
-                </td>
-                <td class=\"text-right\">
-                    @if(isset($totalCollectionAdjustmentUsd) && $totalCollectionAdjustmentUsd != 0)
-                        ${{ number_format($totalCollectionAdjustmentUsd, 2) }}
-                    @endif
-                </td>
-                <td class=\"text-right\">
-                    @if(isset($totalCollectionAdjustmentVnd) && $totalCollectionAdjustmentVnd != 0)
-                        {{ number_format($totalCollectionAdjustmentVnd, 0) }}đ
                     @endif
                 </td>
             </tr>
@@ -195,12 +189,72 @@
 
     <div class="summary">
         <p><strong>Summary:</strong></p>
-        <p>Collection in CASH: {{ number_format($cashCollectionVnd, 0) }}đ</p>
-        <p>In Credit Card + Transfer: {{ number_format($cardCollectionVnd, 0) }}đ</p>
-        <p
-            style="border-top: 2px solid #000; border-bottom: 2px double #000; padding: 6px 0; margin-top: 6px; font-weight: bold;">
-            <strong>Grand Total: {{ number_format($cashCollectionVnd + $cardCollectionVnd, 0) }}đ</strong>
-        </p>
+        @if(isset($exchangeRate) && $exchangeRate > 1)
+            {{-- Combined Display (Rate > 1) --}}
+            <p>
+                Collection in CASH: {{ number_format($cashCollectionVnd, 0) }}đ
+                @if(isset($cashCollectionUsd) && $cashCollectionUsd > 0)
+                    @php
+                        $val = $cashCollectionUsd;
+                        $formatted = $val == floor($val) ? number_format($val, 0) : number_format($val, 2);
+                    @endphp
+                    (incl. USD ${{ $formatted }})
+                @endif
+            </p>
+            <p>
+                In Credit Card + Transfer: {{ number_format($cardCollectionVnd, 0) }}đ
+                @if(isset($cardCollectionUsd) && $cardCollectionUsd > 0)
+                    @php
+                        $val = $cardCollectionUsd;
+                        $formatted = $val == floor($val) ? number_format($val, 0) : number_format($val, 2);
+                    @endphp
+                    (incl. USD ${{ $formatted }})
+                @endif
+            </p>
+            <p
+                style="border-top: 2px solid #000; border-bottom: 2px double #000; padding: 6px 0; margin-top: 6px; font-weight: bold;">
+                {{-- In Rate > 1 mode, cash/cardCollectionVnd already includes converted USD, so simple sum is correct --}}
+                <strong>Grand Total: {{ number_format($cashCollectionVnd + $cardCollectionVnd, 0) }}đ</strong>
+            </p>
+        @else
+            {{-- Separated Display (Rate = 1 or not provided) --}}
+            <p>
+                Collection in CASH: {{ number_format($cashCollectionVnd, 0) }}đ
+                @if(isset($cashCollectionUsd) && $cashCollectionUsd > 0)
+                    @php
+                        $val = $cashCollectionUsd;
+                        $formatted = $val == floor($val) ? number_format($val, 0) : number_format($val, 2);
+                    @endphp
+                    + USD ${{ $formatted }}
+                @endif
+            </p>
+            <p>
+                In Credit Card + Transfer: {{ number_format($cardCollectionVnd, 0) }}đ
+                @if(isset($cardCollectionUsd) && $cardCollectionUsd > 0)
+                    @php
+                        $val = $cardCollectionUsd;
+                        $formatted = $val == floor($val) ? number_format($val, 0) : number_format($val, 2);
+                    @endphp
+                    + USD ${{ $formatted }}
+                @endif
+            </p>
+
+            <p
+                style="border-top: 2px solid #000; border-bottom: 2px double #000; padding: 6px 0; margin-top: 6px; font-weight: bold;">
+                @php
+                    $totalVnd = $cashCollectionVnd + $cardCollectionVnd;
+                    $totalUsd = ($cashCollectionUsd ?? 0) + ($cardCollectionUsd ?? 0);
+
+                    $usdPart = '';
+                    if ($totalUsd > 0) {
+                        $val = $totalUsd;
+                        $formatted = $val == floor($val) ? number_format($val, 0) : number_format($val, 2);
+                        $usdPart = ' + USD $' . $formatted;
+                    }
+                @endphp
+                <strong>Grand Total: {{ number_format($totalVnd, 0) }}đ{{ $usdPart }}</strong>
+            </p>
+        @endif
     </div>
 </body>
 

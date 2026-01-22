@@ -63,6 +63,14 @@ class StockImportExport implements FromArray, WithHeadings, WithTitle, WithStyle
 
         // Add summary
         $rows[] = [];
+
+        // Only show USD total if no exchange rate is applied (to avoid confusion with converted total)
+        // and if there is actually a USD amount
+        $exchangeRate = $this->metadata['exchangeRate'] ?? 1;
+        if ($exchangeRate <= 1 && $this->totals['totalPriceUsd'] > 0) {
+            $rows[] = ['Total Value (USD):', '$' . number_format($this->totals['totalPriceUsd'], 2)];
+        }
+
         $rows[] = ['Grand Total (VND):', 'VND ' . number_format($this->totals['grandTotalVnd'], 0)];
 
         return $rows;

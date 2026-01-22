@@ -171,6 +171,10 @@ class ReportsController extends Controller
         $totalCollectionVnd = 0;
         $cashCollectionVnd = 0;
         $cardCollectionVnd = 0;
+        $cashCollectionUsd = 0;
+        $cardCollectionUsd = 0;
+        $cashCollectionPureVnd = 0;
+        $cardCollectionPureVnd = 0;
 
         $processedSaleIds = [];
 
@@ -261,12 +265,24 @@ class ReportsController extends Controller
 
             $paymentUsd = $payment->payment_usd ?? 0;
             $paymentVnd = $payment->payment_vnd ?? 0;
-            $collectionVndForCashCard = ($paymentUsd * $exchangeRate) + $paymentVnd;
+
+            // Sử dụng tỷ giá tại thời điểm thanh toán thay vì tỷ giá nhập từ form
+            $paymentExchangeRate = $payment->payment_exchange_rate ?? 0;
+            if ($paymentExchangeRate > 0) {
+                $collectionVndForCashCard = ($paymentUsd * $paymentExchangeRate) + $paymentVnd;
+            } else {
+                // Nếu không có tỷ giá tại thời điểm thanh toán, chỉ tính VND
+                $collectionVndForCashCard = $paymentVnd;
+            }
 
             if ($payment->payment_method == 'cash') {
                 $cashCollectionVnd += $collectionVndForCashCard;
+                $cashCollectionUsd += $paymentUsd;
+                $cashCollectionPureVnd += $paymentVnd;
             } else {
                 $cardCollectionVnd += $collectionVndForCashCard;
+                $cardCollectionUsd += $paymentUsd;
+                $cardCollectionPureVnd += $paymentVnd;
             }
         }
 
@@ -274,10 +290,17 @@ class ReportsController extends Controller
             $totalDepositTotalVnd = ($totalDepositUsd * $exchangeRate) + $totalDepositVnd;
             $totalAdjustmentTotalVnd = ($totalAdjustmentUsd * $exchangeRate) + $totalAdjustmentVnd;
             $grandTotalVnd = ($totalCollectionUsd * $exchangeRate) + $totalCollectionVnd;
+
+            // Recalculate collection totals using the global exchange rate
+            $cashCollectionVnd = $cashCollectionPureVnd + ($cashCollectionUsd * $exchangeRate);
+            $cardCollectionVnd = $cardCollectionPureVnd + ($cardCollectionUsd * $exchangeRate);
         } else {
             $totalDepositTotalVnd = $totalDepositVnd;
             $totalAdjustmentTotalVnd = $totalAdjustmentVnd;
             $grandTotalVnd = $totalCollectionVnd;
+            // Recalculate collection totals using the global exchange rate (even if exchangeRate is 1, for consistency)
+            $cashCollectionVnd = $cashCollectionPureVnd + ($cashCollectionUsd * $exchangeRate);
+            $cardCollectionVnd = $cardCollectionPureVnd + ($cardCollectionUsd * $exchangeRate);
         }
 
         $totalCollectionAdjustmentUsd = 0;
@@ -309,6 +332,8 @@ class ReportsController extends Controller
             'totalCollectionAdjustmentVnd',
             'cashCollectionVnd',
             'cardCollectionVnd',
+            'cashCollectionUsd',
+            'cardCollectionUsd',
             'grandTotalVnd'
         ));
     }
@@ -392,7 +417,7 @@ class ReportsController extends Controller
         // Query sales - chỉ lấy phiếu đã duyệt (completed)
         $selectedYear = session('selected_year', date('Y'));
 
-        $salesQuery = Sale::with(['customer', 'showroom', 'user', 'items.painting', 'items.supply', 'items.frame'])
+        $salesQuery = Sale::with(['customer', 'showroom', 'user', 'items.painting', 'items.supply', 'items.frame', 'payments'])
             ->where('sale_status', 'completed')
             ->where('year', $selectedYear)
             ->whereBetween('sale_date', [$fromDate->format('Y-m-d'), $toDate->format('Y-m-d')]);
@@ -416,9 +441,21 @@ class ReportsController extends Controller
         $totalVnd = 0;
         $totalPaidVnd = 0;
         $totalDebtVnd = 0;
+        $totalPaidUsd = 0;
+        $totalDebtUsd = 0;
         $totalItems = 0;
 
         foreach ($sales as $sale) {
+            // Calculate actual paid amounts from payments
+            $actualPaidUsd = 0;
+            $actualPaidVnd = 0;
+            if ($sale->payments) {
+                foreach ($sale->payments as $payment) {
+                    $actualPaidUsd += $payment->payment_usd;
+                    $actualPaidVnd += $payment->payment_vnd;
+                }
+            }
+
             $firstItem = $sale->items->first();
             $idCode = '';
             $itemDescription = '';
@@ -440,6 +477,11 @@ class ReportsController extends Controller
 
             $itemCount = $sale->items->sum('quantity');
 
+            // Xác định loại hóa đơn
+            $isUsdOnly = $sale->total_usd > 0 && $sale->total_vnd <= 0;
+            $isVndOnly = $sale->total_vnd > 0 && $sale->total_usd <= 0;
+            $isMixed = $sale->total_usd > 0 && $sale->total_vnd > 0;
+
             $reportData[] = [
                 'sale_date' => $sale->sale_date->format('d/m/Y'),
                 'invoice_code' => $sale->invoice_code,
@@ -449,27 +491,41 @@ class ReportsController extends Controller
                 'item_count' => $itemCount,
                 'total_usd' => $sale->total_usd,
                 'total_vnd' => $sale->total_vnd,
-                'paid_vnd' => $sale->paid_amount ?? 0,
-                'debt_vnd' => $sale->debt_amount ?? 0,
+                'paid_vnd' => $sale->paid_vnd ?? 0,
+                'paid_usd' => $sale->paid_usd ?? 0,
+                'actual_paid_vnd' => $actualPaidVnd,
+                'actual_paid_usd' => $actualPaidUsd,
+                'debt_vnd' => $sale->debt_vnd ?? 0,
+                'debt_usd' => $sale->debt_usd ?? 0,
                 'showroom' => $sale->showroom->name ?? '',
                 'employee' => $sale->user->name ?? '',
+                'is_usd_only' => $isUsdOnly,
+                'is_vnd_only' => $isVndOnly,
+                'is_mixed' => $isMixed,
             ];
 
             $totalUsd += $sale->total_usd;
             $totalVnd += $sale->total_vnd;
-            $totalPaidVnd += ($sale->paid_amount ?? 0);
-            $totalDebtVnd += ($sale->debt_amount ?? 0);
+
+            // Calculate totals strictly by currency (actual collected)
+            $totalPaidVnd += $actualPaidVnd;
+            $totalPaidUsd += $actualPaidUsd;
+
+            $totalDebtVnd += ($sale->debt_vnd ?? 0);
+            $totalDebtUsd += ($sale->debt_usd ?? 0);
             $totalItems += $itemCount;
         }
 
         // Tính tổng quy đổi VND
         if ($exchangeRate > 1) {
             $grandTotalVnd = ($totalUsd * $exchangeRate) + $totalVnd;
+            $grandPaidVnd = ($totalPaidUsd * $exchangeRate) + $totalPaidVnd;
+            $grandDebtVnd = ($totalDebtUsd * $exchangeRate) + $totalDebtVnd;
         } else {
             $grandTotalVnd = $totalVnd;
+            $grandPaidVnd = $totalPaidVnd;
+            $grandDebtVnd = $totalDebtVnd;
         }
-        $grandPaidVnd = $totalPaidVnd;
-        $grandDebtVnd = $totalDebtVnd;
 
         return view('reports.monthly-sales', compact(
             'reportData',
@@ -489,6 +545,8 @@ class ReportsController extends Controller
             'totalVnd',
             'totalPaidVnd',
             'totalDebtVnd',
+            'totalPaidUsd',
+            'totalDebtUsd',
             'totalItems',
             'grandTotalVnd',
             'grandPaidVnd',
@@ -872,6 +930,9 @@ class ReportsController extends Controller
             'totalCollectionAdjustmentVnd' => $data['totalCollectionAdjustmentVnd'],
             'cashCollectionVnd' => $data['cashCollectionVnd'],
             'cardCollectionVnd' => $data['cardCollectionVnd'],
+            'cashCollectionUsd' => $data['cashCollectionUsd'],
+            'cardCollectionUsd' => $data['cardCollectionUsd'],
+            'exchangeRate' => $data['exchangeRate'],
         ];
 
         $filename = 'daily_cash_collection_' . $data['fromDate']->format('Ymd') . '_' . $data['toDate']->format('Ymd') . '.xlsx';
@@ -907,6 +968,7 @@ class ReportsController extends Controller
             'fromDate' => $data['fromDate']->format('d/m/Y'),
             'toDate' => $data['toDate']->format('d/m/Y'),
             'showroom' => $data['selectedShowroom'] ? $data['selectedShowroom']->name : 'All',
+            'exchangeRate' => $data['exchangeRate'],
         ];
 
         $totals = [
@@ -914,6 +976,8 @@ class ReportsController extends Controller
             'totalVnd' => $data['totalVnd'],
             'totalPaidVnd' => $data['totalPaidVnd'],
             'totalDebtVnd' => $data['totalDebtVnd'],
+            'totalPaidUsd' => $data['totalPaidUsd'],
+            'totalDebtUsd' => $data['totalDebtUsd'],
             'totalItems' => $data['totalItems'],
             'grandTotalVnd' => $data['grandTotalVnd'],
             'grandPaidVnd' => $data['grandPaidVnd'],
@@ -954,6 +1018,7 @@ class ReportsController extends Controller
             'fromDate' => $data['fromDate']->format('d/m/Y'),
             'toDate' => $data['toDate']->format('d/m/Y'),
             'showroom' => $data['selectedShowroom'] ? $data['selectedShowroom']->name : 'All',
+            'exchangeRate' => $data['exchangeRate'],
         ];
 
         $totals = [
@@ -1000,6 +1065,7 @@ class ReportsController extends Controller
         $metadata = [
             'fromDate' => $data['fromDate']->format('d/m/Y'),
             'toDate' => $data['toDate']->format('d/m/Y'),
+            'exchangeRate' => $data['exchangeRate'] ?? 1,
         ];
 
         $totals = [
@@ -1136,9 +1202,22 @@ class ReportsController extends Controller
         $totalCollectionVnd = 0;
         $cashCollectionVnd = 0;
         $cardCollectionVnd = 0;
+        $cashCollectionUsd = 0;
+        $cardCollectionUsd = 0;
+        $cashCollectionPureVnd = 0;
+        $cardCollectionPureVnd = 0;
+
+        $processedSaleIds = [];
 
         foreach ($paymentsQuery as $payment) {
             $sale = $payment->sale;
+
+            // Kiểm tra xem sale này đã được tính toán trong báo cáo chưa
+            $isDuplicate = in_array($sale->id, $processedSaleIds);
+            if (!$isDuplicate) {
+                $processedSaleIds[] = $sale->id;
+            }
+
             $firstItem = $sale->items->first();
 
             if (!$firstItem) {
@@ -1154,40 +1233,46 @@ class ReportsController extends Controller
                 $idCode = 'FRAME' . $firstItem->frame_id;
             }
 
+            // Tính toán Gross Deposit (Tổng tiền hàng trước giảm giá)
             $saleDepositUsd = 0;
             $saleDepositVnd = 0;
-            $saleAdjustmentUsd = 0;
-            $saleAdjustmentVnd = 0;
 
             foreach ($sale->items as $item) {
                 if ($item->is_returned)
                     continue;
 
+                // Tính theo giá niêm yết (Gross Price)
                 $subtotal = $item->quantity * ($item->currency == 'USD' ? $item->price_usd : $item->price_vnd);
 
                 if ($item->currency == 'USD') {
                     $saleDepositUsd += $subtotal;
-                    if ($item->discount_percent > 0) {
-                        $discount = $subtotal * ($item->discount_percent / 100);
-                        $saleAdjustmentUsd += -$discount;
-                    }
                 } else {
                     $saleDepositVnd += $subtotal;
-                    if ($item->discount_percent > 0) {
-                        $discount = $subtotal * ($item->discount_percent / 100);
-                        $saleAdjustmentVnd += -$discount;
-                    }
                 }
             }
+
+            // Cộng thêm phí vận chuyển vào Gross Deposit
+            $saleDepositUsd += $sale->shipping_fee_usd ?? 0;
+            $saleDepositVnd += $sale->shipping_fee_vnd ?? 0;
+
+            // Tính Adjustment (Discount) = Total Final - Gross Deposit
+            $saleAdjustmentUsd = $sale->total_usd - $saleDepositUsd;
+            $saleAdjustmentVnd = $sale->total_vnd - $saleDepositVnd;
+
+            // Chỉ hiển thị và cộng tổng Deposit/Adjustment nếu chưa bị trùng
+            $displayDepositUsd = $isDuplicate ? 0 : $saleDepositUsd;
+            $displayDepositVnd = $isDuplicate ? 0 : $saleDepositVnd;
+            $displayAdjustmentUsd = $isDuplicate ? 0 : $saleAdjustmentUsd;
+            $displayAdjustmentVnd = $isDuplicate ? 0 : $saleAdjustmentVnd;
 
             $rowData = [
                 'invoice_code' => $sale->invoice_code,
                 'id_code' => $idCode,
                 'customer_name' => $sale->customer->name,
-                'deposit_usd' => $saleDepositUsd,
-                'deposit_vnd' => $saleDepositVnd,
-                'adjustment_usd' => $saleAdjustmentUsd,
-                'adjustment_vnd' => $saleAdjustmentVnd,
+                'deposit_usd' => $displayDepositUsd,
+                'deposit_vnd' => $displayDepositVnd,
+                'adjustment_usd' => $displayAdjustmentUsd,
+                'adjustment_vnd' => $displayAdjustmentVnd,
                 'collection_usd' => $payment->payment_usd ?? 0,
                 'collection_vnd' => $payment->payment_vnd ?? 0,
                 'collection_adjustment_usd' => 0,
@@ -1196,22 +1281,43 @@ class ReportsController extends Controller
 
             $reportData[] = $rowData;
 
-            $totalDepositUsd += $saleDepositUsd;
-            $totalDepositVnd += $saleDepositVnd;
-            $totalAdjustmentUsd += $saleAdjustmentUsd;
-            $totalAdjustmentVnd += $saleAdjustmentVnd;
+            // Chỉ cộng vào tổng Deposit/Adjustment nếu chưa bị trùng
+            if (!$isDuplicate) {
+                $totalDepositUsd += $saleDepositUsd;
+                $totalDepositVnd += $saleDepositVnd;
+                $totalAdjustmentUsd += $saleAdjustmentUsd;
+                $totalAdjustmentVnd += $saleAdjustmentVnd;
+            }
+
             $totalCollectionUsd += ($payment->payment_usd ?? 0);
             $totalCollectionVnd += ($payment->payment_vnd ?? 0);
 
             $paymentUsd = $payment->payment_usd ?? 0;
             $paymentVnd = $payment->payment_vnd ?? 0;
-            $collectionVndForCashCard = ($paymentUsd * $exchangeRate) + $paymentVnd;
+
+            // Sử dụng tỷ giá tại thời điểm thanh toán
+            $paymentExchangeRate = $payment->payment_exchange_rate ?? 0;
+            if ($paymentExchangeRate > 0) {
+                $collectionVndForCashCard = ($paymentUsd * $paymentExchangeRate) + $paymentVnd;
+            } else {
+                $collectionVndForCashCard = $paymentVnd;
+            }
 
             if ($payment->payment_method == 'cash') {
                 $cashCollectionVnd += $collectionVndForCashCard;
+                $cashCollectionUsd += $paymentUsd;
+                $cashCollectionPureVnd += $paymentVnd;
             } else {
                 $cardCollectionVnd += $collectionVndForCashCard;
+                $cardCollectionUsd += $paymentUsd;
+                $cardCollectionPureVnd += $paymentVnd;
             }
+        }
+
+        // Recalculate totals if exchange rate is provided
+        if ($exchangeRate > 1) {
+            $cashCollectionVnd = $cashCollectionPureVnd + ($cashCollectionUsd * $exchangeRate);
+            $cardCollectionVnd = $cardCollectionPureVnd + ($cardCollectionUsd * $exchangeRate);
         }
 
         $totalCollectionAdjustmentUsd = 0;
@@ -1231,6 +1337,8 @@ class ReportsController extends Controller
             'totalCollectionAdjustmentVnd' => $totalCollectionAdjustmentVnd,
             'cashCollectionVnd' => $cashCollectionVnd,
             'cardCollectionVnd' => $cardCollectionVnd,
+            'cashCollectionUsd' => $cashCollectionUsd,
+            'cardCollectionUsd' => $cardCollectionUsd,
         ];
     }
 
@@ -1286,7 +1394,7 @@ class ReportsController extends Controller
 
         $selectedYear = session('selected_year', date('Y'));
 
-        $salesQuery = Sale::with(['customer', 'showroom', 'user', 'items.painting', 'items.supply', 'items.frame'])
+        $salesQuery = Sale::with(['customer', 'showroom', 'user', 'items.painting', 'items.supply', 'items.frame', 'payments'])
             ->where('sale_status', 'completed')
             ->where('year', $selectedYear)
             ->whereBetween('sale_date', [$fromDate->format('Y-m-d'), $toDate->format('Y-m-d')]);
@@ -1310,9 +1418,20 @@ class ReportsController extends Controller
         $totalVnd = 0;
         $totalPaidVnd = 0;
         $totalDebtVnd = 0;
+        $totalPaidUsd = 0;
+        $totalDebtUsd = 0;
         $totalItems = 0;
 
         foreach ($sales as $sale) {
+            // Calculate actual paid amounts from payments
+            $actualPaidUsd = 0;
+            $actualPaidVnd = 0;
+            if ($sale->payments) {
+                foreach ($sale->payments as $payment) {
+                    $actualPaidUsd += $payment->payment_usd;
+                    $actualPaidVnd += $payment->payment_vnd;
+                }
+            }
             $firstItem = $sale->items->first();
             $idCode = '';
             $itemDescription = '';
@@ -1343,26 +1462,37 @@ class ReportsController extends Controller
                 'item_count' => $itemCount,
                 'total_usd' => $sale->total_usd,
                 'total_vnd' => $sale->total_vnd,
-                'paid_vnd' => $sale->paid_amount ?? 0,
-                'debt_vnd' => $sale->debt_amount ?? 0,
+                'paid_vnd' => $sale->paid_vnd ?? 0,
+                'paid_usd' => $sale->paid_usd ?? 0,
+                'actual_paid_vnd' => $actualPaidVnd,
+                'actual_paid_usd' => $actualPaidUsd,
+                'debt_vnd' => $sale->debt_vnd ?? 0,
+                'debt_usd' => $sale->debt_usd ?? 0,
                 'showroom' => $sale->showroom->name ?? '',
                 'employee' => $sale->user->name ?? '',
             ];
 
             $totalUsd += $sale->total_usd;
             $totalVnd += $sale->total_vnd;
-            $totalPaidVnd += ($sale->paid_amount ?? 0);
-            $totalDebtVnd += ($sale->debt_amount ?? 0);
+
+            // Calculate totals strictly by currency (actual collected)
+            $totalPaidVnd += $actualPaidVnd;
+            $totalPaidUsd += $actualPaidUsd;
+
+            $totalDebtVnd += ($sale->debt_vnd ?? 0);
+            $totalDebtUsd += ($sale->debt_usd ?? 0);
             $totalItems += $itemCount;
         }
 
         if ($exchangeRate > 1) {
             $grandTotalVnd = ($totalUsd * $exchangeRate) + $totalVnd;
+            $grandPaidVnd = ($totalPaidUsd * $exchangeRate) + $totalPaidVnd;
+            $grandDebtVnd = ($totalDebtUsd * $exchangeRate) + $totalDebtVnd;
         } else {
             $grandTotalVnd = $totalVnd;
+            $grandPaidVnd = $totalPaidVnd;
+            $grandDebtVnd = $totalDebtVnd;
         }
-        $grandPaidVnd = $totalPaidVnd;
-        $grandDebtVnd = $totalDebtVnd;
 
         return [
             'reportData' => $reportData,
@@ -1374,6 +1504,8 @@ class ReportsController extends Controller
             'totalVnd' => $totalVnd,
             'totalPaidVnd' => $totalPaidVnd,
             'totalDebtVnd' => $totalDebtVnd,
+            'totalPaidUsd' => $totalPaidUsd,
+            'totalDebtUsd' => $totalDebtUsd,
             'totalItems' => $totalItems,
             'grandTotalVnd' => $grandTotalVnd,
             'grandPaidVnd' => $grandPaidVnd,
@@ -1634,6 +1766,7 @@ class ReportsController extends Controller
             'totalPriceUsd' => $totalPriceUsd,
             'totalPriceVnd' => $totalPriceVnd,
             'grandTotalVnd' => $grandTotalVnd,
+            'exchangeRate' => $exchangeRate,
         ];
     }
 }

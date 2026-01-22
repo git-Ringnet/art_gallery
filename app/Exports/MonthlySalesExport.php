@@ -41,7 +41,9 @@ class MonthlySalesExport implements FromArray, WithHeadings, WithTitle, WithStyl
                 $item['item_count'],
                 number_format($item['total_usd'], 2),
                 number_format($item['total_vnd'], 0),
-                number_format($item['paid_vnd'], 0),
+                number_format($item['actual_paid_usd'], 2),
+                number_format($item['actual_paid_vnd'], 0),
+                number_format($item['debt_usd'], 2),
                 number_format($item['debt_vnd'], 0),
                 $item['showroom'],
                 $item['employee'],
@@ -59,7 +61,9 @@ class MonthlySalesExport implements FromArray, WithHeadings, WithTitle, WithStyl
             $this->totals['totalItems'],
             '$' . number_format($this->totals['totalUsd'], 2),
             number_format($this->totals['totalVnd'], 0),
+            '$' . number_format($this->totals['totalPaidUsd'] ?? 0, 2),
             number_format($this->totals['totalPaidVnd'], 0),
+            '$' . number_format($this->totals['totalDebtUsd'] ?? 0, 2),
             number_format($this->totals['totalDebtVnd'], 0),
             '',
             '',
@@ -67,9 +71,66 @@ class MonthlySalesExport implements FromArray, WithHeadings, WithTitle, WithStyl
 
         // Add summary
         $rows[] = [];
-        $rows[] = ['Grand Total (VND):', 'VND ' . number_format($this->totals['grandTotalVnd'], 0)];
-        $rows[] = ['Total Paid (VND):', 'VND ' . number_format($this->totals['grandPaidVnd'], 0)];
-        $rows[] = ['Total Debt (VND):', 'VND ' . number_format($this->totals['grandDebtVnd'], 0)];
+
+        // Use the grand totals which are already calculated (with or without exchange rate)
+        // If exchange rate > 1, grand totals are fully in VND, so we can just show them.
+        // But if exchange rate was NOT applied, the controller returns the raw totals.
+        // Wait, the View shows breakdown if Rate <= 1, and Converted if Rate > 1.
+        // The controller's getMonthlySalesData calculates grand totals in VND if rate > 1.
+        // If rate <= 1, grandTotalVnd = totalVnd (just the VND part).
+        // To match the View, we should check if exchange rate was applied or handle the display accordingly.
+        // But here we rely on what was passed.
+
+        // Actually, let's keep it simple: Show what the controller computed.
+        $exchangeRate = $this->metadata['exchangeRate'] ?? 1;
+
+        if ($exchangeRate > 1) {
+            // Converted to VND
+            $rows[] = ['Grand Total (VND):', 'VND ' . number_format($this->totals['grandTotalVnd'], 0)];
+        } else {
+            // Separate currencies
+            $rows[] = ['Total Revenue:', 'USD ' . number_format($this->totals['totalUsd'], 2) . ' - VND ' . number_format($this->totals['totalVnd'], 0)];
+        }
+
+        if ($exchangeRate > 1) {
+            $rows[] = ['Total Paid (VND):', 'VND ' . number_format($this->totals['grandPaidVnd'], 0)];
+        } else {
+            $paidStr = '';
+            $hasVnd = ($this->totals['totalPaidVnd'] ?? 0) > 0;
+            $hasUsd = ($this->totals['totalPaidUsd'] ?? 0) > 0;
+            $isZero = !$hasVnd && !$hasUsd;
+
+            if ($hasVnd)
+                $paidStr .= 'VND ' . number_format($this->totals['totalPaidVnd'], 0);
+            if ($hasVnd && $hasUsd)
+                $paidStr .= ' + ';
+            if ($hasUsd)
+                $paidStr .= 'USD ' . number_format($this->totals['totalPaidUsd'], 2);
+            if ($isZero)
+                $paidStr = 'VND 0';
+
+            $rows[] = ['Total Paid:', $paidStr];
+        }
+
+        if ($exchangeRate > 1) {
+            $rows[] = ['Total Debt (VND):', 'VND ' . number_format($this->totals['grandDebtVnd'], 0)];
+        } else {
+            $debtStr = '';
+            $hasVnd = ($this->totals['totalDebtVnd'] ?? 0) > 0;
+            $hasUsd = ($this->totals['totalDebtUsd'] ?? 0) > 0;
+            $isZero = !$hasVnd && !$hasUsd;
+
+            if ($hasVnd)
+                $debtStr .= 'VND ' . number_format($this->totals['totalDebtVnd'], 0);
+            if ($hasVnd && $hasUsd)
+                $debtStr .= ' + ';
+            if ($hasUsd)
+                $debtStr .= 'USD ' . number_format($this->totals['totalDebtUsd'], 2);
+            if ($isZero)
+                $debtStr = 'VND 0';
+
+            $rows[] = ['Total Debt:', $debtStr];
+        }
 
         return $rows;
     }
@@ -91,7 +152,9 @@ class MonthlySalesExport implements FromArray, WithHeadings, WithTitle, WithStyl
                 'Items',
                 'Total USD',
                 'Total VND',
+                'Paid USD',
                 'Paid VND',
+                'Debt USD',
                 'Debt VND',
                 'Showroom',
                 'Employee',
@@ -107,9 +170,9 @@ class MonthlySalesExport implements FromArray, WithHeadings, WithTitle, WithStyl
     public function styles(Worksheet $sheet)
     {
         // Style header rows
-        $sheet->mergeCells('A1:M1');
-        $sheet->mergeCells('A2:M2');
-        $sheet->mergeCells('A3:M3');
+        $sheet->mergeCells('A1:O1');
+        $sheet->mergeCells('A2:O2');
+        $sheet->mergeCells('A3:O3');
 
         return [
             1 => [
@@ -142,12 +205,14 @@ class MonthlySalesExport implements FromArray, WithHeadings, WithTitle, WithStyl
             'E' => 20,
             'F' => 30,
             'G' => 10,
-            'H' => 12,
+            'H' => 15,
             'I' => 15,
             'J' => 15,
             'K' => 15,
-            'L' => 20,
-            'M' => 20,
+            'L' => 15,
+            'M' => 15,
+            'N' => 20,
+            'O' => 20,
         ];
     }
 }

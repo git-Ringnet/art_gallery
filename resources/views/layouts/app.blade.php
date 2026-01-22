@@ -344,9 +344,9 @@
                     @canAccess('debt')
                     <a href="{{ route('debt.index') }}"
                         class="nav-item flex items-center space-x-3 p-2.5 rounded-lg hover:bg-white hover:bg-opacity-20 transition-all duration-200 {{ request()->routeIs('debt.*') ? 'bg-white bg-opacity-20' : '' }}"
-                        title="Lịch sử công nợ">
+                        title="Lịch sử giao dịch">
                         <i class="fas fa-credit-card w-5 flex-shrink-0"></i>
-                        <span class="sidebar-text text-sm">Lịch sử công nợ</span>
+                        <span class="sidebar-text text-sm">Lịch sử giao dịch</span>
                     </a>
                     @endcanAccess
 
@@ -379,12 +379,12 @@
 
                     {{-- Activity Logs - Admin only --}}
                     @if(Auth::check() && Auth::user()->role && Auth::user()->role->name === 'Admin')
-                    <a href="{{ route('activity-logs.index') }}"
-                        class="nav-item flex items-center space-x-3 p-2.5 rounded-lg hover:bg-white hover:bg-opacity-20 transition-all duration-200 {{ request()->routeIs('activity-logs.*') ? 'bg-white bg-opacity-20' : '' }}"
-                        title="Nhật ký hoạt động">
-                        <i class="fas fa-history w-5 flex-shrink-0"></i>
-                        <span class="sidebar-text text-sm">Nhật ký hoạt động</span>
-                    </a>
+                        <a href="{{ route('activity-logs.index') }}"
+                            class="nav-item flex items-center space-x-3 p-2.5 rounded-lg hover:bg-white hover:bg-opacity-20 transition-all duration-200 {{ request()->routeIs('activity-logs.*') ? 'bg-white bg-opacity-20' : '' }}"
+                            title="Nhật ký hoạt động">
+                            <i class="fas fa-history w-5 flex-shrink-0"></i>
+                            <span class="sidebar-text text-sm">Nhật ký hoạt động</span>
+                        </a>
                     @endif
 
                     @canAccess('year_database')
@@ -483,12 +483,14 @@
                     <i class="fas fa-exclamation-triangle text-2xl mr-3"></i>
                     <div>
                         <h4 class="font-bold text-sm">
-                            <i class="fas fa-eye mr-1"></i>Đang xem dữ liệu năm {{ app(\App\Services\YearDatabaseService::class)->getSelectedYear() }}
+                            <i class="fas fa-eye mr-1"></i>Đang xem dữ liệu năm
+                            {{ app(\App\Services\YearDatabaseService::class)->getSelectedYear() }}
                         </h4>
                         <p class="text-xs opacity-90">Chế độ chỉ đọc - Không thể thêm, sửa, xóa dữ liệu</p>
                     </div>
                 </div>
-                <button onclick="resetToCurrentYear()" class="px-3 py-1.5 bg-white text-orange-600 rounded-lg hover:bg-gray-100 transition-colors text-xs font-semibold">
+                <button onclick="resetToCurrentYear()"
+                    class="px-3 py-1.5 bg-white text-orange-600 rounded-lg hover:bg-gray-100 transition-colors text-xs font-semibold">
                     <i class="fas fa-undo mr-1"></i>Quay lại năm hiện tại
                 </button>
             </div>
@@ -784,38 +786,38 @@
             });
         });
     </script>
-    
+
     <!-- Confirm Modal Helper Functions -->
     <script>
         // Global confirm modal functions
         let confirmModalCallbacks = {};
-        
+
         function showConfirmModal(modalId, options = {}) {
             const modal = document.getElementById(modalId);
             if (!modal) {
                 console.error('Modal not found:', modalId);
                 return;
             }
-            
+
             // Update title if provided
             if (options.title) {
                 const titleEl = document.getElementById('modal-title-' + modalId);
                 if (titleEl) titleEl.textContent = options.title;
             }
-            
+
             // Update message if provided
             if (options.message) {
                 const messageEl = document.getElementById('modal-message-' + modalId);
                 if (messageEl) messageEl.innerHTML = options.message;
             }
-            
+
             // Store callback for this modal
             confirmModalCallbacks[modalId] = options.onConfirm || null;
-            
+
             // Setup confirm button - use onclick instead of addEventListener to avoid issues
             const confirmBtn = document.getElementById('confirm-btn-' + modalId);
             if (confirmBtn) {
-                confirmBtn.onclick = function() {
+                confirmBtn.onclick = function () {
                     const callback = confirmModalCallbacks[modalId];
                     closeConfirmModal(modalId);
                     if (typeof callback === 'function') {
@@ -828,12 +830,12 @@
             } else {
                 console.error('Confirm button not found:', 'confirm-btn-' + modalId);
             }
-            
+
             // Show modal
             modal.classList.remove('hidden');
             document.body.style.overflow = 'hidden';
         }
-        
+
         function closeConfirmModal(modalId) {
             const modal = document.getElementById(modalId);
             if (modal) {
@@ -842,9 +844,9 @@
             }
             // Don't delete callback here - it's needed for the click handler
         }
-        
+
         // Close modal with ESC key
-        document.addEventListener('keydown', function(e) {
+        document.addEventListener('keydown', function (e) {
             if (e.key === 'Escape') {
                 document.querySelectorAll('[id^="confirm-"]').forEach(modal => {
                     if (!modal.classList.contains('hidden') && modal.id.includes('modal')) {
@@ -853,16 +855,16 @@
                 });
             }
         });
-        
+
         // Helper function for form submission with confirmation
         function confirmFormSubmit(formId, options = {}) {
             const form = document.getElementById(formId);
             if (!form) return;
-            
+
             showConfirmModal(options.modalId || 'confirm-modal', {
                 title: options.title || 'Xác nhận',
                 message: options.message || 'Bạn có chắc chắn muốn thực hiện thao tác này?',
-                onConfirm: function() {
+                onConfirm: function () {
                     // If there's a pre-submit handler, call it
                     if (options.beforeSubmit) {
                         options.beforeSubmit();
@@ -872,7 +874,7 @@
             });
         }
     </script>
-    
+
     @stack('scripts')
 </body>
 

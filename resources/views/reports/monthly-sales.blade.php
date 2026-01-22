@@ -78,46 +78,20 @@
                 </a>
             </div>
             
-            <!-- Warning message when exchange rate not set -->
-            @if($exchangeRate <= 1)
-                <div class="bg-yellow-50 border-l-4 border-yellow-400 p-3 mb-2">
-                    <div class="flex items-center">
-                        <i class="fas fa-exclamation-triangle text-yellow-600 mr-2"></i>
-                        <p class="text-sm text-yellow-800 font-medium">Vui lòng nhập tỷ giá để xuất báo cáo (Excel, PDF, In)</p>
-                    </div>
-                </div>
-            @endif
-            
             <!-- Row 2: Export Actions -->
             <div class="flex gap-2">
-                @if($exchangeRate <= 1)
-                    <button type="button" disabled class="flex-1 bg-gray-400 cursor-not-allowed text-white px-4 py-2.5 rounded-lg font-semibold shadow-lg opacity-60">
-                        <i class="fas fa-file-excel mr-2"></i>Excel
-                    </button>
-                    <button type="button" disabled class="flex-1 bg-gray-400 cursor-not-allowed text-white px-4 py-2.5 rounded-lg font-semibold shadow-lg opacity-60">
-                        <i class="fas fa-file-pdf mr-2"></i>PDF
-                    </button>
-                @else
-                    <!-- Đã nhập tỷ giá → Cho phép xuất -->
-                    <a href="{{ route('reports.monthly-sales.export.excel', request()->all()) }}" class="flex-1 bg-gradient-to-r from-green-600 to-green-700 hover:from-green-700 hover:to-green-800 text-white px-4 py-2.5 rounded-lg font-semibold shadow-lg transition-all duration-200 flex items-center justify-center">
-                        <i class="fas fa-file-excel mr-2"></i>Excel
-                    </a>
-                    <a href="{{ route('reports.monthly-sales.export.pdf', request()->all()) }}" class="flex-1 bg-gradient-to-r from-red-600 to-red-700 hover:from-red-700 hover:to-red-800 text-white px-4 py-2.5 rounded-lg font-semibold shadow-lg transition-all duration-200 flex items-center justify-center">
-                        <i class="fas fa-file-pdf mr-2"></i>PDF
-                    </a>
-                @endif
+                <!-- Cho phép xuất Excel/PDF bất kể có tỷ giá hay không -->
+                <a href="{{ route('reports.monthly-sales.export.excel', request()->all()) }}" class="flex-1 bg-gradient-to-r from-green-600 to-green-700 hover:from-green-700 hover:to-green-800 text-white px-4 py-2.5 rounded-lg font-semibold shadow-lg transition-all duration-200 flex items-center justify-center">
+                    <i class="fas fa-file-excel mr-2"></i>Excel
+                </a>
+                <a href="{{ route('reports.monthly-sales.export.pdf', request()->all()) }}" class="flex-1 bg-gradient-to-r from-red-600 to-red-700 hover:from-red-700 hover:to-red-800 text-white px-4 py-2.5 rounded-lg font-semibold shadow-lg transition-all duration-200 flex items-center justify-center">
+                    <i class="fas fa-file-pdf mr-2"></i>PDF
+                </a>
                 
                 @if($canPrint)
-                    @if($exchangeRate <= 1)
-                        <button type="button" disabled class="flex-1 bg-gray-400 cursor-not-allowed text-white px-4 py-2.5 rounded-lg font-semibold shadow-lg opacity-60">
-                            <i class="fas fa-print mr-2"></i>In báo cáo
-                        </button>
-                    @else
-                        <!-- Đã nhập tỷ giá → Cho phép in -->
-                        <button type="button" onclick="window.print()" class="flex-1 bg-gradient-to-r from-purple-600 to-purple-700 hover:from-purple-700 hover:to-purple-800 text-white px-4 py-2.5 rounded-lg font-semibold shadow-lg transition-all duration-200">
-                            <i class="fas fa-print mr-2"></i>In báo cáo
-                        </button>
-                    @endif
+                    <button type="button" onclick="window.print()" class="flex-1 bg-gradient-to-r from-purple-600 to-purple-700 hover:from-purple-700 hover:to-purple-800 text-white px-4 py-2.5 rounded-lg font-semibold shadow-lg transition-all duration-200">
+                        <i class="fas fa-print mr-2"></i>In báo cáo
+                    </button>
                 @endif
             </div>
         </div>
@@ -146,8 +120,10 @@
     <div class="bg-gradient-to-br from-blue-500 to-blue-600 rounded-xl shadow-lg p-5 text-white">
         <p class="text-sm opacity-90">Tổng doanh thu</p>
         @if($totalUsd > 0 && $exchangeRate <= 1)
-            <p class="text-lg font-bold text-yellow-300">Cần nhập tỷ giá</p>
-            <p class="text-xs opacity-75">${{ number_format($totalUsd, 2) }} + {{ number_format($totalVnd, 0) }}đ</p>
+            <div class="flex flex-col">
+                <span class="text-lg font-bold">USD: ${{ $totalUsd == floor($totalUsd) ? number_format($totalUsd, 0) : number_format($totalUsd, 2) }}</span>
+                <span class="text-lg font-bold">VND: {{ number_format($totalVnd, 0) }}đ</span>
+            </div>
         @else
             <p class="text-2xl font-bold">{{ number_format($grandTotalVnd, 0) }} đ</p>
         @endif
@@ -158,7 +134,14 @@
     </div>
     <div class="bg-gradient-to-br from-red-500 to-red-600 rounded-xl shadow-lg p-5 text-white">
         <p class="text-sm opacity-90">Còn nợ</p>
-        <p class="text-2xl font-bold">{{ number_format($grandDebtVnd, 0) }} đ</p>
+        @if(($totalDebtUsd ?? 0) > 0)
+            <div class="flex flex-col">
+                <span class="text-lg font-bold">USD: ${{ $totalDebtUsd == floor($totalDebtUsd) ? number_format($totalDebtUsd, 0) : number_format($totalDebtUsd, 2) }}</span>
+                <span class="text-lg font-bold">VND: {{ number_format($totalDebtVnd, 0) }}đ</span>
+            </div>
+        @else
+            <p class="text-2xl font-bold">{{ number_format($grandDebtVnd, 0) }} đ</p>
+        @endif
     </div>
     <div class="bg-gradient-to-br from-purple-500 to-purple-600 rounded-xl shadow-lg p-5 text-white">
         <p class="text-sm opacity-90">Số đơn hàng</p>
@@ -200,13 +183,48 @@
                         <td class="px-3 py-2 font-medium text-blue-600">{{ $item['invoice_code'] }}</td>
                         <td class="px-3 py-2">{{ $item['id_code'] }}</td>
                         <td class="px-3 py-2">{{ $item['customer_name'] }}</td>
-                        <td class="px-3 py-2 text-right">{{ $item['total_usd'] > 0 ? '$' . number_format($item['total_usd'], 2) : '' }}</td>
+                        <td class="px-3 py-2 text-right">{{ $item['total_usd'] > 0 ? '$' . ($item['total_usd'] == floor($item['total_usd']) ? number_format($item['total_usd'], 0) : number_format($item['total_usd'], 2)) : '' }}</td>
                         <td class="px-3 py-2 text-right">{{ $item['total_vnd'] > 0 ? number_format($item['total_vnd'], 0) : '' }}</td>
                         <td class="px-3 py-2 text-right text-green-600">
-                            {{ number_format($item['paid_vnd'], 0) }}đ
+                            {{-- VND Payments --}}
+                            @if(($item['actual_paid_vnd'] ?? 0) > 0)
+                                <div>
+                                    {{ number_format($item['actual_paid_vnd'], 0) }}đ
+                                    @php 
+                                        // Calculate USD equivalent of the VND payment for USD orders
+                                        $usdFromVnd = ($item['paid_usd'] ?? 0) - ($item['actual_paid_usd'] ?? 0);
+                                    @endphp
+                                    @if(($item['is_usd_only'] ?? false) && $usdFromVnd > 0.01)
+                                         <span class="text-xs text-gray-500">(${{ $usdFromVnd == floor($usdFromVnd) ? number_format($usdFromVnd, 0) : number_format($usdFromVnd, 2) }})</span>
+                                    @endif
+                                </div>
+                            @endif
+                            
+                            {{-- USD Payments --}}
+                            @if(($item['actual_paid_usd'] ?? 0) > 0)
+                                <div>${{ $item['actual_paid_usd'] == floor($item['actual_paid_usd']) ? number_format($item['actual_paid_usd'], 0) : number_format($item['actual_paid_usd'], 2) }}</div>
+                            @endif
+                            
+                            {{-- Fallback for empty/zero --}}
+                            @if(($item['actual_paid_vnd'] ?? 0) <= 0 && ($item['actual_paid_usd'] ?? 0) <= 0)
+                                @if($item['is_usd_only'] ?? false)
+                                    ${{ $item['paid_usd'] == floor($item['paid_usd']) ? number_format($item['paid_usd'], 0) : number_format($item['paid_usd'], 2) }}
+                                @else
+                                    {{ number_format($item['paid_vnd'], 0) }}đ
+                                @endif
+                            @endif
                         </td>
                         <td class="px-3 py-2 text-right text-red-600">
-                            {{ number_format($item['debt_vnd'], 0) }}đ
+                            @if($item['is_usd_only'] ?? false)
+                                <div>${{ $item['debt_usd'] == floor($item['debt_usd']) ? number_format($item['debt_usd'], 0) : number_format($item['debt_usd'], 2) }}</div>
+                            @elseif($item['is_vnd_only'] ?? false)
+                                {{ number_format($item['debt_vnd'], 0) }}đ
+                            @else
+                                {{ number_format($item['debt_vnd'], 0) }}đ
+                                @if(($item['debt_usd'] ?? 0) > 0)
+                                    <div class="text-xs text-red-400">(${{ $item['debt_usd'] == floor($item['debt_usd']) ? number_format($item['debt_usd'], 0) : number_format($item['debt_usd'], 2) }})</div>
+                                @endif
+                            @endif
                         </td>
                     </tr>
                     @empty
@@ -216,10 +234,36 @@
                     @if(count($reportData) > 0)
                     <tr class="bg-gradient-to-r from-gray-100 to-gray-200 font-bold border-t-2">
                         <td colspan="5" class="px-3 py-3">TỔNG CỘNG</td>
-                        <td class="px-3 py-3 text-right">${{ number_format($totalUsd, 2) }}</td>
+                        <td class="px-3 py-3 text-right">${{ $totalUsd == floor($totalUsd) ? number_format($totalUsd, 0) : number_format($totalUsd, 2) }}</td>
                         <td class="px-3 py-3 text-right">{{ number_format($totalVnd, 0) }}</td>
-                        <td class="px-3 py-3 text-right text-green-600">{{ number_format($totalPaidVnd, 0) }}đ</td>
-                        <td class="px-3 py-3 text-right text-red-600">{{ number_format($totalDebtVnd, 0) }}đ</td>
+                        <td class="px-3 py-3 text-right text-green-600">
+                            @if(($totalPaidVnd ?? 0) > 0)
+                                {{ number_format($totalPaidVnd, 0) }}đ
+                            @endif
+                            @if(($totalPaidVnd ?? 0) > 0 && ($totalPaidUsd ?? 0) > 0)
+                                +
+                            @endif
+                            @if(($totalPaidUsd ?? 0) > 0)
+                                ${{ $totalPaidUsd == floor($totalPaidUsd) ? number_format($totalPaidUsd, 0) : number_format($totalPaidUsd, 2) }}
+                            @endif
+                            @if(($totalPaidVnd ?? 0) <= 0 && ($totalPaidUsd ?? 0) <= 0)
+                                0đ
+                            @endif
+                        </td>
+                        <td class="px-3 py-3 text-right text-red-600">
+                            @if(($totalDebtVnd ?? 0) > 0)
+                                {{ number_format($totalDebtVnd, 0) }}đ
+                            @endif
+                            @if(($totalDebtVnd ?? 0) > 0 && ($totalDebtUsd ?? 0) > 0)
+                                +
+                            @endif
+                            @if(($totalDebtUsd ?? 0) > 0)
+                                ${{ $totalDebtUsd == floor($totalDebtUsd) ? number_format($totalDebtUsd, 0) : number_format($totalDebtUsd, 2) }}
+                            @endif
+                            @if(($totalDebtVnd ?? 0) <= 0 && ($totalDebtUsd ?? 0) <= 0)
+                                0đ
+                            @endif
+                        </td>
                     </tr>
                     @endif
                 </tbody>
@@ -233,9 +277,10 @@
             <div class="space-y-3">
                 <div class="flex justify-between items-center py-2 border-b border-gray-200">
                     <span class="text-gray-700 font-medium">Tổng doanh thu:</span>
-                    <span class="text-lg font-bold text-blue-700">
+                    <span class="text-lg font-bold text-blue-700 text-right">
                         @if($totalUsd > 0 && $exchangeRate <= 1)
-                            ${{ number_format($totalUsd, 2) }} + {{ number_format($totalVnd, 0) }}đ
+                            <div>USD: ${{ $totalUsd == floor($totalUsd) ? number_format($totalUsd, 0) : number_format($totalUsd, 2) }}</div>
+                            <div>VND: {{ number_format($totalVnd, 0) }}đ</div>
                         @else
                             VND {{ number_format($grandTotalVnd, 0) }}
                         @endif
@@ -243,11 +288,45 @@
                 </div>
                 <div class="flex justify-between items-center py-2 border-b border-gray-200">
                     <span class="text-gray-700 font-medium">Đã thu:</span>
-                    <span class="text-lg font-bold text-green-700">VND {{ number_format($totalPaidVnd, 0) }}</span>
+                    <span class="text-lg font-bold text-green-700">
+                        @if($exchangeRate > 1)
+                            VND {{ number_format($grandPaidVnd, 0) }}
+                        @else
+                            @if(($totalPaidVnd ?? 0) > 0)
+                                VND {{ number_format($totalPaidVnd, 0) }}
+                            @endif
+                            @if(($totalPaidVnd ?? 0) > 0 && ($totalPaidUsd ?? 0) > 0)
+                                +
+                            @endif
+                            @if(($totalPaidUsd ?? 0) > 0)
+                                USD {{ $totalPaidUsd == floor($totalPaidUsd) ? number_format($totalPaidUsd, 0) : number_format($totalPaidUsd, 2) }}
+                            @endif
+                            @if(($totalPaidVnd ?? 0) <= 0 && ($totalPaidUsd ?? 0) <= 0)
+                                VND 0
+                            @endif
+                        @endif
+                    </span>
                 </div>
                 <div class="flex justify-between items-center py-3 bg-gradient-to-r from-red-100 to-orange-100 rounded-lg px-4">
                     <span class="text-gray-800 font-bold text-lg">Còn nợ:</span>
-                    <span class="text-xl font-bold text-red-700">VND {{ number_format($totalDebtVnd, 0) }}</span>
+                    <span class="text-xl font-bold text-red-700">
+                        @if($exchangeRate > 1)
+                            VND {{ number_format($grandDebtVnd, 0) }}
+                        @else
+                            @if(($totalDebtVnd ?? 0) > 0)
+                                VND {{ number_format($totalDebtVnd, 0) }}
+                            @endif
+                            @if(($totalDebtVnd ?? 0) > 0 && ($totalDebtUsd ?? 0) > 0)
+                                +
+                            @endif
+                            @if(($totalDebtUsd ?? 0) > 0)
+                                USD {{ $totalDebtUsd == floor($totalDebtUsd) ? number_format($totalDebtUsd, 0) : number_format($totalDebtUsd, 2) }}
+                            @endif
+                            @if(($totalDebtVnd ?? 0) <= 0 && ($totalDebtUsd ?? 0) <= 0)
+                                VND 0
+                            @endif
+                        @endif
+                    </span>
                 </div>
             </div>
         </div>
@@ -291,33 +370,145 @@
         </thead>
         <tbody>
             @foreach($reportData as $index => $item)
-            <tr>
                 <td style="border: 1px solid #000; padding: 3px;">{{ $index + 1 }}</td>
                 <td style="border: 1px solid #000; padding: 3px;">{{ $item['sale_date'] }}</td>
                 <td style="border: 1px solid #000; padding: 3px;">{{ $item['invoice_code'] }}</td>
                 <td style="border: 1px solid #000; padding: 3px;">{{ $item['id_code'] }}</td>
                 <td style="border: 1px solid #000; padding: 3px;">{{ $item['customer_name'] }}</td>
-                <td style="border: 1px solid #000; padding: 3px; text-align: right;">{{ $item['total_usd'] > 0 ? number_format($item['total_usd'], 2) : '' }}</td>
+                <td style="border: 1px solid #000; padding: 3px; text-align: right;">{{ $item['total_usd'] > 0 ? ($item['total_usd'] == floor($item['total_usd']) ? number_format($item['total_usd'], 0) : number_format($item['total_usd'], 2)) : '' }}</td>
                 <td style="border: 1px solid #000; padding: 3px; text-align: right;">{{ $item['total_vnd'] > 0 ? number_format($item['total_vnd'], 0) : '' }}</td>
-                <td style="border: 1px solid #000; padding: 3px; text-align: right;">{{ $item['paid_vnd'] > 0 ? number_format($item['paid_vnd'], 0) : '' }}</td>
-                <td style="border: 1px solid #000; padding: 3px; text-align: right;">{{ $item['debt_vnd'] > 0 ? number_format($item['debt_vnd'], 0) : '' }}</td>
+                <td style="border: 1px solid #000; padding: 3px; text-align: right;">
+                    @if(($item['actual_paid_vnd'] ?? 0) > 0)
+                        {{ number_format($item['actual_paid_vnd'], 0) }}
+                    @endif
+                    @if(($item['actual_paid_vnd'] ?? 0) > 0 && ($item['actual_paid_usd'] ?? 0) > 0)
+                        +
+                    @endif
+                    @if(($item['actual_paid_usd'] ?? 0) > 0)
+                        ${{ number_format($item['actual_paid_usd'], 2) }}
+                    @endif
+                    @if(($item['actual_paid_vnd'] ?? 0) <= 0 && ($item['actual_paid_usd'] ?? 0) <= 0)
+                        @if(($item['is_usd_only'] ?? false) && ($item['paid_usd'] ?? 0) > 0)
+                            ${{ number_format($item['paid_usd'], 2) }}
+                        @elseif(($item['paid_vnd'] ?? 0) > 0)
+                            {{ number_format($item['paid_vnd'], 0) }}
+                        @endif
+                    @endif
+                </td>
+                <td style="border: 1px solid #000; padding: 3px; text-align: right;">
+                    @if(($item['debt_vnd'] ?? 0) > 0)
+                        {{ number_format($item['debt_vnd'], 0) }}
+                    @endif
+                    @if(($item['debt_vnd'] ?? 0) > 0 && ($item['debt_usd'] ?? 0) > 0)
+                        +
+                    @endif
+                    @if(($item['debt_usd'] ?? 0) > 0)
+                        ${{ number_format($item['debt_usd'], 2) }}
+                    @endif
+                </td>
             </tr>
             @endforeach
             <tr style="background-color: #e0e0e0; font-weight: bold;">
                 <td colspan="5" style="border: 1px solid #000; padding: 5px;">GRAND TOTAL</td>
-                <td style="border: 1px solid #000; padding: 5px; text-align: right;">{{ number_format($totalUsd, 2) }}</td>
-                <td style="border: 1px solid #000; padding: 5px; text-align: right;">{{ number_format($totalVnd, 0) }}</td>
-                <td style="border: 1px solid #000; padding: 5px; text-align: right;">{{ number_format($totalPaidVnd, 0) }}</td>
-                <td style="border: 1px solid #000; padding: 5px; text-align: right;">{{ number_format($totalDebtVnd, 0) }}</td>
+                <td style="border: 1px solid #000; padding: 5px; text-align: right;">{{ $totalUsd > 0 ? ($totalUsd == floor($totalUsd) ? number_format($totalUsd, 0) : number_format($totalUsd, 2)) : '' }}</td>
+                <td style="border: 1px solid #000; padding: 5px; text-align: right;">
+                    @if($exchangeRate > 1)
+                        {{ number_format($grandTotalVnd, 0) }}
+                        <div style="font-size: 7px; color: #666;">
+                            @if($totalUsd > 0) (${{ number_format($totalUsd, 2) }}) @endif
+                            @if($totalUsd > 0 && $totalVnd > 0) + @endif
+                            @if($totalVnd > 0) ({{ number_format($totalVnd, 0) }}) @endif
+                        </div>
+                    @else
+                        @if($totalVnd > 0) {{ number_format($totalVnd, 0) }} @endif
+                    @endif
+                </td>
+                <td style="border: 1px solid #000; padding: 5px; text-align: right;">
+                    @if($exchangeRate > 1)
+                        {{ number_format($grandPaidVnd, 0) }}
+                    @else
+                        @if(($totalPaidVnd ?? 0) > 0)
+                            {{ number_format($totalPaidVnd, 0) }}
+                        @endif
+                        @if(($totalPaidVnd ?? 0) > 0 && ($totalPaidUsd ?? 0) > 0)
+                            +
+                        @endif
+                        @if(($totalPaidUsd ?? 0) > 0)
+                            ${{ $totalPaidUsd == floor($totalPaidUsd) ? number_format($totalPaidUsd, 0) : number_format($totalPaidUsd, 2) }}
+                        @endif
+                        @if(($totalPaidVnd ?? 0) <= 0 && ($totalPaidUsd ?? 0) <= 0)
+                            0
+                        @endif
+                    @endif
+                </td>
+                <td style="border: 1px solid #000; padding: 5px; text-align: right;">
+                    @if($exchangeRate > 1)
+                        {{ number_format($grandDebtVnd, 0) }}
+                    @else
+                        @if(($totalDebtVnd ?? 0) > 0)
+                            {{ number_format($totalDebtVnd, 0) }}
+                        @endif
+                        @if(($totalDebtVnd ?? 0) > 0 && ($totalDebtUsd ?? 0) > 0)
+                            +
+                        @endif
+                        @if(($totalDebtUsd ?? 0) > 0)
+                            ${{ $totalDebtUsd == floor($totalDebtUsd) ? number_format($totalDebtUsd, 0) : number_format($totalDebtUsd, 2) }}
+                        @endif
+                        @if(($totalDebtVnd ?? 0) <= 0 && ($totalDebtUsd ?? 0) <= 0)
+                            0
+                        @endif
+                    @endif
+                </td>
             </tr>
         </tbody>
     </table>
 
     <div style="margin-top: 15px; font-size: 10px;">
-        <p style="margin: 3px 0;"><strong>Total Revenue:</strong> VND {{ number_format($grandTotalVnd, 0) }}</p>
-        <p style="margin: 3px 0;"><strong>Total Paid:</strong> VND {{ number_format($totalPaidVnd, 0) }}</p>
-        <p style="border-top: 2px solid #000; border-bottom: 2px double #000; padding: 6px 0; margin-top: 6px; font-weight: bold;">
-            <strong>TOTAL DEBT:</strong> VND {{ number_format($totalDebtVnd, 0) }}
+        <p style="margin: 3px 0;"><strong>Tổng doanh thu:</strong> 
+            @if($exchangeRate > 1)
+                 VND: {{ number_format($grandTotalVnd, 0) }}
+            @else
+                @if($totalUsd > 0) USD: ${{ number_format($totalUsd, 2) }} @endif
+                @if($totalUsd > 0 && $totalVnd > 0) - @endif
+                @if($totalVnd > 0) VND: {{ number_format($totalVnd, 0) }}đ @endif
+                @if($totalUsd <= 0 && $totalVnd <= 0) 0 @endif
+            @endif
+        </p>
+        <p style="margin: 3px 0;"><strong>Đã thu:</strong>
+            @if($exchangeRate > 1)
+                VND {{ number_format($grandPaidVnd, 0) }}
+            @else
+                @if(($totalPaidVnd ?? 0) > 0)
+                    VND {{ number_format($totalPaidVnd, 0) }}
+                @endif
+                @if(($totalPaidVnd ?? 0) > 0 && ($totalPaidUsd ?? 0) > 0)
+                    +
+                @endif
+                @if(($totalPaidUsd ?? 0) > 0)
+                    USD {{ number_format($totalPaidUsd, 2) }}
+                @endif
+                @if(($totalPaidVnd ?? 0) <= 0 && ($totalPaidUsd ?? 0) <= 0)
+                    VND 0
+                @endif
+            @endif
+        </p>
+        <p style="margin: 3px 0;"><strong>Còn nợ:</strong>
+            @if($exchangeRate > 1)
+                VND {{ number_format($grandDebtVnd, 0) }}
+            @else
+                @if(($totalDebtVnd ?? 0) > 0)
+                    VND {{ number_format($totalDebtVnd, 0) }}
+                @endif
+                @if(($totalDebtVnd ?? 0) > 0 && ($totalDebtUsd ?? 0) > 0)
+                    +
+                @endif
+                @if(($totalDebtUsd ?? 0) > 0)
+                    USD {{ number_format($totalDebtUsd, 2) }}
+                @endif
+                @if(($totalDebtVnd ?? 0) <= 0 && ($totalDebtUsd ?? 0) <= 0)
+                    VND 0
+                @endif
+            @endif
         </p>
     </div>
 </div>

@@ -111,11 +111,10 @@
                 <th>Invoice</th>
                 <th>ID Code</th>
                 <th>Customer</th>
-                <th>Phone</th>
                 <th class="text-right">Total USD</th>
                 <th class="text-right">Total VND</th>
-                <th class="text-right">Paid VND</th>
-                <th class="text-right">Debt VND</th>
+                <th class="text-right">Paid</th>
+                <th class="text-right">Debt</th>
             </tr>
         </thead>
         <tbody>
@@ -126,7 +125,6 @@
                     <td>{{ $item['invoice_code'] }}</td>
                     <td>{{ $item['id_code'] }}</td>
                     <td>{{ $item['customer_name'] }}</td>
-                    <td>{{ $item['customer_phone'] ?? '' }}</td>
                     <td class="text-right">
                         @if($item['total_usd'] > 0)
                             ${{ number_format($item['total_usd'], 2) }}
@@ -138,50 +136,82 @@
                         @endif
                     </td>
                     <td class="text-right">
-                        @if(isset($item['paid_vnd']) && $item['paid_vnd'] > 0)
-                            {{ number_format($item['paid_vnd'], 0) }}đ
+                        @if(($item['actual_paid_vnd'] ?? 0) > 0)
+                            {{ number_format($item['actual_paid_vnd'], 0) }}đ
+                        @endif
+                        @if(($item['actual_paid_vnd'] ?? 0) > 0 && ($item['actual_paid_usd'] ?? 0) > 0)
+                            +
+                        @endif
+                        @if(($item['actual_paid_usd'] ?? 0) > 0)
+                            ${{ number_format($item['actual_paid_usd'], 2) }}
+                        @endif
+                        @if(($item['actual_paid_vnd'] ?? 0) <= 0 && ($item['actual_paid_usd'] ?? 0) <= 0)
+                            @if(($item['is_usd_only'] ?? false) && ($item['paid_usd'] ?? 0) > 0)
+                                ${{ number_format($item['paid_usd'], 2) }}
+                            @elseif(($item['paid_vnd'] ?? 0) > 0)
+                                {{ number_format($item['paid_vnd'], 0) }}đ
+                            @endif
                         @endif
                     </td>
                     <td class="text-right">
-                        @if(isset($item['debt_vnd']) && $item['debt_vnd'] > 0)
+                        @if(($item['debt_vnd'] ?? 0) > 0)
                             {{ number_format($item['debt_vnd'], 0) }}đ
+                        @endif
+                        @if(($item['debt_vnd'] ?? 0) > 0 && ($item['debt_usd'] ?? 0) > 0)
+                            +
+                        @endif
+                        @if(($item['debt_usd'] ?? 0) > 0)
+                            ${{ number_format($item['debt_usd'], 2) }}
                         @endif
                     </td>
                 </tr>
             @endforeach
             <tr class="total-row">
-                <td colspan="6">GRAND TOTAL</td>
+                <td colspan="5">GRAND TOTAL</td>
                 <td class="text-right">
                     @if($totalUsd > 0)
                         ${{ number_format($totalUsd, 2) }}
                     @endif
                 </td>
                 <td class="text-right">
-                    @if($exchangeRate > 1)
-                        {{ number_format($grandTotalVnd, 0) }}đ
-                        <div style="font-size: 7px; color: #666;">
-                            @if($totalUsd > 0) (${{ number_format($totalUsd, 2) }}) @endif
-                            @if($totalUsd > 0 && $totalVnd > 0) + @endif
-                            @if($totalVnd > 0) ({{ number_format($totalVnd, 0) }}đ) @endif
-                        </div>
-                    @else
-                        @if($totalUsd > 0) ${{ number_format($totalUsd, 2) }} @endif
-                        @if($totalUsd > 0 && $totalVnd > 0) <br> @endif
-                        @if($totalVnd > 0) {{ number_format($totalVnd, 0) }}đ @endif
+                    @if($totalVnd > 0)
+                        {{ number_format($totalVnd, 0) }}đ
                     @endif
                 </td>
                 <td class="text-right">
                     @if($exchangeRate > 1)
                         {{ number_format($grandPaidVnd, 0) }}đ
                     @else
-                        @if($totalPaidVnd > 0) {{ number_format($totalPaidVnd, 0) }}đ @endif
+                        @if(($totalPaidVnd ?? 0) > 0)
+                            {{ number_format($totalPaidVnd, 0) }}đ
+                        @endif
+                        @if(($totalPaidVnd ?? 0) > 0 && ($totalPaidUsd ?? 0) > 0)
+                            +
+                        @endif
+                        @if(($totalPaidUsd ?? 0) > 0)
+                            ${{ number_format($totalPaidUsd, 2) }}
+                        @endif
+                        @if(($totalPaidVnd ?? 0) <= 0 && ($totalPaidUsd ?? 0) <= 0)
+                            0đ
+                        @endif
                     @endif
                 </td>
                 <td class="text-right">
                     @if($exchangeRate > 1)
                         {{ number_format($grandDebtVnd, 0) }}đ
                     @else
-                        @if($totalDebtVnd > 0) {{ number_format($totalDebtVnd, 0) }}đ @endif
+                        @if(($totalDebtVnd ?? 0) > 0)
+                            {{ number_format($totalDebtVnd, 0) }}đ
+                        @endif
+                        @if(($totalDebtVnd ?? 0) > 0 && ($totalDebtUsd ?? 0) > 0)
+                            +
+                        @endif
+                        @if(($totalDebtUsd ?? 0) > 0)
+                            ${{ number_format($totalDebtUsd, 2) }}
+                        @endif
+                        @if(($totalDebtVnd ?? 0) <= 0 && ($totalDebtUsd ?? 0) <= 0)
+                            0đ
+                        @endif
                     @endif
                 </td>
             </tr>
@@ -189,32 +219,64 @@
     </table>
 
     <div class="summary">
-        <p><strong>Total Sales (USD):</strong> @if($totalUsd > 0) ${{ number_format($totalUsd, 2) }} @else $0.00 @endif
-        </p>
-        <p><strong>Total Sales (VND):</strong> @if($totalVnd > 0) {{ number_format($totalVnd, 0) }}đ @else 0đ @endif</p>
-        <p style="border-top: 2px solid #000; border-bottom: 2px double #000; padding: 6px 0; margin-top: 6px;
-            font-weight: bold;">
-            <strong>Grand Total (VND):</strong>
-            @if($exchangeRate > 1)
-                {{ number_format($grandTotalVnd, 0) }}đ
-            @else
-                @if($totalVnd > 0) {{ number_format($totalVnd, 0) }}đ @else 0đ @endif
-            @endif
-        </p>
-        <p><strong>Total Paid (VND):</strong>
-            @if($exchangeRate > 1)
-                {{ number_format($grandPaidVnd, 0) }}đ
-            @else
-                @if($totalPaidVnd > 0) {{ number_format($totalPaidVnd, 0) }}đ @else 0đ @endif
-            @endif
-        </p>
-        <p><strong>Total Debt (VND):</strong>
-            @if($exchangeRate > 1)
-                {{ number_format($grandDebtVnd, 0) }}đ
-            @else
-                @if($totalDebtVnd > 0) {{ number_format($totalDebtVnd, 0) }}đ @else 0đ @endif
-            @endif
-        </p>
+        <div class="flex justify-between items-center py-2 border-b border-gray-200">
+            <span class="text-gray-700 font-medium">Tổng doanh thu:</span>
+            <span class="text-lg font-bold text-blue-700 text-right">
+                @if($exchangeRate > 1)
+                    VND: {{ number_format($grandTotalVnd, 0) }}
+                @else
+                    @if($totalUsd > 0)
+                        USD: ${{ number_format($totalUsd, 2) }}
+                    @endif
+                    @if($totalUsd > 0 && $totalVnd > 0) - @endif
+                    @if($totalVnd > 0)
+                        VND: {{ number_format($totalVnd, 0) }}đ
+                    @endif
+                @endif
+            </span>
+        </div>
+        <div class="flex justify-between items-center py-2 border-b border-gray-200">
+            <span class="text-gray-700 font-medium">Đã thu:</span>
+            <span class="text-lg font-bold text-green-700">
+                @if($exchangeRate > 1)
+                    VND {{ number_format($grandPaidVnd, 0) }}
+                @else
+                    @if(($totalPaidVnd ?? 0) > 0)
+                        VND {{ number_format($totalPaidVnd, 0) }}
+                    @endif
+                    @if(($totalPaidVnd ?? 0) > 0 && ($totalPaidUsd ?? 0) > 0)
+                        +
+                    @endif
+                    @if(($totalPaidUsd ?? 0) > 0)
+                        USD {{ number_format($totalPaidUsd, 2) }}
+                    @endif
+                    @if(($totalPaidVnd ?? 0) <= 0 && ($totalPaidUsd ?? 0) <= 0)
+                        VND 0
+                    @endif
+                @endif
+            </span>
+        </div>
+        <div class="flex justify-between items-center py-3 bg-gradient-to-r from-red-100 to-orange-100 rounded-lg px-4">
+            <span class="text-gray-800 font-bold text-lg">Còn nợ:</span>
+            <span class="text-xl font-bold text-red-700">
+                @if($exchangeRate > 1)
+                    VND {{ number_format($grandDebtVnd, 0) }}
+                @else
+                    @if(($totalDebtVnd ?? 0) > 0)
+                        VND {{ number_format($totalDebtVnd, 0) }}
+                    @endif
+                    @if(($totalDebtVnd ?? 0) > 0 && ($totalDebtUsd ?? 0) > 0)
+                        +
+                    @endif
+                    @if(($totalDebtUsd ?? 0) > 0)
+                        USD {{ number_format($totalDebtUsd, 2) }}
+                    @endif
+                    @if(($totalDebtVnd ?? 0) <= 0 && ($totalDebtUsd ?? 0) <= 0)
+                        VND 0
+                    @endif
+                @endif
+            </span>
+        </div>
     </div>
 </body>
 

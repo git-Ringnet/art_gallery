@@ -110,6 +110,7 @@
                 <th>Dimensions</th>
                 <th class="text-center">Qty</th>
                 <th class="text-right">Price (USD)</th>
+                <th class="text-right">Price (VND)</th>
                 <th class="text-center">Status</th>
             </tr>
         </thead>
@@ -125,6 +126,7 @@
                     <td>{{ $item['dimensions'] }}</td>
                     <td class="text-center">{{ $item['quantity'] }}</td>
                     <td class="text-right">{{ number_format($item['price_usd'], 2) }}</td>
+                    <td class="text-right">{{ number_format($item['price_vnd'], 0) }}</td>
                     <td class="text-center">{{ $item['status'] }}</td>
                 </tr>
             @endforeach
@@ -132,6 +134,7 @@
                 <td colspan="7">GRAND TOTAL</td>
                 <td class="text-center">{{ $totalQuantity }}</td>
                 <td class="text-right">{{ number_format($totalPriceUsd, 2) }}</td>
+                <td class="text-right">{{ number_format($totalPriceVnd, 0) }}</td>
                 <td></td>
             </tr>
         </tbody>
@@ -139,7 +142,9 @@
 
     <div class="summary">
         <p><strong>Total Paintings:</strong> {{ $totalQuantity }}</p>
-        <p><strong>Total Value (USD):</strong> ${{ number_format($totalPriceUsd, 2) }}</p>
+        @if($totalPriceUsd > 0 && $exchangeRate <= 1)
+            <p><strong>Total Value (USD):</strong> ${{ number_format($totalPriceUsd, 2) }}</p>
+        @endif
         <p
             style="border-top: 2px solid #000; border-bottom: 2px double #000; padding: 6px 0; margin-top: 6px; font-weight: bold;">
             <strong>TOTAL VALUE (VND):</strong> {{ number_format($grandTotalVnd, 0) }}đ
