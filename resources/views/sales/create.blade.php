@@ -67,15 +67,16 @@
                                 class="text-red-500">*</span></label>
                         <input type="text" name="customer_name" id="customer_name" required
                             class="w-full px-3 py-1.5 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500"
-                            placeholder="Nhập tên khách hàng..." autocomplete="off" 
-                            onkeyup="filterCustomers(this.value); clearCustomerId()"
-                            onfocus="showAllCustomers()" onclick="showAllCustomers()">
+                            placeholder="Nhập tên khách hàng..." autocomplete="off"
+                            onkeyup="filterCustomers(this.value); clearCustomerId()" onfocus="showAllCustomers()"
+                            onclick="showAllCustomers()">
                         <input type="hidden" name="customer_id" id="customer_id">
                         <div id="customer-suggestions"
                             class="absolute z-10 w-full bg-white border border-gray-300 rounded-lg mt-1 max-h-60 overflow-y-auto hidden shadow-lg">
                         </div>
                         <p class="text-xs text-gray-500 mt-1">
-                            <i class="fas fa-info-circle mr-1"></i>Nhập tên để tìm khách hàng cũ hoặc nhập thông tin mới để tạo khách hàng mới
+                            <i class="fas fa-info-circle mr-1"></i>Nhập tên để tìm khách hàng cũ hoặc nhập thông tin mới để
+                            tạo khách hàng mới
                         </p>
                     </div>
                 </div>
@@ -106,24 +107,26 @@
                         <span class="text-sm text-green-700">
                             <i class="fas fa-check-circle mr-1"></i>Đã chọn khách hàng có sẵn
                         </span>
-                        <button type="button" onclick="resetCustomerFields()" class="text-sm text-red-600 hover:text-red-800">
+                        <button type="button" onclick="resetCustomerFields()"
+                            class="text-sm text-red-600 hover:text-red-800">
                             <i class="fas fa-times mr-1"></i>Xóa & Nhập mới
                         </button>
                     </div>
                 </div>
                 <!-- Cảnh báo trùng tên khách hàng -->
-                <div id="customer-duplicate-warning" class="hidden mt-2 p-3 bg-yellow-100 border border-yellow-400 rounded-lg">
+                <div id="customer-duplicate-warning"
+                    class="hidden mt-2 p-3 bg-yellow-100 border border-yellow-400 rounded-lg">
                     <div class="flex items-start gap-2">
                         <i class="fas fa-exclamation-triangle text-yellow-600 mt-0.5"></i>
                         <div class="flex-1">
                             <p class="text-sm font-medium text-yellow-800">Phát hiện khách hàng trùng tên!</p>
                             <p class="text-xs text-yellow-700 mt-1" id="duplicate-customer-info"></p>
                             <div class="flex gap-2 mt-2">
-                                <button type="button" onclick="useExistingCustomer()" 
+                                <button type="button" onclick="useExistingCustomer()"
                                     class="px-3 py-1 text-xs bg-green-500 text-white rounded hover:bg-green-600 transition-colors">
                                     <i class="fas fa-user-check mr-1"></i>Dùng KH có sẵn
                                 </button>
-                                <button type="button" onclick="forceCreateNewCustomer()" 
+                                <button type="button" onclick="forceCreateNewCustomer()"
                                     class="px-3 py-1 text-xs bg-orange-500 text-white rounded hover:bg-orange-600 transition-colors">
                                     <i class="fas fa-user-plus mr-1"></i>Tạo KH mới (trùng tên)
                                 </button>
@@ -188,7 +191,7 @@
                         <label class="block text-xs font-medium text-blue-700 mb-1">Giảm tiền (USD)</label>
                         <input type="text" name="discount_amount_usd" id="discount_amount_usd"
                             class="w-full px-3 py-1.5 text-sm border border-blue-300 rounded-lg focus:ring-2 focus:ring-blue-500"
-                            value="0.00" oninput="formatUSD(this); calc()" onblur="formatUSD(this)" placeholder="0.00">
+                            value="0.00" oninput="calc()" onblur="formatUSD(this)" placeholder="0.00">
                     </div>
                     <div id="discount-vnd-section">
                         <label class="block text-xs font-medium text-green-700 mb-1">Giảm tiền (VND)</label>
@@ -200,7 +203,7 @@
                         <label class="block text-xs font-medium text-blue-700 mb-1">Phí vận chuyển (USD)</label>
                         <input type="text" name="shipping_fee_usd" id="shipping_fee_usd"
                             class="w-full px-3 py-1.5 text-sm border border-blue-300 rounded-lg focus:ring-2 focus:ring-blue-500"
-                            value="0.00" oninput="formatUSD(this); calc()" onblur="formatUSD(this)" placeholder="0.00">
+                            value="0.00" oninput="calc()" onblur="formatUSD(this)" placeholder="0.00">
                     </div>
                     <div>
                         <label class="block text-xs font-medium text-green-700 mb-1">Phí vận chuyển (VND)</label>
@@ -366,11 +369,11 @@
 
                 if (filtered.length > 0) {
                     suggestions.innerHTML = filtered.map(c => `
-                                                                    <div class="px-3 py-2 hover:bg-blue-50 cursor-pointer border-b" onclick="selectCustomer(${c.id})">
-                                                                        <div class="font-medium">${c.name}</div>
-                                                                        <div class="text-xs text-gray-500">${c.phone || 'Không có SĐT'} | ${c.email || 'Không có email'}</div>
-                                                                    </div>
-                                                                `).join('');
+                                                                            <div class="px-3 py-2 hover:bg-blue-50 cursor-pointer border-b" onclick="selectCustomer(${c.id})">
+                                                                                <div class="font-medium">${c.name}</div>
+                                                                                <div class="text-xs text-gray-500">${c.phone || 'Không có SĐT'} | ${c.email || 'Không có email'}</div>
+                                                                            </div>
+                                                                        `).join('');
                     suggestions.classList.remove('hidden');
                 } else {
                     suggestions.classList.add('hidden');
@@ -389,11 +392,11 @@
 
                 if (customers.length > 0) {
                     suggestions.innerHTML = customers.map(c => `
-                                                                    <div class="px-3 py-2 hover:bg-blue-50 cursor-pointer border-b" onclick="selectCustomer(${c.id})">
-                                                                        <div class="font-medium">${c.name}</div>
-                                                                        <div class="text-xs text-gray-500">${c.phone || 'Không có SĐT'} | ${c.email || 'Không có email'}</div>
-                                                                    </div>
-                                                                `).join('');
+                                                                            <div class="px-3 py-2 hover:bg-blue-50 cursor-pointer border-b" onclick="selectCustomer(${c.id})">
+                                                                                <div class="font-medium">${c.name}</div>
+                                                                                <div class="text-xs text-gray-500">${c.phone || 'Không có SĐT'} | ${c.email || 'Không có email'}</div>
+                                                                            </div>
+                                                                        `).join('');
                     suggestions.classList.remove('hidden');
                 }
             }
@@ -410,7 +413,7 @@
 
                     // Hiển thị thông báo đã chọn khách hàng có sẵn
                     document.getElementById('customer-selected-notice').classList.remove('hidden');
-                    
+
                     // Đánh dấu các input là đã chọn (thay đổi style)
                     const inputs = ['customer_phone', 'customer_email', 'customer_address'];
                     inputs.forEach(inputId => {
@@ -430,7 +433,7 @@
             function clearCustomerId() {
                 const customerId = document.getElementById('customer_id');
                 const customerName = document.getElementById('customer_name');
-                
+
                 // Nếu đã có customer_id và tên bị thay đổi, xóa customer_id
                 if (customerId.value) {
                     const selectedCustomer = customers.find(c => c.id == customerId.value);
@@ -438,19 +441,19 @@
                         customerId.value = '';
                         document.getElementById('customer-selected-notice').classList.add('hidden');
                         document.getElementById('force_new_customer').value = '0';
-                        
+
                         // Reset style các input
                         const inputs = ['customer_phone', 'customer_email', 'customer_address'];
                         inputs.forEach(inputId => {
                             const input = document.getElementById(inputId);
                             input.classList.remove('bg-green-50', 'border-green-300');
                         });
-                        
+
                         // Clear old debt display
                         document.getElementById('current_debt').value = '';
                     }
                 }
-                
+
                 // Kiểm tra trùng tên
                 checkDuplicateCustomer();
             }
@@ -459,18 +462,18 @@
             function checkDuplicateCustomer() {
                 const customerName = document.getElementById('customer_name').value.trim();
                 const customerId = document.getElementById('customer_id').value;
-                
+
                 // Ẩn cảnh báo trước
                 document.getElementById('customer-duplicate-warning').classList.add('hidden');
                 duplicateCustomer = null;
-                
+
                 if (!customerName || customerId) return;
-                
+
                 // Tìm khách hàng trùng tên (case-insensitive)
-                const matchingCustomer = customers.find(c => 
+                const matchingCustomer = customers.find(c =>
                     c.name.toLowerCase() === customerName.toLowerCase()
                 );
-                
+
                 if (matchingCustomer) {
                     duplicateCustomer = matchingCustomer;
                     const infoText = `Đã tồn tại: "${matchingCustomer.name}" - SĐT: ${matchingCustomer.phone || 'Không có'} - Email: ${matchingCustomer.email || 'Không có'}`;
@@ -493,7 +496,7 @@
                 document.getElementById('customer-duplicate-warning').classList.add('hidden');
                 document.getElementById('force_new_customer').value = '1';
                 duplicateCustomer = null;
-                
+
                 // Hiển thị thông báo đang tạo mới
                 alert('Sẽ tạo khách hàng MỚI với tên này (có thể trùng với khách hàng đã tồn tại)');
             }
@@ -509,17 +512,17 @@
                 document.getElementById('customer-duplicate-warning').classList.add('hidden');
                 document.getElementById('force_new_customer').value = '0';
                 duplicateCustomer = null;
-                
+
                 // Reset style các input
                 const inputs = ['customer_phone', 'customer_email', 'customer_address'];
                 inputs.forEach(inputId => {
                     const input = document.getElementById(inputId);
                     input.classList.remove('bg-green-50', 'border-green-300');
                 });
-                
+
                 // Clear debt display
                 document.getElementById('current_debt').value = '';
-                
+
                 // Focus vào ô tên khách hàng
                 document.getElementById('customer_name').focus();
             }
@@ -545,55 +548,55 @@
                 const tr = document.createElement('tr');
                 tr.className = 'border hover:bg-purple-50';
                 tr.innerHTML = `
-                                                                <td class="px-3 py-3 border">
-                                                                    <img id="img-${idx}" src="/images/no-image.svg" class="w-20 h-16 object-cover rounded border shadow-sm">
-                                                                </td>
-                                                                <td class="px-3 py-3 border">
-                                                                    <div class="relative">
-                                                                        <input type="text" 
-                                                                               id="item-search-${idx}"
-                                                                               class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 mb-2" 
-                                                                               placeholder="Tìm tranh hoặc khung..."
-                                                                               autocomplete="off"
-                                                                               onkeyup="filterItems(this.value, ${idx})"
-                                                                               onfocus="showItemSuggestions(${idx})">
-                                                                        <input type="hidden" name="items[${idx}][painting_id]" id="painting-id-${idx}">
-                                                                        <input type="hidden" name="items[${idx}][frame_id]" id="frame-id-${idx}">
-                                                                        <input type="hidden" name="items[${idx}][description]" id="desc-${idx}">
-                                                                        <div id="item-suggestions-${idx}" class="absolute z-20 w-full bg-white border border-gray-300 rounded-lg mt-1 max-h-60 overflow-y-auto hidden shadow-lg"></div>
-                                                                        <div id="item-details-${idx}" class="text-xs text-gray-600 space-y-0.5 hidden"></div>
-                                                                    </div>
-                                                                </td>
-                                                                <td class="px-3 py-3 border">
-                                                                    <input type="number" name="items[${idx}][quantity]" required class="w-full px-3 py-2 border border-gray-300 rounded-lg text-center font-medium" value="1" min="1" onchange="calc()">
-                                                                </td>
-                                                                 <td class="px-3 py-3 border">
-                                                                    <select name="items[${idx}][currency]" class="w-full px-3 py-2 border border-gray-300 rounded-lg" onchange="togCur(this, ${idx})">
-                                                                        <option value="USD">USD</option>
-                                                                        <option value="VND" selected>VND</option>
-                                                                    </select>
-                                                                </td>
-                                                                <td class="px-3 py-3 border">
-                                                                    <input type="text" name="items[${idx}][price_usd]" id="usd-input-${idx}" class="usd-${idx} w-full px-3 py-2 border border-gray-300 rounded-lg text-right" value="0.00" oninput="formatUSD(this)" onblur="formatUSD(this)" onchange="calc()">
-                                                                </td>
-                                                                <td class="px-3 py-3 border">
-                                                                    <input type="text" name="items[${idx}][price_vnd]" id="vnd-input-${idx}" class="vnd-${idx} w-full px-3 py-2 border border-gray-300 rounded-lg text-right" value="0" oninput="formatVND(this)" onblur="formatVND(this)" onchange="calc()">
-                                                                </td>
-                                                                <td class="px-3 py-3 border text-center">
-                                                                    <input type="number" name="items[${idx}][discount_percent]" class="w-full px-3 py-2 border border-gray-300 rounded-lg text-center" value="0" min="0" max="100" step="1" onchange="calc()">
-                                                                </td>
-                                                                <td class="px-3 py-3 border text-center">
-                                                                    <div class="space-y-1">
-                                                                        <input type="text" name="items[${idx}][discount_amount_usd]" id="discount-usd-${idx}" class="discount-usd-${idx} w-full px-2 py-1 text-sm border border-blue-300 rounded text-right hidden" value="0.00" oninput="formatUSD(this); calc()" onblur="formatUSD(this)" placeholder="USD">
-                                                                        <input type="text" name="items[${idx}][discount_amount_vnd]" id="discount-vnd-${idx}" class="discount-vnd-${idx} w-full px-2 py-1 text-sm border border-green-300 rounded text-right" value="0" oninput="formatVND(this); calc()" onblur="formatVND(this)" placeholder="VND">
-                                                                    </div>
-                                                                </td>
-                                                                <td class="px-3 py-3 border text-center">
-                                                                    <button type="button" class="w-8 h-8 flex items-center justify-center bg-red-100 text-red-600 rounded-lg hover:bg-red-200 transition-colors" onclick="this.closest('tr').remove();calc()">
-                                                                        <i class="fas fa-trash"></i>
-                                                                    </button>
-                                                                </td>
-                                                            `;
+                                                                        <td class="px-3 py-3 border">
+                                                                            <img id="img-${idx}" src="/images/no-image.svg" class="w-20 h-16 object-cover rounded border shadow-sm">
+                                                                        </td>
+                                                                        <td class="px-3 py-3 border">
+                                                                            <div class="relative">
+                                                                                <input type="text" 
+                                                                                       id="item-search-${idx}"
+                                                                                       class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 mb-2" 
+                                                                                       placeholder="Tìm tranh hoặc khung..."
+                                                                                       autocomplete="off"
+                                                                                       onkeyup="filterItems(this.value, ${idx})"
+                                                                                       onfocus="showItemSuggestions(${idx})">
+                                                                                <input type="hidden" name="items[${idx}][painting_id]" id="painting-id-${idx}">
+                                                                                <input type="hidden" name="items[${idx}][frame_id]" id="frame-id-${idx}">
+                                                                                <input type="hidden" name="items[${idx}][description]" id="desc-${idx}">
+                                                                                <div id="item-suggestions-${idx}" class="absolute z-20 w-full bg-white border border-gray-300 rounded-lg mt-1 max-h-60 overflow-y-auto hidden shadow-lg"></div>
+                                                                                <div id="item-details-${idx}" class="text-xs text-gray-600 space-y-0.5 hidden"></div>
+                                                                            </div>
+                                                                        </td>
+                                                                        <td class="px-3 py-3 border">
+                                                                            <input type="number" name="items[${idx}][quantity]" required class="w-full px-3 py-2 border border-gray-300 rounded-lg text-center font-medium" value="1" min="1" onchange="calc()">
+                                                                        </td>
+                                                                         <td class="px-3 py-3 border">
+                                                                            <select name="items[${idx}][currency]" class="w-full px-3 py-2 border border-gray-300 rounded-lg" onchange="togCur(this, ${idx})">
+                                                                                <option value="USD">USD</option>
+                                                                                <option value="VND" selected>VND</option>
+                                                                            </select>
+                                                                        </td>
+                                                                        <td class="px-3 py-3 border">
+                                                                            <input type="text" name="items[${idx}][price_usd]" id="usd-input-${idx}" class="usd-${idx} w-full px-3 py-2 border border-gray-300 rounded-lg text-right" value="0.00" oninput="calc()" onblur="formatUSD(this)" onchange="calc()">
+                                                                        </td>
+                                                                        <td class="px-3 py-3 border">
+                                                                            <input type="text" name="items[${idx}][price_vnd]" id="vnd-input-${idx}" class="vnd-${idx} w-full px-3 py-2 border border-gray-300 rounded-lg text-right" value="0" oninput="formatVND(this)" onblur="formatVND(this)" onchange="calc()">
+                                                                        </td>
+                                                                        <td class="px-3 py-3 border text-center">
+                                                                            <input type="number" name="items[${idx}][discount_percent]" class="w-full px-3 py-2 border border-gray-300 rounded-lg text-center" value="0" min="0" max="100" step="1" onchange="calc()">
+                                                                        </td>
+                                                                        <td class="px-3 py-3 border text-center">
+                                                                            <div class="space-y-1">
+                                                                                <input type="text" name="items[${idx}][discount_amount_usd]" id="discount-usd-${idx}" class="discount-usd-${idx} w-full px-2 py-1 text-sm border border-blue-300 rounded text-right hidden" value="0.00" oninput="calc()" onblur="formatUSD(this)" placeholder="USD">
+                                                                                <input type="text" name="items[${idx}][discount_amount_vnd]" id="discount-vnd-${idx}" class="discount-vnd-${idx} w-full px-2 py-1 text-sm border border-green-300 rounded text-right" value="0" oninput="formatVND(this); calc()" onblur="formatVND(this)" placeholder="VND">
+                                                                            </div>
+                                                                        </td>
+                                                                        <td class="px-3 py-3 border text-center">
+                                                                            <button type="button" class="w-8 h-8 flex items-center justify-center bg-red-100 text-red-600 rounded-lg hover:bg-red-200 transition-colors" onclick="this.closest('tr').remove();calc()">
+                                                                                <i class="fas fa-trash"></i>
+                                                                            </button>
+                                                                        </td>
+                                                                    `;
                 tbody.appendChild(tr);
                 idx++;
             }
@@ -612,11 +615,11 @@
                     .then(paintings => {
                         if (paintings.length > 0) {
                             suggestions.innerHTML = paintings.map(p => `
-                                                                            <div class="px-3 py-2 hover:bg-blue-50 cursor-pointer border-b" onclick="selectPainting(${p.id}, ${idx})">
-                                                                                <div class="font-medium text-sm">${p.code} - ${p.name}</div>
-                                                                                <div class="text-xs text-gray-500">USD: $${p.price_usd || 0} | VND: ${(p.price_vnd || 0).toLocaleString()}đ</div>
-                                                                            </div>
-                                                                        `).join('');
+                                                                                    <div class="px-3 py-2 hover:bg-blue-50 cursor-pointer border-b" onclick="selectPainting(${p.id}, ${idx})">
+                                                                                        <div class="font-medium text-sm">${p.code} - ${p.name}</div>
+                                                                                        <div class="text-xs text-gray-500">USD: $${p.price_usd || 0} | VND: ${(p.price_vnd || 0).toLocaleString()}đ</div>
+                                                                                    </div>
+                                                                                `).join('');
                             suggestions.classList.remove('hidden');
                         } else {
                             suggestions.classList.add('hidden');
@@ -651,11 +654,11 @@
                     .then(supplies => {
                         if (supplies.length > 0) {
                             suggestions.innerHTML = supplies.map(s => `
-                                                                            <div class="px-3 py-2 hover:bg-blue-50 cursor-pointer border-b" onclick="selectSupply(${s.id}, ${idx})">
-                                                                                <div class="font-medium text-sm">${s.name}</div>
-                                                                                <div class="text-xs text-gray-500">Đơn vị: ${s.unit || 'N/A'}</div>
-                                                                            </div>
-                                                                        `).join('');
+                                                                                    <div class="px-3 py-2 hover:bg-blue-50 cursor-pointer border-b" onclick="selectSupply(${s.id}, ${idx})">
+                                                                                        <div class="font-medium text-sm">${s.name}</div>
+                                                                                        <div class="text-xs text-gray-500">Đơn vị: ${s.unit || 'N/A'}</div>
+                                                                                    </div>
+                                                                                `).join('');
                             suggestions.classList.remove('hidden');
                         } else {
                             suggestions.classList.add('hidden');
@@ -704,11 +707,11 @@
                     .then(frames => {
                         if (frames.length > 0) {
                             suggestions.innerHTML = frames.map(f => `
-                                                                            <div class="px-3 py-2 hover:bg-blue-50 cursor-pointer border-b" onclick="selectFrame(${f.id}, ${idx})">
-                                                                                <div class="font-medium text-sm">${f.name}</div>
-                                                                                <div class="text-xs text-gray-500">Giá: ${(f.cost_price || 0).toLocaleString()}đ</div>
-                                                                            </div>
-                                                                        `).join('');
+                                                                                    <div class="px-3 py-2 hover:bg-blue-50 cursor-pointer border-b" onclick="selectFrame(${f.id}, ${idx})">
+                                                                                        <div class="font-medium text-sm">${f.name}</div>
+                                                                                        <div class="text-xs text-gray-500">Giá: ${(f.cost_price || 0).toLocaleString()}đ</div>
+                                                                                    </div>
+                                                                                `).join('');
                             suggestions.classList.remove('hidden');
                         } else {
                             suggestions.classList.add('hidden');
@@ -758,14 +761,14 @@
                                 const stockText = isOutOfStock ? '❌ HẾT HÀNG' : `Tồn: ${stock}`;
 
                                 return `
-                                                                            <div class="px-3 py-2 ${bgClass} cursor-pointer border-b" onclick="selectPainting(${p.id}, ${idx})">
-                                                                                <div class="flex justify-between items-start">
-                                                                                    <div class="font-medium text-sm">${p.code} - ${p.name}</div>
-                                                                                    <span class="text-xs ${stockColor} ml-2 whitespace-nowrap">${stockText}</span>
-                                                                                </div>
-                                                                                <div class="text-xs text-gray-500">USD: ${p.price_usd || 0} | VND: ${(p.price_vnd || 0).toLocaleString()}đ</div>
-                                                                            </div>
-                                                                        `;
+                                                                                    <div class="px-3 py-2 ${bgClass} cursor-pointer border-b" onclick="selectPainting(${p.id}, ${idx})">
+                                                                                        <div class="flex justify-between items-start">
+                                                                                            <div class="font-medium text-sm">${p.code} - ${p.name}</div>
+                                                                                            <span class="text-xs ${stockColor} ml-2 whitespace-nowrap">${stockText}</span>
+                                                                                        </div>
+                                                                                        <div class="text-xs text-gray-500">USD: ${p.price_usd || 0} | VND: ${(p.price_vnd || 0).toLocaleString()}đ</div>
+                                                                                    </div>
+                                                                                `;
                             }).join('');
                         }
 
@@ -773,11 +776,11 @@
                         if (frames.length > 0) {
                             html += '<div class="px-3 py-1 bg-gray-100 text-xs font-bold text-gray-600">KHUNG</div>';
                             html += frames.map(f => `
-                                                                        <div class="px-3 py-2 hover:bg-green-50 cursor-pointer border-b" onclick="selectFrame(${f.id}, ${idx})">
-                                                                            <div class="font-medium text-sm">${f.name}</div>
-                                                                            <div class="text-xs text-gray-500">Giá: ${(f.cost_price || 0).toLocaleString()}đ</div>
-                                                                        </div>
-                                                                    `).join('');
+                                                                                <div class="px-3 py-2 hover:bg-green-50 cursor-pointer border-b" onclick="selectFrame(${f.id}, ${idx})">
+                                                                                    <div class="font-medium text-sm">${f.name}</div>
+                                                                                    <div class="text-xs text-gray-500">Giá: ${(f.cost_price || 0).toLocaleString()}đ</div>
+                                                                                </div>
+                                                                            `).join('');
                         }
 
                         if (html) {
@@ -1574,15 +1577,15 @@
                             'bg-blue-500 text-white'
                     }`;
                 notification.innerHTML = `
-                                                                <div class="flex items-center">
-                                                                    <i class="fas ${type === 'error' ? 'fa-exclamation-circle' :
+                                                                        <div class="flex items-center">
+                                                                            <i class="fas ${type === 'error' ? 'fa-exclamation-circle' :
                         type === 'success' ? 'fa-check-circle' :
                             type === 'warning' ? 'fa-exclamation-triangle' :
                                 'fa-info-circle'
                     } mr-2"></i>
-                                                                    <span>${message}</span>
-                                                                </div>
-                                                            `;
+                                                                            <span>${message}</span>
+                                                                        </div>
+                                                                    `;
                 document.body.appendChild(notification);
 
                 setTimeout(() => {
@@ -1644,37 +1647,37 @@
                 const paidVndDisplay = document.getElementById('paid_vnd_display').value;
 
                 let summaryHtml = `
-                                                                <div class="space-y-2">
-                                                                    <div class="flex justify-between">
-                                                                        <span class="text-gray-600">Khách hàng:</span>
-                                                                        <span class="font-medium">${customerName}</span>
-                                                                    </div>
-                                                                    <div class="flex justify-between">
-                                                                        <span class="text-gray-600">Số sản phẩm:</span>
-                                                                        <span class="font-medium">${productCount} sản phẩm</span>
-                                                                    </div>
-                                                                    <div class="border-t pt-2 mt-2">
-                                                                        <div class="flex justify-between text-blue-600">
-                                                                            <span>Tổng USD:</span>
-                                                                            <span class="font-bold">${totalUsd}</span>
+                                                                        <div class="space-y-2">
+                                                                            <div class="flex justify-between">
+                                                                                <span class="text-gray-600">Khách hàng:</span>
+                                                                                <span class="font-medium">${customerName}</span>
+                                                                            </div>
+                                                                            <div class="flex justify-between">
+                                                                                <span class="text-gray-600">Số sản phẩm:</span>
+                                                                                <span class="font-medium">${productCount} sản phẩm</span>
+                                                                            </div>
+                                                                            <div class="border-t pt-2 mt-2">
+                                                                                <div class="flex justify-between text-blue-600">
+                                                                                    <span>Tổng USD:</span>
+                                                                                    <span class="font-bold">${totalUsd}</span>
+                                                                                </div>
+                                                                                <div class="flex justify-between text-green-600">
+                                                                                    <span>Tổng VND:</span>
+                                                                                    <span class="font-bold">${totalVnd}</span>
+                                                                                </div>
+                                                                            </div>
+                                                                            <div class="border-t pt-2 mt-2">
+                                                                                <div class="flex justify-between">
+                                                                                    <span class="text-gray-600">Thanh toán USD:</span>
+                                                                                    <span class="font-medium">${paidUsdDisplay}</span>
+                                                                                </div>
+                                                                                <div class="flex justify-between">
+                                                                                    <span class="text-gray-600">Thanh toán VND:</span>
+                                                                                    <span class="font-medium">${paidVndDisplay}</span>
+                                                                                </div>
+                                                                            </div>
                                                                         </div>
-                                                                        <div class="flex justify-between text-green-600">
-                                                                            <span>Tổng VND:</span>
-                                                                            <span class="font-bold">${totalVnd}</span>
-                                                                        </div>
-                                                                    </div>
-                                                                    <div class="border-t pt-2 mt-2">
-                                                                        <div class="flex justify-between">
-                                                                            <span class="text-gray-600">Thanh toán USD:</span>
-                                                                            <span class="font-medium">${paidUsdDisplay}</span>
-                                                                        </div>
-                                                                        <div class="flex justify-between">
-                                                                            <span class="text-gray-600">Thanh toán VND:</span>
-                                                                            <span class="font-medium">${paidVndDisplay}</span>
-                                                                        </div>
-                                                                    </div>
-                                                                </div>
-                                                            `;
+                                                                    `;
 
                 document.getElementById('confirm-order-summary').innerHTML = summaryHtml;
 

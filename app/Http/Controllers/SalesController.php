@@ -139,19 +139,19 @@ class SalesController extends Controller
         if ($filterDebt !== null) {
             // Lấy tất cả dữ liệu và filter bằng accessor
             $allSales = $query->get();
-            
+
             // Filter dựa trên accessor debt_usd và debt_vnd (giống hệt cột "Còn nợ" trên UI)
             $filteredSales = $allSales->filter(function ($sale) use ($filterDebt) {
                 // Phiếu đã hủy: không có công nợ
                 if ($sale->sale_status === 'cancelled') {
                     return $filterDebt == '0'; // Chỉ hiển thị khi lọc "Không công nợ"
                 }
-                
+
                 // Tính công nợ thực tế từ accessor (giống view)
                 $hasDebtUsd = $sale->debt_usd > 0.01;
                 $hasDebtVnd = $sale->debt_vnd > 1;
                 $hasAnyDebt = $hasDebtUsd || $hasDebtVnd;
-                
+
                 if ($filterDebt == '1') {
                     // Có công nợ: debt_usd > 0 HOẶC debt_vnd > 0
                     return $hasAnyDebt;
@@ -160,13 +160,13 @@ class SalesController extends Controller
                     return !$hasAnyDebt;
                 }
             });
-            
+
             // Tạo custom paginator từ collection đã filter
             $page = $request->get('page', 1);
             $perPage = 10;
             $total = $filteredSales->count();
             $items = $filteredSales->forPage($page, $perPage);
-            
+
             $sales = new \Illuminate\Pagination\LengthAwarePaginator(
                 $items,
                 $total,
@@ -245,7 +245,7 @@ class SalesController extends Controller
                     if ($priceUsd === '' || $priceUsd === '0' || $priceUsd === 0) {
                         $items[$key]['price_usd'] = null;
                     } else if (is_string($priceUsd)) {
-                        // Remove formatting (commas, spaces)
+                        // Remove formatting (commas, spaces) - keep dots for decimals
                         $items[$key]['price_usd'] = str_replace([',', ' '], '', $priceUsd);
                     }
                 }
@@ -283,13 +283,13 @@ class SalesController extends Controller
             'items.*.price_usd' => 'nullable|numeric|min:0',
             'items.*.price_vnd' => 'nullable|numeric|min:0',
             'items.*.discount_percent' => 'nullable|numeric|min:0|max:100',
-            'items.*.discount_amount_usd' => 'nullable',
+            'items.*.discount_amount_usd' => 'nullable|numeric|min:0',
             'items.*.discount_amount_vnd' => 'nullable',
             'shipping_fee_usd' => 'nullable|numeric|min:0',
             'shipping_fee_vnd' => 'nullable|numeric|min:0',
             'exchange_rate' => 'nullable|numeric|min:0',
             'discount_percent' => 'nullable|numeric|min:0|max:100',
-            'discount_amount_usd' => 'nullable',
+            'discount_amount_usd' => 'nullable|numeric|min:0',
             'discount_amount_vnd' => 'nullable',
             'payment_amount' => 'nullable|numeric|min:0',
             'payment_usd' => 'nullable|numeric|min:0',
@@ -349,7 +349,7 @@ class SalesController extends Controller
             } else {
                 // Kiểm tra xem có khách hàng trùng tên không
                 $existingCustomer = Customer::where('name', $request->customer_name)->first();
-                
+
                 if ($existingCustomer && !$request->input('force_new_customer')) {
                     // Nếu tìm thấy KH cùng tên và không force tạo mới → sử dụng KH có sẵn
                     // Cập nhật thông tin nếu có thay đổi
@@ -694,11 +694,11 @@ class SalesController extends Controller
             // Create or get customer
             if ($request->filled('customer_id')) {
                 $customer = Customer::find($request->customer_id);
-                
+
                 // Cho phép cập nhật thông tin khách hàng khi edit
                 if ($customer) {
                     $updateData = [];
-                    
+
                     // Chỉ cập nhật các trường có giá trị mới
                     if ($request->filled('customer_name') && $request->customer_name !== $customer->name) {
                         $updateData['name'] = $request->customer_name;
@@ -712,7 +712,7 @@ class SalesController extends Controller
                     if ($request->filled('customer_address') && $request->customer_address !== $customer->address) {
                         $updateData['address'] = $request->customer_address;
                     }
-                    
+
                     // Cập nhật nếu có thay đổi
                     if (!empty($updateData)) {
                         $customer->update($updateData);
@@ -721,7 +721,7 @@ class SalesController extends Controller
             } else {
                 // Kiểm tra xem có khách hàng trùng tên không
                 $existingCustomer = Customer::where('name', $request->customer_name)->first();
-                
+
                 if ($existingCustomer && !$request->input('force_new_customer')) {
                     // Nếu tìm thấy KH cùng tên và không force tạo mới → sử dụng KH có sẵn
                     // Cập nhật thông tin nếu có thay đổi
