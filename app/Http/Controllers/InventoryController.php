@@ -727,6 +727,86 @@ class InventoryController extends Controller
         }
     }
 
+    public function editImage($id)
+    {
+        $painting = Painting::findOrFail($id);
+
+        // Store the return URL in session
+        if (request()->has('return_url')) {
+            session(['painting_edit_return_url' => request()->get('return_url')]);
+        }
+
+        return view('inventory.paintings.edit-image', compact('painting'));
+    }
+
+    public function updateImage(Request $request, $id)
+    {
+        try {
+            $painting = Painting::findOrFail($id);
+
+            $validated = $request->validate([
+                'image' => 'nullable|image|max:5120',
+                'remove_image' => 'nullable|in:0,1',
+                'notes' => 'nullable|string',
+            ], [
+                'image.max' => 'Kích thước ảnh không được vượt quá 5MB.',
+            ]);
+
+            // Remove old image if requested
+            if ($request->input('remove_image') === '1' && $painting->image) {
+                Storage::disk('public')->delete($painting->image);
+                $validated['image'] = null;
+            }
+
+            // Replace with new image: delete old first
+            if ($request->hasFile('image')) {
+                if ($painting->image) {
+                    Storage::disk('public')->delete($painting->image);
+                }
+                $imagePath = $request->file('image')->store('paintings', 'public');
+                $validated['image'] = $imagePath;
+            }
+
+            // Only update specific fields
+            $updateData = [];
+            if (array_key_exists('image', $validated)) {
+                $updateData['image'] = $validated['image'];
+            }
+            if (array_key_exists('notes', $validated)) {
+                $updateData['notes'] = $validated['notes'];
+            }
+
+            if (!empty($updateData)) {
+                $painting->update($updateData);
+
+                // Log activity
+                $this->activityLogger->logUpdate(
+                    \App\Models\ActivityLog::MODULE_INVENTORY,
+                    $painting,
+                    [],
+                    "Cập nhật ảnh/ghi chú tranh (Secret): {$painting->code} - {$painting->name}"
+                );
+            }
+
+            // Get the return URL from session or default to index
+            $returnUrl = session('painting_edit_return_url', route('inventory.index'));
+            session()->forget('painting_edit_return_url');
+
+            return redirect($returnUrl)
+                ->with('success', 'Cập nhật ảnh tranh thành công');
+
+        } catch (\Exception $e) {
+            Log::error('Error updating painting image', [
+                'painting_id' => $id,
+                'error' => $e->getMessage()
+            ]);
+
+            return back()
+                ->with('error', 'Có lỗi xảy ra: ' . $e->getMessage())
+                ->withInput();
+        }
+    }
+
     public function destroyPainting($id)
     {
         $painting = Painting::findOrFail($id);

@@ -98,6 +98,11 @@ Route::middleware(['auth', 'archive.readonly'])->group(function () {
         Route::post('/import/supply/excel', [App\Http\Controllers\InventoryController::class, 'importSupplyExcel'])->middleware('permission:inventory,can_create')->name('import.supply.excel');
 
         Route::get('/paintings/{id}/show', [App\Http\Controllers\InventoryController::class, 'showPainting'])->middleware('permission:inventory,can_view')->name('paintings.show');
+
+        // Secret route to update image for sold paintings
+        Route::get('/paintings/{id}/update-image', [App\Http\Controllers\InventoryController::class, 'editImage'])->middleware('permission:inventory,can_edit')->name('paintings.edit-image');
+        Route::put('/paintings/{id}/update-image', [App\Http\Controllers\InventoryController::class, 'updateImage'])->middleware('permission:inventory,can_edit')->name('paintings.update-image');
+
         Route::get('/paintings/{id}/edit', [App\Http\Controllers\InventoryController::class, 'editPainting'])->middleware('permission:inventory,can_edit')->name('paintings.edit');
         Route::put('/paintings/{id}', [App\Http\Controllers\InventoryController::class, 'updatePainting'])->middleware('permission:inventory,can_edit')->name('paintings.update');
         Route::delete('/paintings/{id}', [App\Http\Controllers\InventoryController::class, 'destroyPainting'])->middleware('permission:inventory,can_delete')->name('paintings.destroy');
