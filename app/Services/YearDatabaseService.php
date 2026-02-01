@@ -39,7 +39,7 @@ class YearDatabaseService
     public function setSelectedYear($year)
     {
         $yearDb = YearDatabase::where('year', $year)->first();
-        
+
         if (!$yearDb) {
             throw new \Exception("Năm {$year} không tồn tại trong hệ thống");
         }
@@ -135,5 +135,46 @@ class YearDatabaseService
     public function getYearInfo($year)
     {
         return YearDatabase::where('year', $year)->first();
+    }
+
+    /**
+     * Lấy đường dẫn file thực thi mysql/mysqldump
+     */
+    public function getMysqlExecutable($binary)
+    {
+        // Ưu tiên check trong .env
+        $envPath = env('DB_BIN_PATH');
+        if ($envPath) {
+            $path = rtrim($envPath, '/\\') . DIRECTORY_SEPARATOR . $binary;
+            if (strtoupper(substr(PHP_OS, 0, 3)) === 'WIN') {
+                $path .= '.exe';
+            }
+            if (file_exists($path)) {
+                return '"' . $path . '"';
+            }
+        }
+
+        // Check đường dẫn XAMPP mặc định (Windows)
+        if (strtoupper(substr(PHP_OS, 0, 3)) === 'WIN') {
+            $xamppPath = 'C:\\xampp\\mysql\\bin\\' . $binary . '.exe';
+            if (file_exists($xamppPath)) {
+                return '"' . $xamppPath . '"';
+            }
+        }
+
+        // Check đường dẫn phổ biến trên Linux/Ubuntu
+        $linuxPaths = [
+            '/usr/bin/' . $binary,
+            '/usr/local/bin/' . $binary,
+            '/usr/local/mysql/bin/' . $binary,
+        ];
+        foreach ($linuxPaths as $path) {
+            if (file_exists($path)) {
+                return $path;
+            }
+        }
+
+        // Fallback: trả về tên binary (dựa vào PATH của hệ thống)
+        return $binary;
     }
 }

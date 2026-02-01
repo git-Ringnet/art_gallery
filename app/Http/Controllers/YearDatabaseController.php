@@ -64,7 +64,7 @@ class YearDatabaseController extends Controller
             }
 
             $filename = basename($filePath);
-            
+
             // Kiểm tra xem file đã có trong DB chưa
             $exists = DatabaseExport::where('filename', $filename)->exists();
             if ($exists) {
@@ -76,7 +76,7 @@ class YearDatabaseController extends Controller
             $year = date('Y');
             $isZip = str_ends_with(strtolower($filename), '.zip');
             $isImport = strpos($filename, '_full') !== false; // ZIP thường là import
-            
+
             // Thử parse năm từ tên file
             if (preg_match('/art_gallery_(\d{4})_/', $filename, $matches)) {
                 $year = (int) $matches[1];
@@ -212,7 +212,7 @@ class YearDatabaseController extends Controller
             $timestamp = now()->format('Y-m-d_His');
             $includeImages = $request->input('include_images', false);
             $isEncrypted = true; // Luôn mã hóa
-            
+
             // Tạo thư mục backup
             $backupDir = storage_path('backups/databases');
             if (!file_exists($backupDir)) {
@@ -230,7 +230,8 @@ class YearDatabaseController extends Controller
             $password = config('database.connections.mysql.password');
 
             $command = sprintf(
-                'mysqldump --host=%s --port=%s --user=%s %s %s > %s',
+                '%s --host=%s --port=%s --user=%s %s %s > %s',
+                $this->yearService->getMysqlExecutable('mysqldump'),
                 escapeshellarg($host),
                 escapeshellarg($port),
                 escapeshellarg($username),
@@ -252,7 +253,7 @@ class YearDatabaseController extends Controller
             if ($includeImages) {
                 $zipFilename = "art_gallery_{$year}_{$timestamp}_full.zip";
                 $zipPath = $backupDir . DIRECTORY_SEPARATOR . $zipFilename;
-                
+
                 $zip = new \ZipArchive();
                 if ($zip->open($zipPath, \ZipArchive::CREATE | \ZipArchive::OVERWRITE) !== true) {
                     unlink($sqlPath);
@@ -272,10 +273,10 @@ class YearDatabaseController extends Controller
                 }
 
                 $zip->close();
-                
+
                 // Xóa file SQL tạm
                 unlink($sqlPath);
-                
+
                 $finalFilename = $zipFilename;
                 $finalPath = $zipPath;
                 $relativePath = "backups/databases/{$zipFilename}";
@@ -291,7 +292,7 @@ class YearDatabaseController extends Controller
                         Log::error("Lỗi mã hóa file: " . $e->getMessage());
                     }
                 }
-                
+
                 $finalFilename = $sqlFilename;
                 $finalPath = $sqlPath;
                 $relativePath = "backups/databases/{$sqlFilename}";
@@ -425,7 +426,7 @@ class YearDatabaseController extends Controller
         $fullPath = null;
         $unzippedPath = null;
         $savedFilePath = null;
-        
+
         // Nếu import SQL + ảnh riêng thì KHÔNG lưu vào backup (vì không đầy đủ)
         $shouldSaveToBackup = !$hasImages;
 
@@ -447,7 +448,7 @@ class YearDatabaseController extends Controller
 
                 $savedFilename = $filename;
                 $savedFilePath = $backupDir . DIRECTORY_SEPARATOR . $savedFilename;
-                
+
                 // Nếu file đã tồn tại, thêm timestamp
                 if (file_exists($savedFilePath)) {
                     $savedFilename = pathinfo($filename, PATHINFO_FILENAME) . '_' . time() . '.' . pathinfo($filename, PATHINFO_EXTENSION);
@@ -456,7 +457,7 @@ class YearDatabaseController extends Controller
 
                 // Copy file gốc vào backup folder
                 $file->move($backupDir, $savedFilename);
-                
+
                 if (!file_exists($savedFilePath)) {
                     Log::error("Không thể lưu file vào backup: {$savedFilePath}");
                     throw new \Exception('Không thể lưu file upload');
@@ -472,7 +473,7 @@ class YearDatabaseController extends Controller
                 $uniqueFilename = time() . '_' . $filename;
                 $fullPath = $tempDir . DIRECTORY_SEPARATOR . $uniqueFilename;
                 $file->move($tempDir, $uniqueFilename);
-                
+
                 if (!file_exists($fullPath)) {
                     Log::error("Không thể lưu file vào temp: {$fullPath}");
                     throw new \Exception('Không thể lưu file upload');
@@ -485,11 +486,11 @@ class YearDatabaseController extends Controller
                 try {
                     $decryptedPath = $fullPath . '.decrypted';
                     \App\Services\DatabaseEncryptionService::decrypt($fullPath, $decryptedPath);
-                    
+
                     // Xóa file encrypted, dùng file decrypted
                     unlink($fullPath);
                     rename($decryptedPath, $fullPath);
-                    
+
                     Log::info("File đã được giải mã thành công");
                 } catch (\Exception $e) {
                     Log::error("Lỗi giải mã file: " . $e->getMessage());
@@ -541,11 +542,12 @@ class YearDatabaseController extends Controller
             $port = config('database.connections.mysql.port', '3306');
             $username = config('database.connections.mysql.username');
             $password = config('database.connections.mysql.password');
-            
+
             Log::info("Import SQL vào database hiện tại: {$dbName} @ {$host}");
 
             $command = sprintf(
-                'mysql --host=%s --port=%s --user=%s %s %s < "%s" 2>&1',
+                '%s --host=%s --port=%s --user=%s %s %s < "%s" 2>&1',
+                $this->yearService->getMysqlExecutable('mysql'),
                 escapeshellarg($host),
                 escapeshellarg($port),
                 escapeshellarg($username),
@@ -577,12 +579,12 @@ class YearDatabaseController extends Controller
             if ($hasImages && $tempSessionId) {
                 $tempImagesDir = storage_path('app/temp/images_' . $tempSessionId);
                 $targetDir = storage_path('app/public');
-                
+
                 if (is_dir($tempImagesDir)) {
                     Log::info("Bắt đầu copy ảnh từ temp: {$tempImagesDir}");
                     $imagesCopied = $this->copyDirectoryRecursive($tempImagesDir, $targetDir);
                     Log::info("Đã copy {$imagesCopied} ảnh vào storage");
-                    
+
                     // Xóa thư mục temp
                     $this->deleteDirectory($tempImagesDir);
                     Log::info("Đã xóa thư mục temp: {$tempImagesDir}");
@@ -597,7 +599,7 @@ class YearDatabaseController extends Controller
                 try {
                     $currentYear = YearDatabase::getCurrentYear();
                     $fileSize = file_exists($savedFilePath) ? filesize($savedFilePath) : $originalFileSize;
-                    
+
                     $importRecord = DatabaseExport::create([
                         'year' => $currentYear->year ?? date('Y'),
                         'filename' => $savedFilename,
@@ -911,7 +913,7 @@ class YearDatabaseController extends Controller
     private function copyDirectoryRecursive($source, $dest)
     {
         $copied = 0;
-        
+
         if (!is_dir($source)) {
             return 0;
         }
@@ -926,7 +928,7 @@ class YearDatabaseController extends Controller
             // Lấy đường dẫn tương đối bằng cách cắt bỏ phần source
             $subPath = substr($item->getRealPath(), $sourceLen + 1);
             $targetPath = $dest . DIRECTORY_SEPARATOR . $subPath;
-            
+
             if ($item->isDir()) {
                 if (!is_dir($targetPath)) {
                     mkdir($targetPath, 0755, true);
@@ -1113,7 +1115,7 @@ class YearDatabaseController extends Controller
             }
         } catch (\Exception $e) {
             Log::error("Lỗi import: " . $e->getMessage());
-            
+
             // Cleanup
             if (isset($fullPath) && file_exists($fullPath)) {
                 @unlink($fullPath);
@@ -1187,7 +1189,7 @@ class YearDatabaseController extends Controller
 
         foreach ($files as $file) {
             $targetPath = $dest . DIRECTORY_SEPARATOR . substr($file->getRealPath(), strlen($source) + 1);
-            
+
             if ($file->isDir()) {
                 if (!is_dir($targetPath)) {
                     mkdir($targetPath, 0755, true);
@@ -1206,7 +1208,7 @@ class YearDatabaseController extends Controller
     {
         // Log request để debug
         Log::info("uploadImagesBatch: ========== REQUEST RECEIVED ==========");
-        
+
         try {
             $request->validate([
                 'images' => 'required|array|max:20',
@@ -1229,7 +1231,7 @@ class YearDatabaseController extends Controller
         $paths = $request->input('paths');
         $sessionId = $request->input('session_id');
         $saveToTemp = $request->input('save_to_temp') === '1';
-        
+
         Log::info("uploadImagesBatch: Nhận " . count($images) . " files, saveToTemp=" . ($saveToTemp ? 'true' : 'false') . ", sessionId=" . $sessionId);
 
         // Xác định thư mục đích
@@ -1249,16 +1251,16 @@ class YearDatabaseController extends Controller
 
                 // Đảm bảo path an toàn (không cho phép ../)
                 $targetPath = str_replace(['../', '..\\'], '', $originalPath);
-                
+
                 // Chuẩn hóa path separator
                 $targetPath = str_replace('\\', '/', $targetPath);
-                
+
                 // Xử lý các trường hợp path khác nhau:
                 // 1. "storage/paintings/xxx.jpg" -> "paintings/xxx.jpg"
                 // 2. "folder_name/storage/paintings/xxx.jpg" -> "paintings/xxx.jpg"
                 // 3. "paintings/xxx.jpg" -> "paintings/xxx.jpg" (giữ nguyên)
                 // 4. "folder_name/paintings/xxx.jpg" -> "paintings/xxx.jpg" (thư mục gốc bất kỳ)
-                
+
                 // Tìm vị trí "storage/" trong path
                 $storagePos = strpos($targetPath, 'storage/');
                 if ($storagePos !== false) {
@@ -1273,7 +1275,7 @@ class YearDatabaseController extends Controller
                             break;
                         }
                     }
-                    
+
                     // Nếu vẫn không tìm thấy, bỏ thư mục gốc đầu tiên (folder được chọn)
                     // Ví dụ: "my_images/paintings/xxx.jpg" -> "paintings/xxx.jpg"
                     $parts = explode('/', $targetPath);
@@ -1285,13 +1287,13 @@ class YearDatabaseController extends Controller
                         }
                     }
                 }
-                
+
                 Log::info("uploadImagesBatch: {$originalPath} -> {$targetPath}");
-                
+
                 // Tạo đường dẫn đầy đủ
                 $fullPath = $baseDir . '/' . $targetPath;
                 $dir = dirname($fullPath);
-                
+
                 if (!is_dir($dir)) {
                     mkdir($dir, 0755, true);
                 }
@@ -1299,7 +1301,7 @@ class YearDatabaseController extends Controller
                 // Move file
                 $image->move($dir, basename($fullPath));
                 $uploaded++;
-                
+
             } catch (\Exception $e) {
                 $failed++;
                 $errors[] = "File {$index}: " . $e->getMessage();
@@ -1358,7 +1360,7 @@ class YearDatabaseController extends Controller
         // Tăng timeout và memory cho file lớn
         set_time_limit(600); // 10 phút
         ini_set('memory_limit', '512M');
-        
+
         $request->validate([
             'file' => 'required|file|max:2048000', // Max 2GB
         ]);
@@ -1366,7 +1368,7 @@ class YearDatabaseController extends Controller
         $file = $request->file('file');
         $filename = $file->getClientOriginalName();
         $extension = strtolower($file->getClientOriginalExtension());
-        
+
         Log::info("prepareImportImages: Bắt đầu xử lý file {$filename}");
 
         if ($extension !== 'zip') {
@@ -1386,11 +1388,11 @@ class YearDatabaseController extends Controller
 
         try {
             Log::info("prepareImportImages: Bắt đầu lưu file ZIP");
-            
+
             // Lưu và giải nén ZIP
             $zipPath = $tempDir . DIRECTORY_SEPARATOR . $sessionId . '.zip';
             $file->move($tempDir, $sessionId . '.zip');
-            
+
             Log::info("prepareImportImages: Đã lưu file ZIP, bắt đầu giải nén");
 
             $zip = new \ZipArchive();
@@ -1401,7 +1403,7 @@ class YearDatabaseController extends Controller
             mkdir($extractDir, 0755, true);
             $zip->extractTo($extractDir);
             $zip->close();
-            
+
             Log::info("prepareImportImages: Đã giải nén xong");
 
             // Lưu file ZIP vào thư mục backup (thay vì xóa)
@@ -1411,13 +1413,13 @@ class YearDatabaseController extends Controller
             }
             $savedZipFilename = $filename; // Giữ tên gốc
             $savedZipPath = $backupDir . DIRECTORY_SEPARATOR . $savedZipFilename;
-            
+
             // Nếu file đã tồn tại, thêm timestamp
             if (file_exists($savedZipPath)) {
                 $savedZipFilename = pathinfo($filename, PATHINFO_FILENAME) . '_' . time() . '.' . pathinfo($filename, PATHINFO_EXTENSION);
                 $savedZipPath = $backupDir . DIRECTORY_SEPARATOR . $savedZipFilename;
             }
-            
+
             $zipFileSize = filesize($zipPath);
             rename($zipPath, $savedZipPath);
             Log::info("prepareImportImages: Đã lưu file ZIP vào backup: {$savedZipFilename}");
@@ -1432,13 +1434,13 @@ class YearDatabaseController extends Controller
                     $sqlFile = basename($sqlFiles[0]);
                 }
             }
-            
+
             Log::info("prepareImportImages: SQL file = {$sqlFile}");
 
             // Lấy danh sách file hình ảnh
             $imageFiles = [];
             $storageDir = $extractDir . '/storage';
-            
+
             if (is_dir($storageDir)) {
                 $iterator = new \RecursiveIteratorIterator(
                     new \RecursiveDirectoryIterator($storageDir, \RecursiveDirectoryIterator::SKIP_DOTS),
@@ -1456,7 +1458,7 @@ class YearDatabaseController extends Controller
                     }
                 }
             }
-            
+
             Log::info("prepareImportImages: Tìm thấy " . count($imageFiles) . " file hình ảnh");
 
             // Lưu session info vào file (thay vì session để tránh mất data giữa các request)
@@ -1471,7 +1473,7 @@ class YearDatabaseController extends Controller
             ];
             $sessionFile = $tempDir . DIRECTORY_SEPARATOR . $sessionId . '.json';
             file_put_contents($sessionFile, json_encode($sessionData));
-            
+
             Log::info("prepareImportImages: Hoàn thành, sessionId = {$sessionId}");
 
             return response()->json([
@@ -1497,7 +1499,7 @@ class YearDatabaseController extends Controller
             ], 500);
         }
     }
-    
+
     /**
      * Helper: Lấy session data từ file
      */
@@ -1505,11 +1507,11 @@ class YearDatabaseController extends Controller
     {
         $tempDir = storage_path('app/temp');
         $sessionFile = $tempDir . DIRECTORY_SEPARATOR . $sessionId . '.json';
-        
+
         if (!file_exists($sessionFile)) {
             return null;
         }
-        
+
         return json_decode(file_get_contents($sessionFile), true);
     }
 
@@ -1535,7 +1537,7 @@ class YearDatabaseController extends Controller
 
         $extractDir = $sessionData['extractDir'];
         $sqlFile = $sessionData['sqlFile'];
-        
+
         Log::info("importSqlFromSession: extractDir = {$extractDir}, sqlFile = {$sqlFile}");
 
         if (!$sqlFile || !file_exists($extractDir . '/' . $sqlFile)) {
@@ -1549,9 +1551,9 @@ class YearDatabaseController extends Controller
         try {
             // Lưu user ID trước khi import (vì import có thể truncate sessions table)
             $currentUserId = Auth::id();
-            
+
             $this->importSqlFile($extractDir . '/' . $sqlFile);
-            
+
             // Chạy migrations để đảm bảo schema đúng (vì file SQL cũ có thể thiếu columns mới)
             try {
                 Artisan::call('migrate', ['--force' => true]);
@@ -1559,7 +1561,7 @@ class YearDatabaseController extends Controller
             } catch (\Exception $e) {
                 Log::warning("Không thể chạy migrations: " . $e->getMessage());
             }
-            
+
             // Re-login user sau khi import (vì sessions table có thể bị truncate)
             if ($currentUserId) {
                 $user = \App\Models\User::find($currentUserId);
@@ -1612,7 +1614,7 @@ class YearDatabaseController extends Controller
         $extractDir = $sessionData['extractDir'];
         $storageDir = $extractDir . '/storage';
         $targetDir = storage_path('app/public');
-        
+
         Log::info("copyImagesBatch: storageDir = {$storageDir}, startIndex = {$startIndex}");
 
         if (!is_dir($storageDir)) {
@@ -1664,7 +1666,7 @@ class YearDatabaseController extends Controller
         $totalFiles = count($allFiles);
         $processed = $startIndex + $copied;
         $isComplete = $processed >= $totalFiles;
-        
+
         Log::info("copyImagesBatch: copied = {$copied}, processed = {$processed}, total = {$totalFiles}");
 
         return response()->json([
@@ -1684,25 +1686,25 @@ class YearDatabaseController extends Controller
     {
         $sessionId = $request->input('sessionId');
         $sessionData = $this->getImportSessionData($sessionId);
-        
+
         // Lấy các tham số - xử lý cả boolean và string
         $importSuccess = filter_var($request->input('success', false), FILTER_VALIDATE_BOOLEAN);
         $filename = $request->input('filename', 'unknown.zip');
         $totalImages = (int) $request->input('totalImages', 0);
-        
+
         Log::info("cleanupImportSession: sessionId={$sessionId}, success={$importSuccess}, filename={$filename}, totalImages={$totalImages}");
 
         // Ghi nhận import thành công vào database
         if ($importSuccess) {
             try {
                 $currentYear = YearDatabase::getCurrentYear();
-                
+
                 // Lấy thông tin file từ session data
                 $savedFilename = $sessionData['savedZipFilename'] ?? $filename;
                 $savedFilePath = $sessionData['savedZipPath'] ?? '';
                 $zipFileSize = $sessionData['zipFileSize'] ?? 0;
                 $sessionTotalImages = $sessionData['totalImages'] ?? $totalImages;
-                
+
                 DatabaseExport::create([
                     'year' => $currentYear->year ?? date('Y'),
                     'filename' => $savedFilename,

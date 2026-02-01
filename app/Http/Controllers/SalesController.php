@@ -260,8 +260,47 @@ class SalesController extends Controller
                         $items[$key]['price_vnd'] = str_replace([',', '.', ' '], '', $priceVnd);
                     }
                 }
+
+                // Clean discount_amount_usd for items
+                if (isset($item['discount_amount_usd'])) {
+                    $discUsd = $item['discount_amount_usd'];
+                    if ($discUsd === '' || $discUsd === null) {
+                        $items[$key]['discount_amount_usd'] = null;
+                    } else if (is_string($discUsd)) {
+                        $cleaned = str_replace([',', ' '], '', $discUsd);
+                        $items[$key]['discount_amount_usd'] = is_numeric($cleaned) ? (float) $cleaned : null;
+                    }
+                }
+
+                // Clean discount_amount_vnd for items
+                if (isset($item['discount_amount_vnd'])) {
+                    $discVnd = $item['discount_amount_vnd'];
+                    if ($discVnd === '' || $discVnd === null) {
+                        $items[$key]['discount_amount_vnd'] = null;
+                    } else if (is_string($discVnd)) {
+                        $cleaned = str_replace([',', '.', ' '], '', $discVnd);
+                        $items[$key]['discount_amount_vnd'] = is_numeric($cleaned) ? (float) $cleaned : null;
+                    }
+                }
             }
             $request->merge(['items' => $items]);
+        }
+
+        // Clean up sale-level numeric fields (remove formatting, convert empty strings to null)
+        $numericFields = ['discount_amount_usd', 'discount_amount_vnd', 'shipping_fee_usd', 'shipping_fee_vnd', 'exchange_rate', 'payment_usd', 'payment_vnd', 'payment_amount'];
+        foreach ($numericFields as $field) {
+            $value = $request->input($field);
+            if ($value === '' || $value === null) {
+                $request->merge([$field => null]);
+            } elseif (is_string($value)) {
+                // Remove formatting (commas, dots for VND, spaces)
+                $cleaned = str_replace([',', ' '], '', $value);
+                // For VND fields, also remove dots used as thousands separator
+                if (str_contains($field, 'vnd') || $field === 'exchange_rate') {
+                    $cleaned = str_replace('.', '', $cleaned);
+                }
+                $request->merge([$field => is_numeric($cleaned) ? (float) $cleaned : null]);
+            }
         }
 
         $validated = $request->validate([

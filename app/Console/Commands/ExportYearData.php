@@ -12,13 +12,14 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\Storage;
 use ZipArchive;
+use App\Services\YearDatabaseService;
 
 class ExportYearData extends Command
 {
     protected $signature = 'year:export {year} {--include-images : Bao gồm ảnh trong file export}';
     protected $description = 'Export dữ liệu của một năm ra file ZIP (SQL + ảnh)';
 
-    public function handle()
+    public function handle(YearDatabaseService $yearService)
     {
         $year = $this->argument('year');
         $includeImages = $this->option('include-images');
@@ -40,7 +41,7 @@ class ExportYearData extends Command
 
             // 1. Export SQL
             $this->info('Đang export database...');
-            $sqlFile = $this->exportSql($year, $exportDir);
+            $sqlFile = $this->exportSql($year, $exportDir, $yearService);
 
             // 2. Export ảnh nếu được yêu cầu
             $imagesDir = null;
@@ -85,10 +86,10 @@ class ExportYearData extends Command
     /**
      * Export FULL database bằng mysqldump (có thể import trực tiếp)
      */
-    protected function exportSql($year, $exportDir)
+    protected function exportSql($year, $exportDir, YearDatabaseService $yearService)
     {
         $sqlFile = "{$exportDir}/database_{$year}.sql";
-        
+
         // Lấy config database
         $dbName = config('database.connections.mysql.database');
         $host = config('database.connections.mysql.host');
@@ -98,7 +99,8 @@ class ExportYearData extends Command
 
         // Sử dụng mysqldump để export full database
         $command = sprintf(
-            'mysqldump --host=%s --port=%s --user=%s %s --single-transaction --routines --triggers %s > %s 2>&1',
+            '%s --host=%s --port=%s --user=%s %s --single-transaction --routines --triggers %s > %s 2>&1',
+            $yearService->getMysqlExecutable('mysqldump'),
             escapeshellarg($host),
             escapeshellarg($port),
             escapeshellarg($username),
@@ -119,7 +121,7 @@ class ExportYearData extends Command
         $header .= "-- Ngày export: " . now()->format('Y-m-d H:i:s') . "\n";
         $header .= "-- Database: {$dbName}\n";
         $header .= "-- =============================================\n\n";
-        
+
         $content = file_get_contents($sqlFile);
         file_put_contents($sqlFile, $header . $content);
 
@@ -167,7 +169,7 @@ class ExportYearData extends Command
     protected function exportImages($year, $exportDir)
     {
         $storagePublicPath = storage_path('app/public');
-        
+
         if (!File::exists($storagePublicPath)) {
             $this->warn("Thư mục storage/app/public không tồn tại!");
             return null;
@@ -203,7 +205,7 @@ class ExportYearData extends Command
         foreach ($items as $item) {
             $relativePath = $item->getRelativePathname();
             $destPath = $dest . DIRECTORY_SEPARATOR . $relativePath;
-            
+
             // Tạo thư mục cha nếu chưa có
             $destDir = dirname($destPath);
             if (!File::exists($destDir)) {
