@@ -255,10 +255,10 @@ class Sale extends Model
             // Chỉ có USD
             $totalPaid = (float) $this->paid_usd;
             $totalAmount = (float) $this->total_usd;
-            $debt = $totalAmount - $totalPaid;
+            $debt = round($totalAmount - $totalPaid, 2); // Làm tròn để tránh sai số floating point
 
             // Xác định trạng thái
-            if ($debt <= 0.01) {
+            if ($debt <= 0) {
                 $this->payment_status = 'paid';
                 $this->debt_amount = 0;
             } elseif ($totalPaid > 0.01) {
