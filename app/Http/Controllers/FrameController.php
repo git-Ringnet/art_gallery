@@ -75,110 +75,114 @@ class FrameController extends Controller
             'cost_price' => 'required|numeric|min:0',
             'cost_price_usd' => 'nullable|numeric|min:0',
             'notes' => 'nullable|string',
+            'quantity' => 'nullable|integer|min:1',
             'items' => 'required|array|min:1',
             'items.*.supply_id' => 'required|exists:supplies,id',
         ]);
 
+        $quantity = $validated['quantity'] ?? 1;
+
         DB::beginTransaction();
         try {
-            // Tính chu vi khung
+            // Tính toán chung
             $perimeter = 2 * ($validated['frame_length'] + $validated['frame_width']);
-            
-            // Lấy khấu trừ góc xéo từ input người dùng
             $cornerDeduction = $validated['corner_deduction'];
-            
-            // Tổng chiều dài cây cần
             $totalWoodNeeded = $perimeter + $cornerDeduction;
 
-            // Tạo khung
-            $frame = Frame::create([
-                'name' => $validated['name'],
-                'frame_length' => $validated['frame_length'],
-                'frame_width' => $validated['frame_width'],
-                'perimeter' => $perimeter,
-                'corner_deduction' => $cornerDeduction,
-                'total_wood_needed' => $totalWoodNeeded,
-                'cost_price' => $validated['cost_price'],
-                'cost_price_usd' => $validated['cost_price_usd'] ?? 0,
-                'notes' => $validated['notes'],
-            ]);
-
-            // Thêm các items và cập nhật kho
-            foreach ($validated['items'] as $itemData) {
-                $supply = Supply::findOrFail($itemData['supply_id']);
-                
-                // Tính chiều dài cần cho loại cây này (chia đều tổng cây cần cho các loại cây)
-                $woodNeededForThisSupply = $totalWoodNeeded / count($validated['items']);
-                
-                // Tính số cây cần dùng
-                $treeQuantity = ceil($woodNeededForThisSupply / $supply->quantity);
-                
-                // Chiều dài thực tế cắt từ mỗi cây
-                $lengthPerTree = $woodNeededForThisSupply / $treeQuantity;
-                
-                // Kiểm tra đủ số cây không
-                if ($treeQuantity > $supply->tree_count) {
-                    throw new \Exception("Cây {$supply->name} không đủ số lượng. Còn: {$supply->tree_count} cây, cần: {$treeQuantity} cây");
-                }
-                
-                // Kiểm tra chiều dài mỗi cây
-                if ($lengthPerTree > $supply->quantity) {
-                    throw new \Exception("Cây {$supply->name} không đủ dài. Chiều dài mỗi cây: {$supply->quantity} cm, cần: " . round($lengthPerTree, 2) . " cm");
-                }
-
-                // Tạo frame item
-                FrameItem::create([
-                    'frame_id' => $frame->id,
-                    'supply_id' => $itemData['supply_id'],
-                    'wood_width' => null,
-                    'tree_quantity' => $treeQuantity,
-                    'length_per_tree' => $lengthPerTree,
-                    'total_length' => $woodNeededForThisSupply,
-                    'use_whole_trees' => false,
+            for ($i = 0; $i < $quantity; $i++) {
+                // Tạo khung
+                $frame = Frame::create([
+                    'name' => $validated['name'],
+                    'frame_length' => $validated['frame_length'],
+                    'frame_width' => $validated['frame_width'],
+                    'perimeter' => $perimeter,
+                    'corner_deduction' => $cornerDeduction,
+                    'total_wood_needed' => $totalWoodNeeded,
+                    'cost_price' => $validated['cost_price'],
+                    'cost_price_usd' => $validated['cost_price_usd'] ?? 0,
+                    'notes' => $validated['notes'],
                 ]);
 
-                // Cập nhật kho: Trừ số cây đã dùng
-                $supply->decrement('tree_count', $treeQuantity);
-                
-                // Nếu cắt cây (chiều dài cần < chiều dài mỗi cây trong kho)
-                // Tự động tạo record mới cho phần dư
-                if ($lengthPerTree < $supply->quantity) {
-                    $remainingLength = $supply->quantity - $lengthPerTree;
+                // Thêm các items và cập nhật kho
+                foreach ($validated['items'] as $itemData) {
+                    $supply = Supply::findOrFail($itemData['supply_id']);
                     
-                    // Tìm hoặc tạo record cho phần dư
-                    $existingRemaining = Supply::where('name', $supply->name)
-                        ->where('type', $supply->type)
-                        ->where('quantity', $remainingLength)
-                        ->first();
+                    // Tính chiều dài cần cho loại cây này (chia đều tổng cây cần cho các loại cây)
+                    $woodNeededForThisSupply = $totalWoodNeeded / count($validated['items']);
                     
-                    if ($existingRemaining) {
-                        // Đã có record với chiều dài này, cộng thêm số cây
-                        $existingRemaining->increment('tree_count', $treeQuantity);
-                    } else {
-                        // Tạo record mới cho phần dư
-                        Supply::create([
-                            'code' => $supply->code . '-' . round($remainingLength, 2) . 'cm',
-                            'name' => $supply->name,
-                            'type' => $supply->type,
-                            'unit' => $supply->unit,
-                            'quantity' => $remainingLength,
-                            'tree_count' => $treeQuantity,
-                            'notes' => "Phần dư " . round($remainingLength, 2) . "cm sau khi cắt từ {$supply->code} ({$supply->quantity}cm)",
-                        ]);
+                    // Tính số cây cần dùng
+                    $treeQuantity = ceil($woodNeededForThisSupply / $supply->quantity);
+                    
+                    // Chiều dài thực tế cắt từ mỗi cây
+                    $lengthPerTree = $woodNeededForThisSupply / $treeQuantity;
+                    
+                    // Kiểm tra đủ số cây không
+                    // Lưu ý: Trong vòng lặp, $supply->tree_count đã bị giảm đi ở các lần lặp trước
+                    // Nên cần query lại hoặc refresh model, tuy nhiên findOrFail ở trên đã lấy mới nhất trong transaction
+                    if ($treeQuantity > $supply->tree_count) {
+                        throw new \Exception("Cây {$supply->name} không đủ số lượng cho khung thứ " . ($i + 1) . ". Còn: {$supply->tree_count} cây, cần: {$treeQuantity} cây");
+                    }
+                    
+                    // Kiểm tra chiều dài mỗi cây
+                    if ($lengthPerTree > $supply->quantity) {
+                        throw new \Exception("Cây {$supply->name} không đủ dài. Chiều dài mỗi cây: {$supply->quantity} cm, cần: " . round($lengthPerTree, 2) . " cm");
+                    }
+
+                    // Tạo frame item
+                    FrameItem::create([
+                        'frame_id' => $frame->id,
+                        'supply_id' => $itemData['supply_id'],
+                        'wood_width' => null,
+                        'tree_quantity' => $treeQuantity,
+                        'length_per_tree' => $lengthPerTree,
+                        'total_length' => $woodNeededForThisSupply,
+                        'use_whole_trees' => false,
+                    ]);
+
+                    // Cập nhật kho: Trừ số cây đã dùng
+                    $supply->decrement('tree_count', $treeQuantity);
+                    
+                    // Nếu cắt cây (chiều dài cần < chiều dài mỗi cây trong kho)
+                    // Tự động tạo record mới cho phần dư
+                    if ($lengthPerTree < $supply->quantity) {
+                        $remainingLength = $supply->quantity - $lengthPerTree;
+                        
+                        // FIX: Tạo mã code dự kiến trước để tìm kiếm chính xác
+                        // Thay vì tìm theo quantity (float) gây lỗi precision
+                        $minCode = $supply->code . '-' . round($remainingLength, 2) . 'cm';
+                        
+                        // Tìm hoặc tạo record cho phần dư bằng CODE
+                        $existingRemaining = Supply::where('code', $minCode)->first();
+                        
+                        if ($existingRemaining) {
+                            // Đã có record với mã này
+                            $existingRemaining->increment('tree_count', $treeQuantity);
+                        } else {
+                            // Tạo record mới cho phần dư
+                            Supply::create([
+                                'code' => $minCode,
+                                'name' => $supply->name,
+                                'type' => $supply->type,
+                                'unit' => $supply->unit,
+                                'quantity' => $remainingLength,
+                                'tree_count' => $treeQuantity,
+                                'notes' => "Phần dư " . round($remainingLength, 2) . "cm sau khi cắt từ {$supply->code} ({$supply->quantity}cm)",
+                            ]);
+                        }
                     }
                 }
+
+                // Log activity
+                $this->activityLogger->logCreate(
+                    \App\Models\ActivityLog::MODULE_FRAMES,
+                    $frame,
+                    "Tạo khung mới: {$frame->name}" . ($quantity > 1 ? " ({$quantity} khung)" : "")
+                );
             }
 
             DB::commit();
             
-            // Log activity
-            $this->activityLogger->logCreate(
-                \App\Models\ActivityLog::MODULE_FRAMES,
-                $frame,
-                "Tạo khung mới: {$frame->name}"
-            );
-            
-            return redirect()->route('frames.index')->with('success', 'Tạo khung thành công!');
+            return redirect()->route('frames.index')->with('success', "Tạo {$quantity} khung thành công!");
         } catch (\Exception $e) {
             DB::rollBack();
             return back()->withErrors(['error' => $e->getMessage()])->withInput();

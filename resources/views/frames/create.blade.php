@@ -66,6 +66,14 @@
                     </div>
 
                     <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Số lượng tạo <span class="text-xs text-gray-500">(Mặc định: 1)</span></label>
+                        <input type="number" name="quantity" value="{{ old('quantity', 1) }}" 
+                            min="1" step="1"
+                            class="w-full px-3 py-2 border border-blue-300 bg-blue-50 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                            placeholder="VD: 1">
+                    </div>
+
+                    <div>
                         <label class="block text-sm font-medium text-gray-700 mb-2">Chiều dài khung (cm) <span class="text-red-500">*</span></label>
                         <input type="number" name="frame_length" id="frame_length" value="{{ old('frame_length') }}" 
                             step="0.01" min="0" required
@@ -305,33 +313,37 @@
                 const metrics = calculateFrameMetrics();
                 const itemCount = document.querySelectorAll('#itemsContainer > div').length;
                 
+                // Lấy số lượng batch
+                const batchQuantity = parseInt(document.querySelector('input[name="quantity"]').value) || 1;
+
                 // Tính chiều dài cần cho loại cây này (chia đều tổng cây cần)
-                const woodNeededForThisSupply = metrics.totalWoodNeeded / itemCount;
+                const woodNeededForThisSupplyPerFrame = metrics.totalWoodNeeded / itemCount;
+                // Tổng chiều dài cần cho cả batch
+                const totalWoodNeededForBatch = woodNeededForThisSupplyPerFrame * batchQuantity;
                 
-                // Tính số cây cần
-                const treeQuantity = availableQuantity > 0 ? Math.ceil(woodNeededForThisSupply / availableQuantity) : 0;
-                treeNeededDisplay.textContent = treeQuantity + ' cây';
+                // Tính số cây cần (Logic: Tổng chiều dài / Chiều dài mỗi cây) -> Không đúng hoàn toàn thực tế cắt,
+                // Thực tế: Cần tính số cây cho 1 khung, sau đó nhân với batchQuantity (vì mỗi khung cắt riêng)
+                
+                // Cách tính chính xác theo backend loop:
+                const treePerFrame = availableQuantity > 0 ? Math.ceil(woodNeededForThisSupplyPerFrame / availableQuantity) : 0;
+                const totalTreeNeeded = treePerFrame * batchQuantity;
+
+                treeNeededDisplay.textContent = `${totalTreeNeeded} cây (${treePerFrame} cây/khung)`;
                 
                 // Chiều dài cắt mỗi cây
-                const lengthPerTree = treeQuantity > 0 ? woodNeededForThisSupply / treeQuantity : 0;
+                const lengthPerTree = treePerFrame > 0 ? woodNeededForThisSupplyPerFrame / treePerFrame : 0;
                 lengthPerTreeDisplay.textContent = lengthPerTree.toFixed(2) + ' cm';
                 
                 // Thông tin kho
-                const remainingTrees = availableTreeCount - treeQuantity;
-                const remainingLength = availableQuantity - lengthPerTree;
+                const remainingTrees = availableTreeCount - totalTreeNeeded;
                 
                 let infoText = `Kho: ${availableQuantity.toFixed(2)} ${unit}/cây (${availableTreeCount} cây)`;
                 
-                if (treeQuantity > 0) {
-                    if (treeQuantity > availableTreeCount) {
-                        infoText += ` → <strong class="text-red-600">KHÔNG ĐỦ! Thiếu ${treeQuantity - availableTreeCount} cây</strong>`;
+                if (totalTreeNeeded > 0) {
+                    if (totalTreeNeeded > availableTreeCount) {
+                        infoText += ` → <strong class="text-red-600">KHÔNG ĐỦ! Thiếu ${totalTreeNeeded - availableTreeCount} cây (Cần: ${totalTreeNeeded})</strong>`;
                     } else {
-                        infoText += ` → Còn: <strong>${remainingTrees} cây × ${availableQuantity.toFixed(2)} ${unit}/cây`;
-                        if (remainingLength > 0) {
-                            infoText += ` + ${treeQuantity} cây × ${remainingLength.toFixed(2)} ${unit}/cây (phần dư)</strong>`;
-                        } else {
-                            infoText += `</strong>`;
-                        }
+                        infoText += ` → Còn: <strong>${remainingTrees} cây</strong> (Sau khi trừ ${totalTreeNeeded} cây cho ${batchQuantity} khung)`;
                     }
                 }
                 
@@ -344,6 +356,13 @@
         }
 
         document.getElementById('addItemBtn').addEventListener('click', () => addItem());
+
+        // Lắng nghe thay đổi số lượng
+        document.querySelector('input[name="quantity"]').addEventListener('input', () => {
+             document.querySelectorAll('#itemsContainer > div').forEach(item => {
+                updateItemCalculations(item);
+            });
+        });
 
         // Lắng nghe thay đổi kích thước khung và khấu trừ góc
         document.getElementById('frame_length').addEventListener('input', () => {
