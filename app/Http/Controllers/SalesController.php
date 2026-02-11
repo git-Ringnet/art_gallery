@@ -313,7 +313,7 @@ class SalesController extends Controller
             'sale_date' => 'required|date',
             'items' => 'required|array|min:1',
             'items.*.painting_id' => 'nullable|exists:paintings,id',
-            'items.*.frame_id' => 'nullable|exists:frames,id',
+            'items.*.frame_id' => 'nullable|exists:frames,id|distinct',
             'items.*.description' => 'required|string',
             'items.*.quantity' => 'required|numeric|min:1',
             'items.*.supply_id' => 'nullable|exists:supplies,id',
@@ -672,7 +672,7 @@ class SalesController extends Controller
             $rules = array_merge($rules, [
                 'items' => 'required|array|min:1',
                 'items.*.painting_id' => 'nullable|exists:paintings,id',
-                'items.*.frame_id' => 'nullable|exists:frames,id',
+                'items.*.frame_id' => 'nullable|exists:frames,id|distinct',
                 'items.*.description' => 'required|string',
                 'items.*.quantity' => 'required|numeric|min:1',
                 'items.*.supply_id' => 'nullable|exists:supplies,id',
@@ -1319,6 +1319,26 @@ class SalesController extends Controller
         // Check if sale can be approved
         if (!$sale->canApprove()) {
             return back()->with('error', 'Phiếu bán hàng này không thể duyệt');
+        }
+
+        // Check for duplicate frames in the same order
+        // Mỗi khung là độc bản, không thể bán 2 lần trong cùng 1 đơn
+        $frameCounts = [];
+        foreach ($sale->saleItems as $item) {
+            if ($item->frame_id) {
+                if (!isset($frameCounts[$item->frame_id])) {
+                    $frameCounts[$item->frame_id] = 0;
+                }
+                $frameCounts[$item->frame_id]++;
+            }
+        }
+
+        foreach ($frameCounts as $frameId => $count) {
+            if ($count > 1) {
+                $frame = \App\Models\Frame::find($frameId);
+                $name = $frame ? $frame->name : "#$frameId";
+                return back()->with('error', "Khung tranh '{$name}' được chọn {$count} lần trong đơn hàng này. Mỗi khung độc bản chỉ được bán 1 lần. Vui lòng sửa đơn hàng để loại bỏ khung trùng lặp.");
+            }
         }
 
         // KIỂM TRA TỒN KHO TRƯỚC KHI DUYỆT

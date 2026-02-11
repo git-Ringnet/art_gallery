@@ -601,6 +601,26 @@
                 idx++;
             }
 
+            // Helper to get selected frame IDs (excluding current row)
+            function getSelectedFrameIds(currentIdx) {
+                const selectedIds = [];
+                // Query all frame id inputs
+                const inputs = document.querySelectorAll('input[name^="items"][name$="[frame_id]"]');
+                
+                inputs.forEach(input => {
+                    // Extract index from name: items[0][frame_id]
+                    const match = input.name.match(/items\[(\d+)\]\[frame_id\]/);
+                    if (match) {
+                        const idx = parseInt(match[1]);
+                        // Skip current row and empty values
+                        if (idx !== currentIdx && input.value) {
+                            selectedIds.push(parseInt(input.value));
+                        }
+                    }
+                });
+                return selectedIds;
+            }
+
             // Search functions for paintings
             function filterPaintings(query, idx) {
                 const suggestions = document.getElementById(`painting-suggestions-${idx}`);
@@ -705,8 +725,13 @@
                 fetch(`{{ route('sales.api.search.frames') }}?q=${encodeURIComponent(query)}`)
                     .then(response => response.json())
                     .then(frames => {
-                        if (frames.length > 0) {
-                            suggestions.innerHTML = frames.map(f => `
+                        // Filter out already selected frames
+                        const selectedIds = getSelectedFrameIds(idx);
+                        // Only filter if we have selected frames, but strict filtering might be better
+                        const availableFrames = frames.filter(f => !selectedIds.includes(f.id));
+                        
+                        if (availableFrames.length > 0) {
+                            suggestions.innerHTML = availableFrames.map(f => `
                                                                                     <div class="px-3 py-2 hover:bg-blue-50 cursor-pointer border-b" onclick="selectFrame(${f.id}, ${idx})">
                                                                                         <div class="font-medium text-sm">${f.name}</div>
                                                                                         <div class="text-xs text-gray-500">Giá: ${(f.cost_price || 0).toLocaleString()}đ</div>
@@ -750,6 +775,10 @@
                     .then(([paintings, frames]) => {
                         let html = '';
 
+                        // Filter out already selected frames
+                        const selectedIds = getSelectedFrameIds(idx);
+                        const availableFrames = frames.filter(f => !selectedIds.includes(f.id));
+
                         // Add paintings section
                         if (paintings.length > 0) {
                             html += '<div class="px-3 py-1 bg-gray-100 text-xs font-bold text-gray-600">TRANH</div>';
@@ -773,9 +802,9 @@
                         }
 
                         // Add frames section
-                        if (frames.length > 0) {
+                        if (availableFrames.length > 0) {
                             html += '<div class="px-3 py-1 bg-gray-100 text-xs font-bold text-gray-600">KHUNG</div>';
-                            html += frames.map(f => `
+                            html += availableFrames.map(f => `
                                                                                 <div class="px-3 py-2 hover:bg-green-50 cursor-pointer border-b" onclick="selectFrame(${f.id}, ${idx})">
                                                                                     <div class="font-medium text-sm">${f.name}</div>
                                                                                     <div class="text-xs text-gray-500">Giá: ${(f.cost_price || 0).toLocaleString()}đ</div>
