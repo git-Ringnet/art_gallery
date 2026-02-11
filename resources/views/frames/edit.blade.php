@@ -138,18 +138,25 @@
                 <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
                     <div class="md:col-span-3">
                         <label class="block text-sm font-medium text-gray-700 mb-2">Chọn cây gỗ <span class="text-red-500">*</span></label>
-                        <select name="items[${index}][supply_id]" class="supply-select w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500" required>
-                            <option value="">-- Chọn cây gỗ --</option>
-                            ${supplies.map(s => `
-                                <option value="${s.id}" 
-                                    data-quantity="${s.quantity}" 
-                                    data-tree-count="${s.tree_count}"
-                                    data-unit="${s.unit}"
-                                    ${data.supply_id == s.id ? 'selected' : ''}>
-                                    ${s.name} - Còn: ${parseFloat(s.quantity).toFixed(2)} ${s.unit} (${s.tree_count} cây)
-                                </option>
-                            `).join('')}
-                        </select>
+                        <div class="relative">
+                            <input type="text" 
+                                   id="supply-search-${index}"
+                                   class="supply-search w-full px-3 py-2 pr-10 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500" 
+                                   placeholder="Tìm kiếm cây gỗ..."
+                                   autocomplete="off"
+                                   onkeyup="filterSupplies(this.value, ${index})"
+                                   onfocus="showSupplySuggestions(${index})">
+                            <button type="button" 
+                                    id="clear-supply-${index}"
+                                    class="absolute right-2 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600 hidden"
+                                    onclick="clearSupplySearch(${index})"
+                                    title="Xóa tìm kiếm">
+                                <i class="fas fa-times-circle"></i>
+                            </button>
+                            <input type="hidden" name="items[${index}][supply_id]" id="supply-id-${index}" required>
+                            <div id="supply-suggestions-${index}" class="absolute z-10 w-full bg-white border border-gray-300 rounded-lg mt-1 max-h-60 overflow-y-auto hidden shadow-lg"></div>
+                        </div>
+                        <div id="supply-info-${index}" class="text-xs text-gray-600 mt-1 hidden"></div>
                         <p class="text-xs text-gray-500 mt-1">
                             Còn lại: <span class="remaining-info font-medium">Chọn cây để xem</span>
                         </p>
@@ -199,17 +206,10 @@
         }
 
         function attachItemEvents(item) {
-            const supplySelect = item.querySelector('.supply-select');
             const treeQuantity = item.querySelector('.tree-quantity');
             const lengthPerTree = item.querySelector('.length-per-tree');
             const useWholeTrees = item.querySelector('.use-whole-trees');
             const removeBtn = item.querySelector('.remove-item-btn');
-
-            supplySelect.addEventListener('change', () => {
-                // Clear input chiều dài khi chọn cây mới
-                lengthPerTree.value = '';
-                updateItemCalculations(item);
-            });
             
             treeQuantity.addEventListener('input', () => updateItemCalculations(item));
             
@@ -234,9 +234,117 @@
                 }
             });
         }
+        
+        // Search and filter supplies
+        function filterSupplies(query, index) {
+            const suggestions = document.getElementById(`supply-suggestions-${index}`);
+            const clearBtn = document.getElementById(`clear-supply-${index}`);
+            
+            if (query && query.length > 0) {
+                clearBtn.classList.remove('hidden');
+            } else {
+                clearBtn.classList.add('hidden');
+            }
+            
+            if (!query || query.length < 1) {
+                suggestions.classList.add('hidden');
+                return;
+            }
+            
+            const filtered = supplies.filter(s =>
+                s.name.toLowerCase().includes(query.toLowerCase()) ||
+                s.code?.toLowerCase().includes(query.toLowerCase())
+            );
+            
+            if (filtered.length > 0) {
+                suggestions.innerHTML = filtered.map(s => `
+                    <div class="px-3 py-2 hover:bg-blue-50 cursor-pointer border-b" onclick="selectSupply(${s.id}, ${index})">
+                        <div class="font-medium text-sm">${s.name}</div>
+                        <div class="text-xs text-gray-500">Còn: ${parseFloat(s.quantity).toFixed(2)} ${s.unit}/cây (${s.tree_count} cây)</div>
+                    </div>
+                `).join('');
+                suggestions.classList.remove('hidden');
+            } else {
+                suggestions.innerHTML = '<div class="px-3 py-2 text-sm text-gray-500">Không tìm thấy cây gỗ nào</div>';
+                suggestions.classList.remove('hidden');
+            }
+        }
+
+        function clearSupplySearch(index) {
+            const searchInput = document.getElementById(`supply-search-${index}`);
+            const hiddenInput = document.getElementById(`supply-id-${index}`);
+            const suggestions = document.getElementById(`supply-suggestions-${index}`);
+            const clearBtn = document.getElementById(`clear-supply-${index}`);
+            const infoDiv = document.getElementById(`supply-info-${index}`);
+            const lengthPerTree = document.querySelector(`[data-index="${index}"] .length-per-tree`);
+            
+            searchInput.value = '';
+            hiddenInput.value = '';
+            suggestions.classList.add('hidden');
+            clearBtn.classList.add('hidden');
+            infoDiv.classList.add('hidden');
+            if (lengthPerTree) lengthPerTree.value = '';
+            
+            const item = document.querySelector(`[data-index="${index}"]`);
+            if (item) updateItemCalculations(item);
+            
+            searchInput.focus();
+        }
+
+        function showSupplySuggestions(index) {
+            const input = document.getElementById(`supply-search-${index}`);
+            const suggestions = document.getElementById(`supply-suggestions-${index}`);
+            
+            const filtered = input.value ? supplies.filter(s =>
+                s.name.toLowerCase().includes(input.value.toLowerCase()) ||
+                s.code?.toLowerCase().includes(input.value.toLowerCase())
+            ) : supplies;
+            
+            if (filtered.length > 0) {
+                suggestions.innerHTML = filtered.map(s => `
+                    <div class="px-3 py-2 hover:bg-blue-50 cursor-pointer border-b" onclick="selectSupply(${s.id}, ${index})">
+                        <div class="font-medium text-sm">${s.name}</div>
+                        <div class="text-xs text-gray-500">Còn: ${parseFloat(s.quantity).toFixed(2)} ${s.unit}/cây (${s.tree_count} cây)</div>
+                    </div>
+                `).join('');
+                suggestions.classList.remove('hidden');
+            }
+        }
+
+        function selectSupply(supplyId, index) {
+            const supply = supplies.find(s => s.id === supplyId);
+            if (supply) {
+                document.getElementById(`supply-id-${index}`).value = supply.id;
+                document.getElementById(`supply-search-${index}`).value = supply.name;
+                document.getElementById(`supply-suggestions-${index}`).classList.add('hidden');
+                
+                const clearBtn = document.getElementById(`clear-supply-${index}`);
+                if (clearBtn) clearBtn.classList.remove('hidden');
+                
+                const infoDiv = document.getElementById(`supply-info-${index}`);
+                infoDiv.innerHTML = `<i class="fas fa-info-circle mr-1"></i>Kho: ${parseFloat(supply.quantity).toFixed(2)} ${supply.unit}/cây (${supply.tree_count} cây)`;
+                infoDiv.classList.remove('hidden');
+                
+                const item = document.querySelector(`[data-index="${index}"]`);
+                const lengthPerTree = item?.querySelector('.length-per-tree');
+                if (lengthPerTree) lengthPerTree.value = '';
+                
+                if (item) updateItemCalculations(item);
+            }
+        }
+
+        document.addEventListener('click', function(e) {
+            document.querySelectorAll('[id^="supply-suggestions-"]').forEach(suggestion => {
+                const index = suggestion.id.replace('supply-suggestions-', '');
+                if (!e.target.closest(`#supply-search-${index}`) && !e.target.closest(`#supply-suggestions-${index}`)) {
+                    suggestion.classList.add('hidden');
+                }
+            });
+        })
 
         function updateItemCalculations(item) {
-            const supplySelect = item.querySelector('.supply-select');
+            const index = item.dataset.index;
+            const supplyId = document.getElementById(`supply-id-${index}`)?.value;
             const treeQuantity = item.querySelector('.tree-quantity');
             const lengthPerTree = item.querySelector('.length-per-tree');
             const totalLengthInput = item.querySelector('.total-length');
@@ -245,12 +353,12 @@
             const useWholeTrees = item.querySelector('.use-whole-trees');
             const maxLengthInfo = item.querySelector('.max-length-info');
 
-            const selectedOption = supplySelect.options[supplySelect.selectedIndex];
+            const supply = supplies.find(s => s.id == supplyId);
             
-            if (selectedOption.value) {
-                const availableQuantity = parseFloat(selectedOption.dataset.quantity) || 0;
-                const availableTreeCount = parseInt(selectedOption.dataset.treeCount) || 0;
-                const unit = selectedOption.dataset.unit || 'cm';
+            if (supply) {
+                const availableQuantity = parseFloat(supply.quantity) || 0;
+                const availableTreeCount = parseInt(supply.tree_count) || 0;
+                const unit = supply.unit || 'cm';
                 const qty = parseInt(treeQuantity.value) || 0;
                 const length = parseFloat(lengthPerTree.value) || 0;
                 const totalLength = qty * length;

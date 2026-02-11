@@ -232,18 +232,25 @@
                 <div class="grid grid-cols-1 gap-4">
                     <div>
                         <label class="block text-sm font-medium text-gray-700 mb-2">Chọn loại cây gỗ <span class="text-red-500">*</span></label>
-                        <select name="items[${index}][supply_id]" class="supply-select w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500" required>
-                            <option value="">-- Chọn loại cây --</option>
-                            ${supplies.map(s => `
-                                <option value="${s.id}" 
-                                    data-quantity="${s.quantity}" 
-                                    data-tree-count="${s.tree_count}"
-                                    data-unit="${s.unit}"
-                                    ${data.supply_id == s.id ? 'selected' : ''}>
-                                    ${s.name} - Còn: ${parseFloat(s.quantity).toFixed(2)} ${s.unit}/cây (${s.tree_count} cây)
-                                </option>
-                            `).join('')}
-                        </select>
+                        <div class="relative">
+                            <input type="text" 
+                                   id="supply-search-${index}"
+                                   class="supply-search w-full px-3 py-2 pr-10 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500" 
+                                   placeholder="Tìm kiếm loại cây..."
+                                   autocomplete="off"
+                                   onkeyup="filterSupplies(this.value, ${index})"
+                                   onfocus="showSupplySuggestions(${index})">
+                            <button type="button" 
+                                    id="clear-supply-${index}"
+                                    class="absolute right-2 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600 hidden"
+                                    onclick="clearSupplySearch(${index})"
+                                    title="Xóa tìm kiếm">
+                                <i class="fas fa-times-circle"></i>
+                            </button>
+                            <input type="hidden" name="items[${index}][supply_id]" id="supply-id-${index}" required>
+                            <div id="supply-suggestions-${index}" class="absolute z-10 w-full bg-white border border-gray-300 rounded-lg mt-1 max-h-60 overflow-y-auto hidden shadow-lg"></div>
+                        </div>
+                        <div id="supply-info-${index}" class="text-xs text-gray-600 mt-1 hidden"></div>
                     </div>
                     
                     <div>
@@ -276,12 +283,7 @@
         }
 
         function attachItemEvents(item) {
-            const supplySelect = item.querySelector('.supply-select');
             const removeBtn = item.querySelector('.remove-item-btn');
-
-            supplySelect.addEventListener('change', () => {
-                updateItemCalculations(item);
-            });
             
             removeBtn.addEventListener('click', () => {
                 if (document.querySelectorAll('#itemsContainer > div').length > 1) {
@@ -295,6 +297,127 @@
                 }
             });
         }
+
+        // Search and filter supplies
+        function filterSupplies(query, index) {
+            const suggestions = document.getElementById(`supply-suggestions-${index}`);
+            const clearBtn = document.getElementById(`clear-supply-${index}`);
+            
+            // Show/hide clear button
+            if (query && query.length > 0) {
+                clearBtn.classList.remove('hidden');
+            } else {
+                clearBtn.classList.add('hidden');
+            }
+            
+            if (!query || query.length < 1) {
+                suggestions.classList.add('hidden');
+                return;
+            }
+            
+            const filtered = supplies.filter(s =>
+                s.name.toLowerCase().includes(query.toLowerCase()) ||
+                s.code?.toLowerCase().includes(query.toLowerCase())
+            );
+            
+            if (filtered.length > 0) {
+                suggestions.innerHTML = filtered.map(s => `
+                    <div class="px-3 py-2 hover:bg-blue-50 cursor-pointer border-b" onclick="selectSupply(${s.id}, ${index})">
+                        <div class="font-medium text-sm">${s.name}</div>
+                        <div class="text-xs text-gray-500">Còn: ${parseFloat(s.quantity).toFixed(2)} ${s.unit}/cây (${s.tree_count} cây)</div>
+                    </div>
+                `).join('');
+                suggestions.classList.remove('hidden');
+            } else {
+                suggestions.innerHTML = '<div class="px-3 py-2 text-sm text-gray-500">Không tìm thấy loại cây nào</div>';
+                suggestions.classList.remove('hidden');
+            }
+        }
+
+        function clearSupplySearch(index) {
+            const searchInput = document.getElementById(`supply-search-${index}`);
+            const hiddenInput = document.getElementById(`supply-id-${index}`);
+            const suggestions = document.getElementById(`supply-suggestions-${index}`);
+            const clearBtn = document.getElementById(`clear-supply-${index}`);
+            const infoDiv = document.getElementById(`supply-info-${index}`);
+            
+            // Clear all fields
+            searchInput.value = '';
+            hiddenInput.value = '';
+            suggestions.classList.add('hidden');
+            clearBtn.classList.add('hidden');
+            infoDiv.classList.add('hidden');
+            
+            // Clear calculations
+            const item = document.querySelector(`[data-index="${index}"]`);
+            if (item) {
+                const treeNeededDisplay = item.querySelector('.tree-needed-display');
+                const lengthPerTreeDisplay = item.querySelector('.length-per-tree-display');
+                const remainingInfo = item.querySelector('.remaining-info');
+                
+                if (treeNeededDisplay) treeNeededDisplay.textContent = '0 cây';
+                if (lengthPerTreeDisplay) lengthPerTreeDisplay.textContent = '0 cm';
+                if (remainingInfo) remainingInfo.textContent = 'Chọn loại cây để xem thông tin kho';
+            }
+            
+            // Focus back to input
+            searchInput.focus();
+        }
+
+        function showSupplySuggestions(index) {
+            const input = document.getElementById(`supply-search-${index}`);
+            const suggestions = document.getElementById(`supply-suggestions-${index}`);
+            
+            // Show all supplies if no query
+            const filtered = input.value ? supplies.filter(s =>
+                s.name.toLowerCase().includes(input.value.toLowerCase()) ||
+                s.code?.toLowerCase().includes(input.value.toLowerCase())
+            ) : supplies;
+            
+            if (filtered.length > 0) {
+                suggestions.innerHTML = filtered.map(s => `
+                    <div class="px-3 py-2 hover:bg-blue-50 cursor-pointer border-b" onclick="selectSupply(${s.id}, ${index})">
+                        <div class="font-medium text-sm">${s.name}</div>
+                        <div class="text-xs text-gray-500">Còn: ${parseFloat(s.quantity).toFixed(2)} ${s.unit}/cây (${s.tree_count} cây)</div>
+                    </div>
+                `).join('');
+                suggestions.classList.remove('hidden');
+            }
+        }
+
+        function selectSupply(supplyId, index) {
+            const supply = supplies.find(s => s.id === supplyId);
+            if (supply) {
+                document.getElementById(`supply-id-${index}`).value = supply.id;
+                document.getElementById(`supply-search-${index}`).value = supply.name;
+                document.getElementById(`supply-suggestions-${index}`).classList.add('hidden');
+                
+                // Show clear button
+                const clearBtn = document.getElementById(`clear-supply-${index}`);
+                if (clearBtn) clearBtn.classList.remove('hidden');
+                
+                // Show supply info
+                const infoDiv = document.getElementById(`supply-info-${index}`);
+                infoDiv.innerHTML = `<i class="fas fa-info-circle mr-1"></i>Kho: ${parseFloat(supply.quantity).toFixed(2)} ${supply.unit}/cây (${supply.tree_count} cây)`;
+                infoDiv.classList.remove('hidden');
+                
+                // Update calculations
+                const item = document.querySelector(`[data-index="${index}"]`);
+                if (item) {
+                    updateItemCalculations(item);
+                }
+            }
+        }
+
+        // Close suggestions when clicking outside
+        document.addEventListener('click', function(e) {
+            document.querySelectorAll('[id^="supply-suggestions-"]').forEach(suggestion => {
+                const index = suggestion.id.replace('supply-suggestions-', '');
+                if (!e.target.closest(`#supply-search-${index}`) && !e.target.closest(`#supply-suggestions-${index}`)) {
+                    suggestion.classList.add('hidden');
+                }
+            });
+        });
 
         function updateItemCalculations(item) {
             const supplySelect = item.querySelector('.supply-select');
