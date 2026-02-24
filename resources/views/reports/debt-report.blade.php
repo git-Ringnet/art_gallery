@@ -26,15 +26,17 @@
                 <label class="block text-sm font-semibold text-gray-700 mb-2">
                     <i class="fas fa-calendar-day mr-2 text-blue-500"></i>Từ ngày
                 </label>
-                <input type="date" name="from_date" value="{{ request('from_date', $fromDate->format('Y-m-d')) }}" 
-                       class="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500">
+                <input type="text" id="from_date" name="from_date" value="{{ request('from_date', $fromDate->format('Y-m-d')) }}" 
+                       class="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                       placeholder="dd/mm/yyyy">
             </div>
             <div>
                 <label class="block text-sm font-semibold text-gray-700 mb-2">
                     <i class="fas fa-calendar-day mr-2 text-red-500"></i>Đến ngày
                 </label>
-                <input type="date" name="to_date" value="{{ request('to_date', $toDate->format('Y-m-d')) }}" 
-                       class="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500">
+                <input type="text" id="to_date" name="to_date" value="{{ request('to_date', $toDate->format('Y-m-d')) }}" 
+                       class="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                       placeholder="dd/mm/yyyy">
             </div>
             @endif
             
@@ -551,7 +553,17 @@
 </div>
 
 @push('styles')
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
 <style>
+    /* Custom Flatpickr styles to match Tailwind UI */
+    .flatpickr-calendar {
+        border-radius: 0.5rem;
+        box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+    }
+    .flatpickr-day.selected {
+        background: #3b82f6 !important;
+        border-color: #3b82f6 !important;
+    }
     @media print {
         .no-print { display: none !important; }
         #screen-view { display: none !important; }
@@ -562,14 +574,28 @@
 </style>
 @endpush
 
+<script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
+<script src="https://cdn.jsdelivr.net/npm/flatpickr/dist/l10n/vn.js"></script>
 <script>
+document.addEventListener('DOMContentLoaded', function() {
+    const config = {
+        locale: 'vn',
+        altInput: true,
+        altFormat: "d/m/Y",
+        dateFormat: "Y-m-d",
+        allowInput: true
+    };
+
+    window.fpFrom = flatpickr("#from_date", config);
+    window.fpTo = flatpickr("#to_date", config);
+});
+
 function setDateRange(type) {
     const today = new Date();
     let fromDate, toDate;
     
     switch(type) {
         case 'all':
-            // Tất cả công nợ - lũy kế từ đầu năm đến nay
             fromDate = getStartOfYear(today);
             toDate = today;
             document.querySelector('select[name="report_type"]').value = 'cumulative';
@@ -592,8 +618,18 @@ function setDateRange(type) {
             break;
     }
     
-    document.querySelector('input[name="from_date"]').value = formatDateForInput(fromDate);
-    document.querySelector('input[name="to_date"]').value = formatDateForInput(toDate);
+    const fromVal = formatDateForInput(fromDate);
+    const toVal = formatDateForInput(toDate);
+
+    if (window.fpFrom && window.fpTo) {
+        window.fpFrom.setDate(fromVal);
+        window.fpTo.setDate(toVal);
+    } else {
+        const fromInput = document.querySelector('input[name="from_date"]');
+        const toInput = document.querySelector('input[name="to_date"]');
+        if (fromInput) fromInput.value = fromVal;
+        if (toInput) toInput.value = toVal;
+    }
 }
 </script>
 @endsection
