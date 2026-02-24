@@ -306,30 +306,26 @@ function setDateRange(type) {
     
     switch(type) {
         case 'month':
-            fromDate = new Date(today.getFullYear(), today.getMonth(), 1);
-            toDate = new Date(today.getFullYear(), today.getMonth() + 1, 0);
+            fromDate = getStartOfMonth(today);
+            toDate = getEndOfMonth(today);
             break;
         case 'lastmonth':
-            fromDate = new Date(today.getFullYear(), today.getMonth() - 1, 1);
-            toDate = new Date(today.getFullYear(), today.getMonth(), 0);
+            const lastMonth = subtractMonths(today, 1);
+            fromDate = getStartOfMonth(lastMonth);
+            toDate = getEndOfMonth(lastMonth);
             break;
         case 'quarter':
-            const quarter = Math.floor(today.getMonth() / 3);
-            fromDate = new Date(today.getFullYear(), quarter * 3, 1);
-            toDate = new Date(today.getFullYear(), quarter * 3 + 3, 0);
+            fromDate = getStartOfQuarter(today);
+            toDate = getEndOfQuarter(today);
             break;
         case 'year':
-            fromDate = new Date(today.getFullYear(), 0, 1);
-            toDate = new Date(today.getFullYear(), 11, 31);
+            fromDate = getStartOfYear(today);
+            toDate = getEndOfYear(today);
             break;
     }
     
-    document.querySelector('input[name="from_date"]').value = formatDate(fromDate);
-    document.querySelector('input[name="to_date"]').value = formatDate(toDate);
-}
-
-function formatDate(date) {
-    return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
+    document.querySelector('input[name="from_date"]').value = formatDateForInput(fromDate);
+    document.querySelector('input[name="to_date"]').value = formatDateForInput(toDate);
 }
 </script>
 @endsection

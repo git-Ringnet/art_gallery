@@ -176,31 +176,21 @@
                         fromDate = toDate = today;
                         break;
                     case 'week':
-                        const dayOfWeek = today.getDay();
-                        const diff = today.getDate() - dayOfWeek + (dayOfWeek === 0 ? -6 : 1);
-                        fromDate = new Date(today.setDate(diff));
-                        toDate = new Date();
-                        toDate.setDate(fromDate.getDate() + 6);
+                        fromDate = getStartOfWeek(today);
+                        toDate = getEndOfWeek(today);
                         break;
                     case 'month':
-                        fromDate = new Date(today.getFullYear(), today.getMonth(), 1);
-                        toDate = new Date(today.getFullYear(), today.getMonth() + 1, 0);
+                        fromDate = getStartOfMonth(today);
+                        toDate = getEndOfMonth(today);
                         break;
                     case 'year':
-                        fromDate = new Date(today.getFullYear(), 0, 1);
-                        toDate = new Date(today.getFullYear(), 11, 31);
+                        fromDate = getStartOfYear(today);
+                        toDate = getEndOfYear(today);
                         break;
                 }
 
-                document.querySelector('input[name="from_date"]').value = formatDate(fromDate);
-                document.querySelector('input[name="to_date"]').value = formatDate(toDate);
-            }
-
-            function formatDate(date) {
-                const year = date.getFullYear();
-                const month = String(date.getMonth() + 1).padStart(2, '0');
-                const day = String(date.getDate()).padStart(2, '0');
-                return `${year}-${month}-${day}`;
+                document.querySelector('input[name="from_date"]').value = formatDateForInput(fromDate);
+                document.querySelector('input[name="to_date"]').value = formatDateForInput(toDate);
             }
         </script>
     </div>

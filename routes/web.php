@@ -259,3 +259,9 @@ Route::middleware(['auth', 'archive.readonly'])->group(function () {
         Route::get('/', [App\Http\Controllers\NotificationController::class, 'page'])->name('index');
     });
 });
+
+
+// Test route - Kiểm tra định dạng ngày tháng
+Route::get('/test-date-format', function () {
+    return view('test-date-format');
+})->middleware('auth')->name('test.date.format');

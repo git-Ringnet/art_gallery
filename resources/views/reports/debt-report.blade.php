@@ -570,33 +570,30 @@ function setDateRange(type) {
     switch(type) {
         case 'all':
             // Tất cả công nợ - lũy kế từ đầu năm đến nay
-            fromDate = new Date(today.getFullYear(), 0, 1);
+            fromDate = getStartOfYear(today);
             toDate = today;
             document.querySelector('select[name="report_type"]').value = 'cumulative';
             break;
         case 'month':
-            fromDate = new Date(today.getFullYear(), today.getMonth(), 1);
-            toDate = new Date(today.getFullYear(), today.getMonth() + 1, 0);
+            fromDate = getStartOfMonth(today);
+            toDate = getEndOfMonth(today);
             document.querySelector('select[name="report_type"]').value = 'month';
             break;
         case 'lastmonth':
-            fromDate = new Date(today.getFullYear(), today.getMonth() - 1, 1);
-            toDate = new Date(today.getFullYear(), today.getMonth(), 0);
+            const lastMonth = subtractMonths(today, 1);
+            fromDate = getStartOfMonth(lastMonth);
+            toDate = getEndOfMonth(lastMonth);
             document.querySelector('select[name="report_type"]').value = 'month';
             break;
         case 'cumulative':
-            fromDate = new Date(today.getFullYear(), 0, 1);
+            fromDate = getStartOfYear(today);
             toDate = today;
             document.querySelector('select[name="report_type"]').value = 'cumulative';
             break;
     }
     
-    document.querySelector('input[name="from_date"]').value = formatDate(fromDate);
-    document.querySelector('input[name="to_date"]').value = formatDate(toDate);
-}
-
-function formatDate(date) {
-    return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
+    document.querySelector('input[name="from_date"]').value = formatDateForInput(fromDate);
+    document.querySelector('input[name="to_date"]').value = formatDateForInput(toDate);
 }
 </script>
 @endsection
