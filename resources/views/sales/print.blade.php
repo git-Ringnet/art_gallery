@@ -365,17 +365,24 @@
             <div class="flex justify-between items-start" style="margin-top: -10px;">
                 <!-- Cột trái: Địa chỉ, phone, website, bank -->
                 <div class="field-showroom-info" data-field="showroom-info" style="flex: 1; max-width: 45%;">
-                    <p class="text-xs text-gray-600">{{ $sale->showroom->address }}</p>
-                    <p class="text-xs text-gray-600">{{ $sale->showroom->phone }}</p>
+                    <p class="text-xs text-gray-600">
+                        <span class="lang-vi">{{ $sale->showroom->address }}</span>
+                        <span class="lang-en hidden">{{ $sale->showroom->address_en ?? $sale->showroom->address }}</span>
+                    </p>
+                    <p class="text-xs text-gray-600">
+                        <span class="lang-vi">{{ $sale->showroom->phone }}</span>
+                        <span class="lang-en hidden">{{ $sale->showroom->phone_en ?? $sale->showroom->phone }}</span>
+                    </p>
                     
                     
                     <!-- Thông tin thanh toán ngân hàng -->
                     <div class="mt-2  border-gray-200">
                         <p class="text-[10px] text-gray-700 font-medium">
-                            {{ $sale->showroom->bank_name ?? 'Vietcombank' }} - STK: {{ $sale->showroom->bank_account ?? '0987654321' }}
+                            {{ $sale->showroom->bank_name ?? 'Vietcombank' }} - <span class="lang-vi">STK:</span><span class="lang-en hidden">Acc:</span> {{ $sale->showroom->bank_account ?? '0987654321' }}
                         </p>
                         <p class="text-[10px] text-gray-600">
-                            Chủ TK: {{ $sale->showroom->bank_holder ?? 'canh bro' }}
+                            <span class="lang-vi">Chủ TK: {{ $sale->showroom->bank_holder ?? 'canh bro' }}</span>
+                            <span class="lang-en hidden">Acc Holder: {{ $sale->showroom->bank_holder_en ?? $sale->showroom->bank_holder ?? 'canh bro' }}</span>
                         </p>
                     </div>
                 </div>
@@ -383,15 +390,15 @@
                 <!-- Cột phải: Invoice, Date, Staff, Status -->
                 <div class="text-right" style="flex: 1; max-width: 45%;">
                     <p class="text-sm text-gray-600">
-                        <span class="lang-vi">Invoice:</span><span class="lang-en hidden">Invoice:</span> 
+                        <span class="lang-vi">Hóa đơn:</span><span class="lang-en hidden">Invoice:</span> 
                         <span class="font-semibold text-blue-600">{{ $sale->invoice_code }}</span>
                     </p>
                     <p class="text-xs text-gray-600">
-                        <span class="lang-vi">Date:</span><span class="lang-en hidden">Date:</span> 
+                        <span class="lang-vi">Ngày:</span><span class="lang-en hidden">Date:</span> 
                         {{ $sale->sale_date->format('d/m/Y') }}
                     </p>
                     <p class="text-[10px] text-gray-500 mt-1 field-employee" data-field="employee">
-                        <span class="lang-vi">Staff:</span><span class="lang-en hidden">Staff:</span> 
+                        <span class="lang-vi">Nhân viên:</span><span class="lang-en hidden">Staff:</span> 
                         {{ $sale->user ? $sale->user->name : 'N/A' }}
                     </p>
                     

@@ -50,6 +50,12 @@
                         placeholder="VD: 0123 456 789">
                 </div>
                 <div>
+                    <label class="block text-xs font-medium text-gray-700 mb-1">Số điện thoại (English)</label>
+                    <input type="text" name="phone_en"
+                        class="w-full px-2 py-1.5 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                        placeholder="e.g: (84) 123 456 789">
+                </div>
+                <div>
                     <label class="block text-xs font-medium text-gray-700 mb-1">Email</label>
                     <input type="email" name="email"
                         class="w-full px-2 py-1.5 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
@@ -74,6 +80,12 @@
                         class="w-full px-2 py-1.5 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                         placeholder="Địa chỉ">
                 </div>
+                <div class="md:col-span-2">
+                    <label class="block text-xs font-medium text-gray-700 mb-1">Địa chỉ (English)</label>
+                    <input type="text" name="address_en"
+                        class="w-full px-2 py-1.5 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                        placeholder="e.g: No.7 Nguyen Thiep Street, Saigon Ward, HCMC, Vietnam">
+                </div>
                 <div class="relative">
                     <label class="block text-xs font-medium text-gray-700 mb-1">Ngân hàng</label>
                     <input type="text" id="bank_name" name="bank_name" autocomplete="off"
@@ -94,6 +106,12 @@
                     <input type="text" name="bank_holder"
                         class="w-full px-2 py-1.5 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                         placeholder="Nguyễn Văn A">
+                </div>
+                <div>
+                    <label class="block text-xs font-medium text-gray-700 mb-1">Chủ tài khoản (English)</label>
+                    <input type="text" name="bank_holder_en"
+                        class="w-full px-2 py-1.5 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                        placeholder="e.g: BEN THANH ART">
                 </div>
                 <div class="md:col-span-2">
                     <label class="block text-xs font-medium text-gray-700 mb-1">Ghi chú</label>

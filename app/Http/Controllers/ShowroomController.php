@@ -45,12 +45,16 @@ class ShowroomController extends Controller
             'code' => 'required|string|max:50|unique:showrooms,code',
             'name' => 'required|string|max:255',
             'phone' => 'required|string|max:50',
+            'phone_en' => 'nullable|string|max:50',
             'email' => 'nullable|email|max:255',
             'hotline' => 'nullable|string|max:50',
             'address' => 'required|string',
+            'address_en' => 'nullable|string',
+            'website' => 'nullable|string|max:255',
             'bank_name' => 'nullable|string|max:100',
             'bank_account' => 'nullable|string|max:50',
             'bank_holder' => 'nullable|string|max:255',
+            'bank_holder_en' => 'nullable|string|max:255',
             'logo' => 'nullable|image|max:2048',
             'notes' => 'nullable|string'
         ]);
@@ -86,12 +90,16 @@ class ShowroomController extends Controller
             'code' => 'required|string|max:50|unique:showrooms,code,' . $id,
             'name' => 'required|string|max:255',
             'phone' => 'required|string|max:50',
+            'phone_en' => 'nullable|string|max:50',
             'email' => 'nullable|email|max:255',
             'hotline' => 'nullable|string|max:50',
             'address' => 'required|string',
+            'address_en' => 'nullable|string',
+            'website' => 'nullable|string|max:255',
             'bank_name' => 'nullable|string|max:100',
             'bank_account' => 'nullable|string|max:50',
             'bank_holder' => 'nullable|string|max:255',
+            'bank_holder_en' => 'nullable|string|max:255',
             'logo' => 'nullable|image|max:2048',
             'notes' => 'nullable|string'
         ]);
