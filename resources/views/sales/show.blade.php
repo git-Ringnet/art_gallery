@@ -148,7 +148,7 @@
                                     <td class="px-2 py-2 text-center text-xs {{ $textClass }}">{{ $item->quantity }}</td>
                                     <td class="px-2 py-2 text-right text-xs {{ $textClass }} whitespace-nowrap">
                                         @if($item->currency == 'USD')
-                                            <div>${{ number_format($item->price_usd, 2) }}</div>
+                                            <div>${{ number_format($item->price_usd, 0) }}</div>
                                         @else
                                             <div>{{ number_format($item->price_vnd) }}đ</div>
                                         @endif
@@ -162,7 +162,7 @@
                                     </td>
                                     <td class="px-2 py-2 text-right text-xs {{ $textClass }}">
                                         @if($item->discount_amount_usd > 0)
-                                            <div class="text-red-600">-${{ number_format($item->discount_amount_usd, 2) }}</div>
+                                            <div class="text-red-600">-${{ number_format($item->discount_amount_usd, 0) }}</div>
                                         @endif
                                         @if($item->discount_amount_vnd > 0)
                                             <div class="text-red-600">-{{ number_format($item->discount_amount_vnd) }}đ</div>
@@ -173,7 +173,7 @@
                                     </td>
                                     <td class="px-2 py-2 text-right text-xs font-semibold {{ $textClass }} whitespace-nowrap">
                                         @if($item->currency == 'USD')
-                                            <div>${{ number_format($item->total_usd, 2) }}</div>
+                                            <div>${{ number_format($item->total_usd, 0) }}</div>
                                         @else
                                             <div>{{ number_format($item->total_vnd) }}đ</div>
                                         @endif
@@ -236,7 +236,7 @@
                                                     <span class="line-through text-gray-500">{{ $oldItemName }}</span>
                                                     <span class="text-gray-500 text-xs">
                                                         @if($oldCurrency === 'USD')
-                                                            (${{ number_format($oldItemPriceUsd, 2) }})
+                                                            (${{ number_format($oldItemPriceUsd, 0) }})
                                                         @else
                                                             ({{ number_format($oldItemPriceVnd) }}đ)
                                                         @endif
@@ -245,7 +245,7 @@
                                                     <span class="font-medium text-blue-700">{{ $newItemName }}</span>
                                                     <span class="text-blue-600 text-xs font-medium">
                                                         @if($newCurrency === 'USD')
-                                                            (${{ number_format($newItemPriceUsd, 2) }})
+                                                            (${{ number_format($newItemPriceUsd, 0) }})
                                                         @else
                                                             ({{ number_format($newItemPriceVnd) }}đ)
                                                         @endif
@@ -283,9 +283,9 @@
                                 @if($exchangeAmountUsd > 0 || $exchangeAmountVnd > 0)
                                     <span class="text-green-600 font-medium">
                                         @if($exchangeAmountUsd > 0 && $exchangeAmountVnd > 0)
-                                            +${{ number_format($exchangeAmountUsd, 2) }} + {{ number_format($exchangeAmountVnd) }}đ
+                                            +${{ number_format($exchangeAmountUsd, 0) }} + {{ number_format($exchangeAmountVnd) }}đ
                                         @elseif($exchangeAmountUsd > 0)
-                                            +${{ number_format($exchangeAmountUsd, 2) }}
+                                            +${{ number_format($exchangeAmountUsd, 0) }}
                                         @else
                                             +{{ number_format($exchangeAmountVnd) }}đ
                                         @endif
@@ -315,9 +315,9 @@
                                 $refundVnd = $return->total_refund ?? 0;
                             @endphp
                             @if($refundUsd > 0 && $refundVnd > 0)
-                                ${{ number_format($refundUsd, 2) }} + {{ number_format($refundVnd) }}đ
+                                ${{ number_format($refundUsd, 0) }} + {{ number_format($refundVnd) }}đ
                             @elseif($refundUsd > 0)
-                                ${{ number_format($refundUsd, 2) }}
+                                ${{ number_format($refundUsd, 0) }}
                             @else
                                 {{ number_format($refundVnd) }}đ
                             @endif
@@ -362,7 +362,7 @@
                                 
                                 @if($hasUsd && !$hasVnd)
                                     {{-- Chỉ USD (hoặc refund USD): Hiển thị USD to, VND nhỏ (tham khảo) --}}
-                                    <p class="font-bold text-lg {{ $colorClass }}">${{ number_format($payment->payment_usd, 2) }}</p>
+                                    <p class="font-bold text-lg {{ $colorClass }}">${{ number_format($payment->payment_usd, 0) }}</p>
                                     @if($exchangeRate > 0)
                                     <p class="text-xs text-gray-500 mt-0.5">≈ {{ number_format($payment->payment_usd * $exchangeRate) }}đ (tham khảo)</p>
                                     @endif
@@ -370,12 +370,12 @@
                                     {{-- Chỉ VND (hoặc refund VND): Hiển thị VND to, USD nhỏ (quy đổi) --}}
                                     <p class="font-bold text-lg {{ $colorClassVnd }}">{{ number_format($payment->payment_vnd) }}đ</p>
                                     @if($exchangeRate > 0)
-                                    <p class="text-xs text-gray-500 mt-0.5">≈ ${{ number_format($payment->payment_vnd / $exchangeRate, 2) }} (tỷ giá {{ number_format($exchangeRate) }})</p>
+                                    <p class="text-xs text-gray-500 mt-0.5">≈ ${{ number_format($payment->payment_vnd / $exchangeRate, 0) }} (tỷ giá {{ number_format($exchangeRate) }})</p>
                                     @endif
                                 @elseif($hasUsd && $hasVnd)
                                     {{-- Trả cả USD và VND: Hiển thị cả hai --}}
                                     <p class="font-bold text-base">
-                                        <span class="{{ $colorClass }}">${{ number_format($payment->payment_usd, 2) }}</span>
+                                        <span class="{{ $colorClass }}">${{ number_format($payment->payment_usd, 0) }}</span>
                                         <span class="text-gray-400 mx-1">+</span>
                                         <span class="{{ $colorClassVnd }}">{{ number_format($payment->payment_vnd) }}đ</span>
                                     </p>
@@ -429,7 +429,7 @@
                                 
                                 @if($hasUsd && !$hasVnd)
                                     {{-- Chỉ trả USD --}}
-                                    <p class="font-bold text-lg text-blue-600">${{ number_format($sale->payment_usd, 2) }}</p>
+                                    <p class="font-bold text-lg text-blue-600">${{ number_format($sale->payment_usd, 0) }}</p>
                                     @if($exchangeRate > 0)
                                     <p class="text-xs text-gray-500 mt-0.5">≈ {{ number_format($sale->payment_usd * $exchangeRate) }}đ (tham khảo)</p>
                                     @endif
@@ -437,12 +437,12 @@
                                     {{-- Chỉ trả VND --}}
                                     <p class="font-bold text-lg text-green-600">{{ number_format($sale->payment_vnd) }}đ</p>
                                     @if($exchangeRate > 0)
-                                    <p class="text-xs text-gray-500 mt-0.5">≈ ${{ number_format($sale->payment_vnd / $exchangeRate, 2) }} (tỷ giá {{ number_format($exchangeRate) }})</p>
+                                    <p class="text-xs text-gray-500 mt-0.5">≈ ${{ number_format($sale->payment_vnd / $exchangeRate, 0) }} (tỷ giá {{ number_format($exchangeRate) }})</p>
                                     @endif
                                 @elseif($hasUsd && $hasVnd)
                                     {{-- Trả cả USD và VND --}}
                                     <p class="font-bold text-base">
-                                        <span class="text-blue-600">${{ number_format($sale->payment_usd, 2) }}</span>
+                                        <span class="text-blue-600">${{ number_format($sale->payment_usd, 0) }}</span>
                                         <span class="text-gray-400 mx-1">+</span>
                                         <span class="text-green-600">{{ number_format($sale->payment_vnd) }}đ</span>
                                     </p>
@@ -521,12 +521,12 @@
                     <span class="text-gray-600">Tạm tính:</span>
                     <div class="text-right">
                         @if($hasUsdTotal && !$hasVndTotal)
-                            <div class="font-medium text-xs">${{ number_format($sale->subtotal_usd, 2) }}</div>
+                            <div class="font-medium text-xs">${{ number_format($sale->subtotal_usd, 0) }}</div>
                         @elseif($hasVndTotal && !$hasUsdTotal)
                             <div class="font-medium text-xs">{{ number_format($sale->subtotal_vnd) }}đ</div>
                         @else
                             {{-- Cả USD và VND - Hiển thị đều nhau --}}
-                            <div class="font-medium text-xs text-blue-600">${{ number_format($sale->subtotal_usd, 2) }}</div>
+                            <div class="font-medium text-xs text-blue-600">${{ number_format($sale->subtotal_usd, 0) }}</div>
                             <div class="font-medium text-xs text-green-600">{{ number_format($sale->subtotal_vnd) }}đ</div>
                         @endif
                     </div>
@@ -553,7 +553,7 @@
                     <span>Giảm tiền:</span>
                     <div class="text-right">
                         @if($sale->discount_amount_usd > 0)
-                            <div class="font-medium text-xs">-${{ number_format($sale->discount_amount_usd, 2) }}</div>
+                            <div class="font-medium text-xs">-${{ number_format($sale->discount_amount_usd, 0) }}</div>
                         @endif
                         @if($sale->discount_amount_vnd > 0)
                             <div class="font-medium text-xs">-{{ number_format($sale->discount_amount_vnd) }}đ</div>
@@ -566,7 +566,7 @@
                     <span>Phí vận chuyển:</span>
                     <div class="text-right">
                         @if($sale->shipping_fee_usd > 0)
-                            <div class="font-medium text-xs">+${{ number_format($sale->shipping_fee_usd, 2) }}</div>
+                            <div class="font-medium text-xs">+${{ number_format($sale->shipping_fee_usd, 0) }}</div>
                         @endif
                         @if($sale->shipping_fee_vnd > 0)
                             <div class="font-medium text-xs">+{{ number_format($sale->shipping_fee_vnd) }}đ</div>
@@ -602,7 +602,7 @@
                         
                         @if($allReturnedShow || ($hasReturns && $sale->total_vnd == 0 && $sale->total_usd == 0))
                             <!-- Trả hết - hiển thị giá gốc không gạch ngang -->
-                            <div class="font-bold text-base text-gray-900">${{ number_format($originalTotalUsd, 2) }}</div>
+                            <div class="font-bold text-base text-gray-900">${{ number_format($originalTotalUsd, 0) }}</div>
                             <div class="text-xs text-gray-500">{{ number_format($originalTotal) }}đ</div>
                             <div class="text-xs text-red-600 mt-0.5">
                                 <i class="fas fa-undo"></i>Trả hết
@@ -610,11 +610,11 @@
                         @elseif($totalChanged)
                             <!-- Có thay đổi (trả hàng hoặc đổi hàng) - hiển thị tổng cũ bị gạch -->
                             <div class="text-xs text-gray-400 line-through mb-0.5">
-                                ${{ number_format($originalTotalUsd, 2) }} / {{ number_format($originalTotal) }}đ
+                                ${{ number_format($originalTotalUsd, 0) }} / {{ number_format($originalTotal) }}đ
                             </div>
                             <!-- Hiển thị tổng mới -->
                             <div class="font-bold text-base {{ $hasExchanges ? 'text-purple-600' : 'text-green-600' }}">
-                                ${{ number_format($sale->total_usd, 2) }}
+                                ${{ number_format($sale->total_usd, 0) }}
                             </div>
                             <div class="text-xs {{ $hasExchanges ? 'text-purple-600' : 'text-green-600' }}">
                                 {{ number_format($sale->total_vnd) }}đ
@@ -629,12 +629,12 @@
                         @else
                             <!-- Không có thay đổi -->
                             @if($hasUsdTotal && !$hasVndTotal)
-                                <div class="font-bold text-base text-green-600">${{ number_format($sale->total_usd, 2) }}</div>
+                                <div class="font-bold text-base text-green-600">${{ number_format($sale->total_usd, 0) }}</div>
                             @elseif($hasVndTotal && !$hasUsdTotal)
                                 <div class="font-bold text-base text-green-600">{{ number_format($sale->total_vnd) }}đ</div>
                             @else
                                 {{-- Cả USD và VND - Hiển thị đều nhau --}}
-                                <div class="font-bold text-base text-blue-600">${{ number_format($sale->total_usd, 2) }}</div>
+                                <div class="font-bold text-base text-blue-600">${{ number_format($sale->total_usd, 0) }}</div>
                                 <div class="font-bold text-base text-green-600">{{ number_format($sale->total_vnd) }}đ</div>
                             @endif
                         @endif
@@ -646,28 +646,21 @@
                         <div class="text-right">
                             @if($isMixedCurrency)
                                 {{-- Hóa đơn ban đầu có cả USD và VND - Hiển thị riêng từng loại --}}
-                                @php
-                                    // Tính tổng payments thực tế (không bao gồm refund)
-                                    $paidUsdOnly = $sale->payments->where('payment_usd', '>', 0)->sum('payment_usd');
-                                    $paidVndOnly = $sale->payments->where('payment_vnd', '>', 0)->sum('payment_vnd');
-                                @endphp
-                                @if($paidUsdOnly > 0 && $paidVndOnly > 0)
-                                    <div class="font-bold text-sm">
-                                        <span class="text-blue-600">USD: ${{ number_format($paidUsdOnly, 2) }}</span>
+                                @if($sale->paid_usd > 0 && $sale->paid_vnd > 0)
+                                    <div class="font-bold text-sm text-blue-700">
+                                        <div class="text-blue-600">USD: ${{ number_format($sale->paid_usd, 0) }}</div>
+                                        <div class="text-green-600">VND: {{ number_format($sale->paid_vnd) }}đ</div>
                                     </div>
-                                    <div class="font-bold text-sm">
-                                        <span class="text-green-600">VND: {{ number_format($paidVndOnly) }}đ</span>
-                                    </div>
-                                @elseif($paidUsdOnly > 0)
-                                    <div class="font-bold text-blue-700">${{ number_format($paidUsdOnly, 2) }}</div>
-                                @elseif($paidVndOnly > 0)
-                                    <div class="font-bold text-blue-700">{{ number_format($paidVndOnly) }}đ</div>
+                                @elseif($sale->paid_usd > 0)
+                                    <div class="font-bold text-blue-700">${{ number_format($sale->paid_usd, 0) }}</div>
+                                @elseif($sale->paid_vnd > 0)
+                                    <div class="font-bold text-blue-700">{{ number_format($sale->paid_vnd) }}đ</div>
                                 @else
-                                    <div class="font-bold text-blue-700">$0.00 / 0đ</div>
+                                    <div class="font-bold text-blue-700">$0 / 0đ</div>
                                 @endif
                             @elseif($originalHasUsd && !$originalHasVnd)
                                 {{-- Chỉ USD --}}
-                                <div class="font-bold text-blue-700">${{ number_format($sale->paid_usd, 2) }}</div>
+                                <div class="font-bold text-blue-700">${{ number_format($sale->paid_usd, 0) }}</div>
                             @elseif($originalHasVnd && !$originalHasUsd)
                                 {{-- Chỉ VND --}}
                                 <div class="font-bold text-blue-700">{{ number_format($sale->paid_vnd) }}đ</div>
@@ -682,8 +675,8 @@
                     @if($overpaidUsd > 0.01)
                         <div class="mt-1 text-xs text-blue-800 bg-blue-100 px-2 py-1 rounded border border-blue-200">
                             <i class="fas fa-info-circle mr-1"></i>
-                            Gồm: ${{ number_format($sale->total_usd, 2) }} gốc
-                            <span class="block text-right">+ ${{ number_format($overpaidUsd, 2) }}</span>
+                            Gồm: ${{ number_format($sale->total_usd, 0) }} gốc
+                            <span class="block text-right">+ ${{ number_format($overpaidUsd, 0) }}</span>
                         </div>
                     @endif
 
@@ -695,7 +688,7 @@
                     <div class="flex justify-end mt-1 text-xs text-blue-600">
                         <span class="italic">
                             @if($totalUsd > 0)
-                                <span>${{ number_format($totalUsd, 2) }}</span>
+                                <span>${{ number_format($totalUsd, 0) }}</span>
                             @endif
                             @if($totalUsd > 0 && $totalVnd > 0)
                                 <span class="mx-1">+</span>
@@ -721,15 +714,15 @@
                     <div class="text-right">
                         @if($sale->debt_usd > 0.01 && $sale->debt_vnd > 1)
                             <div class="font-bold text-sm">
-                                <span class="text-blue-600">USD: ${{ number_format($sale->debt_usd, 2) }}</span>
+                                <span class="text-blue-600">USD: ${{ number_format($sale->debt_usd, 0) }}</span>
                             </div>
                             <div class="font-bold text-sm">
                                 <span class="text-green-600">VND: {{ number_format($sale->debt_vnd) }}đ</span>
                             </div>
                         @elseif($sale->debt_usd > 0.01)
-                            <div class="font-bold text-base">USD: ${{ number_format($sale->debt_usd, 2) }}</div>
+                            <div class="font-bold text-base text-blue-600">USD: ${{ number_format($sale->debt_usd, 0) }}</div>
                         @elseif($sale->debt_vnd > 1)
-                            <div class="font-bold text-base">VND: {{ number_format($sale->debt_vnd) }}đ</div>
+                            <div class="font-bold text-base text-green-600">VND: {{ number_format($sale->debt_vnd) }}đ</div>
                         @endif
                     </div>
                 </div>
@@ -738,7 +731,7 @@
                 <div class="flex justify-between text-red-600 bg-red-50 p-2 rounded border border-red-200 text-sm">
                     <span class="font-bold">Còn thiếu:</span>
                     <div class="text-right">
-                        <div class="font-bold text-base">${{ number_format($sale->debt_usd, 2) }}</div>
+                        <div class="font-bold text-base">${{ number_format($sale->debt_usd, 0) }}</div>
                         @if($sale->exchange_rate > 0)
                         <div class="text-xs">≈ {{ number_format($sale->debt_usd * $sale->exchange_rate) }}đ</div>
                         @endif
@@ -751,7 +744,7 @@
                     <div class="text-right">
                         <div class="font-bold text-base">{{ number_format($sale->debt_vnd) }}đ</div>
                         @if($sale->exchange_rate > 0)
-                        <div class="text-xs">≈ ${{ number_format($sale->debt_vnd / $sale->exchange_rate, 2) }}</div>
+                        <div class="text-xs">≈ ${{ number_format($sale->debt_vnd / $sale->exchange_rate, 0) }}</div>
                         @endif
                     </div>
                 </div>
@@ -763,7 +756,7 @@
                         </span>
                         @if($overpaidUsd > 0.01)
                             <span class="text-xs bg-green-100 px-2 py-0.5 rounded text-green-800 border border-green-200">
-                                Dư ${{ number_format($overpaidUsd, 2) }} (Do tỷ giá)
+                                Dư ${{ number_format($overpaidUsd, 0) }} (Do tỷ giá)
                             </span>
                         @endif
                     </div>
@@ -801,7 +794,7 @@
                 </div>
 
                 <!-- Payment Status -->
-                <div class="pt-3 border-t">
+                <!-- <div class="pt-3 border-t">
                     <p class="text-sm text-gray-600 mb-2 font-medium">Thanh toán:</p>
                     <div class="text-center">
                         @php
@@ -833,7 +826,7 @@
                             </div>
                         @endif
                     </div>
-                </div>
+                </div> -->
             </div>
         </div>
 

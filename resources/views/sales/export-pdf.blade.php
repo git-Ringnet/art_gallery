@@ -94,18 +94,18 @@
                 <td>{{ $sale->customer->name ?? 'Khách lẻ' }}</td>
                 <td class="text-center">{{ $sale->sale_date->format('d/m/Y') }}</td>
                 <td class="text-right">
-                    <div>${{ number_format($sale->total_usd, 2) }}</div>
+                    <div>${{ number_format($sale->total_usd, 0) }}</div>
                     <div style="color:#555; font-size:7px">{{ number_format($sale->total_vnd) }}đ</div>
                 </td>
                 <td class="text-right">
-                    <div style="color:#059669; font-weight:bold">${{ number_format($sale->paid_usd, 2) }}</div>
+                    <div style="color:#059669; font-weight:bold">${{ number_format($sale->paid_usd, 0) }}</div>
                     <div style="color:#555; font-size:7px">{{ number_format($sale->paid_amount) }}đ</div>
                 </td>
                 <td class="text-right">
                     @if($sale->sale_status == 'cancelled')
                         <span style="color:#999">(Hủy)</span>
                     @else
-                        <div style="color:#dc2626; font-weight:bold">${{ number_format($sale->debt_usd, 2) }}</div>
+                        <div style="color:#dc2626; font-weight:bold">${{ number_format($sale->debt_usd, 0) }}</div>
                         <div style="color:#555; font-size:7px">{{ number_format($sale->debt_amount) }}đ</div>
                     @endif
                 </td>

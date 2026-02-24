@@ -1,8 +1,8 @@
 @extends('layouts.app')
 
-@section('title', 'Lịch sử Công nợ')
-@section('page-title', 'Lịch sử Công nợ')
-@section('page-description', 'Quản lý và theo dõi công nợ khách hàng')
+@section('title', 'Lịch sử giao dịch')
+@section('page-title', 'Lịch sử giao dịch')
+@section('page-description', 'Quản lý tất cả các giao dịch')
 
 @section('content')
     <x-alert />
@@ -202,7 +202,6 @@
                         <th class="px-2 py-2 text-center text-xs">P.Thức</th>
                         <th class="px-2 py-2 text-center text-xs">Loại GD</th>
                         <th class="px-2 py-2 text-right text-xs">Còn thiếu</th>
-                        <th class="px-2 py-2 text-center text-xs">Tình trạng</th>
                         <th class="px-2 py-2 text-center text-xs">Thao tác</th>
                     </tr>
                 </thead>
@@ -504,47 +503,6 @@
                                         </div>
                                     @endif
                                 @endif
-                            </td>
-                            <td class="px-4 py-3 text-center">
-                                @php
-                                    // Tính tổng đã trả TẠI THỜI ĐIỂM payment này
-                                    // Xử lý theo loại hóa đơn (USD, VND, hoặc Mixed)
-
-                                    if ($payment->sale->sale_status == 'cancelled') {
-                                        $statusClass = 'bg-gray-100 text-gray-800';
-                                        $statusText = 'Đã hủy';
-                                    } else {
-                                        // Sử dụng $remainingDebtUsd và $remainingDebtVnd đã tính ở trên
-                                        $isPaid = false;
-                                        $isPartial = false;
-
-                                        if ($isUsdInvoice && !$isMixedInvoice) {
-                                            // Hóa đơn USD
-                                            $isPaid = $remainingDebtUsd <= 0.01;
-                                            $isPartial = !$isPaid && ($sale->total_usd - $remainingDebtUsd) > 0.01;
-                                        } elseif ($isVndInvoice && !$isMixedInvoice) {
-                                            // Hóa đơn VND
-                                            $isPaid = $remainingDebtVnd <= 1000;
-                                            $isPartial = !$isPaid && ($sale->total_vnd - $remainingDebtVnd) > 1000;
-                                        } else {
-                                            // Hóa đơn hỗn hợp: Cả hai đều phải trả đủ
-                                            $isPaid = ($remainingDebtUsd <= 0.01) && ($remainingDebtVnd <= 1000);
-                                            $isPartial = !$isPaid && (($sale->total_usd - $remainingDebtUsd) > 0.01 || ($sale->total_vnd - $remainingDebtVnd) > 1000);
-                                        }
-
-                                        if ($isPaid) {
-                                            $statusClass = 'bg-green-100 text-green-800';
-                                            $statusText = 'Đã Thanh Toán';
-                                        } elseif ($isPartial) {
-                                            $statusClass = 'bg-yellow-100 text-yellow-800';
-                                            $statusText = 'T.Toán 1 phần';
-                                        } else {
-                                            $statusClass = 'bg-red-100 text-red-800';
-                                            $statusText = 'Chưa T.Toán';
-                                        }
-                                    }
-                                @endphp
-                                <span class="px-3 py-2 text-sm font-bold rounded-lg {{ $statusClass }}">{{ $statusText }}</span>
                             </td>
                             <td class="px-4 py-3">
                                 <div class="flex items-center justify-center space-x-2">

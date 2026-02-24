@@ -11,8 +11,9 @@ use PhpOffice\PhpSpreadsheet\Worksheet\Worksheet;
 use PhpOffice\PhpSpreadsheet\Style\Border;
 use PhpOffice\PhpSpreadsheet\Style\Fill;
 use PhpOffice\PhpSpreadsheet\Style\Alignment;
+use Maatwebsite\Excel\Concerns\WithColumnFormatting;
 
-class DailyCashCollectionExport implements FromArray, WithHeadings, WithTitle, WithStyles, WithColumnWidths
+class DailyCashCollectionExport implements FromArray, WithHeadings, WithTitle, WithStyles, WithColumnWidths, WithColumnFormatting
 {
     protected $reportData;
     protected $totals;
@@ -36,92 +37,69 @@ class DailyCashCollectionExport implements FromArray, WithHeadings, WithTitle, W
                 $item['invoice_code'],
                 $item['id_code'],
                 $item['customer_name'],
-                $item['adjustment_usd'] != 0 ? ($item['adjustment_usd'] == floor($item['adjustment_usd']) ? number_format($item['adjustment_usd'], 0) : number_format($item['adjustment_usd'], 2)) : '',
-                $item['adjustment_vnd'] != 0 ? number_format($item['adjustment_vnd'], 0) : '',
-                $item['collection_usd'] > 0 ? ($item['collection_usd'] == floor($item['collection_usd']) ? number_format($item['collection_usd'], 0) : number_format($item['collection_usd'], 2)) : '',
-                $item['collection_vnd'] > 0 ? number_format($item['collection_vnd'], 0) : '',
+                $item['adjustment_usd'] != 0 ? $item['adjustment_usd'] : '',
+                $item['adjustment_vnd'] != 0 ? $item['adjustment_vnd'] : '',
+                $item['collection_usd'] > 0 ? $item['collection_usd'] : '',
+                $item['collection_vnd'] > 0 ? $item['collection_vnd'] : '',
             ];
         }
 
         // Add totals row
+        $exchangeRate = $this->totals['exchangeRate'] ?? 1;
+        $totalCollectionVnd = $this->totals['totalCollectionVnd'] ?? 0;
+        $totalCollectionUsd = $this->totals['totalCollectionUsd'] ?? 0;
+        $displayGrandVnd = ($exchangeRate > 1) ? ($totalCollectionVnd + ($totalCollectionUsd * $exchangeRate)) : $totalCollectionVnd;
+
         $rows[] = [
             'GRAND TOTAL',
             '',
             '',
             '',
-            $this->totals['totalAdjustmentUsd'] != 0 ? '$' . ($this->totals['totalAdjustmentUsd'] == floor($this->totals['totalAdjustmentUsd']) ? number_format($this->totals['totalAdjustmentUsd'], 0) : number_format($this->totals['totalAdjustmentUsd'], 2)) : '',
-            $this->totals['totalAdjustmentVnd'] != 0 ? number_format($this->totals['totalAdjustmentVnd'], 0) : '',
-            '$' . ($this->totals['totalCollectionUsd'] == floor($this->totals['totalCollectionUsd']) ? number_format($this->totals['totalCollectionUsd'], 0) : number_format($this->totals['totalCollectionUsd'], 2)),
-            number_format($this->totals['totalCollectionVnd'], 0),
+            $this->totals['totalAdjustmentUsd'] != 0 ? $this->totals['totalAdjustmentUsd'] : '',
+            $this->totals['totalAdjustmentVnd'] != 0 ? $this->totals['totalAdjustmentVnd'] : '',
+            $totalCollectionUsd != 0 ? $totalCollectionUsd : '',
+            $displayGrandVnd != 0 ? $displayGrandVnd : '',
         ];
 
         // Add summary
         $rows[] = [];
         $rows[] = ['Summary'];
 
-        // Note: In the controller, if exchangeRate > 1, the cashCollectionVnd includes the converted USD.
-        // We can detect if exchangeRate was used by comparing provided totals or checking if exchangeRate is in metadata/totals (if we passed it).
-        // I passed 'exchangeRate' in the totals array in ReportsController.
-
         $exchangeRate = $this->totals['exchangeRate'] ?? 1;
 
+        // Use converted VND for summary when rate > 1
+        $cashVnd = ($exchangeRate > 1) ? $this->totals['cashCollectionVnd'] : $this->totals['cashCollectionPureVnd'];
+        $cardVnd = ($exchangeRate > 1) ? $this->totals['cardCollectionVnd'] : $this->totals['cardCollectionPureVnd'];
+        $cashUsd = $this->totals['cashCollectionUsd'] ?? 0;
+        $cardUsd = $this->totals['cardCollectionUsd'] ?? 0;
+
+        // Cash
+        $cashStr = 'VND ' . number_format($cashVnd, 0);
+        if ($cashUsd > 0) {
+            $label = ($exchangeRate > 1) ? 'incl. USD $' : '+ USD $';
+            $cashStr .= ' (' . $label . ($cashUsd == floor($cashUsd) ? number_format($cashUsd, 0) : number_format($cashUsd, 2)) . ')';
+        }
+        $rows[] = ['Collection in CASH:', $cashStr];
+
+        // Card
+        $cardStr = 'VND ' . number_format($cardVnd, 0);
+        if ($cardUsd > 0) {
+            $label = ($exchangeRate > 1) ? 'incl. USD $' : '+ USD $';
+            $cardStr .= ' (' . $label . ($cardUsd == floor($cardUsd) ? number_format($cardUsd, 0) : number_format($cardUsd, 2)) . ')';
+        }
+        $rows[] = ['In Credit Card + Transfer:', $cardStr];
+
+        // Grand Total
+        $totalVnd = $cashVnd + $cardVnd;
+        $totalUsd = $cashUsd + $cardUsd;
+        $grandTotalStr = 'VND ' . number_format($totalVnd, 0);
+        if ($totalUsd > 0) {
+            $grandTotalStr .= ' (incl. USD $' . ($totalUsd == floor($totalUsd) ? number_format($totalUsd, 0) : number_format($totalUsd, 2)) . ')';
+        }
+        $rows[] = ['Grand Total:', $grandTotalStr];
+
         if ($exchangeRate > 1) {
-            // Combined Display (VND Total which includes converted USD)
-            // Cash
-            $cashStr = 'VND ' . number_format($this->totals['cashCollectionVnd'], 0);
-            if (isset($this->totals['cashCollectionUsd']) && $this->totals['cashCollectionUsd'] > 0) {
-                $usdVal = $this->totals['cashCollectionUsd'];
-                $usdStr = $usdVal == floor($usdVal) ? number_format($usdVal, 0) : number_format($usdVal, 2);
-                $cashStr .= ' (incl. USD $' . $usdStr . ')';
-            }
-            $rows[] = ['Collection in CASH:', $cashStr];
-
-            // Card
-            $cardStr = 'VND ' . number_format($this->totals['cardCollectionVnd'], 0);
-            if (isset($this->totals['cardCollectionUsd']) && $this->totals['cardCollectionUsd'] > 0) {
-                $usdVal = $this->totals['cardCollectionUsd'];
-                $usdStr = $usdVal == floor($usdVal) ? number_format($usdVal, 0) : number_format($usdVal, 2);
-                $cardStr .= ' (incl. USD $' . $usdStr . ')';
-            }
-            $rows[] = ['In Credit Card + Transfer:', $cardStr];
-
-            // Grand Total
-            // The controller grandTotalVnd matches the sum of the above VND totals.
-            // We can simulate the view's "Grand Total" line.
-            // View: Grand Total: VND ... (x USD * Rate + y VND) - This is mostly informational text in View.
-            // The important part is the big bold number.
-            $rows[] = ['Grand Total:', 'VND ' . number_format($this->totals['cashCollectionVnd'] + $this->totals['cardCollectionVnd'], 0)];
-
-        } else {
-            // Separated Display (Rate = 1 or not provided)
-            // Cash Collection
-            $cashStr = 'VND ' . number_format($this->totals['cashCollectionVnd'], 0);
-            if (isset($this->totals['cashCollectionUsd']) && $this->totals['cashCollectionUsd'] > 0) {
-                $usdVal = $this->totals['cashCollectionUsd'];
-                $usdStr = $usdVal == floor($usdVal) ? number_format($usdVal, 0) : number_format($usdVal, 2);
-                $cashStr .= ' + USD $' . $usdStr;
-            }
-            $rows[] = ['Collection in CASH:', $cashStr];
-
-            // Card/Transfer Collection
-            $cardStr = 'VND ' . number_format($this->totals['cardCollectionVnd'], 0);
-            if (isset($this->totals['cardCollectionUsd']) && $this->totals['cardCollectionUsd'] > 0) {
-                $usdVal = $this->totals['cardCollectionUsd'];
-                $usdStr = $usdVal == floor($usdVal) ? number_format($usdVal, 0) : number_format($usdVal, 2);
-                $cardStr .= ' + USD $' . $usdStr;
-            }
-            $rows[] = ['In Credit Card + Transfer:', $cardStr];
-
-            // Grand Total
-            $totalVnd = $this->totals['cashCollectionVnd'] + $this->totals['cardCollectionVnd'];
-            $totalUsd = ($this->totals['cashCollectionUsd'] ?? 0) + ($this->totals['cardCollectionUsd'] ?? 0);
-
-            $grandTotalStr = 'VND ' . number_format($totalVnd, 0);
-            if ($totalUsd > 0) {
-                $usdStr = $totalUsd == floor($totalUsd) ? number_format($totalUsd, 0) : number_format($totalUsd, 2);
-                $grandTotalStr .= ' + USD $' . $usdStr;
-            }
-            $rows[] = ['Grand Total:', $grandTotalStr];
+            $rows[] = ['', '(Ex. Rate: ' . number_format($exchangeRate, 0) . ')'];
         }
 
         return $rows;
@@ -159,7 +137,7 @@ class DailyCashCollectionExport implements FromArray, WithHeadings, WithTitle, W
         $sheet->mergeCells('A2:H2');
         $sheet->mergeCells('A3:H3');
 
-        return [
+        $styles = [
             1 => [
                 'font' => ['bold' => true, 'size' => 14],
                 'alignment' => ['horizontal' => Alignment::HORIZONTAL_CENTER],
@@ -177,6 +155,36 @@ class DailyCashCollectionExport implements FromArray, WithHeadings, WithTitle, W
                 'fill' => ['fillType' => Fill::FILL_SOLID, 'startColor' => ['rgb' => 'E0E0E0']],
                 'borders' => ['allBorders' => ['borderStyle' => Border::BORDER_THIN]],
             ],
+        ];
+
+        // Apply colors to data rows (starting from row 6)
+        $currentRow = 6;
+        foreach ($this->reportData as $item) {
+            $color = ($item['payment_method'] == 'cash') ? '059669' : '2563eb';
+            
+            // Collection USD (G) and VND (H)
+            $sheet->getStyle("G{$currentRow}:H{$currentRow}")->getFont()->getColor()->setRGB($color);
+            $sheet->getStyle("G{$currentRow}:H{$currentRow}")->getFont()->setBold(true);
+            
+            $currentRow++;
+        }
+
+        // Style the Grand Total row
+        $sheet->getStyle("A{$currentRow}:H{$currentRow}")->getFont()->setBold(true);
+        $sheet->getStyle("A{$currentRow}:H{$currentRow}")->getFill()->setFillType(Fill::FILL_SOLID)->getStartColor()->setRGB('E0E0E0');
+        // Colors for grand total collection - using green as default or just bold
+        $sheet->getStyle("G{$currentRow}:H{$currentRow}")->getFont()->getColor()->setRGB('059669');
+
+        return $styles;
+    }
+
+    public function columnFormats(): array
+    {
+        return [
+            'E' => '#,##0.00',
+            'F' => '#,##0',
+            'G' => '#,##0.00',
+            'H' => '#,##0',
         ];
     }
 

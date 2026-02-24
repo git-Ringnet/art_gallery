@@ -215,7 +215,17 @@
                     @if($totalCollectionUsd > 0 && $exchangeRate <= 1)
                         <!-- Có USD nhưng chưa nhập tỷ giá - Hiển thị cả 2 đơn vị tiền tệ -->
                         <p class="text-lg font-bold">
-                            VND: {{ number_format($totalCollectionVnd, 0) }}đ
+                            VND: @if($totalCollectionVnd > 0)
+                                    @php
+                                        $displayTotalVnd = ($exchangeRate > 1) ? ($totalCollectionVnd + ($totalCollectionUsd * $exchangeRate)) : $totalCollectionVnd;
+                                    @endphp
+                                    {{ number_format($displayTotalVnd, 0) }}đ
+                                    @if($exchangeRate > 1 && $totalCollectionUsd > 0)
+                                        <div class="text-[10px] text-gray-500 font-normal leading-tight">
+                                            (= {{ number_format($totalCollectionUsd * $exchangeRate, 0) }}đ)
+                                        </div>
+                                    @endif
+                                @endif
                         </p>
                         <p class="text-base font-medium opacity-90 mt-1">
                             + USD: ${{ number_format($totalCollectionUsd, 2) }}
@@ -300,12 +310,15 @@
                                 <td class="px-2 py-2 text-right text-red-600">
                                     {{ $item['adjustment_vnd'] != 0 ? number_format($item['adjustment_vnd'], 0) : '' }}</td>
 
-                                <td class="px-2 py-2 text-right font-semibold text-green-600 border-l-2 border-gray-400">
+                                @php
+                                    $collectionColor = ($item['payment_method'] == 'cash') ? 'text-green-600' : 'text-blue-600';
+                                @endphp
+                                <td class="px-2 py-2 text-right font-semibold {{ $collectionColor }} border-l-2 border-gray-400">
                                     @if($item['collection_usd'] > 0)
                                         {{ $item['collection_usd'] == floor($item['collection_usd']) ? number_format($item['collection_usd'], 0) : number_format($item['collection_usd'], 2) }}
                                     @endif
                                 </td>
-                                <td class="px-2 py-2 text-right font-semibold text-green-600">
+                                <td class="px-2 py-2 text-right font-semibold {{ $collectionColor }}">
                                     {{ $item['collection_vnd'] > 0 ? number_format($item['collection_vnd'], 0) : '' }}</td>
                             </tr>
                         @endforeach
@@ -331,7 +344,12 @@
                                     <div class="text-xs text-gray-600 font-normal">(= {{ number_format($totalCollectionUsd * $exchangeRate, 0) }}đ)</div>
                                 @endif
                             </td>
-                            <td class="px-2 py-3 text-right text-green-600">{{ number_format($totalCollectionVnd, 0) }}</td>
+                            <td class="px-2 py-3 text-right text-green-600">
+                                @php
+                                    $displayTotalVnd = ($exchangeRate > 1) ? ($totalCollectionVnd + ($totalCollectionUsd * $exchangeRate)) : $totalCollectionVnd;
+                                @endphp
+                                {{ number_format($displayTotalVnd, 0) }}
+                            </td>
                         </tr>
                     </tbody>
                 </table>
@@ -350,7 +368,7 @@
                             <div class="flex justify-between items-center py-2 border-b border-gray-200">
                                 <span class="text-gray-700 font-medium">Collection in CASH:</span>
                                 <div class="text-right">
-                                    <div class="text-lg font-bold text-green-700">VND {{ number_format($cashCollectionVnd, 0) }}</div>
+                                    <div class="text-lg font-bold text-green-700">VND {{ number_format($cashCollectionPureVnd, 0) }}</div>
                                     @if($cashCollectionUsd > 0)
                                         <div class="text-sm text-green-600">+ USD ${{ $cashCollectionUsd == floor($cashCollectionUsd) ? number_format($cashCollectionUsd, 0) : number_format($cashCollectionUsd, 2) }}</div>
                                     @endif
@@ -361,7 +379,7 @@
                             <div class="flex justify-between items-center py-2 border-b border-gray-200">
                                 <span class="text-gray-700 font-medium">In Credit Card + Transfer:</span>
                                 <div class="text-right">
-                                    <div class="text-lg font-bold text-blue-700">VND {{ number_format($cardCollectionVnd, 0) }}</div>
+                                    <div class="text-lg font-bold text-blue-700">VND {{ number_format($cardCollectionPureVnd, 0) }}</div>
                                     @if($cardCollectionUsd > 0)
                                         <div class="text-sm text-blue-600">+ USD ${{ $cardCollectionUsd == floor($cardCollectionUsd) ? number_format($cardCollectionUsd, 0) : number_format($cardCollectionUsd, 2) }}</div>
                                     @endif
@@ -390,7 +408,7 @@
                                 <div class="text-right">
                                     <div class="text-lg font-bold text-green-700">VND {{ number_format($cashCollectionVnd, 0) }}</div>
                                     @if($cashCollectionUsd > 0)
-                                        <div class="text-sm text-green-600">(incl. ${{ $cashCollectionUsd == floor($cashCollectionUsd) ? number_format($cashCollectionUsd, 0) : number_format($cashCollectionUsd, 2) }})</div>
+                                        <div class="text-sm text-green-600">+ USD ${{ $cashCollectionUsd == floor($cashCollectionUsd) ? number_format($cashCollectionUsd, 0) : number_format($cashCollectionUsd, 2) }}</div>
                                     @endif
                                 </div>
                             </div>
@@ -401,7 +419,7 @@
                                 <div class="text-right">
                                     <div class="text-lg font-bold text-blue-700">VND {{ number_format($cardCollectionVnd, 0) }}</div>
                                     @if($cardCollectionUsd > 0)
-                                        <div class="text-sm text-blue-600">(incl. ${{ $cardCollectionUsd == floor($cardCollectionUsd) ? number_format($cardCollectionUsd, 0) : number_format($cardCollectionUsd, 2) }})</div>
+                                        <div class="text-sm text-blue-600">+ USD ${{ $cardCollectionUsd == floor($cardCollectionUsd) ? number_format($cardCollectionUsd, 0) : number_format($cardCollectionUsd, 2) }}</div>
                                     @endif
                                 </div>
                             </div>
@@ -583,7 +601,7 @@
             @else
                 {{-- Separated Display (Rate = 1 or not provided) --}}
                  @if(!request('payment_type') || request('payment_type') == 'cash')
-                    <p style="margin: 3px 0;"><strong>Collection in CASH:</strong> VND {{ number_format($cashCollectionVnd, 0) }}
+                    <p style="margin: 3px 0;"><strong>Collection in CASH:</strong> VND {{ number_format($cashCollectionPureVnd, 0) }}
                         @if(isset($cashCollectionUsd) && $cashCollectionUsd > 0)
                             @php
                                 $val = $cashCollectionUsd;
@@ -594,7 +612,7 @@
                     </p>
                 @endif
                 @if(!request('payment_type') || request('payment_type') == 'card_transfer')
-                    <p style="margin: 3px 0;"><strong>in Credit Card + Transfer:</strong> VND {{ number_format($cardCollectionVnd, 0) }}
+                    <p style="margin: 3px 0;"><strong>in Credit Card + Transfer:</strong> VND {{ number_format($cardCollectionPureVnd, 0) }}
                         @if(isset($cardCollectionUsd) && $cardCollectionUsd > 0)
                             @php
                                 $val = $cardCollectionUsd;
@@ -608,7 +626,7 @@
                 <p
                     style="border-top: 2px solid #000; border-bottom: 2px double #000; padding: 6px 0; margin-top: 6px; font-weight: bold; font-size: 11px;">
                     @php
-                        $totalVnd = $cashCollectionVnd + $cardCollectionVnd;
+                        $totalVnd = $cashCollectionPureVnd + $cardCollectionPureVnd;
                         $totalUsd = ($cashCollectionUsd ?? 0) + ($cardCollectionUsd ?? 0);
                         
                         $usdPart = '';

@@ -283,6 +283,15 @@ class SalesController extends Controller
                     }
                 }
             }
+            
+            // Lọc bỏ các dòng trống (không có tranh, khung, vật tư và không có mô tả)
+            $items = array_filter($items, function($item) {
+                return !empty($item['painting_id']) || 
+                       !empty($item['frame_id']) || 
+                       !empty($item['supply_id']) || 
+                       !empty($item['description']);
+            });
+
             $request->merge(['items' => $items]);
         }
 
@@ -311,7 +320,7 @@ class SalesController extends Controller
             'customer_address' => 'nullable|string',
             'showroom_id' => 'required|exists:showrooms,id',
             'sale_date' => 'required|date',
-            'items' => 'required|array|min:1',
+            'items' => 'nullable|array',
             'items.*.painting_id' => 'nullable|exists:paintings,id',
             'items.*.frame_id' => 'nullable|exists:frames,id|distinct',
             'items.*.description' => 'required|string',
@@ -327,7 +336,6 @@ class SalesController extends Controller
             'shipping_fee_usd' => 'nullable|numeric|min:0',
             'shipping_fee_vnd' => 'nullable|numeric|min:0',
             'exchange_rate' => 'nullable|numeric|min:0',
-            'discount_percent' => 'nullable|numeric|min:0|max:100',
             'discount_amount_usd' => 'nullable|numeric|min:0',
             'discount_amount_vnd' => 'nullable',
             'payment_amount' => 'nullable|numeric|min:0',
@@ -457,7 +465,7 @@ class SalesController extends Controller
                 'user_id' => $user->id,
                 'sale_date' => $request->sale_date,
                 'exchange_rate' => number_format((float) $exchangeRate, 0, '', ''),
-                'discount_percent' => $request->discount_percent ?? 0,
+                'discount_percent' => 0,
                 'discount_amount_usd' => $discountAmountUsd,
                 'discount_amount_vnd' => $discountAmountVnd,
                 'shipping_fee_usd' => $shippingFeeUsd,
@@ -476,7 +484,8 @@ class SalesController extends Controller
             ]);
 
             // Create sale items
-            foreach ($request->items as $item) {
+            if ($request->has('items') && is_array($request->items)) {
+                foreach ($request->items as $item) {
                 // Xử lý discount_amount cho item
                 $itemDiscountUsd = $item['discount_amount_usd'] ?? 0;
                 $itemDiscountVnd = $item['discount_amount_vnd'] ?? 0;
@@ -508,6 +517,7 @@ class SalesController extends Controller
 
                 // KHÔNG TRỪ KHO Ở ĐÂY - Sẽ trừ khi duyệt phiếu (approve)
             }
+        }
 
             // Calculate sale totals
             $sale->calculateTotals();
@@ -641,7 +651,7 @@ class SalesController extends Controller
         // Chỉ validate items nếu CHƯA có return
         if (!$hasReturns) {
             // Clean up empty strings and format for numeric fields
-            if ($request->has('items')) {
+            if ($request->has('items') && is_array($request->items)) {
                 $items = $request->items;
                 foreach ($items as $key => $item) {
                     // Clean price_usd: empty string, "0", or formatted string → null or clean number
@@ -666,11 +676,20 @@ class SalesController extends Controller
                         }
                     }
                 }
+
+                // Lọc bỏ các dòng trống (không có tranh, khung, vật tư và không có mô tả)
+                $items = array_filter($items, function ($item) {
+                    return !empty($item['painting_id']) ||
+                        !empty($item['frame_id']) ||
+                        !empty($item['supply_id']) ||
+                        !empty($item['description']);
+                });
+
                 $request->merge(['items' => $items]);
             }
 
             $rules = array_merge($rules, [
-                'items' => 'required|array|min:1',
+                'items' => 'nullable|array',
                 'items.*.painting_id' => 'nullable|exists:paintings,id',
                 'items.*.frame_id' => 'nullable|exists:frames,id|distinct',
                 'items.*.description' => 'required|string',
@@ -833,7 +852,7 @@ class SalesController extends Controller
                 'user_id' => $user->id,
                 'sale_date' => $request->sale_date,
                 'exchange_rate' => $exchangeRate, // Chỉ thay đổi nếu pending
-                'discount_percent' => $request->discount_percent ?? 0,
+                'discount_percent' => $request->has('discount_percent') ? $request->discount_percent : $sale->discount_percent,
                 'discount_amount_usd' => $discountAmountUsd,
                 'discount_amount_vnd' => $discountAmountVnd,
                 'shipping_fee_usd' => $shippingFeeUsd,
@@ -880,7 +899,8 @@ class SalesController extends Controller
                 $sale->saleItems()->delete();
 
                 // Create new sale items
-                foreach ($request->items as $item) {
+                if ($request->has('items') && is_array($request->items)) {
+                    foreach ($request->items as $item) {
                     // Xử lý discount_amount cho item
                     $itemDiscountUsd = $item['discount_amount_usd'] ?? 0;
                     $itemDiscountVnd = $item['discount_amount_vnd'] ?? 0;
@@ -939,6 +959,7 @@ class SalesController extends Controller
                         }
                     }
                 }
+            }
 
                 // Calculate sale totals
                 $sale->calculateTotals();

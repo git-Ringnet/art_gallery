@@ -1,5 +1,5 @@
 // Format number with thousand separators for VND
-function formatVND(input) {
+function formatVND(input, isBlur = false) {
     let value = input.value.replace(/[^\d]/g, '');
     if (value) {
         const num = parseInt(value);
@@ -18,11 +18,13 @@ function formatVND(input) {
             input.title = '';
             input.value = num.toLocaleString('en-US');
         }
+    } else if (isBlur) {
+        input.value = '0';
     }
 }
 
-// Format USD with decimal
-function formatUSD(input) {
+// Format USD as whole number (No decimals)
+function formatUSD(input, isBlur = false) {
     // Lưu vị trí con trỏ
     const cursorPosition = input.selectionStart;
     const oldValue = input.value;
@@ -31,53 +33,49 @@ function formatUSD(input) {
     const valueBeforeCursor = oldValue.substring(0, cursorPosition);
     const digitsBeforeCursor = valueBeforeCursor.replace(/[^\d]/g, '').length;
     
-    // Format giá trị
-    let value = input.value.replace(/[^\d.]/g, '');
-    const parts = value.split('.');
-    if (parts.length > 2) {
-        value = parts[0] + '.' + parts.slice(1).join('');
-    }
-    if (parts[1] && parts[1].length > 2) {
-        value = parts[0] + '.' + parts[1].substring(0, 2);
-    }
+    // Format giá trị (loại bỏ tất cả trừ số)
+    let value = input.value.replace(/[^\d]/g, '');
     
     if (value) {
-        const num = parseFloat(value);
-        const MAX_USD = 99999999.99; // 99 triệu USD (decimal 10,2)
+        const num = parseInt(value);
+        const MAX_USD = 99999999; // 99 triệu USD
         
         if (!isNaN(num)) {
             if (num > MAX_USD) {
                 input.classList.add('border-red-500', 'bg-red-50');
-                input.title = 'Giá trị quá lớn! Tối đa: $' + MAX_USD.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2});
+                input.title = 'Giá trị quá lớn! Tối đa: $' + MAX_USD.toLocaleString('en-US');
                 // Cắt về giá trị tối đa
-                const formatted = MAX_USD.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2});
+                const formatted = MAX_USD.toLocaleString('en-US');
                 input.value = formatted;
                 
                 // Hiển thị cảnh báo
-                showWarning(input, 'Giá USD vượt quá giới hạn! Tối đa: $' + MAX_USD.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2}));
+                showWarning(input, 'Giá USD vượt quá giới hạn! Tối đa: $' + MAX_USD.toLocaleString('en-US'));
             } else {
                 input.classList.remove('border-red-500', 'bg-red-50');
                 input.title = '';
-                const formatted = num.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2});
+                const formatted = num.toLocaleString('en-US');
                 input.value = formatted;
                 
                 // Tính toán vị trí con trỏ mới
-                let newCursorPosition = 0;
-                let digitCount = 0;
-                for (let i = 0; i < formatted.length; i++) {
-                    if (/\d/.test(formatted[i])) {
-                        digitCount++;
+                if (!isBlur) {
+                    let newCursorPosition = 0;
+                    let digitCount = 0;
+                    for (let i = 0; i < formatted.length; i++) {
+                        if (/\d/.test(formatted[i])) {
+                            digitCount++;
+                        }
+                        if (digitCount >= digitsBeforeCursor) {
+                            newCursorPosition = i + 1;
+                            break;
+                        }
                     }
-                    if (digitCount >= digitsBeforeCursor) {
-                        newCursorPosition = i + 1;
-                        break;
-                    }
+                    // Khôi phục vị trí con trỏ
+                    input.setSelectionRange(newCursorPosition, newCursorPosition);
                 }
-                
-                // Khôi phục vị trí con trỏ
-                input.setSelectionRange(newCursorPosition, newCursorPosition);
             }
         }
+    } else if (isBlur) {
+        input.value = '0';
     }
 }
 
@@ -128,7 +126,13 @@ function showWarning(input, message) {
 // Parse formatted number back to plain number
 function unformatNumber(value) {
     if (typeof value === 'string') {
-        return value.replace(/[^\d.]/g, '');
+        // Nếu là VND (có ký hiệu đ) hoặc có nhiều hơn 1 dấu chấm, loại bỏ tất cả dấu chấm (phân cách hàng nghìn)
+        if (value.includes('đ') || (value.match(/\./g) || []).length > 1) {
+            return value.replace(/[^\d]/g, '') || '0';
+        }
+        // Trường hợp USD: giữ lại dấu chấm duy nhất làm số thập phân
+        let val = value.replace(/[^\d.]/g, '');
+        return val || '0';
     }
-    return value;
+    return value || '0';
 }

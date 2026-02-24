@@ -651,7 +651,7 @@
                                     <span>{{ $payment->payment_date->format('d/m/Y') }}</span>
                                     <span>
                                         @if(($payment->payment_usd ?? 0) != 0)
-                                            ${{ number_format($payment->payment_usd, 2) }}
+                                            ${{ number_format($payment->payment_usd, 0) }}
                                         @endif
                                         @if(($payment->payment_usd ?? 0) != 0 && ($payment->payment_vnd ?? 0) != 0)
                                             +
@@ -670,7 +670,7 @@
                                 </span>
                                 <div class="text-right font-medium text-gray-900">
                                     @if($totalPaidUsd > 0)
-                                        <span>${{ number_format($totalPaidUsd, 2) }}</span>
+                                        <span>${{ number_format($totalPaidUsd, 0) }}</span>
                                     @endif
                                     @if($totalPaidUsd > 0 && $totalPaidVnd > 0)
                                         <span class="text-gray-500">+</span>
@@ -701,7 +701,7 @@
                                     class="lang-en hidden">Paid:</span></span>
                             <div class="text-right font-medium text-gray-900">
                                 @if($initialPaidUsd > 0)
-                                    <span>${{ number_format($initialPaidUsd, 2) }}</span>
+                                    <span>${{ number_format($initialPaidUsd, 0) }}</span>
                                 @endif
                                 @if($initialPaidUsd > 0 && $initialPaidVnd > 0)
                                     <span class="text-gray-500">+</span>
@@ -747,7 +747,7 @@
                             <div class="text-right font-bold text-red-600">
                                 @if(($sale->debt_usd ?? 0) > 0)
                                     {{-- Ưu tiên hiển thị USD --}}
-                                    <span>${{ number_format($sale->debt_usd, 2) }}</span>
+                                    <span>${{ number_format($sale->debt_usd, 0) }}</span>
                                 @elseif(($sale->debt_vnd ?? 0) > 0)
                                     {{-- Nếu không có USD thì hiển thị VND --}}
                                     <span>{{ number_format($sale->debt_vnd) }}đ</span>
@@ -777,7 +777,7 @@
                                     <span class="lang-en hidden">Total Paid:</span>
                                 </span>
                                 <div class="text-right font-bold text-green-600">
-                                    ${{ number_format($totalPaidUsd, 2) }} + {{ number_format($totalPaidVnd) }}đ
+                                    ${{ number_format($totalPaidUsd, 0) }} + {{ number_format($totalPaidVnd) }}đ
                                 </div>
                             </div>
                         @endif

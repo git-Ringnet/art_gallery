@@ -189,17 +189,20 @@ class ReportsController extends Controller
 
             $firstItem = $sale->items->first();
 
-            if (!$firstItem) {
-                continue;
-            }
-
             $idCode = '';
-            if ($firstItem->painting_id) {
-                $idCode = $firstItem->painting->code ?? 'N/A';
-            } elseif ($firstItem->supply_id) {
-                $idCode = $firstItem->supply->code ?? 'SUP' . $firstItem->supply_id;
-            } elseif ($firstItem->frame_id) {
-                $idCode = 'FRAME' . $firstItem->frame_id;
+            $itemDescription = '';
+            if ($firstItem) {
+                if ($firstItem->painting_id) {
+                    $idCode = $firstItem->painting->code ?? 'N/A';
+                } elseif ($firstItem->supply_id) {
+                    $idCode = $firstItem->supply->code ?? 'SUP' . $firstItem->supply_id;
+                } elseif ($firstItem->frame_id) {
+                    $idCode = 'FRAME' . $firstItem->frame_id;
+                }
+                $itemDescription = $firstItem->description ?: 'N/A';
+            } else {
+                $itemDescription = 'Phí vận chuyển';
+                $idCode = 'SERVICE';
             }
 
             // Tính toán Gross Deposit (Tổng tiền hàng trước giảm giá)
@@ -247,6 +250,7 @@ class ReportsController extends Controller
                 'collection_vnd' => $payment->payment_vnd ?? 0,
                 'collection_adjustment_usd' => 0,
                 'collection_adjustment_vnd' => 0,
+                'payment_method' => $payment->payment_method,
             ];
 
             $reportData[] = $rowData;
@@ -334,6 +338,8 @@ class ReportsController extends Controller
             'cardCollectionVnd',
             'cashCollectionUsd',
             'cardCollectionUsd',
+            'cashCollectionPureVnd',
+            'cardCollectionPureVnd',
             'grandTotalVnd'
         ));
     }
@@ -473,6 +479,9 @@ class ReportsController extends Controller
                 } else {
                     $itemDescription = $firstItem->description;
                 }
+            } else {
+                $itemDescription = 'Phí vận chuyển';
+                $idCode = 'SERVICE';
             }
 
             $itemCount = $sale->items->sum('quantity');
@@ -681,6 +690,8 @@ class ReportsController extends Controller
 
             if ($firstItem && $firstItem->painting_id && $firstItem->painting) {
                 $idCode = $firstItem->painting->code ?? '';
+            } else {
+                $idCode = 'SERVICE';
             }
 
             // Xác định loại hóa đơn
@@ -932,9 +943,10 @@ class ReportsController extends Controller
             'cardCollectionVnd' => $data['cardCollectionVnd'],
             'cashCollectionUsd' => $data['cashCollectionUsd'],
             'cardCollectionUsd' => $data['cardCollectionUsd'],
+            'cashCollectionPureVnd' => $data['cashCollectionPureVnd'],
+            'cardCollectionPureVnd' => $data['cardCollectionPureVnd'],
             'exchangeRate' => $data['exchangeRate'],
         ];
-
         $filename = 'daily_cash_collection_' . $data['fromDate']->format('Ymd') . '_' . $data['toDate']->format('Ymd') . '.xlsx';
 
         return \Maatwebsite\Excel\Facades\Excel::download(
@@ -1220,17 +1232,20 @@ class ReportsController extends Controller
 
             $firstItem = $sale->items->first();
 
-            if (!$firstItem) {
-                continue;
-            }
-
             $idCode = '';
-            if ($firstItem->painting_id) {
-                $idCode = $firstItem->painting->code ?? 'N/A';
-            } elseif ($firstItem->supply_id) {
-                $idCode = $firstItem->supply->code ?? 'SUP' . $firstItem->supply_id;
-            } elseif ($firstItem->frame_id) {
-                $idCode = 'FRAME' . $firstItem->frame_id;
+            $itemDescription = '';
+            if ($firstItem) {
+                if ($firstItem->painting_id) {
+                    $idCode = $firstItem->painting->code ?? 'N/A';
+                } elseif ($firstItem->supply_id) {
+                    $idCode = $firstItem->supply->code ?? 'SUP' . $firstItem->supply_id;
+                } elseif ($firstItem->frame_id) {
+                    $idCode = 'FRAME' . $firstItem->frame_id;
+                }
+                $itemDescription = $firstItem->description ?: 'N/A';
+            } else {
+                $itemDescription = 'Phí vận chuyển';
+                $idCode = 'SERVICE';
             }
 
             // Tính toán Gross Deposit (Tổng tiền hàng trước giảm giá)
@@ -1277,6 +1292,7 @@ class ReportsController extends Controller
                 'collection_vnd' => $payment->payment_vnd ?? 0,
                 'collection_adjustment_usd' => 0,
                 'collection_adjustment_vnd' => 0,
+                'payment_method' => $payment->payment_method,
             ];
 
             $reportData[] = $rowData;
@@ -1339,6 +1355,8 @@ class ReportsController extends Controller
             'cardCollectionVnd' => $cardCollectionVnd,
             'cashCollectionUsd' => $cashCollectionUsd,
             'cardCollectionUsd' => $cardCollectionUsd,
+            'cashCollectionPureVnd' => $cashCollectionPureVnd,
+            'cardCollectionPureVnd' => $cardCollectionPureVnd,
         ];
     }
 
