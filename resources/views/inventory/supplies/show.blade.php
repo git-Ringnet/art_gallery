@@ -106,7 +106,7 @@
                             @default
                                 {{ $supply->type }}
                         @endswitch
-                    </p>
+                    </p>  
                 </div>
                 
                 <div>
@@ -115,8 +115,13 @@
                 </div>
                 
                 <div>
+                    <label class="block text-xs font-medium text-gray-700 mb-1">Ngày nhập kho</label>
+                    <p class="text-sm text-gray-900">{{ $supply->import_date ? $supply->import_date->format('d/m/Y') : 'Chưa có thông tin' }}</p>
+                </div>
+                
+                <div>
                     <label class="block text-sm font-medium text-gray-700 mb-1">Chiều dài mỗi cây</label>
-                    <p class="text-lg font-semibold text-gray-900">{{ $supply->quantity }} {{ $supply->unit }}/cây</p>
+                    <p class="text-lg font-semibold text-gray-900">{{ rtrim(rtrim(number_format($supply->quantity, 2), '0'), '.') }} {{ $supply->unit }}/cây</p>
                 </div>
                 
                 @if($supply->type == 'frame' && $supply->tree_count > 0)
@@ -134,7 +139,7 @@
                             $totalLength = $supply->tree_count * $supply->quantity;
                         @endphp
                         <p class="text-2xl font-bold text-green-600">
-                            {{ $supply->tree_count }} cây × {{ $supply->quantity }}{{ $supply->unit }}/cây = {{ number_format($totalLength, 2) }}{{ $supply->unit }}
+                            {{ $supply->tree_count }} cây × {{ rtrim(rtrim(number_format($supply->quantity, 2), '0'), '.') }}{{ $supply->unit }}/cây = {{ rtrim(rtrim(number_format($totalLength, 2), '0'), '.') }}{{ $supply->unit }}
                         </p>
                     </div>
                 </div>

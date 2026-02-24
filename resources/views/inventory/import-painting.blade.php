@@ -182,7 +182,7 @@
                     <div>
                         <label class="block text-xs font-medium text-gray-700 mb-1">Ngày nhập kho <span
                                 class="text-red-500">*</span></label>
-                        <input type="date" name="import_date" value="{{ old('import_date') }}" required
+                        <input type="date" name="import_date" value="{{ old('import_date', date('Y-m-d')) }}" required
                             class="w-full px-2 py-1.5 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
                     </div>
                     <div>

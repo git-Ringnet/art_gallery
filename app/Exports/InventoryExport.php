@@ -7,9 +7,12 @@ use Maatwebsite\Excel\Concerns\WithHeadings;
 use Maatwebsite\Excel\Concerns\WithMapping;
 use Maatwebsite\Excel\Concerns\WithStyles;
 use Maatwebsite\Excel\Concerns\WithColumnWidths;
+use Maatwebsite\Excel\Concerns\WithEvents;
+use Maatwebsite\Excel\Events\AfterSheet;
 use PhpOffice\PhpSpreadsheet\Worksheet\Worksheet;
+use PhpOffice\PhpSpreadsheet\Worksheet\Drawing;
 
-class InventoryExport implements FromCollection, WithHeadings, WithMapping, WithStyles, WithColumnWidths
+class InventoryExport implements FromCollection, WithHeadings, WithMapping, WithStyles, WithColumnWidths, WithEvents
 {
     protected $inventory;
 
@@ -35,7 +38,8 @@ class InventoryExport implements FromCollection, WithHeadings, WithMapping, With
             'Trạng thái',
             'Họa sĩ',
             'Chất liệu',
-            'Giá (USD)'
+            'Giá (USD)',
+            'Hình ảnh'
         ];
     }
 
@@ -52,6 +56,7 @@ class InventoryExport implements FromCollection, WithHeadings, WithMapping, With
             $item['artist'] ?? '',
             $item['material'] ?? '',
             $item['price_usd'] ?? '',
+            '', // Placeholder for image - actual image inserted via AfterSheet event
         ];
     }
 
@@ -75,6 +80,44 @@ class InventoryExport implements FromCollection, WithHeadings, WithMapping, With
             'H' => 20,  // Họa sĩ
             'I' => 20,  // Chất liệu
             'J' => 15,  // Giá (USD)
+            'K' => 18,  // Hình ảnh
+        ];
+    }
+
+    public function registerEvents(): array
+    {
+        $inventory = $this->inventory;
+
+        return [
+            AfterSheet::class => function (AfterSheet $event) use ($inventory) {
+                $sheet = $event->sheet->getDelegate();
+                $row = 2; // Start after header row
+
+                foreach ($inventory as $item) {
+                    $imagePath = $item['image_path'] ?? null;
+
+                    if ($imagePath && file_exists($imagePath)) {
+                        try {
+                            $drawing = new Drawing();
+                            $drawing->setName($item['name'] ?? 'Image');
+                            $drawing->setDescription($item['name'] ?? 'Image');
+                            $drawing->setPath($imagePath);
+                            $drawing->setHeight(60);
+                            $drawing->setCoordinates('K' . $row);
+                            $drawing->setOffsetX(5);
+                            $drawing->setOffsetY(5);
+                            $drawing->setWorksheet($sheet);
+
+                            // Set row height to fit the image
+                            $sheet->getRowDimension($row)->setRowHeight(50);
+                        } catch (\Exception $e) {
+                            // If image fails, just leave the cell empty
+                        }
+                    }
+
+                    $row++;
+                }
+            },
         ];
     }
 }

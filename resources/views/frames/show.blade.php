@@ -77,8 +77,8 @@
             </div>
 
             <div>
-                <label class="block text-sm font-medium text-gray-500 mb-1">Ngày tạo</label>
-                <p class="text-lg">{{ $frame->created_at->format('d/m/Y H:i') }}</p>
+                <label class="block text-sm font-medium text-gray-500 mb-1">Ngày nhập kho</label>
+                <p class="text-lg">{{ $frame->import_date ? $frame->import_date->format('d/m/Y') : $frame->created_at->format('d/m/Y') }}</p>
             </div>
 
             <div>

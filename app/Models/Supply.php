@@ -19,6 +19,7 @@ class Supply extends Model
         'min_quantity',
         'notes',
         'image',
+        'import_date',
     ];
 
     protected function casts(): array
@@ -27,6 +28,7 @@ class Supply extends Model
             'quantity' => 'decimal:2',
             'tree_count' => 'integer',
             'min_quantity' => 'decimal:2',
+            'import_date' => 'date',
         ];
     }
 

@@ -77,6 +77,13 @@
             </div>
             
             <div>
+                <label class="block text-xs font-medium text-gray-700 mb-1">Ngày nhập kho</label>
+                <input type="date" name="import_date" 
+                    value="{{ old('import_date', optional($supply->import_date)->format('Y-m-d')) }}"
+                    class="w-full px-2 py-1.5 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+            </div>
+
+            <div>
                 <label class="block text-xs font-medium text-gray-700 mb-1">Ảnh vật tư (5Mb)</label>
                 @if($supply->image)
                     <div class="mb-2">

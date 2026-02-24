@@ -74,6 +74,13 @@
                     </div>
 
                     <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Ngày nhập kho</label>
+                        <input type="date" name="import_date" value="{{ old('import_date', date('Y-m-d')) }}"
+                            class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                        <p class="text-xs text-gray-500 mt-1">Mặc định là ngày hôm nay</p>
+                    </div>
+
+                    <div>
                         <label class="block text-sm font-medium text-gray-700 mb-2">Chiều dài khung (cm) <span class="text-red-500">*</span></label>
                         <input type="number" name="frame_length" id="frame_length" value="{{ old('frame_length') }}" 
                             step="0.01" min="0" required

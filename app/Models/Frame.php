@@ -17,6 +17,7 @@ class Frame extends Model
         'cost_price_usd',
         'notes',
         'status',
+        'import_date',
     ];
 
     protected function casts(): array
@@ -29,6 +30,7 @@ class Frame extends Model
             'total_wood_needed' => 'decimal:2',
             'cost_price' => 'decimal:2',
             'cost_price_usd' => 'decimal:2',
+            'import_date' => 'date',
         ];
     }
 

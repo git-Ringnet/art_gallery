@@ -50,7 +50,7 @@ class FrameController extends Controller
             $query->where('status', $status);
         }
 
-        $frames = $query->latest()->paginate(20)->appends($request->query());
+        $frames = $query->latest()->paginate(10)->appends($request->query());
         
         return view('frames.index', compact('frames', 'search', 'status'));
     }
@@ -74,6 +74,7 @@ class FrameController extends Controller
             'corner_deduction' => 'required|numeric|min:0',
             'cost_price' => 'required|numeric|min:0',
             'cost_price_usd' => 'nullable|numeric|min:0',
+            'import_date' => 'nullable|date',
             'notes' => 'nullable|string',
             'quantity' => 'nullable|integer|min:1',
             'items' => 'required|array|min:1',
@@ -101,6 +102,7 @@ class FrameController extends Controller
                     'cost_price' => $validated['cost_price'],
                     'cost_price_usd' => $validated['cost_price_usd'] ?? 0,
                     'notes' => $validated['notes'],
+                    'import_date' => $validated['import_date'] ?? now()->toDateString(),
                 ]);
 
                 // Thêm các items và cập nhật kho

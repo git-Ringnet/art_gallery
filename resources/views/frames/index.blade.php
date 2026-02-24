@@ -79,7 +79,7 @@
                         <th class="px-2 py-2 text-left text-xs font-medium uppercase tracking-wider">Số loại cây</th>
                         <th class="px-2 py-2 text-left text-xs font-medium uppercase tracking-wider">Tổng số cây</th>
                         <th class="px-2 py-2 text-left text-xs font-medium uppercase tracking-wider">Giá nhập (VND/USD)</th>
-                        <th class="px-2 py-2 text-left text-xs font-medium uppercase tracking-wider">Ngày tạo</th>
+                        <th class="px-2 py-2 text-left text-xs font-medium uppercase tracking-wider">Ngày nhập</th>
                         <th class="px-2 py-2 text-left text-xs font-medium uppercase tracking-wider">Trạng thái</th>
                         <th class="px-2 py-2 text-left text-xs font-medium uppercase tracking-wider">Thao tác</th>
                     </tr>
@@ -113,7 +113,7 @@
                                     <div class="text-gray-500">{{ number_format($frame->cost_price_usd, 2) }} USD</div>
                                 @endif
                             </td>
-                            <td class="px-2 py-2 whitespace-nowrap text-xs text-gray-900">{{ $frame->created_at->format('d/m/Y') }}</td>
+                            <td class="px-2 py-2 whitespace-nowrap text-xs text-gray-900">{{ $frame->import_date ? $frame->import_date->format('d/m/Y') : $frame->created_at->format('d/m/Y') }}</td>
                             <td class="px-2 py-2 whitespace-nowrap">
                                 @if($frame->status == 'available')
                                     <span class="px-1.5 py-0.5 text-xs font-semibold rounded bg-green-100 text-green-800">

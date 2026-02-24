@@ -540,6 +540,7 @@ class InventoryController extends Controller
             'unit' => 'required|string|max:20',
             'length_per_tree' => 'required|numeric|min:0',
             'tree_count' => 'required|integer|min:1',
+            'import_date' => 'nullable|date',
             'notes' => 'nullable|string',
             'image' => 'nullable|image|max:5120',
         ], [
@@ -594,6 +595,7 @@ class InventoryController extends Controller
             'unit' => $validated['unit'],
             'quantity' => $validated['length_per_tree'], // Chiều dài mỗi cây
             'tree_count' => $validated['tree_count'], // Số lượng cây
+            'import_date' => $validated['import_date'] ?? now()->toDateString(),
             'notes' => $validated['notes'] ?? null,
             'image' => $imagePath,
         ]);
@@ -878,6 +880,7 @@ class InventoryController extends Controller
             'quantity' => 'required|numeric|min:0',
             'tree_count' => 'nullable|integer|min:0',
             'min_quantity' => 'nullable|numeric|min:0',
+            'import_date' => 'nullable|date',
             'notes' => 'nullable|string',
             'image' => 'nullable|image|max:5120',
             'remove_image' => 'nullable|in:0,1',
@@ -1135,7 +1138,7 @@ class InventoryController extends Controller
         }
         $paintings = $paintingsQuery->orderBy('created_at', 'desc')->get();
 
-        $suppliesQuery = Supply::query();
+        $suppliesQuery = Supply::where('tree_count', '>', 0);
         if ($search) {
             $suppliesQuery->where('code', 'like', "%{$search}%")
                 ->orWhere('name', 'like', "%{$search}%");
@@ -1164,16 +1167,17 @@ class InventoryController extends Controller
                     'artist' => $painting->artist,
                     'material' => $painting->material,
                     'price_usd' => $painting->price_usd,
+                    'image_path' => $painting->image ? public_path('storage/' . $painting->image) : '',
                     'created_at' => $painting->created_at,
                 ];
             }));
         }
         if (!$type || $type === 'supply') {
             $inventory = $inventory->merge($supplies->map(function ($supply) {
-                $quantityDisplay = $supply->quantity . ' ' . $supply->unit;
+                $quantityDisplay = rtrim(rtrim(number_format($supply->quantity, 2), '0'), '.') . ' ' . $supply->unit;
                 if ($supply->type == 'frame' && $supply->tree_count > 0) {
                     $totalLength = $supply->tree_count * $supply->quantity;
-                    $quantityDisplay = $supply->tree_count . ' cây × ' . $supply->quantity . $supply->unit . '/cây = ' . number_format($totalLength, 2) . $supply->unit . ' tổng';
+                    $quantityDisplay = $supply->tree_count . ' cây × ' . rtrim(rtrim(number_format($supply->quantity, 2), '0'), '.') . $supply->unit . '/cây = ' . rtrim(rtrim(number_format($totalLength, 2), '0'), '.') . $supply->unit . ' tổng';
                 }
 
                 return [
@@ -1187,6 +1191,7 @@ class InventoryController extends Controller
                     'artist' => '',
                     'material' => '',
                     'price_usd' => '',
+                    'image_path' => $supply->image ? public_path('storage/' . $supply->image) : '',
                     'created_at' => $supply->created_at,
                 ];
             }));
@@ -1268,7 +1273,7 @@ class InventoryController extends Controller
         }
         $paintings = $paintingsQuery->orderBy('created_at', 'desc')->get();
 
-        $suppliesQuery = Supply::query();
+        $suppliesQuery = Supply::where('tree_count', '>', 0);
         if ($search) {
             $suppliesQuery->where('code', 'like', "%{$search}%")
                 ->orWhere('name', 'like', "%{$search}%");
@@ -1294,16 +1299,17 @@ class InventoryController extends Controller
                     'unit' => '',
                     'import_date' => $painting->import_date?->format('d/m/Y'),
                     'status' => $painting->status == 'in_stock' ? 'Còn hàng' : 'Đã bán',
+                    'image' => $painting->image ? public_path('storage/' . $painting->image) : '',
                     'created_at' => $painting->created_at,
                 ];
             }));
         }
         if (!$type || $type === 'supply') {
             $inventory = $inventory->merge($supplies->map(function ($supply) {
-                $quantityDisplay = $supply->quantity . ' ' . $supply->unit;
+                $quantityDisplay = rtrim(rtrim(number_format($supply->quantity, 2), '0'), '.') . ' ' . $supply->unit;
                 if ($supply->type == 'frame' && $supply->tree_count > 0) {
                     $totalLength = $supply->tree_count * $supply->quantity;
-                    $quantityDisplay = $supply->tree_count . ' cây × ' . $supply->quantity . $supply->unit . '/cây = ' . number_format($totalLength, 2) . $supply->unit . ' tổng';
+                    $quantityDisplay = $supply->tree_count . ' cây × ' . rtrim(rtrim(number_format($supply->quantity, 2), '0'), '.') . $supply->unit . '/cây = ' . rtrim(rtrim(number_format($totalLength, 2), '0'), '.') . $supply->unit . ' tổng';
                 }
 
                 return [
@@ -1314,6 +1320,7 @@ class InventoryController extends Controller
                     'unit' => $supply->unit,
                     'import_date' => $supply->import_date?->format('d/m/Y'),
                     'status' => $supply->quantity > 0 ? 'Còn hàng' : 'Hết hàng',
+                    'image' => $supply->image ? public_path('storage/' . $supply->image) : '',
                     'created_at' => $supply->created_at,
                 ];
             }));
@@ -1329,7 +1336,57 @@ class InventoryController extends Controller
             $inventory = $inventory->forPage($currentPage, $perPage)->values();
         }
 
-        $pdf = Pdf::loadView('inventory.export-pdf', compact('inventory', 'search', 'type', 'dateFrom', 'dateTo', 'scope'));
+        // Increase limits for large exports with images
+        set_time_limit(300);
+        ini_set('memory_limit', '2048M');
+
+        // Convert images to tiny base64 thumbnails to avoid memory exhaustion
+        $inventory = $inventory->map(function ($item) {
+            $item['image_base64'] = '';
+            $imagePath = $item['image'] ?? '';
+            if ($imagePath && file_exists($imagePath)) {
+                try {
+                    $imageInfo = @getimagesize($imagePath);
+                    if ($imageInfo) {
+                        $mime = $imageInfo['mime'];
+                        $sourceImage = null;
+                        switch ($mime) {
+                            case 'image/jpeg':
+                                $sourceImage = @imagecreatefromjpeg($imagePath);
+                                break;
+                            case 'image/png':
+                                $sourceImage = @imagecreatefrompng($imagePath);
+                                break;
+                            case 'image/webp':
+                                $sourceImage = @imagecreatefromwebp($imagePath);
+                                break;
+                        }
+                        if ($sourceImage) {
+                            $thumbSize = 40;
+                            $thumb = imagecreatetruecolor($thumbSize, $thumbSize);
+                            $origW = imagesx($sourceImage);
+                            $origH = imagesy($sourceImage);
+                            imagecopyresampled($thumb, $sourceImage, 0, 0, 0, 0, $thumbSize, $thumbSize, $origW, $origH);
+                            imagedestroy($sourceImage);
+
+                            ob_start();
+                            imagejpeg($thumb, null, 40); // Very low quality to save memory
+                            $thumbData = ob_get_clean();
+                            imagedestroy($thumb);
+
+                            $item['image_base64'] = 'data:image/jpeg;base64,' . base64_encode($thumbData);
+                        }
+                    }
+                } catch (\Exception $e) {
+                    // Skip if image processing fails
+                }
+            }
+            unset($item['image']); // Free the path string
+            return $item;
+        });
+
+        $pdf = Pdf::loadView('inventory.export-pdf', compact('inventory', 'search', 'type', 'dateFrom', 'dateTo', 'scope'))
+            ->setPaper('a4', 'landscape');
 
         $filename = 'quan-ly-kho-' . date('Y-m-d-His') . '.pdf';
         return $pdf->download($filename);

@@ -211,14 +211,14 @@
                             <td class="px-2 py-2 whitespace-nowrap text-xs font-semibold text-gray-900">
                                 @if($item['type'] == 'supply' && isset($item['supply_type']) && $item['supply_type'] == 'frame' && isset($item['tree_count']) && $item['tree_count'] > 0)
                                     <div class="flex flex-col">
-                                        <span class="text-blue-600">{{ $item['tree_count'] }} cây × {{ $item['quantity'] }}{{ isset($item['unit']) ? $item['unit'] : '' }}/cây</span>
+                                        <span class="text-blue-600">{{ $item['tree_count'] }} cây × {{ rtrim(rtrim(number_format($item['quantity'], 2), '0'), '.') }}{{ isset($item['unit']) ? $item['unit'] : '' }}/cây</span>
                                         @php
                                             $totalLength = $item['tree_count'] * $item['quantity'];
                                         @endphp
-                                        <span class="text-green-600 text-sm">= {{ number_format($totalLength, 2) }}{{ isset($item['unit']) ? $item['unit'] : '' }} tổng</span>
+                                        <span class="text-green-600 text-sm">= {{ rtrim(rtrim(number_format($totalLength, 2), '0'), '.') }}{{ isset($item['unit']) ? $item['unit'] : '' }} tổng</span>
                                     </div>
                                 @else
-                                    {{ $item['quantity'] }}{{ isset($item['unit']) ? ' ' . $item['unit'] : '' }}
+                                    {{ is_numeric($item['quantity']) ? rtrim(rtrim(number_format($item['quantity'], 2), '0'), '.') : $item['quantity'] }}{{ isset($item['unit']) ? ' ' . $item['unit'] : '' }}
                                 @endif
                             </td>
                             <td class="px-2 py-2 whitespace-nowrap text-xs text-gray-900">{{ $item['import_date'] }}</td>
