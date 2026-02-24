@@ -76,3 +76,35 @@ Schedule::command('activitylog:cleanup')
     ->onFailure(function () {
         Log::error('Activity log cleanup failed');
     });
+
+// ============================================
+// ADMIN NOTIFICATIONS CLEANUP
+// ============================================
+
+// Cleanup old admin notifications (Daily at 02:00)
+Schedule::command('notifications:cleanup')
+    ->daily()
+    ->at('02:00')
+    ->timezone('Asia/Ho_Chi_Minh')
+    ->onSuccess(function () {
+        Log::info('Admin notifications cleanup completed successfully');
+    })
+    ->onFailure(function () {
+        Log::error('Admin notifications cleanup failed');
+    });
+
+// ============================================
+// ADMIN NOTIFICATIONS CLEANUP
+// ============================================
+
+// Cleanup old admin notifications (Daily at 02:00)
+Schedule::command('notifications:cleanup')
+    ->daily()
+    ->at('02:00')
+    ->timezone('Asia/Ho_Chi_Minh')
+    ->onSuccess(function () {
+        Log::info('Admin notifications cleanup completed successfully');
+    })
+    ->onFailure(function () {
+        Log::error('Admin notifications cleanup failed');
+    });

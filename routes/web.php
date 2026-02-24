@@ -245,4 +245,17 @@ Route::middleware(['auth', 'archive.readonly'])->group(function () {
         Route::get('/export/pdf', [App\Http\Controllers\ActivityLogController::class, 'exportPdf'])->name('export.pdf');
         Route::get('/{id}', [App\Http\Controllers\ActivityLogController::class, 'show'])->name('show');
     });
+
+    // Admin Notifications routes (API + Page)
+    Route::prefix('notifications')->name('notifications.')->middleware('admin')->group(function () {
+        // API endpoints for AJAX calls
+        Route::get('/unread-count', [App\Http\Controllers\NotificationController::class, 'getUnreadCount'])->name('unread-count');
+        Route::get('/recent', [App\Http\Controllers\NotificationController::class, 'getRecent'])->name('recent');
+        Route::get('/list', [App\Http\Controllers\NotificationController::class, 'index'])->name('list');
+        Route::post('/{id}/mark-read', [App\Http\Controllers\NotificationController::class, 'markAsRead'])->name('mark-read');
+        Route::post('/mark-all-read', [App\Http\Controllers\NotificationController::class, 'markAllAsRead'])->name('mark-all-read');
+        
+        // Full page view
+        Route::get('/', [App\Http\Controllers\NotificationController::class, 'page'])->name('index');
+    });
 });

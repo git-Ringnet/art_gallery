@@ -426,6 +426,9 @@
                     <!-- Year Selector Dropdown -->
                     @include('components.year-selector')
 
+                    <!-- Notification Bell -->
+                    @include('components.notification-bell')
+
                     <!-- User Profile Dropdown -->
                     <div class="relative z-50">
                         <button onclick="toggleUserDropdown()"

@@ -2,6 +2,8 @@
 
 namespace App\Providers;
 
+use App\Models\ActivityLog;
+use App\Observers\ActivityLogObserver;
 use Illuminate\Support\ServiceProvider;
 
 class AppServiceProvider extends ServiceProvider
@@ -17,11 +19,17 @@ class AppServiceProvider extends ServiceProvider
     /**
      * Bootstrap any application services.
      */
+    /**
+     * Bootstrap any application services.
+     */
     public function boot(): void
     {
+        // Register ActivityLog observer for admin notifications
+        \App\Models\ActivityLog::observe(\App\Observers\ActivityLogObserver::class);
+
         // Use Tailwind for pagination
         \Illuminate\Pagination\Paginator::useTailwind();
-        
+
         // Register Blade directives for permissions
         \Illuminate\Support\Facades\Blade::directive('canAccess', function ($module) {
             return "<?php if(auth()->check() && auth()->user()->canAccess($module)): ?>";
