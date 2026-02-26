@@ -6,8 +6,17 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Hóa đơn {{ $sale['id'] }}</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+        }
+
         @media print {
             .no-print {
                 display: none !important;
@@ -161,6 +170,10 @@
                         <label class="flex items-center space-x-3 py-2 hover:bg-gray-50 px-2 rounded cursor-pointer">
                             <input type="checkbox" id="field-total-discount" class="w-4 h-4 text-purple-600" checked>
                             <span class="text-sm">Giảm giá tổng đơn</span>
+                        </label>
+                        <label class="flex items-center space-x-3 py-2 hover:bg-gray-50 px-2 rounded cursor-pointer">
+                            <input type="checkbox" id="field-shipping-fee" class="w-4 h-4 text-purple-600" checked>
+                            <span class="text-sm">Phí vận chuyển</span>
                         </label>
                         <label class="flex items-center space-x-3 py-2 hover:bg-gray-50 px-2 rounded cursor-pointer">
                             <input type="checkbox" id="field-exchange-rate" class="w-4 h-4 text-purple-600" checked>
@@ -544,11 +557,11 @@
                                 </td>
                                 <!-- Task 2: Cell cho cột Kích thước -->
                                 <td class="px-2 py-2 text-xs text-center align-top">
-                                    @if($item->painting && $item->painting->width && $item->painting->height)
-                                        {{ $item->painting->width }}x{{ $item->painting->height }}
-                                    @else
-                                        -
-                                    @endif
+                                @if($item->painting && $item->painting->width && $item->painting->height)
+                                    {{ (float)$item->painting->width }}x{{ (float)$item->painting->height }}(cm)
+                                @else
+                                    -
+                                @endif
                                 </td>
                                 <td class="px-2 py-2 text-xs text-center align-top">{{ $item->quantity }}</td>
                                 <td class="px-2 py-2 text-xs text-right align-top">
@@ -613,6 +626,27 @@
                                 @if($hasVndItems)
                                     <div class="{{ $hasUsdItems ? 'text-[10px] text-red-500' : 'font-medium text-red-600' }}">
                                         -{{ number_format((float) $sale->discount_vnd) }}đ</div>
+                                @endif
+                            </div>
+                        </div>
+                    @endif
+
+                    {{-- Task 4: Hiển thị phí vận chuyển --}}
+                    @if(($sale->shipping_fee_usd ?? 0) > 0 || ($sale->shipping_fee_vnd ?? 0) > 0)
+                        <div class="flex justify-between text-xs py-1 border-b field-shipping-fee"
+                            data-field="shipping-fee">
+                            <span class="text-gray-700">
+                                <span class="lang-vi">Phí vận chuyển:</span>
+                                <span class="lang-en hidden">Shipping Fee:</span>
+                            </span>
+                            <div class="text-right">
+                                @if(($sale->shipping_fee_usd ?? 0) > 0)
+                                    <div class="font-medium text-gray-900">${{ number_format((float) $sale->shipping_fee_usd, 2) }}</div>
+                                @endif
+                                @if(($sale->shipping_fee_vnd ?? 0) > 0)
+                                    <div class="{{ ($sale->shipping_fee_usd ?? 0) > 0 ? 'text-[10px] text-gray-700' : 'font-medium text-gray-900' }}">
+                                        {{ number_format((float) $sale->shipping_fee_vnd) }}đ
+                                    </div>
                                 @endif
                             </div>
                         </div>
@@ -866,6 +900,7 @@
             'item-discount': true,
             'item-details': true,
             'total-discount': true,
+            'shipping-fee': true,
             'exchange-rate': true,
             'debt-amount': true,
             'signatures': true,
