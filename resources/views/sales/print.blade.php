@@ -41,6 +41,12 @@
                 print-color-adjust: exact;
             }
 
+            /* Ensure all text is black when printing */
+            .print-area * {
+                color: #000 !important;
+            }
+        }
+
             table {
                 table-layout: fixed !important;
                 width: 100% !important;
@@ -57,8 +63,8 @@
         }
 
         .painting-image {
-            max-width: 100px;
-            max-height: 100px;
+            max-width: 80px;
+            max-height: 80px;
             object-fit: contain;
             border: 1px solid #e5e7eb;
             border-radius: 4px;
@@ -66,7 +72,7 @@
 
         .painting-details {
             font-size: 0.75rem;
-            color: #4b5563;
+            color: #000;
             line-height: 1.3;
         }
 
@@ -77,8 +83,15 @@
 
         .detail-label {
             font-weight: 600;
-            min-width: 60px;
+            min-width: 50px;
             display: inline-block;
+            white-space: nowrap;
+        }
+
+        .painting-details > div {
+            display: flex;
+            align-items: flex-start;
+            gap: 4px;
         }
 
         /* Ngăn ngắt trang giữa chừng ở các phần quan trọng */
@@ -385,24 +398,24 @@
         <!-- Header -->
         <div class="mb-4">
             <!-- Logo ở trên riêng -->
-            <div class="mb-3">
-                <div style="width: 280px; height: 140px; margin-bottom: -63px; overflow: hidden;">
+            <div class="mb-2">
+                <div style="width: 200px; height: 120px; overflow: hidden;">
                     <img id="invoice-logo" src="{{ $sale->showroom->logo_url }}" alt="logo"
                         class="rounded-lg field-logo"
-                        style="width: 120%; height: 120%; object-fit: contain; margin-left: -10%; margin-top: -15%;"
+                        style="width: 100%; height: 100%; object-fit: contain;"
                         data-field="logo" />
                 </div>
             </div>
 
             <!-- 2 cột thông tin bên dưới cân bằng -->
-            <div class="flex justify-between items-start" style="margin-top: -10px;">
+            <div class="flex justify-between items-start">
                 <!-- Cột trái: Địa chỉ, phone, website, bank -->
-                <div class="field-showroom-info" data-field="showroom-info" style="flex: 1; max-width: 45%;">
-                    <p class="text-xs text-gray-600">
+                <div class="field-showroom-info" data-field="showroom-info" style="flex: 1; max-width: 65%;">
+                    <p class="text-xs text-black">
                         <span class="lang-vi">{{ $sale->showroom->address }}</span>
                         <span class="lang-en hidden">{{ $sale->showroom->address_en ?? $sale->showroom->address }}</span>
                     </p>
-                    <p class="text-xs text-gray-600">
+                    <p class="text-xs text-black">
                         <span class="lang-vi">{{ $sale->showroom->phone }}</span>
                         <span class="lang-en hidden">{{ $sale->showroom->phone_en ?? $sale->showroom->phone }}</span>
                     </p>
@@ -410,10 +423,10 @@
                     
                     <!-- Thông tin thanh toán ngân hàng -->
                     <div class="mt-2  border-gray-200">
-                        <p class="text-[10px] text-gray-700 font-medium">
+                        <p class="text-[10px] text-black font-medium">
                             {{ $sale->showroom->bank_name ?? 'Vietcombank' }} - <span class="lang-vi">STK:</span><span class="lang-en hidden">Acc:</span> {{ $sale->showroom->bank_account ?? '0987654321' }}
                         </p>
-                        <p class="text-[10px] text-gray-600">
+                        <p class="text-[10px] text-black">
                             <span class="lang-vi">Chủ TK: {{ $sale->showroom->bank_holder ?? 'canh bro' }}</span>
                             <span class="lang-en hidden">Acc Holder: {{ $sale->showroom->bank_holder_en ?? $sale->showroom->bank_holder ?? 'canh bro' }}</span>
                         </p>
@@ -421,29 +434,29 @@
                 </div>
 
                 <!-- Cột phải: Invoice, Date, Staff, Status -->
-                <div class="text-right" style="flex: 1; max-width: 45%;">
-                    <p class="text-sm text-gray-600">
+                <div class="text-right" style="flex: 1; max-width: 30%;">
+                    <p class="text-sm text-black">
                         <span class="lang-vi">Hóa đơn:</span><span class="lang-en hidden">Invoice:</span> 
-                        <span class="font-semibold text-blue-600">{{ $sale->invoice_code }}</span>
+                        <span class="font-semibold text-black">{{ $sale->invoice_code }}</span>
                     </p>
-                    <p class="text-xs text-gray-600">
+                    <p class="text-xs text-black">
                         <span class="lang-vi">Ngày:</span><span class="lang-en hidden">Date:</span> 
                         {{ $sale->sale_date->format('d/m/Y') }}
                     </p>
-                    <p class="text-[10px] text-gray-500 mt-1 field-employee" data-field="employee">
+                    <p class="text-[10px] text-black mt-1 field-employee" data-field="employee">
                         <span class="lang-vi">Nhân viên:</span><span class="lang-en hidden">Staff:</span> 
                         {{ $sale->user ? $sale->user->name : 'N/A' }}
                     </p>
                     
                     @if($sale->showroom->website ?? false)
-                        <p class="text-xs text-blue-600 font-medium">{{ $sale->showroom->website }}</p>
+                        <p class="text-xs text-black font-medium">{{ $sale->showroom->website }}</p>
                     @endif
                 </div>
             </div>
 
             <!-- Tiêu đề căn giữa -->
             <div class="text-center">
-                <h1 id="invoice-title" class="text-2xl font-bold text-gray-800">
+                <h1 id="invoice-title" class="text-2xl font-bold text-black">
                     <span class="lang-vi">HÓA ĐƠN BÁN HÀNG</span>
                     <span class="lang-en hidden">SALES INVOICE</span>
                 </h1>
@@ -455,24 +468,24 @@
           
             <div class="grid grid-cols-2 gap-2 text-xs">
                 <div>
-                    <span class="text-gray-600"><span class="lang-vi">Tên:</span><span
+                    <span class="text-black"><span class="lang-vi">Tên:</span><span
                             class="lang-en hidden">Name:</span></span>
                     <span class="font-medium">{{ $sale->customer->name }}</span>
                 </div>
                 <div>
-                    <span class="text-gray-600"><span class="lang-vi">SĐT:</span><span
+                    <span class="text-black"><span class="lang-vi">SĐT:</span><span
                             class="lang-en hidden">Phone:</span></span>
                     <span class="font-medium">{{ $sale->customer->phone }}</span>
                 </div>
                 @if($sale->customer->email)
                     <div class="field-customer-email" data-field="customer-email">
-                        <span class="text-gray-600">Email:</span>
+                        <span class="text-black">Email:</span>
                         <span class="font-medium">{{ $sale->customer->email }}</span>
                     </div>
                 @endif
                 @if($sale->customer->address)
                     <div class="field-customer-address" data-field="customer-address">
-                        <span class="text-gray-600"><span class="lang-vi">Địa chỉ:</span><span
+                        <span class="text-black"><span class="lang-vi">Địa chỉ:</span><span
                                 class="lang-en hidden">Address:</span></span>
                         <span class="font-medium">{{ $sale->customer->address }}</span>
                     </div>
@@ -491,35 +504,35 @@
             <table class="w-full border-collapse compact-table">
                 <thead>
                     <tr class="bg-gray-100 border-b-2 border-gray-300">
-                        <th class="px-2 py-2 text-left text-[10px] uppercase font-bold text-gray-700 whitespace-nowrap" style="width: 4%;">#</th>
-                        <th class="px-2 py-2 text-left text-[10px] uppercase font-bold text-gray-700 whitespace-nowrap" style="width: 32%;">
+                        <th class="px-2 py-2 text-left text-[10px] uppercase font-bold text-black whitespace-nowrap" style="width: 4%;">#</th>
+                        <th class="px-2 py-2 text-left text-[10px] uppercase font-bold text-black" style="width: 40%;">
                             <span class="lang-vi">Sản phẩm</span>
                             <span class="lang-en hidden">Product</span>
                         </th>
                         <!-- Task 2: Thêm cột Kích thước -->
-                        <th class="px-2 py-2 text-center text-[10px] uppercase font-bold text-gray-700 whitespace-nowrap" style="width: 12%;">
-                            <span class="lang-vi">Kích thước</span>
-                            <span class="lang-en hidden">Size</span>
+                        <th class="px-2 py-2 text-center text-[10px] uppercase font-bold text-black whitespace-nowrap" style="width: 10%;">
+                            <span class="lang-vi">Kích thước(cm)</span>
+                            <span class="lang-en hidden">Size(cm)</span>
                         </th>
-                        <th class="px-2 py-2 text-center text-[10px] uppercase font-bold text-gray-700 whitespace-nowrap" style="width: 7%;">
+                        <th class="px-2 py-2 text-center text-[10px] uppercase font-bold text-black whitespace-nowrap" style="width: 5%;">
                             <span class="lang-vi">SL</span>
                             <span class="lang-en hidden">Qty</span>
                         </th>
-                        <th class="px-2 py-2 text-right text-[10px] uppercase font-bold text-gray-700 whitespace-nowrap" style="width: 13%;">
+                        <th class="px-2 py-2 text-right text-[10px] uppercase font-bold text-black whitespace-nowrap" style="width: 13%;">
                             <span class="lang-vi">Đơn giá</span>
                             <span class="lang-en hidden">Unit Price</span>
                         </th>
-                        <th class="px-2 py-2 text-right text-[10px] uppercase font-bold text-gray-700 field-item-discount whitespace-nowrap"
+                        <th class="px-2 py-2 text-right text-[10px] uppercase font-bold text-black field-item-discount whitespace-nowrap"
                             data-field="item-discount" style="width: 7%;">
                             <span class="lang-vi">Giảm</span>
                             <span class="lang-en hidden">Disc</span>
                         </th>
-                        <th class="px-2 py-2 text-right text-[10px] uppercase font-bold text-gray-700 field-item-discount-amount whitespace-nowrap"
-                            data-field="item-discount-amount" style="width: 11%;">
+                        <th class="px-2 py-2 text-right text-[10px] uppercase font-bold text-black field-item-discount-amount whitespace-nowrap"
+                            data-field="item-discount-amount" style="width: 10%;">
                             <span class="lang-vi">Giảm tiền</span>
                             <span class="lang-en hidden">Disc Amt</span>
                         </th>
-                        <th class="px-2 py-2 text-right text-[10px] uppercase font-bold text-gray-700 whitespace-nowrap" style="width: 14%;">
+                        <th class="px-2 py-2 text-right text-[10px] uppercase font-bold text-black whitespace-nowrap" style="width: 11%;">
                             <span class="lang-vi">Thành tiền</span>
                             <span class="lang-en hidden">Total</span>
                         </th>
@@ -572,7 +585,7 @@
                                                     --}}
                                                 @endif
                                                 @if($item->frame)
-                                                    <div class="text-blue-600"><i class="fas fa-border-style"></i> <span
+                                                    <div class="text-black"><i class="fas fa-border-style"></i> <span
                                                             class="lang-vi">Khung:</span><span class="lang-en hidden">Frame:</span>
                                                         {{ $item->frame->name }}</div>
                                                 @endif
@@ -583,7 +596,7 @@
                                 <!-- Task 2: Cell cho cột Kích thước -->
                                 <td class="px-2 py-2 text-xs text-center align-top">
                                 @if($item->painting && $item->painting->width && $item->painting->height)
-                                    {{ (float)$item->painting->width }}x{{ (float)$item->painting->height }}(cm)
+                                    {{ (float)$item->painting->width }}x{{ (float)$item->painting->height }}
                                 @else
                                     -
                                 @endif
@@ -596,10 +609,10 @@
                                         <div class="font-medium">{{ number_format((float) $item->price_vnd) }}đ</div>
                                     @endif
                                 </td>
-                                <td class="px-2 py-2 text-xs text-right align-top field-item-discount"
+                                <td class="px-2 py-2 text-xs text-right align-top field-item-discount whitespace-nowrap"
                                     data-field="item-discount">
                                     @if($item->discount_percent > 0)
-                                        <span class="text-red-600">{{ number_format($item->discount_percent, 0) }}%</span>
+                                        <span class="text-black">{{ number_format($item->discount_percent, 0) }}%</span>
                                     @else
                                         -
                                     @endif
@@ -607,13 +620,13 @@
                                 <td class="px-2 py-2 text-xs text-right align-top field-item-discount-amount"
                                     data-field="item-discount-amount">
                                     @if(($item->discount_amount_usd ?? 0) > 0)
-                                        <div class="text-red-600">-${{ number_format((float) $item->discount_amount_usd, 0) }}</div>
+                                        <div class="text-black">-${{ number_format((float) $item->discount_amount_usd, 0) }}</div>
                                     @endif
                                     @if(($item->discount_amount_vnd ?? 0) > 0)
-                                        <div class="text-red-600">-{{ number_format((float) $item->discount_amount_vnd) }}đ</div>
+                                        <div class="text-black">-{{ number_format((float) $item->discount_amount_vnd) }}đ</div>
                                     @endif
                                     @if(($item->discount_amount_usd ?? 0) == 0 && ($item->discount_amount_vnd ?? 0) == 0)
-                                        <span class="text-gray-400">-</span>
+                                        <span class="text-black">-</span>
                                     @endif
                                 </td>
                                 <td class="px-2 py-2 text-xs text-right font-semibold align-top">
@@ -630,38 +643,36 @@
             </table>
         </div>
 
-        <!-- Totals -->
         <div class="flex justify-end mb-4 totals-section">
-            <div class="w-full md:w-1/2">
+            <div class="w-full md:w-1/2 lg:w-1/3 print:w-[45%]">
                 <div class="space-y-1">
                     <div class="flex justify-between text-xs py-1 border-b">
-                        <span class="text-gray-700"><span class="lang-vi">Thành tiền:</span><span
+                        <span class="text-black"><span class="lang-vi">Thành tiền:</span><span
                                 class="lang-en hidden">Subtotal:</span></span>
                         <div class="text-right">
                             @if($hasUsdItems)
-                                <div class="font-medium text-gray-900">${{ number_format((float) $sale->subtotal_usd, 2) }}
+                                <div class="font-medium text-black">${{ number_format((float) $sale->subtotal_usd, 2) }}
                                 </div>
                             @endif
                             @if($hasVndItems)
-                                <div class="{{ $hasUsdItems ? 'text-[10px] text-gray-700' : 'font-medium text-gray-900' }}">
+                                <div class="{{ $hasUsdItems ? 'text-[10px] text-black' : 'font-medium text-black' }}">
                                     {{ number_format((float) $sale->subtotal_vnd) }}đ
                                 </div>
                             @endif
                         </div>
                     </div>
                     @if($sale->discount_percent > 0)
-                        <div class="flex justify-between text-xs py-1 border-b field-total-discount"
-                            data-field="total-discount">
-                            <span class="text-gray-700"><span class="lang-vi">Giảm
+                        <div class="flex justify-between text-xs py-1 border-b"
+                            <span class="text-black"><span class="lang-vi">Giảm
                                     ({{ $sale->discount_percent }}%):</span><span class="lang-en hidden">Disc
                                     ({{ $sale->discount_percent }}%):</span></span>
                             <div class="text-right">
                                 @if($hasUsdItems)
-                                    <div class="font-medium text-red-600">-${{ number_format((float) $sale->discount_usd, 2) }}
+                                    <div class="font-medium text-black">-${{ number_format((float) $sale->discount_usd, 2) }}
                                     </div>
                                 @endif
                                 @if($hasVndItems)
-                                    <div class="{{ $hasUsdItems ? 'text-[10px] text-red-500' : 'font-medium text-red-600' }}">
+                                    <div class="{{ $hasUsdItems ? 'text-[10px] text-black' : 'font-medium text-black' }}">
                                         -{{ number_format((float) $sale->discount_vnd) }}đ</div>
                                 @endif
                             </div>
@@ -672,16 +683,16 @@
                     @if(($sale->discount_amount_usd ?? 0) > 0 || ($sale->discount_amount_vnd ?? 0) > 0)
                         <div class="flex justify-between text-xs py-1 border-b field-extra-discount"
                             data-field="extra-discount">
-                            <span class="text-gray-700">
+                            <span class="text-black">
                                 <span class="lang-vi">Giảm thêm:</span>
                                 <span class="lang-en hidden">Extra Disc:</span>
                             </span>
                             <div class="text-right">
                                 @if(($sale->discount_amount_usd ?? 0) > 0)
-                                    <div class="font-medium text-red-600">-${{ number_format((float) $sale->discount_amount_usd, 0) }}</div>
+                                    <div class="font-medium text-black">-${{ number_format((float) $sale->discount_amount_usd, 0) }}</div>
                                 @endif
                                 @if(($sale->discount_amount_vnd ?? 0) > 0)
-                                    <div class="{{ ($sale->discount_amount_usd ?? 0) > 0 ? 'text-[10px] text-red-500' : 'font-medium text-red-600' }}">
+                                    <div class="{{ ($sale->discount_amount_usd ?? 0) > 0 ? 'text-[10px] text-black' : 'font-medium text-black' }}">
                                         -{{ number_format((float) $sale->discount_amount_vnd) }}đ
                                     </div>
                                 @endif
@@ -693,16 +704,16 @@
                     @if(($sale->shipping_fee_usd ?? 0) > 0 || ($sale->shipping_fee_vnd ?? 0) > 0)
                         <div class="flex justify-between text-xs py-1 border-b field-shipping-fee"
                             data-field="shipping-fee">
-                            <span class="text-gray-700">
+                            <span class="text-black">
                                 <span class="lang-vi">Phí vận chuyển:</span>
                                 <span class="lang-en hidden">Shipping Fee:</span>
                             </span>
                             <div class="text-right">
                                 @if(($sale->shipping_fee_usd ?? 0) > 0)
-                                    <div class="font-medium text-gray-900">${{ number_format((float) $sale->shipping_fee_usd, 2) }}</div>
+                                    <div class="font-medium text-black">${{ number_format((float) $sale->shipping_fee_usd, 2) }}</div>
                                 @endif
                                 @if(($sale->shipping_fee_vnd ?? 0) > 0)
-                                    <div class="{{ ($sale->shipping_fee_usd ?? 0) > 0 ? 'text-[10px] text-gray-700' : 'font-medium text-gray-900' }}">
+                                    <div class="{{ ($sale->shipping_fee_usd ?? 0) > 0 ? 'text-[10px] text-black' : 'font-medium text-black' }}">
                                         {{ number_format((float) $sale->shipping_fee_vnd) }}đ
                                     </div>
                                 @endif
@@ -710,14 +721,14 @@
                         </div>
                     @endif
                     <div class="flex justify-between text-sm font-bold py-2 border-t-2 border-gray-300">
-                        <span class="text-gray-900"><span class="lang-vi">Tổng cộng:</span><span
+                        <span class="text-black"><span class="lang-vi">Tổng cộng:</span><span
                                 class="lang-en hidden">Total:</span></span>
                         <div class="text-right">
                             @if($hasUsdItems)
-                                <div class="text-gray-900">${{ number_format((float) $sale->total_usd, 2) }}</div>
+                                <div class="text-black">${{ number_format((float) $sale->total_usd, 2) }}</div>
                             @endif
                             @if($hasVndItems)
-                                <div class="{{ $hasUsdItems ? 'text-xs text-gray-900' : 'text-sm text-gray-900' }}">
+                                <div class="{{ $hasUsdItems ? 'text-xs text-black' : 'text-sm text-black' }}">
                                     {{ number_format((float) $sale->total_vnd) }}đ
                                 </div>
                             @endif
@@ -726,7 +737,7 @@
                     {{-- Chi tiết các lần thanh toán --}}
                     @if($sale->payments->count() > 0)
                         <div class="py-1 border-t border-gray-200">
-                            <!-- <p class="text-xs text-gray-700 font-medium mb-1">
+                            <!-- <p class="text-xs text-black font-medium mb-1">
                                         <span class="lang-vi">Lịch sử thanh toán:</span>
                                         <span class="lang-en hidden">Payment History:</span>
                                     </p> -->
@@ -739,7 +750,7 @@
                                     $totalPaidUsd += $payment->payment_usd ?? 0;
                                     $totalPaidVnd += $payment->payment_vnd ?? 0;
                                 @endphp
-                                <div class="flex justify-between text-[10px] py-0.5 text-gray-600">
+                                <div class="flex justify-between text-[10px] py-0.5 text-black">
                                     <span>{{ $payment->payment_date->format('d/m/Y') }}</span>
                                     <span>
                                         @if(($payment->payment_usd ?? 0) != 0)
@@ -756,16 +767,16 @@
                             @endforeach
                             {{-- Tổng đã thanh toán --}}
                             <div class="flex justify-between text-xs py-1 mt-1 border-t border-dashed border-gray-300">
-                                <span class="text-gray-700 font-medium">
+                                <span class="text-black font-medium">
                                     <span class="lang-vi">Tổng đã TT:</span>
                                     <span class="lang-en hidden">Total Paid:</span>
                                 </span>
-                                <div class="text-right font-medium text-gray-900">
+                                <div class="text-right font-medium text-black">
                                     @if($totalPaidUsd > 0)
                                         <span>${{ number_format($totalPaidUsd, 0) }}</span>
                                     @endif
                                     @if($totalPaidUsd > 0 && $totalPaidVnd > 0)
-                                        <span class="text-gray-500">+</span>
+                                        <span class="text-black">+</span>
                                     @endif
                                     @if($totalPaidVnd > 0)
                                         <span>{{ number_format($totalPaidVnd) }}đ</span>
@@ -776,7 +787,7 @@
                                 </div>
                             </div>
                             <!-- Hiển thị tỷ giá - DEBUG: Bỏ điều kiện để test -->
-                            <div class="text-[10px] text-gray-600 text-right mt-1">
+                            <div class="text-[10px] text-black text-right mt-1">
                                 <span class="lang-vi">Tỷ giá:</span><span class="lang-en hidden">Rate:</span> 
                                 1 USD = {{ number_format($sale->exchange_rate ?? 0) }} VND
                             </div>
@@ -789,14 +800,14 @@
                             $initialPaidVnd = $sale->payment_vnd ?? 0;
                         @endphp
                         <div class="flex justify-between text-xs py-1">
-                            <span class="text-gray-700"><span class="lang-vi">Đã TT:</span><span
+                            <span class="text-black"><span class="lang-vi">Đã TT:</span><span
                                     class="lang-en hidden">Paid:</span></span>
-                            <div class="text-right font-medium text-gray-900">
+                            <div class="text-right font-medium text-black">
                                 @if($initialPaidUsd > 0)
                                     <span>${{ number_format($initialPaidUsd, 0) }}</span>
                                 @endif
                                 @if($initialPaidUsd > 0 && $initialPaidVnd > 0)
-                                    <span class="text-gray-500">+</span>
+                                    <span class="text-black">+</span>
                                 @endif
                                 @if($initialPaidVnd > 0)
                                     <span>{{ number_format($initialPaidVnd) }}đ</span>
@@ -807,7 +818,7 @@
                             </div>
                         </div>
                         <!-- Hiển thị tỷ giá cho pending payment -->
-                        <div class="text-[10px] text-gray-600 text-right mt-1">
+                        <div class="text-[10px] text-black text-right mt-1">
                             <span class="lang-vi">Tỷ giá:</span><span class="lang-en hidden">Rate:</span> 
                             1 USD = {{ number_format($sale->exchange_rate ?? 0) }} VND
                         </div>
@@ -830,13 +841,13 @@
                     
                     @if($hasDebt)
                         {{-- CÒN NỢ: Hiển thị số tiền còn nợ (ưu tiên USD) --}}
-                        <div class="flex justify-between text-xs py-1 bg-red-50 px-2 rounded field-debt-amount"
+                        <div class="flex justify-between text-xs py-1 bg-gray-100 px-2 rounded field-debt-amount"
                             data-field="debt-amount">
-                            <span class="text-red-700 font-medium">
+                            <span class="text-black font-medium">
                                 <span class="lang-vi">Còn lại:</span>
                                 <span class="lang-en hidden">Balance:</span>
                             </span>
-                            <div class="text-right font-bold text-red-600">
+                            <div class="text-right font-bold text-black">
                                 @if(($sale->debt_usd ?? 0) > 0)
                                     {{-- Ưu tiên hiển thị USD --}}
                                     <span>${{ number_format($sale->debt_usd, 0) }}</span>
@@ -850,12 +861,12 @@
                         {{-- ĐÃ TRẢ HẾT: Hiển thị tổng theo loại tiền đã trả --}}
                         @if($totalPaidVnd > 0 && $totalPaidUsd == 0)
                             {{-- Trả hết bằng VND: Hiển thị tổng VND --}}
-                            <div class="flex justify-between text-xs py-1 bg-green-50 px-2 rounded">
-                                <span class="text-green-700 font-medium">
+                            <div class="flex justify-between text-xs py-1 bg-gray-100 px-2 rounded">
+                                <span class="text-black font-medium">
                                     <span class="lang-vi">Tổng VND:</span>
                                     <span class="lang-en hidden">Total VND:</span>
                                 </span>
-                                <div class="text-right font-bold text-green-600">
+                                <div class="text-right font-bold text-black">
                                     {{ number_format($totalPaidVnd) }}đ
                                 </div>
                             </div>
@@ -863,12 +874,12 @@
                             {{-- Trả hết bằng USD: Không cần hiển thị gì thêm (đã có tổng USD ở trên) --}}
                         @elseif($totalPaidUsd > 0 && $totalPaidVnd > 0)
                             {{-- Trả hỗn hợp: Hiển thị cả hai --}}
-                            <div class="flex justify-between text-xs py-1 bg-green-50 px-2 rounded">
-                                <span class="text-green-700 font-medium">
+                            <div class="flex justify-between text-xs py-1 bg-gray-100 px-2 rounded">
+                                <span class="text-black font-medium">
                                     <span class="lang-vi">Tổng thanh toán:</span>
                                     <span class="lang-en hidden">Total Paid:</span>
                                 </span>
-                                <div class="text-right font-bold text-green-600">
+                                <div class="text-right font-bold text-black">
                                     ${{ number_format($totalPaidUsd, 0) }} + {{ number_format($totalPaidVnd) }}đ
                                 </div>
                             </div>
@@ -876,7 +887,7 @@
                     @endif
 
                     @if($hasUsdItems && $hasVndItems)
-                        <div class="text-[10px] text-gray-700 text-right mt-1 field-exchange-rate"
+                        <div class="text-[10px] text-black text-right mt-1 field-exchange-rate"
                             data-field="exchange-rate">
                             <span class="lang-vi">Tỷ giá:</span><span class="lang-en hidden">Rate:</span> 1 USD =
                             {{ number_format($sale->exchange_rate) }} VND
@@ -896,7 +907,7 @@
                 <!-- Khoảng trống cho chữ ký (giảm từ mb-12 xuống mb-2, thêm khoảng chữ ký) -->
                 <div class="h-16 mb-2"></div>
                 <!-- Tên nhân viên tự động điền -->
-                <p class="text-sm font-medium text-gray-800 border-t border-gray-400 pt-1 inline-block min-w-[200px]">
+                <p class="text-sm font-medium text-black border-t border-gray-400 pt-1 inline-block min-w-[200px]">
                     {{ $sale->user ? $sale->user->name : 'N/A' }}
                 </p>
             </div>
@@ -908,7 +919,7 @@
                 <!-- Khoảng trống cho chữ ký -->
                 <div class="h-16 mb-2"></div>
                 <!-- Tên khách hàng tự động điền -->
-                <p class="text-sm font-medium text-gray-800 border-t border-gray-400 pt-1 inline-block min-w-[200px]">
+                <p class="text-sm font-medium text-black border-t border-gray-400 pt-1 inline-block min-w-[200px]">
                     {{ $sale->customer->name }}
                 </p>
             </div>
@@ -918,7 +929,7 @@
         <!-- Footer -->
         <div class=" pt-4 mt-8 field-footer" data-field="footer">
             {{-- Task 3: Ẩn hotline và email
-            <div class="flex justify-between text-xs text-gray-600">
+            <div class="flex justify-between text-xs text-black">
                 <div>
                     <p id="footer-hotline">Hotline: {{ $sale->showroom->hotline ?? '' }}</p>
                     <p id="footer-email">Email: {{ $sale->showroom->email ?? '' }}</p>
@@ -932,12 +943,12 @@
             </div>
             --}}
             <!-- Chỉ hiển thị thông tin ngân hàng -->
-            <!-- <div class="text-center text-xs text-gray-600">
+            <!-- <div class="text-center text-xs text-black">
                 <p id="footer-bank-info">{{ $sale->showroom->bank_name ?? '' }} - STK: {{ $sale->showroom->bank_account ?? '' }}</p>
                 <p id="footer-bank-branch">Chủ TK: {{ $sale->showroom->bank_holder ?? '' }}</p>
             </div> -->
             {{-- Task 3: Ẩn lời cảm ơn
-            <p id="footer-thank-you" class="text-center text-xs text-gray-500 mt-4">Cảm ơn quý khách đã mua hàng!</p>
+            <p id="footer-thank-you" class="text-center text-xs text-black mt-4">Cảm ơn quý khách đã mua hàng!</p>
             --}}
         </div>
     </div>
@@ -1056,16 +1067,16 @@
                 visibilityTab.classList.remove('hidden');
                 contentTab.classList.add('hidden');
                 visibilityBtn.classList.add('text-purple-600', 'border-b-2', 'border-purple-600');
-                visibilityBtn.classList.remove('text-gray-500');
+                visibilityBtn.classList.remove('text-black');
                 contentBtn.classList.remove('text-purple-600', 'border-b-2', 'border-purple-600');
-                contentBtn.classList.add('text-gray-500');
+                contentBtn.classList.add('text-black');
             } else {
                 visibilityTab.classList.add('hidden');
                 contentTab.classList.remove('hidden');
                 contentBtn.classList.add('text-purple-600', 'border-b-2', 'border-purple-600');
-                contentBtn.classList.remove('text-gray-500');
+                contentBtn.classList.remove('text-black');
                 visibilityBtn.classList.remove('text-purple-600', 'border-b-2', 'border-purple-600');
-                visibilityBtn.classList.add('text-gray-500');
+                visibilityBtn.classList.add('text-black');
             }
         }
 
