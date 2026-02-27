@@ -29,6 +29,7 @@
 
             .print-area {
                 width: 100% !important;
+                max-width: none !important;
                 margin: 0 !important;
                 padding: 0 !important;
             }
@@ -1333,11 +1334,11 @@
             }
 
             if (orientation === 'landscape') {
-                style.textContent = '@page { size: A4 landscape; margin: 0.5cm; }';
+                style.textContent = '@page { size: A4 landscape; margin: 1cm; }';
                 body.classList.add('landscape-mode');
                 if (orientationBtnText) orientationBtnText.textContent = 'Dọc';
             } else {
-                style.textContent = '@page { size: A4 portrait; margin: 0.5cm; }';
+                style.textContent = '@page { size: A4 portrait; margin: 1cm; }';
                 body.classList.remove('landscape-mode');
                 if (orientationBtnText) orientationBtnText.textContent = 'Ngang';
             }
