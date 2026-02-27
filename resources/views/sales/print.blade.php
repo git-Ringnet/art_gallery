@@ -17,33 +17,38 @@
             -moz-osx-font-smoothing: grayscale;
         }
 
+        @page {
+            size: A4 portrait;
+            margin: 1cm;
+        }
+
         @media print {
             .no-print {
                 display: none !important;
             }
 
             .print-area {
-                width: 100%;
+                width: 100% !important;
+                margin: 0 !important;
+                padding: 0 !important;
             }
 
             body {
-                margin: 0;
-                padding: 10px;
+                margin: 0 !important;
+                padding: 0 !important;
+                -webkit-print-color-adjust: exact;
+                print-color-adjust: exact;
             }
 
-            /* Landscape mode */
-            body.landscape-mode {
-                transform-origin: top left;
+            table {
+                table-layout: fixed !important;
+                width: 100% !important;
             }
 
-            @page.landscape {
-                size: A4 landscape;
+            .compact-table th, .compact-table td {
+                word-wrap: break-word !important;
+                overflow-wrap: break-word !important;
             }
-        }
-
-        @page {
-            size: A4 portrait;
-            margin: 0.5cm;
         }
 
         .field-hidden {
@@ -73,6 +78,12 @@
             font-weight: 600;
             min-width: 60px;
             display: inline-block;
+        }
+
+        /* Ngăn ngắt trang giữa chừng ở các phần quan trọng */
+        .field-signatures, .totals-section {
+            page-break-inside: avoid;
+            break-inside: avoid;
         }
     </style>
 </head>
@@ -479,35 +490,35 @@
             <table class="w-full border-collapse compact-table">
                 <thead>
                     <tr class="bg-gray-100 border-b-2 border-gray-300">
-                        <th class="px-2 py-2 text-left text-xs font-semibold text-gray-700" style="width: 30px;">#</th>
-                        <th class="px-2 py-2 text-left text-xs font-semibold text-gray-700">
+                        <th class="px-2 py-2 text-left text-xs font-semibold text-gray-700" style="width: 5%;">#</th>
+                        <th class="px-2 py-2 text-left text-xs font-semibold text-gray-700" style="width: 35%;">
                             <span class="lang-vi">Sản phẩm</span>
                             <span class="lang-en hidden">Product</span>
                         </th>
                         <!-- Task 2: Thêm cột Kích thước -->
-                        <th class="px-2 py-2 text-center text-xs font-semibold text-gray-700" style="width: 80px;">
+                        <th class="px-2 py-2 text-center text-xs font-semibold text-gray-700" style="width: 12%;">
                             <span class="lang-vi">Kích thước</span>
                             <span class="lang-en hidden">Size</span>
                         </th>
-                        <th class="px-2 py-2 text-center text-xs font-semibold text-gray-700" style="width: 40px;">
+                        <th class="px-2 py-2 text-center text-xs font-semibold text-gray-700" style="width: 5%;">
                             <span class="lang-vi">SL</span>
                             <span class="lang-en hidden">Qty</span>
                         </th>
-                        <th class="px-2 py-2 text-right text-xs font-semibold text-gray-700" style="width: 100px;">
+                        <th class="px-2 py-2 text-right text-xs font-semibold text-gray-700" style="width: 12%;">
                             <span class="lang-vi">Đơn giá</span>
                             <span class="lang-en hidden">Unit Price</span>
                         </th>
                         <th class="px-2 py-2 text-right text-xs font-semibold text-gray-700 field-item-discount"
-                            data-field="item-discount" style="width: 60px;">
+                            data-field="item-discount" style="width: 8%;">
                             <span class="lang-vi">Giảm</span>
                             <span class="lang-en hidden">Disc</span>
                         </th>
                         <th class="px-2 py-2 text-right text-xs font-semibold text-gray-700 field-item-discount-amount"
-                            data-field="item-discount-amount" style="width: 80px;">
+                            data-field="item-discount-amount" style="width: 10%;">
                             <span class="lang-vi">Giảm tiền</span>
                             <span class="lang-en hidden">Disc Amt</span>
                         </th>
-                        <th class="px-2 py-2 text-right text-xs font-semibold text-gray-700" style="width: 110px;">
+                        <th class="px-2 py-2 text-right text-xs font-semibold text-gray-700" style="width: 13%;">
                             <span class="lang-vi">Thành tiền</span>
                             <span class="lang-en hidden">Total</span>
                         </th>
@@ -619,7 +630,7 @@
         </div>
 
         <!-- Totals -->
-        <div class="flex justify-end mb-4">
+        <div class="flex justify-end mb-4 totals-section">
             <div class="w-full md:w-1/2">
                 <div class="space-y-1">
                     <div class="flex justify-between text-xs py-1 border-b">
