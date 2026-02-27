@@ -156,7 +156,11 @@
                         <h3 class="font-semibold text-gray-700 mb-2">Bảng sản phẩm</h3>
                         <label class="flex items-center space-x-3 py-2 hover:bg-gray-50 px-2 rounded cursor-pointer">
                             <input type="checkbox" id="field-item-discount" class="w-4 h-4 text-purple-600" checked>
-                            <span class="text-sm">Cột giảm giá sản phẩm</span>
+                            <span class="text-sm">Cột giảm % sản phẩm</span>
+                        </label>
+                        <label class="flex items-center space-x-3 py-2 hover:bg-gray-50 px-2 rounded cursor-pointer">
+                            <input type="checkbox" id="field-item-discount-amount" class="w-4 h-4 text-purple-600" checked>
+                            <span class="text-sm">Cột giảm tiền sản phẩm</span>
                         </label>
                         <label class="flex items-center space-x-3 py-2 hover:bg-gray-50 px-2 rounded cursor-pointer">
                             <input type="checkbox" id="field-item-details" class="w-4 h-4 text-purple-600" checked>
@@ -169,7 +173,11 @@
                         <h3 class="font-semibold text-gray-700 mb-2">Phần tổng tiền</h3>
                         <label class="flex items-center space-x-3 py-2 hover:bg-gray-50 px-2 rounded cursor-pointer">
                             <input type="checkbox" id="field-total-discount" class="w-4 h-4 text-purple-600" checked>
-                            <span class="text-sm">Giảm giá tổng đơn</span>
+                            <span class="text-sm">Giảm giá % tổng đơn</span>
+                        </label>
+                        <label class="flex items-center space-x-3 py-2 hover:bg-gray-50 px-2 rounded cursor-pointer">
+                            <input type="checkbox" id="field-extra-discount" class="w-4 h-4 text-purple-600" checked>
+                            <span class="text-sm">Giảm giá thêm (tiền mặt)</span>
                         </label>
                         <label class="flex items-center space-x-3 py-2 hover:bg-gray-50 px-2 rounded cursor-pointer">
                             <input type="checkbox" id="field-shipping-fee" class="w-4 h-4 text-purple-600" checked>
@@ -494,6 +502,11 @@
                             <span class="lang-vi">Giảm</span>
                             <span class="lang-en hidden">Disc</span>
                         </th>
+                        <th class="px-2 py-2 text-right text-xs font-semibold text-gray-700 field-item-discount-amount"
+                            data-field="item-discount-amount" style="width: 80px;">
+                            <span class="lang-vi">Giảm tiền</span>
+                            <span class="lang-en hidden">Disc Amt</span>
+                        </th>
                         <th class="px-2 py-2 text-right text-xs font-semibold text-gray-700" style="width: 110px;">
                             <span class="lang-vi">Thành tiền</span>
                             <span class="lang-en hidden">Total</span>
@@ -579,6 +592,18 @@
                                         -
                                     @endif
                                 </td>
+                                <td class="px-2 py-2 text-xs text-right align-top field-item-discount-amount"
+                                    data-field="item-discount-amount">
+                                    @if(($item->discount_amount_usd ?? 0) > 0)
+                                        <div class="text-red-600">-${{ number_format((float) $item->discount_amount_usd, 0) }}</div>
+                                    @endif
+                                    @if(($item->discount_amount_vnd ?? 0) > 0)
+                                        <div class="text-red-600">-{{ number_format((float) $item->discount_amount_vnd) }}đ</div>
+                                    @endif
+                                    @if(($item->discount_amount_usd ?? 0) == 0 && ($item->discount_amount_vnd ?? 0) == 0)
+                                        <span class="text-gray-400">-</span>
+                                    @endif
+                                </td>
                                 <td class="px-2 py-2 text-xs text-right font-semibold align-top">
                                     @if($item->currency == 'USD')
                                         <div class="text-sm">${{ number_format((float) $item->total_usd, 2) }}</div>
@@ -626,6 +651,27 @@
                                 @if($hasVndItems)
                                     <div class="{{ $hasUsdItems ? 'text-[10px] text-red-500' : 'font-medium text-red-600' }}">
                                         -{{ number_format((float) $sale->discount_vnd) }}đ</div>
+                                @endif
+                            </div>
+                        </div>
+                    @endif
+
+                    {{-- Task 5: Giảm thêm (số tiền cố định) --}}
+                    @if(($sale->discount_amount_usd ?? 0) > 0 || ($sale->discount_amount_vnd ?? 0) > 0)
+                        <div class="flex justify-between text-xs py-1 border-b field-extra-discount"
+                            data-field="extra-discount">
+                            <span class="text-gray-700">
+                                <span class="lang-vi">Giảm thêm:</span>
+                                <span class="lang-en hidden">Extra Disc:</span>
+                            </span>
+                            <div class="text-right">
+                                @if(($sale->discount_amount_usd ?? 0) > 0)
+                                    <div class="font-medium text-red-600">-${{ number_format((float) $sale->discount_amount_usd, 0) }}</div>
+                                @endif
+                                @if(($sale->discount_amount_vnd ?? 0) > 0)
+                                    <div class="{{ ($sale->discount_amount_usd ?? 0) > 0 ? 'text-[10px] text-red-500' : 'font-medium text-red-600' }}">
+                                        -{{ number_format((float) $sale->discount_amount_vnd) }}đ
+                                    </div>
                                 @endif
                             </div>
                         </div>
@@ -898,8 +944,10 @@
             'customer-email': true,
             'customer-address': true,
             'item-discount': true,
+            'item-discount-amount': true,
             'item-details': true,
             'total-discount': true,
+            'extra-discount': true,
             'shipping-fee': true,
             'exchange-rate': true,
             'debt-amount': true,
