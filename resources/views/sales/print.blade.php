@@ -604,7 +604,7 @@
                                 <td class="px-2 py-2 text-xs text-center align-top">{{ $item->quantity }}</td>
                                 <td class="px-2 py-2 text-xs text-right align-top">
                                     @if($item->currency == 'USD')
-                                        <div class="font-medium">${{ number_format((float) $item->price_usd, 2) }}</div>
+                                        <div class="font-medium">${{ number_format((float) $item->price_usd, 0) }}</div>
                                     @else
                                         <div class="font-medium">{{ number_format((float) $item->price_vnd) }}đ</div>
                                     @endif
@@ -631,7 +631,7 @@
                                 </td>
                                 <td class="px-2 py-2 text-xs text-right font-semibold align-top">
                                     @if($item->currency == 'USD')
-                                        <div class="text-sm">${{ number_format((float) $item->total_usd, 2) }}</div>
+                                        <div class="text-sm">${{ number_format((float) $item->total_usd, 0) }}</div>
                                     @else
                                         <div class="text-sm">{{ number_format((float) $item->total_vnd) }}đ</div>
                                     @endif
@@ -651,7 +651,7 @@
                                 class="lang-en hidden">Subtotal:</span></span>
                         <div class="text-right">
                             @if($hasUsdItems)
-                                <div class="font-medium text-black">${{ number_format((float) $sale->subtotal_usd, 2) }}
+                                <div class="font-medium text-black">${{ number_format((float) $sale->subtotal_usd, 0) }}
                                 </div>
                             @endif
                             @if($hasVndItems)
@@ -668,7 +668,7 @@
                                     ({{ $sale->discount_percent }}%):</span></span>
                             <div class="text-right">
                                 @if($hasUsdItems)
-                                    <div class="font-medium text-black">-${{ number_format((float) $sale->discount_usd, 2) }}
+                                    <div class="font-medium text-black">-${{ number_format((float) $sale->discount_usd, 0) }}
                                     </div>
                                 @endif
                                 @if($hasVndItems)
@@ -710,7 +710,7 @@
                             </span>
                             <div class="text-right">
                                 @if(($sale->shipping_fee_usd ?? 0) > 0)
-                                    <div class="font-medium text-black">${{ number_format((float) $sale->shipping_fee_usd, 2) }}</div>
+                                    <div class="font-medium text-black">${{ number_format((float) $sale->shipping_fee_usd, 0) }}</div>
                                 @endif
                                 @if(($sale->shipping_fee_vnd ?? 0) > 0)
                                     <div class="{{ ($sale->shipping_fee_usd ?? 0) > 0 ? 'text-[10px] text-black' : 'font-medium text-black' }}">
@@ -725,7 +725,7 @@
                                 class="lang-en hidden">Total:</span></span>
                         <div class="text-right">
                             @if($hasUsdItems)
-                                <div class="text-black">${{ number_format((float) $sale->total_usd, 2) }}</div>
+                                <div class="text-black">${{ number_format((float) $sale->total_usd, 0) }}</div>
                             @endif
                             @if($hasVndItems)
                                 <div class="{{ $hasUsdItems ? 'text-xs text-black' : 'text-sm text-black' }}">
