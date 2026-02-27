@@ -491,35 +491,35 @@
             <table class="w-full border-collapse compact-table">
                 <thead>
                     <tr class="bg-gray-100 border-b-2 border-gray-300">
-                        <th class="px-2 py-2 text-left text-xs font-semibold text-gray-700" style="width: 5%;">#</th>
-                        <th class="px-2 py-2 text-left text-xs font-semibold text-gray-700" style="width: 35%;">
+                        <th class="px-2 py-2 text-left text-[10px] uppercase font-bold text-gray-700 whitespace-nowrap" style="width: 4%;">#</th>
+                        <th class="px-2 py-2 text-left text-[10px] uppercase font-bold text-gray-700 whitespace-nowrap" style="width: 32%;">
                             <span class="lang-vi">Sản phẩm</span>
                             <span class="lang-en hidden">Product</span>
                         </th>
                         <!-- Task 2: Thêm cột Kích thước -->
-                        <th class="px-2 py-2 text-center text-xs font-semibold text-gray-700" style="width: 12%;">
+                        <th class="px-2 py-2 text-center text-[10px] uppercase font-bold text-gray-700 whitespace-nowrap" style="width: 12%;">
                             <span class="lang-vi">Kích thước</span>
                             <span class="lang-en hidden">Size</span>
                         </th>
-                        <th class="px-2 py-2 text-center text-xs font-semibold text-gray-700" style="width: 5%;">
+                        <th class="px-2 py-2 text-center text-[10px] uppercase font-bold text-gray-700 whitespace-nowrap" style="width: 7%;">
                             <span class="lang-vi">SL</span>
                             <span class="lang-en hidden">Qty</span>
                         </th>
-                        <th class="px-2 py-2 text-right text-xs font-semibold text-gray-700" style="width: 12%;">
+                        <th class="px-2 py-2 text-right text-[10px] uppercase font-bold text-gray-700 whitespace-nowrap" style="width: 13%;">
                             <span class="lang-vi">Đơn giá</span>
                             <span class="lang-en hidden">Unit Price</span>
                         </th>
-                        <th class="px-2 py-2 text-right text-xs font-semibold text-gray-700 field-item-discount"
-                            data-field="item-discount" style="width: 8%;">
+                        <th class="px-2 py-2 text-right text-[10px] uppercase font-bold text-gray-700 field-item-discount whitespace-nowrap"
+                            data-field="item-discount" style="width: 7%;">
                             <span class="lang-vi">Giảm</span>
                             <span class="lang-en hidden">Disc</span>
                         </th>
-                        <th class="px-2 py-2 text-right text-xs font-semibold text-gray-700 field-item-discount-amount"
-                            data-field="item-discount-amount" style="width: 10%;">
+                        <th class="px-2 py-2 text-right text-[10px] uppercase font-bold text-gray-700 field-item-discount-amount whitespace-nowrap"
+                            data-field="item-discount-amount" style="width: 11%;">
                             <span class="lang-vi">Giảm tiền</span>
                             <span class="lang-en hidden">Disc Amt</span>
                         </th>
-                        <th class="px-2 py-2 text-right text-xs font-semibold text-gray-700" style="width: 13%;">
+                        <th class="px-2 py-2 text-right text-[10px] uppercase font-bold text-gray-700 whitespace-nowrap" style="width: 14%;">
                             <span class="lang-vi">Thành tiền</span>
                             <span class="lang-en hidden">Total</span>
                         </th>
