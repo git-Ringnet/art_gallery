@@ -1138,10 +1138,29 @@
                 // Áp dụng giảm giá chung (% và số tiền cố định)
                 const discAmtPercentUsd = totUsd * (disc / 100);
                 const discAmtPercentVnd = totVnd * (disc / 100);
-                // Tổng giảm = giảm % + giảm số tiền cố định
-                // Tổng cộng = (Subtotal - Disount) + Shipping
-                const finalUsd = Math.max(0, totUsd - discAmtPercentUsd - discountFixedUsd) + shippingFeeUsd;
-                const finalVnd = Math.max(0, totVnd - discAmtPercentVnd - discountFixedVnd) + shippingFeeVnd;
+                
+                // Tính toán Net tạm thời trước khi quy đổi chéo
+                let netUsd = totUsd - discAmtPercentUsd - discountFixedUsd + shippingFeeUsd;
+                let netVnd = totVnd - discAmtPercentVnd - discountFixedVnd + shippingFeeVnd;
+
+                // LOGIC QUY ĐỔI GIẢM TRỪ CHÉO (CHỈ khi có tỷ giá)
+                if (exchangeRate > 0) {
+                    // Trường hợp 1: Giảm VND nhiều hơn tổng VND -> Trừ phần thừa vào USD
+                    if (netVnd < 0) {
+                        const excessVnd = Math.abs(netVnd);
+                        netUsd -= (excessVnd / exchangeRate);
+                        netVnd = 0;
+                    }
+                    // Trường hợp 2: Giảm USD nhiều hơn tổng USD -> Trừ phần thừa vào VND
+                    else if (netUsd < 0) {
+                        const excessUsd = Math.abs(netUsd);
+                        netVnd -= (excessUsd * exchangeRate);
+                        netUsd = 0;
+                    }
+                }
+
+                const finalUsd = Math.max(0, netUsd);
+                const finalVnd = Math.max(0, netVnd);
 
                 // Hiển thị tổng tiền dựa trên loại item
                 const totalUsdEl = document.getElementById('total_usd');

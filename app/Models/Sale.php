@@ -221,21 +221,42 @@ class Sale extends Model
         $discountFixedVnd = $this->discount_amount_vnd ?? 0;
 
         // Tổng số tiền giảm (% + cố định)
-        $discountUsd = $discountPercentUsd + $discountFixedUsd;
-        $discountVnd = $discountPercentVnd + $discountFixedVnd;
+        $discountUsdTotal = $discountPercentUsd + $discountFixedUsd;
+        $discountVndTotal = $discountPercentVnd + $discountFixedVnd;
 
         // Phí vận chuyển
         $shippingFeeUsd = $this->shipping_fee_usd ?? 0;
         $shippingFeeVnd = $this->shipping_fee_vnd ?? 0;
 
-        $totalUsd = max(0, $subtotalUsd - $discountUsd) + $shippingFeeUsd;
-        $totalVnd = max(0, $subtotalVnd - $discountVnd) + $shippingFeeVnd;
+        // Tính toán tạm thời phí thực (Net) trước khi quy đổi chéo
+        $netUsd = $subtotalUsd - $discountUsdTotal + $shippingFeeUsd;
+        $netVnd = $subtotalVnd - $discountVndTotal + $shippingFeeVnd;
+
+        // LOGIC QUY ĐỔI GIẢM TRỪ CHÉO (CHỈ khi có tỷ giá)
+        $exchangeRate = (float) $this->exchange_rate;
+        if ($exchangeRate > 0) {
+            // Trường hợp 1: Giảm VND nhiều hơn tổng VND -> Trừ phần thừa vào USD
+            if ($netVnd < 0) {
+                $excessVnd = abs($netVnd);
+                $netUsd -= ($excessVnd / $exchangeRate);
+                $netVnd = 0;
+            }
+            // Trường hợp 2: Giảm USD nhiều hơn tổng USD -> Trừ phần thừa vào VND
+            elseif ($netUsd < 0) {
+                $excessUsd = abs($netUsd);
+                $netVnd -= ($excessUsd * $exchangeRate);
+                $netUsd = 0;
+            }
+        }
+
+        $totalUsd = max(0, $netUsd);
+        $totalVnd = max(0, $netVnd);
 
         $this->update([
             'subtotal_usd' => $subtotalUsd,
             'subtotal_vnd' => $subtotalVnd,
-            'discount_usd' => $discountUsd,
-            'discount_vnd' => $discountVnd,
+            'discount_usd' => $discountUsdTotal,
+            'discount_vnd' => $discountVndTotal,
             'total_usd' => $totalUsd,
             'total_vnd' => $totalVnd,
             'debt_amount' => $totalVnd - $this->paid_amount,

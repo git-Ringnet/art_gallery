@@ -1682,12 +1682,32 @@
                 const shippingFeeUsd = parseFloat(unformatNumber(document.getElementById('shipping_fee_usd').value)) || 0;
                 const shippingFeeVnd = parseFloat(unformatNumber(document.getElementById('shipping_fee_vnd').value)) || 0;
 
-                totalUsd = Math.max(0, (totalUsd * (1 - saleDiscPercent / 100)) - saleDiscUsd) + shippingFeeUsd;
-                totalVnd = Math.max(0, (totalVnd * (1 - saleDiscPercent / 100)) - saleDiscVnd) + shippingFeeVnd;
+                // Tính toán Net tạm thời trước khi quy đổi chéo
+                let netUsd = (totalUsd * (1 - saleDiscPercent / 100)) - saleDiscUsd + shippingFeeUsd;
+                let netVnd = (totalVnd * (1 - saleDiscPercent / 100)) - saleDiscVnd + shippingFeeVnd;
 
                 // Lấy tỷ giá hiện tại
                 const rateEl = document.getElementById('rate');
                 const exchangeRate = parseFloat(unformatNumber(rateEl?.value)) || 0;
+
+                // LOGIC QUY ĐỔI GIẢM TRỪ CHÉO (CHỈ khi có tỷ giá)
+                if (exchangeRate > 0) {
+                    // Trường hợp 1: Giảm VND nhiều hơn tổng VND -> Trừ phần thừa vào USD
+                    if (netVnd < 0) {
+                        const excessVnd = Math.abs(netVnd);
+                        netUsd -= (excessVnd / exchangeRate);
+                        netVnd = 0;
+                    }
+                    // Trường hợp 2: Giảm USD nhiều hơn tổng USD -> Trừ phần thừa vào VND
+                    else if (netUsd < 0) {
+                        const excessUsd = Math.abs(netUsd);
+                        netVnd -= (excessUsd * exchangeRate);
+                        netUsd = 0;
+                    }
+                }
+
+                totalUsd = Math.max(0, netUsd);
+                totalVnd = Math.max(0, netVnd);
 
                 document.getElementById('total_usd').value = '$' + Math.round(totalUsd).toLocaleString('en-US');
 
