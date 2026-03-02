@@ -399,7 +399,7 @@
         <div class="mb-4">
             <!-- Logo ở trên riêng -->
             <div class="mb-2">
-                <div style="width: 200px; height: 120px; overflow: hidden;">
+                <div style="width: 170px; height: 120px; overflow: hidden; margin-bottom: -34px;">
                     <img id="invoice-logo" src="{{ $sale->showroom->logo_url }}" alt="logo"
                         class="rounded-lg field-logo"
                         style="width: 100%; height: 100%; object-fit: contain;"
@@ -510,7 +510,7 @@
                             <span class="lang-en hidden">Product</span>
                         </th>
                         <!-- Task 2: Thêm cột Kích thước -->
-                        <th class="px-2 py-2 text-center text-[10px] uppercase font-bold text-black whitespace-nowrap" style="width: 10%;">
+                        <th class="px-2 py-2 text-center text-[10px] uppercase font-bold text-black whitespace-nowrap" style="width: 15%;">
                             <span class="lang-vi">Kích thước(cm)</span>
                             <span class="lang-en hidden">Size(cm)</span>
                         </th>
