@@ -751,8 +751,15 @@
                                     $totalPaidVnd += $payment->payment_vnd ?? 0;
                                 @endphp
                                 <div class="flex justify-between text-[10px] py-0.5 text-black">
-                                    <span>{{ $payment->payment_date->format('d/m/Y') }}</span>
-                                    <span>
+                                    <div class="flex flex-col">
+                                        <span>{{ $payment->payment_date->format('d/m/Y') }}</span>
+                                        @if($payment->payment_exchange_rate > 0)
+                                            <span class="text-[8px] text-gray-500 italic">
+                                                (1 USD = {{ number_format($payment->payment_exchange_rate) }}đ)
+                                            </span>
+                                        @endif
+                                    </div>
+                                    <span class="self-center">
                                         @if(($payment->payment_usd ?? 0) != 0)
                                             ${{ number_format($payment->payment_usd, 0) }}
                                         @endif
@@ -786,11 +793,7 @@
                                     @endif
                                 </div>
                             </div>
-                            <!-- Hiển thị tỷ giá - DEBUG: Bỏ điều kiện để test -->
-                            <div class="text-[10px] text-black text-right mt-1">
-                                <span class="lang-vi">Tỷ giá:</span><span class="lang-en hidden">Rate:</span> 
-                                1 USD = {{ number_format($sale->exchange_rate ?? 0) }} VND
-                            </div>
+                            {{-- Tỷ giá tổng hợp sẽ hiển thị ở cuối --}}
                         </div>
                     @else
                         {{-- Nếu chưa có payment records (phiếu pending), hiển thị thanh toán ban đầu từ sale --}}
@@ -818,10 +821,7 @@
                             </div>
                         </div>
                         <!-- Hiển thị tỷ giá cho pending payment -->
-                        <div class="text-[10px] text-black text-right mt-1">
-                            <span class="lang-vi">Tỷ giá:</span><span class="lang-en hidden">Rate:</span> 
-                            1 USD = {{ number_format($sale->exchange_rate ?? 0) }} VND
-                        </div>
+                        {{-- Tỷ giá tổng hợp sẽ hiển thị ở cuối --}}
                     @endif
                     
                     {{-- Logic mới: Hiển thị công nợ hoặc tổng đã trả --}}
@@ -886,11 +886,25 @@
                         @endif
                     @endif
 
-                    @if($hasUsdItems && $hasVndItems)
+                    @php
+                        // Lấy tỷ giá gần nhất
+                        $latestRate = (float)($sale->exchange_rate ?? 0);
+                        
+                        // Nếu có payments, lấy tỷ giá của payment mới nhất có rate > 0
+                        // Lưu ý: $sale->payments đã được sắp xếp desc theo payment_date trong model
+                        foreach ($sale->payments as $payment) {
+                            if ($payment->payment_exchange_rate > 0) {
+                                $latestRate = (float)$payment->payment_exchange_rate;
+                                break; // Lấy cái đầu tiên (mới nhất) rồi dừng
+                            }
+                        }
+                    @endphp
+
+                    @if($latestRate > 0)
                         <div class="text-[10px] text-black text-right mt-1 field-exchange-rate"
                             data-field="exchange-rate">
-                            <span class="lang-vi">Tỷ giá:</span><span class="lang-en hidden">Rate:</span> 1 USD =
-                            {{ number_format($sale->exchange_rate) }} VND
+                            <span class="lang-vi">Tỷ giá:</span><span class="lang-en hidden">Rate:</span>
+                            1 USD = {{ number_format($latestRate) }} VND
                         </div>
                     @endif
                 </div>
