@@ -4,13 +4,13 @@ function formatVND(input, isBlur = false) {
     if (value) {
         const num = parseInt(value);
         const MAX_VND = 999999999999; // 999 tỷ VND (decimal 15,2)
-        
+
         if (num > MAX_VND) {
             input.classList.add('border-red-500', 'bg-red-50');
             input.title = 'Giá trị quá lớn! Tối đa: ' + MAX_VND.toLocaleString('en-US') + ' VND';
             // Cắt về giá trị tối đa
             input.value = MAX_VND.toLocaleString('en-US');
-            
+
             // Hiển thị cảnh báo
             showWarning(input, 'Giá VND vượt quá giới hạn! Tối đa: ' + MAX_VND.toLocaleString('en-US') + ' VND');
         } else {
@@ -28,18 +28,18 @@ function formatUSD(input, isBlur = false) {
     // Lưu vị trí con trỏ
     const cursorPosition = input.selectionStart;
     const oldValue = input.value;
-    
+
     // Lấy giá trị trước con trỏ để tính toán vị trí mới
     const valueBeforeCursor = oldValue.substring(0, cursorPosition);
     const digitsBeforeCursor = valueBeforeCursor.replace(/[^\d]/g, '').length;
-    
+
     // Format giá trị (loại bỏ tất cả trừ số)
     let value = input.value.replace(/[^\d]/g, '');
-    
+
     if (value) {
         const num = parseInt(value);
         const MAX_USD = 99999999; // 99 triệu USD
-        
+
         if (!isNaN(num)) {
             if (num > MAX_USD) {
                 input.classList.add('border-red-500', 'bg-red-50');
@@ -47,7 +47,7 @@ function formatUSD(input, isBlur = false) {
                 // Cắt về giá trị tối đa
                 const formatted = MAX_USD.toLocaleString('en-US');
                 input.value = formatted;
-                
+
                 // Hiển thị cảnh báo
                 showWarning(input, 'Giá USD vượt quá giới hạn! Tối đa: $' + MAX_USD.toLocaleString('en-US'));
             } else {
@@ -55,7 +55,7 @@ function formatUSD(input, isBlur = false) {
                 input.title = '';
                 const formatted = num.toLocaleString('en-US');
                 input.value = formatted;
-                
+
                 // Tính toán vị trí con trỏ mới
                 if (!isBlur) {
                     let newCursorPosition = 0;
@@ -91,7 +91,7 @@ function formatPaymentVND(input) {
 function validateSalesPayment(input) {
     // Format số trước
     formatPaymentVND(input);
-    
+
     // Gọi calcDebt để tính toán và validate
     if (typeof calcDebt === 'function') {
         calcDebt();
@@ -105,18 +105,18 @@ function showWarning(input, message) {
     if (oldWarning) {
         oldWarning.remove();
     }
-    
+
     // Tạo cảnh báo mới
     const warning = document.createElement('div');
     warning.className = 'price-warning absolute z-50 bg-red-500 text-white text-xs px-3 py-2 rounded-lg shadow-lg mt-1 animate-pulse';
     warning.style.top = (input.offsetTop + input.offsetHeight) + 'px';
     warning.style.left = input.offsetLeft + 'px';
     warning.innerHTML = '<i class="fas fa-exclamation-triangle mr-1"></i>' + message;
-    
+
     // Thêm vào DOM
     input.parentElement.style.position = 'relative';
     input.parentElement.appendChild(warning);
-    
+
     // Tự động xóa sau 3 giây
     setTimeout(() => {
         warning.remove();
@@ -125,14 +125,22 @@ function showWarning(input, message) {
 
 // Parse formatted number back to plain number
 function unformatNumber(value) {
-    if (typeof value === 'string') {
-        // Nếu là VND (có ký hiệu đ) hoặc có nhiều hơn 1 dấu chấm, loại bỏ tất cả dấu chấm (phân cách hàng nghìn)
-        if (value.includes('đ') || (value.match(/\./g) || []).length > 1) {
-            return value.replace(/[^\d]/g, '') || '0';
-        }
-        // Trường hợp USD: giữ lại dấu chấm duy nhất làm số thập phân
-        let val = value.replace(/[^\d.]/g, '');
+    if (typeof value !== 'string') return value || '0';
+
+    // 1. Loại bỏ các ký hiệu tiền tệ và khoảng trắng
+    let cleanValue = value.replace(/[đ₫$]/g, '').trim();
+
+    // 2. Xác định xem đây là VND hay USD dựa trên context hoặc ký hiệu
+    const isVND = value.includes('đ') || value.includes('₫') || !value.includes('$');
+
+    if (isVND) {
+        // VND: Loại bỏ TẤT CẢ ký tự không phải số (vì VND không dùng thập phân ở đây)
+        return cleanValue.replace(/[^\d]/g, '') || '0';
+    } else {
+        // USD: Giữ lại dấu chấm cuối cùng làm dấu thập phân, loại bỏ các dấu khác (phân cách hàng nghìn)
+        // Nếu có nhiều dấu chấm hoặc phẩy, ta coi cái cuối cùng là thập phân (nếu nó đứng sau hàng nghìn)
+        // Nhưng đơn giản nhất cho hệ thống này: loại bỏ phẩy, giữ chấm.
+        let val = cleanValue.replace(/,/g, '');
         return val || '0';
     }
-    return value || '0';
 }
