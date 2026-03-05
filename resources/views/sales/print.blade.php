@@ -171,14 +171,41 @@
                         </label>
                         <label class="flex items-center space-x-3 py-2 hover:bg-gray-50 px-2 rounded cursor-pointer">
                             <input type="checkbox" id="field-payment-status" class="w-4 h-4 text-purple-600" checked>
-                            <span class="text-sm">Trạng thái thanh toán</span>
+                            <span class="text-sm">Trạng thái thanh toán (Staff, Ngày, Invoice)</span>
                         </label>
+                    </div>
+
+                    <!-- Customer Section -->
+                    <div class="border-b pb-3">
+                        <h3 class="font-semibold text-gray-700 mb-2">Thông tin khách hàng</h3>
+                        <div class="grid grid-cols-2 gap-2">
+                            <label class="flex items-center space-x-3 py-1 hover:bg-gray-50 px-2 rounded cursor-pointer">
+                                <input type="checkbox" id="field-customer-name" class="w-4 h-4 text-purple-600" checked>
+                                <span class="text-sm">Tên khách hàng</span>
+                            </label>
+                            <label class="flex items-center space-x-3 py-1 hover:bg-gray-50 px-2 rounded cursor-pointer">
+                                <input type="checkbox" id="field-customer-phone" class="w-4 h-4 text-purple-600" checked>
+                                <span class="text-sm">Số điện thoại</span>
+                            </label>
+                            <label class="flex items-center space-x-3 py-1 hover:bg-gray-50 px-2 rounded cursor-pointer">
+                                <input type="checkbox" id="field-customer-email" class="w-4 h-4 text-purple-600" checked>
+                                <span class="text-sm">Email</span>
+                            </label>
+                            <label class="flex items-center space-x-3 py-1 hover:bg-gray-50 px-2 rounded cursor-pointer">
+                                <input type="checkbox" id="field-customer-address" class="w-4 h-4 text-purple-600" checked>
+                                <span class="text-sm">Địa chỉ</span>
+                            </label>
+                        </div>
                     </div>
 
                     
                     <!-- Items Table Section -->
                     <div class="border-b pb-3">
                         <h3 class="font-semibold text-gray-700 mb-2">Bảng sản phẩm</h3>
+                        <label class="flex items-center space-x-3 py-2 hover:bg-gray-50 px-2 rounded cursor-pointer">
+                            <input type="checkbox" id="field-item-image" class="w-4 h-4 text-purple-600" checked>
+                            <span class="text-sm">Hình ảnh sản phẩm</span>
+                        </label>
                         <label class="flex items-center space-x-3 py-2 hover:bg-gray-50 px-2 rounded cursor-pointer">
                             <input type="checkbox" id="field-item-discount" class="w-4 h-4 text-purple-600" checked>
                             <span class="text-sm">Cột giảm % sản phẩm</span>
@@ -197,6 +224,10 @@
                     <div class="border-b pb-3">
                         <h3 class="font-semibold text-gray-700 mb-2">Phần tổng tiền</h3>
                         <label class="flex items-center space-x-3 py-2 hover:bg-gray-50 px-2 rounded cursor-pointer">
+                            <input type="checkbox" id="field-subtotal" class="w-4 h-4 text-purple-600" checked>
+                            <span class="text-sm">Tạm tính (Subtotal)</span>
+                        </label>
+                        <label class="flex items-center space-x-3 py-2 hover:bg-gray-50 px-2 rounded cursor-pointer">
                             <input type="checkbox" id="field-total-discount" class="w-4 h-4 text-purple-600" checked>
                             <span class="text-sm">Giảm giá % tổng đơn</span>
                         </label>
@@ -209,8 +240,16 @@
                             <span class="text-sm">Phí vận chuyển</span>
                         </label>
                         <label class="flex items-center space-x-3 py-2 hover:bg-gray-50 px-2 rounded cursor-pointer">
+                            <input type="checkbox" id="field-total" class="w-4 h-4 text-purple-600" checked>
+                            <span class="text-sm">Tổng cộng (Final Total)</span>
+                        </label>
+                        <label class="flex items-center space-x-3 py-2 hover:bg-gray-50 px-2 rounded cursor-pointer">
+                            <input type="checkbox" id="field-payment-history" class="w-4 h-4 text-purple-600" checked>
+                            <span class="text-sm">Lịch sử thanh toán & Đã TT</span>
+                        </label>
+                        <label class="flex items-center space-x-3 py-2 hover:bg-gray-50 px-2 rounded cursor-pointer">
                             <input type="checkbox" id="field-exchange-rate" class="w-4 h-4 text-purple-600" checked>
-                            <span class="text-sm">Tỷ giá USD/VND</span>
+                            <span class="text-sm">Tỷ giá (Rate)</span>
                         </label>
                         <label class="flex items-center space-x-3 py-2 hover:bg-gray-50 px-2 rounded cursor-pointer">
                             <input type="checkbox" id="field-debt-amount" class="w-4 h-4 text-purple-600" checked>
@@ -465,26 +504,25 @@
 
         <!-- Customer Info -->
         <div class="mb-3 p-2 bg-gray-50 rounded">
-          
             <div class="grid grid-cols-2 gap-2 text-xs">
-                <div>
+                <div data-field="customer-name">
                     <span class="text-black"><span class="lang-vi">Tên:</span><span
                             class="lang-en hidden">Name:</span></span>
                     <span class="font-medium">{{ $sale->customer->name }}</span>
                 </div>
-                <div>
+                <div data-field="customer-phone">
                     <span class="text-black"><span class="lang-vi">SĐT:</span><span
                             class="lang-en hidden">Phone:</span></span>
                     <span class="font-medium">{{ $sale->customer->phone }}</span>
                 </div>
                 @if($sale->customer->email)
-                    <div class="field-customer-email" data-field="customer-email">
+                    <div data-field="customer-email">
                         <span class="text-black">Email:</span>
                         <span class="font-medium">{{ $sale->customer->email }}</span>
                     </div>
                 @endif
                 @if($sale->customer->address)
-                    <div class="field-customer-address" data-field="customer-address">
+                    <div data-field="customer-address">
                         <span class="text-black"><span class="lang-vi">Địa chỉ:</span><span
                                 class="lang-en hidden">Address:</span></span>
                         <span class="font-medium">{{ $sale->customer->address }}</span>
@@ -510,7 +548,8 @@
                             <span class="lang-en hidden">Product</span>
                         </th>
                         <!-- Task 2: Thêm cột Kích thước -->
-                        <th class="px-2 py-2 text-center text-[10px] uppercase font-bold text-black whitespace-nowrap" style="width: 15%;">
+                        <th class="px-2 py-2 text-center text-[10px] uppercase font-bold text-black whitespace-nowrap" 
+                            style="width: 15%;" data-field="item-details">
                             <span class="lang-vi">Kích thước(cm)</span>
                             <span class="lang-en hidden">Size(cm)</span>
                         </th>
@@ -522,12 +561,12 @@
                             <span class="lang-vi">Đơn giá</span>
                             <span class="lang-en hidden">Unit Price</span>
                         </th>
-                        <th class="px-2 py-2 text-right text-[10px] uppercase font-bold text-black field-item-discount whitespace-nowrap"
+                        <th class="px-2 py-2 text-right text-[10px] uppercase font-bold text-black whitespace-nowrap"
                             data-field="item-discount" style="width: 7%;">
                             <span class="lang-vi">Giảm</span>
                             <span class="lang-en hidden">Disc</span>
                         </th>
-                        <th class="px-2 py-2 text-right text-[10px] uppercase font-bold text-black field-item-discount-amount whitespace-nowrap"
+                        <th class="px-2 py-2 text-right text-[10px] uppercase font-bold text-black whitespace-nowrap"
                             data-field="item-discount-amount" style="width: 10%;">
                             <span class="lang-vi">Giảm tiền</span>
                             <span class="lang-en hidden">Disc Amt</span>
@@ -549,7 +588,7 @@
                                     <div class="flex gap-2">
                                         <!-- Hình ảnh tranh -->
                                         @if($item->painting && $item->painting->image)
-                                            <div class="flex-shrink-0">
+                                            <div class="flex-shrink-0" data-field="item-image">
                                                 <img src="{{ asset('storage/' . $item->painting->image) }}"
                                                     alt="{{ $item->painting->name }}" class="painting-image">
                                             </div>
@@ -594,7 +633,7 @@
                                     </div>
                                 </td>
                                 <!-- Task 2: Cell cho cột Kích thước -->
-                                <td class="px-2 py-2 text-xs text-center align-top">
+                                <td class="px-2 py-2 text-xs text-center align-top" data-field="item-details">
                                 @if($item->painting && $item->painting->width && $item->painting->height)
                                     {{ (float)$item->painting->width }}x{{ (float)$item->painting->height }}
                                 @else
@@ -609,7 +648,7 @@
                                         <div class="font-medium">{{ number_format((float) $item->price_vnd) }}đ</div>
                                     @endif
                                 </td>
-                                <td class="px-2 py-2 text-xs text-right align-top field-item-discount whitespace-nowrap"
+                                <td class="px-2 py-2 text-xs text-right align-top whitespace-nowrap"
                                     data-field="item-discount">
                                     @if($item->discount_percent > 0)
                                         <span class="text-black">{{ number_format($item->discount_percent, 0) }}%</span>
@@ -617,7 +656,7 @@
                                         -
                                     @endif
                                 </td>
-                                <td class="px-2 py-2 text-xs text-right align-top field-item-discount-amount"
+                                <td class="px-2 py-2 text-xs text-right align-top"
                                     data-field="item-discount-amount">
                                     @if(($item->discount_amount_usd ?? 0) > 0)
                                         <div class="text-black">-${{ number_format((float) $item->discount_amount_usd, 0) }}</div>
@@ -646,7 +685,7 @@
         <div class="flex justify-end mb-4 totals-section">
             <div class="w-full md:w-1/2 lg:w-1/3 print:w-[45%]">
                 <div class="space-y-1">
-                    <div class="flex justify-between text-xs py-1 border-b">
+                    <div class="flex justify-between text-xs py-1 border-b" data-field="subtotal">
                         <span class="text-black"><span class="lang-vi">Thành tiền:</span><span
                                 class="lang-en hidden">Subtotal:</span></span>
                         <div class="text-right">
@@ -662,10 +701,10 @@
                         </div>
                     </div>
                     @if($sale->discount_percent > 0)
-                        <div class="flex justify-between text-xs py-1 border-b"
+                        <div class="flex justify-between text-xs py-1 border-b" data-field="total-discount">
                             <span class="text-black"><span class="lang-vi">Giảm
-                                    ({{ $sale->discount_percent }}%):</span><span class="lang-en hidden">Disc
-                                    ({{ $sale->discount_percent }}%):</span></span>
+                                    ({{ (float)$sale->discount_percent }}%):</span><span class="lang-en hidden">Disc
+                                    ({{ (float)$sale->discount_percent }}%):</span></span>
                             <div class="text-right">
                                 @if($hasUsdItems)
                                     <div class="font-medium text-black">-${{ number_format((float) $sale->discount_usd, 0) }}
@@ -681,7 +720,7 @@
 
                     {{-- Task 5: Giảm thêm (số tiền cố định) --}}
                     @if(($sale->discount_amount_usd ?? 0) > 0 || ($sale->discount_amount_vnd ?? 0) > 0)
-                        <div class="flex justify-between text-xs py-1 border-b field-extra-discount"
+                        <div class="flex justify-between text-xs py-1 border-b"
                             data-field="extra-discount">
                             <span class="text-black">
                                 <span class="lang-vi">Giảm thêm:</span>
@@ -702,7 +741,7 @@
 
                     {{-- Task 4: Hiển thị phí vận chuyển --}}
                     @if(($sale->shipping_fee_usd ?? 0) > 0 || ($sale->shipping_fee_vnd ?? 0) > 0)
-                        <div class="flex justify-between text-xs py-1 border-b field-shipping-fee"
+                        <div class="flex justify-between text-xs py-1 border-b"
                             data-field="shipping-fee">
                             <span class="text-black">
                                 <span class="lang-vi">Phí vận chuyển:</span>
@@ -720,7 +759,7 @@
                             </div>
                         </div>
                     @endif
-                    <div class="flex justify-between text-sm font-bold py-2 border-t-2 border-gray-300">
+                    <div class="flex justify-between text-sm font-bold py-2 border-t-2 border-gray-300" data-field="total">
                         <span class="text-black"><span class="lang-vi">Tổng cộng:</span><span
                                 class="lang-en hidden">Total:</span></span>
                         <div class="text-right">
@@ -735,8 +774,9 @@
                         </div>
                     </div>
                     {{-- Chi tiết các lần thanh toán --}}
-                    @if($sale->payments->count() > 0)
-                        <div class="py-1 border-t border-gray-200">
+                    <div data-field="payment-history">
+                        @if($sale->payments->count() > 0)
+                            <div class="py-1 border-t border-gray-200">
                             <!-- <p class="text-xs text-black font-medium mb-1">
                                         <span class="lang-vi">Lịch sử thanh toán:</span>
                                         <span class="lang-en hidden">Payment History:</span>
@@ -823,6 +863,7 @@
                         <!-- Hiển thị tỷ giá cho pending payment -->
                         {{-- Tỷ giá tổng hợp sẽ hiển thị ở cuối --}}
                     @endif
+                    </div>
                     
                     {{-- Logic mới: Hiển thị công nợ hoặc tổng đã trả --}}
                     @php
@@ -858,32 +899,7 @@
                             </div>
                         </div>
                     @elseif($isPaid)
-                        {{-- ĐÃ TRẢ HẾT: Hiển thị tổng theo loại tiền đã trả --}}
-                        @if($totalPaidVnd > 0 && $totalPaidUsd == 0)
-                            {{-- Trả hết bằng VND: Hiển thị tổng VND --}}
-                            <div class="flex justify-between text-xs py-1 bg-gray-100 px-2 rounded">
-                                <span class="text-black font-medium">
-                                    <span class="lang-vi">Tổng VND:</span>
-                                    <span class="lang-en hidden">Total VND:</span>
-                                </span>
-                                <div class="text-right font-bold text-black">
-                                    {{ number_format($totalPaidVnd) }}đ
-                                </div>
-                            </div>
-                        @elseif($totalPaidUsd > 0 && $totalPaidVnd == 0)
-                            {{-- Trả hết bằng USD: Không cần hiển thị gì thêm (đã có tổng USD ở trên) --}}
-                        @elseif($totalPaidUsd > 0 && $totalPaidVnd > 0)
-                            {{-- Trả hỗn hợp: Hiển thị cả hai --}}
-                            <div class="flex justify-between text-xs py-1 bg-gray-100 px-2 rounded">
-                                <span class="text-black font-medium">
-                                    <span class="lang-vi">Tổng thanh toán:</span>
-                                    <span class="lang-en hidden">Total Paid:</span>
-                                </span>
-                                <div class="text-right font-bold text-black">
-                                    ${{ number_format($totalPaidUsd, 0) }} + {{ number_format($totalPaidVnd) }}đ
-                                </div>
-                            </div>
-                        @endif
+                        {{-- ĐÃ TRẢ HẾT: Không hiển thị thêm dòng Tổng cộng ở đây để tránh lặp lại với "Tổng đã TT" ở trên --}}
                     @endif
 
                     @php
@@ -978,14 +994,20 @@
             'showroom-info': true,
             'employee': true,
             'payment-status': true,
+            'customer-name': true,
+            'customer-phone': true,
             'customer-email': true,
             'customer-address': true,
+            'item-image': true,
+            'item-details': true,
             'item-discount': true,
             'item-discount-amount': true,
-            'item-details': true,
+            'subtotal': true,
             'total-discount': true,
             'extra-discount': true,
             'shipping-fee': true,
+            'total': true,
+            'payment-history': true,
             'exchange-rate': true,
             'debt-amount': true,
             'signatures': true,
@@ -1002,57 +1024,39 @@
             'thankYou': 'Cảm ơn quý khách đã mua hàng!'
         };
 
-        // Load saved configuration or use default
+        // Global state for current session (resets on F5)
+        let currentConfig = { ...defaultConfig };
+        let currentContentConfig = { ...defaultContentConfig };
+
+        // Load configuration
         function loadConfig() {
-            try {
-                const saved = localStorage.getItem(STORAGE_KEY);
-                return saved ? JSON.parse(saved) : defaultConfig;
-            } catch (e) {
-                console.error('Error loading config:', e);
-                return defaultConfig;
-            }
+            return currentConfig;
         }
 
         // Save configuration
         function saveConfig(config) {
-            try {
-                localStorage.setItem(STORAGE_KEY, JSON.stringify(config));
-            } catch (e) {
-                console.error('Error saving config:', e);
-            }
+            currentConfig = { ...config };
         }
 
-        // Load saved content configuration
+        // Load content configuration
         function loadContentConfig() {
-            try {
-                const saved = localStorage.getItem(CONTENT_STORAGE_KEY);
-                return saved ? JSON.parse(saved) : defaultContentConfig;
-            } catch (e) {
-                console.error('Error loading content config:', e);
-                return defaultContentConfig;
-            }
+            return currentContentConfig;
         }
 
         // Save content configuration
         function saveContentConfig(config) {
-            try {
-                localStorage.setItem(CONTENT_STORAGE_KEY, JSON.stringify(config));
-            } catch (e) {
-                console.error('Error saving content config:', e);
-            }
+            currentContentConfig = { ...config };
         }
 
         // Apply content configuration to page
         function applyContentToPage(config) {
             const logo = document.getElementById('invoice-logo');
-            // Logo Logic removed as user requested to stop using localStorage for logo
+            if (logo && config.logoUrl) logo.src = config.logoUrl;
 
 
             // Don't override title, seller label, and customer label as they have multi-language support
             // Only apply if user has customized them
             
-            // Footer content logic removed to prevent localStorage override
-            /*
             const hotline = document.getElementById('footer-hotline');
             if (hotline && config.hotline) hotline.textContent = config.hotline;
 
@@ -1064,7 +1068,6 @@
 
             const bankBranch = document.getElementById('footer-bank-branch');
             if (bankBranch && config.bankBranch) bankBranch.textContent = config.bankBranch;
-            */
 
             const thankYou = document.getElementById('footer-thank-you');
             if (thankYou && config.thankYou) thankYou.textContent = config.thankYou;
@@ -1100,8 +1103,10 @@
                 const elements = document.querySelectorAll(`[data-field="${field}"]`);
                 elements.forEach(el => {
                     if (config[field]) {
+                        el.style.display = '';
                         el.classList.remove('field-hidden');
                     } else {
+                        el.style.display = 'none';
                         el.classList.add('field-hidden');
                     }
                 });
@@ -1180,16 +1185,16 @@
             document.getElementById('edit-thank-you').value = contentConfig.thankYou || '';
 
             // Set orientation radio buttons
-            const savedOrientation = localStorage.getItem(ORIENTATION_KEY) || 'portrait';
-            if (savedOrientation === 'landscape') {
+            const isLandscape = document.body.classList.contains('landscape-mode');
+            if (isLandscape) {
                 document.getElementById('orientation-landscape').checked = true;
             } else {
                 document.getElementById('orientation-portrait').checked = true;
             }
 
             // Set language radio buttons
-            const savedLang = localStorage.getItem(LANGUAGE_KEY) || 'vi';
-            if (savedLang === 'en') {
+            const currentLang = document.getElementById('html-root').getAttribute('lang') || 'vi';
+            if (currentLang === 'en') {
                 document.getElementById('language-en').checked = true;
             } else {
                 document.getElementById('language-vi').checked = true;
@@ -1230,7 +1235,6 @@
             const orientationRadio = document.querySelector('input[name="page-orientation"]:checked');
             if (orientationRadio) {
                 const newOrientation = orientationRadio.value;
-                localStorage.setItem(ORIENTATION_KEY, newOrientation);
                 applyOrientation(newOrientation);
             }
 
@@ -1238,7 +1242,6 @@
             const languageRadio = document.querySelector('input[name="invoice-language"]:checked');
             if (languageRadio) {
                 const newLang = languageRadio.value;
-                localStorage.setItem(LANGUAGE_KEY, newLang);
                 applyLanguage(newLang);
             }
 
@@ -1308,9 +1311,8 @@
         const ORIENTATION_KEY = 'invoice_orientation';
 
         function toggleLanguage() {
-            const currentLang = localStorage.getItem(LANGUAGE_KEY) || 'vi';
+            const currentLang = document.getElementById('html-root').getAttribute('lang') || 'vi';
             const newLang = currentLang === 'vi' ? 'en' : 'vi';
-            localStorage.setItem(LANGUAGE_KEY, newLang);
             applyLanguage(newLang);
         }
 
@@ -1333,16 +1335,11 @@
             }
         }
 
-        function loadLanguage() {
-            const savedLang = localStorage.getItem(LANGUAGE_KEY) || 'vi';
-            applyLanguage(savedLang);
-        }
 
         // Orientation toggle functionality
         function toggleOrientation() {
-            const currentOrientation = localStorage.getItem(ORIENTATION_KEY) || 'portrait';
-            const newOrientation = currentOrientation === 'portrait' ? 'landscape' : 'portrait';
-            localStorage.setItem(ORIENTATION_KEY, newOrientation);
+            const isLandscape = document.body.classList.contains('landscape-mode');
+            const newOrientation = isLandscape ? 'portrait' : 'landscape';
             applyOrientation(newOrientation);
         }
 
@@ -1371,10 +1368,6 @@
             document.head.appendChild(style);
         }
 
-        function loadOrientation() {
-            const savedOrientation = localStorage.getItem(ORIENTATION_KEY) || 'portrait';
-            applyOrientation(savedOrientation);
-        }
 
         // Close print view safely
         function closePrintView() {
@@ -1394,12 +1387,18 @@
 
         // Initialize on page load
         window.onload = function () {
+            // Always clear localStorage related to invoice on load to be absolutely sure
+            localStorage.removeItem(STORAGE_KEY);
+            localStorage.removeItem(CONTENT_STORAGE_KEY);
+            localStorage.removeItem(LANGUAGE_KEY);
+            localStorage.removeItem(ORIENTATION_KEY);
+
             const config = loadConfig();
             const contentConfig = loadContentConfig();
             applyConfigToPage(config);
             applyContentToPage(contentConfig);
-            loadLanguage();
-            loadOrientation();
+            applyLanguage('vi');
+            applyOrientation('portrait');
 
             // Add event listeners
             const logoFileInput = document.getElementById('edit-logo-file');

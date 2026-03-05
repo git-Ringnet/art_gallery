@@ -92,6 +92,7 @@
                             <th class="px-2 py-2 text-left text-xs font-medium text-gray-500 uppercase">#</th>
                             <th class="px-2 py-2 text-left text-xs font-medium text-gray-500 uppercase">Hình</th>
                             <th class="px-2 py-2 text-left text-xs font-medium text-gray-500 uppercase">Sản phẩm</th>
+                            <th class="px-2 py-2 text-center text-xs font-medium text-gray-500 uppercase">Kích thước(cm)</th>
                             <th class="px-2 py-2 text-center text-xs font-medium text-gray-500 uppercase">SL</th>
                             <th class="px-2 py-2 text-right text-xs font-medium text-gray-500 uppercase">Đơn giá</th>
                             <th class="px-2 py-2 text-right text-xs font-medium text-gray-500 uppercase">Giảm(%)</th>
@@ -143,6 +144,13 @@
                                         @endif
                                         @if($isReturned && $item->returned_quantity > 0)
                                             <div class="text-xs text-red-600">Trả: {{ $item->returned_quantity }}/{{ $item->quantity }}</div>
+                                        @endif
+                                    </td>
+                                    <td class="px-2 py-2 text-center text-xs {{ $textClass }} whitespace-nowrap">
+                                        @if($item->painting && $item->painting->width && $item->painting->height)
+                                            {{ (float)$item->painting->width }}x{{ (float)$item->painting->height }}
+                                        @else
+                                            -
                                         @endif
                                     </td>
                                     <td class="px-2 py-2 text-center text-xs {{ $textClass }}">{{ $item->quantity }}</td>
