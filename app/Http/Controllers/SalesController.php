@@ -496,10 +496,41 @@ class SalesController extends Controller
                     $itemDiscountVnd = (float) str_replace([',', '.', ' '], '', $itemDiscountVnd);
                 }
 
+                $processedItemId = null;
+                if (empty($item['painting_id']) && empty($item['frame_id']) && empty($item['supply_id'])) {
+                    $processedItem = \App\Models\ProcessedItem::firstOrCreate(
+                        ['name' => $item['description']],
+                        [
+                            'code' => 'GC-' . strtoupper(substr(uniqid(), -6)),
+                            'quantity' => 0,
+                            'price_vnd' => $item['currency'] === 'VND' ? ($item['price_vnd'] ?? 0) : 0,
+                            'price_usd' => $item['currency'] === 'USD' ? ($item['price_usd'] ?? 0) : 0,
+                        ]
+                    );
+                    $processedItemId = $processedItem->id;
+
+                    // Tăng tồn kho (ghi nhận đã gia công xong cho đơn này)
+                    $processedItem->increaseQuantity($item['quantity']);
+
+                    // Ghi nhận transaction nhập kho gia công
+                    InventoryTransaction::create([
+                        'transaction_type' => 'import',
+                        'item_type' => 'processed_item',
+                        'item_id' => $processedItemId,
+                        'quantity' => $item['quantity'],
+                        'reference_type' => 'sale',
+                        'reference_id' => $sale->id,
+                        'transaction_date' => $sale->sale_date,
+                        'notes' => "Gia công cho hóa đơn (Pending) {$sale->invoice_code}",
+                        'created_by' => $user->id,
+                    ]);
+                }
+
                 $saleItem = SaleItem::create([
                     'sale_id' => $sale->id,
                     'painting_id' => $item['painting_id'] ?? null,
                     'frame_id' => $item['frame_id'] ?? null,
+                    'processed_item_id' => $processedItemId,
                     'description' => $item['description'],
                     'quantity' => $item['quantity'],
                     'supply_id' => $item['supply_id'] ?? null,
@@ -867,29 +898,40 @@ class SalesController extends Controller
 
             // Nếu CHƯA có return: Cho phép sửa sản phẩm
             if (!$hasReturns) {
-                // Hoàn trả kho từ items cũ trước khi xóa (nếu phiếu đã duyệt)
-                if ($sale->isCompleted()) {
-                    foreach ($sale->saleItems as $oldItem) {
-                        if ($oldItem->painting_id) {
-                            $painting = Painting::find($oldItem->painting_id);
-                            if ($painting) {
-                                $painting->increaseQuantity($oldItem->quantity);
-                            }
+                // Hoàn trả kho từ items cũ trước khi xóa
+                foreach ($sale->saleItems as $oldItem) {
+                    if ($oldItem->painting_id) {
+                        $painting = Painting::find($oldItem->painting_id);
+                        if ($painting && $sale->isCompleted()) {
+                            $painting->increaseQuantity($oldItem->quantity); // Reverses sale
                         }
+                    }
 
-                        if ($oldItem->supply_id && $oldItem->supply_length) {
-                            $supply = Supply::find($oldItem->supply_id);
-                            if ($supply) {
-                                $totalUsed = $oldItem->supply_length * $oldItem->quantity;
-                                $supply->increaseQuantity($totalUsed);
-                            }
+                    if ($oldItem->supply_id && $oldItem->supply_length) {
+                        $supply = Supply::find($oldItem->supply_id);
+                        if ($supply && $sale->isCompleted()) {
+                            $totalUsed = $oldItem->supply_length * $oldItem->quantity;
+                            $supply->increaseQuantity($totalUsed); // Reverses sale
                         }
+                    }
 
-                        // Hoàn trả status khung về available
-                        if ($oldItem->frame_id) {
-                            $frame = \App\Models\Frame::find($oldItem->frame_id);
-                            if ($frame) {
-                                $frame->markAsAvailable();
+                    if ($oldItem->frame_id && $sale->isCompleted()) {
+                        $frame = \App\Models\Frame::find($oldItem->frame_id);
+                        if ($frame) {
+                            $frame->markAsAvailable(); // Reverses sale
+                        }
+                    }
+
+                    // Hoàn trả hàng gia công
+                    if ($oldItem->processed_item_id) {
+                        $processedItem = \App\Models\ProcessedItem::find($oldItem->processed_item_id);
+                        if ($processedItem) {
+                            // 1. Luôn hoàn trả cái "sản xuất" (un-produce)
+                            $processedItem->reduceQuantity($oldItem->quantity);
+
+                            // 2. Nếu đã duyệt, hoàn trả thêm cái "bán" (un-sale)
+                            if ($sale->isCompleted()) {
+                                $processedItem->increaseQuantity($oldItem->quantity);
                             }
                         }
                     }
@@ -911,10 +953,41 @@ class SalesController extends Controller
                         $itemDiscountVnd = (float) str_replace([',', '.', ' '], '', $itemDiscountVnd);
                     }
 
+                    $processedItemId = null;
+                    if (empty($item['painting_id']) && empty($item['frame_id']) && empty($item['supply_id'])) {
+                        $processedItem = \App\Models\ProcessedItem::firstOrCreate(
+                            ['name' => $item['description']],
+                            [
+                                'code' => 'GC-' . strtoupper(substr(uniqid(), -6)),
+                                'quantity' => 0,
+                                'price_vnd' => $item['currency'] === 'VND' ? ($item['price_vnd'] ?? 0) : 0,
+                                'price_usd' => $item['currency'] === 'USD' ? ($item['price_usd'] ?? 0) : 0,
+                            ]
+                        );
+                        $processedItemId = $processedItem->id;
+
+                        // Tăng tồn kho (ghi nhận đã gia công xong cho đơn này)
+                        $processedItem->increaseQuantity($item['quantity']);
+                        
+                        // Log transaction nhập kho gia công
+                        InventoryTransaction::create([
+                            'transaction_type' => 'import',
+                            'item_type' => 'processed_item',
+                            'item_id' => $processedItemId,
+                            'quantity' => $item['quantity'],
+                            'reference_type' => 'sale',
+                            'reference_id' => $sale->id,
+                            'transaction_date' => $sale->sale_date,
+                            'notes' => "Gia công cho hóa đơn {$sale->invoice_code}",
+                            'created_by' => $user->id,
+                        ]);
+                    }
+
                     $saleItem = SaleItem::create([
                         'sale_id' => $sale->id,
                         'painting_id' => $item['painting_id'] ?? null,
                         'frame_id' => $item['frame_id'] ?? null,
+                        'processed_item_id' => $processedItemId,
                         'description' => $item['description'],
                         'quantity' => $item['quantity'],
                         'supply_id' => $item['supply_id'] ?? null,
@@ -955,6 +1028,14 @@ class SalesController extends Controller
                                     throw new \Exception("Khung {$frame->name} đã được bán");
                                 }
                                 $frame->markAsSold();
+                            }
+                        }
+
+                        // Trừ kho hàng gia công
+                        if ($saleItem->processed_item_id) {
+                            $processedItem = \App\Models\ProcessedItem::find($saleItem->processed_item_id);
+                            if ($processedItem) {
+                                $processedItem->reduceQuantity($saleItem->quantity);
                             }
                         }
                     }
@@ -1118,27 +1199,37 @@ class SalesController extends Controller
 
         DB::beginTransaction();
         try {
-            // Chỉ hoàn kho nếu phiếu đã duyệt (completed)
-            // Phiếu "Chờ duyệt" chưa trừ kho nên không cần hoàn
-            if ($sale->sale_status === 'completed') {
-                foreach ($sale->saleItems as $item) {
-                    if ($item->painting_id) {
-                        $painting = Painting::find($item->painting_id);
-                        $painting->increaseQuantity($item->quantity);
-                    }
+                // Hoàn trả kho
+            foreach ($sale->saleItems as $item) {
+                if ($item->painting_id && $sale->isCompleted()) {
+                    $painting = Painting::find($item->painting_id);
+                    $painting->increaseQuantity($item->quantity);
+                }
 
-                    if ($item->supply_id && $item->supply_length) {
-                        $supply = Supply::find($item->supply_id);
-                        $totalUsed = $item->supply_length * $item->quantity;
-                        $supply->increaseQuantity($totalUsed);
-                    }
+                if ($item->supply_id && $item->supply_length && $sale->isCompleted()) {
+                    $supply = Supply::find($item->supply_id);
+                    $totalUsed = $item->supply_length * $item->quantity;
+                    $supply->increaseQuantity($totalUsed);
+                }
 
-                    // Hoàn trả status khung về available
-                    if ($item->frame_id) {
-                        $frame = \App\Models\Frame::find($item->frame_id);
-                        if ($frame) {
-                            $frame->markAsAvailable();
+                if ($item->frame_id && $sale->isCompleted()) {
+                    $frame = \App\Models\Frame::find($item->frame_id);
+                    if ($frame) {
+                        $frame->markAsAvailable();
+                    }
+                }
+
+                // Hoàn trả hàng gia công
+                if ($item->processed_item_id) {
+                    $processedItem = \App\Models\ProcessedItem::find($item->processed_item_id);
+                    if ($processedItem) {
+                        // 1. Nếu đã duyệt, hoàn lại cái "bán"
+                        if ($sale->isCompleted()) {
+                            $processedItem->increaseQuantity($item->quantity);
                         }
+                        
+                        // 2. Với Hàng gia công, ta không "un-produce" khi xóa phiếu 
+                        // vì ta mặc định đã sản xuất rồi (theo mong muốn user: lưu = có sẵn trong kho)
                     }
                 }
             }
@@ -1469,6 +1560,26 @@ class SalesController extends Controller
                             throw new \Exception("Khung {$frame->name} đã được bán");
                         }
                         $frame->markAsSold();
+                    }
+                }
+
+                // Process processed_item
+                if ($saleItem->processed_item_id) {
+                    $processedItem = \App\Models\ProcessedItem::find($saleItem->processed_item_id);
+                    if ($processedItem) {
+                        $processedItem->reduceQuantity($saleItem->quantity);
+
+                        InventoryTransaction::create([
+                            'transaction_type' => 'export',
+                            'item_type' => 'processed_item',
+                            'item_id' => $saleItem->processed_item_id,
+                            'quantity' => $saleItem->quantity,
+                            'reference_type' => 'sale',
+                            'reference_id' => $sale->id,
+                            'transaction_date' => $sale->sale_date,
+                            'notes' => "Gia công cho hóa đơn {$sale->invoice_code}",
+                            'created_by' => $user->id,
+                        ]);
                     }
                 }
             }

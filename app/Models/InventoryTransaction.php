@@ -46,6 +46,8 @@ class InventoryTransaction extends Model
             return $this->belongsTo(Painting::class, 'item_id');
         } elseif ($this->item_type === 'supply') {
             return $this->belongsTo(Supply::class, 'item_id');
+        } elseif ($this->item_type === 'processed_item') {
+            return $this->belongsTo(ProcessedItem::class, 'item_id');
         }
         
         return null;
@@ -86,7 +88,8 @@ class InventoryTransaction extends Model
     {
         $types = [
             'painting' => 'Tranh',
-            'supply' => 'Vật tư',
+            'supply'   => 'Vật tư',
+            'processed_item' => 'Hàng gia công',
         ];
 
         return $types[$this->item_type] ?? $this->item_type;
@@ -106,6 +109,9 @@ class InventoryTransaction extends Model
             } elseif ($this->item_type === 'supply') {
                 $supply = Supply::find($this->item_id);
                 return $supply ? $supply->name : 'N/A';
+            } elseif ($this->item_type === 'processed_item') {
+                $processed = ProcessedItem::find($this->item_id);
+                return $processed ? $processed->name : 'N/A';
             }
         }
         

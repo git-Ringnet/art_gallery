@@ -13,6 +13,7 @@ class SaleItem extends Model
         'sale_id',
         'painting_id',
         'frame_id',
+        'processed_item_id',
         'description',
         'quantity',
         'supply_id',
@@ -62,6 +63,11 @@ class SaleItem extends Model
     public function supply()
     {
         return $this->belongsTo(Supply::class);
+    }
+
+    public function processedItem()
+    {
+        return $this->belongsTo(ProcessedItem::class);
     }
 
     public function calculateTotals()

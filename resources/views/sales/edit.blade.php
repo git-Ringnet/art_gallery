@@ -918,15 +918,22 @@
                                                                                                                                         <input type="text" 
                                                                                                                                                id="item-search-${idx}"
                                                                                                                                                class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 mb-2" 
-                                                                                                                                               placeholder="Tìm tranh hoặc khung..."
+                                                                                                                                               placeholder="Tìm tranh, khung hoặc nhập tên hàng gia công..."
                                                                                                                                                autocomplete="off"
                                                                                                                                                onkeyup="filterItems(this.value, ${idx})"
+                                                                                                                                               oninput="document.getElementById('desc-'+${idx}).value = this.value; updateProcessedStatus(${idx})"
                                                                                                                                                onfocus="showItemSuggestions(${idx})">
                                                                                                                                         <input type="hidden" name="items[${idx}][painting_id]" id="painting-id-${idx}">
                                                                                                                                         <input type="hidden" name="items[${idx}][frame_id]" id="frame-id-${idx}">
+                                                                                                                                        <input type="hidden" name="items[${idx}][supply_id]" id="supply-id-${idx}">
                                                                                                                                         <input type="hidden" name="items[${idx}][description]" id="desc-${idx}">
                                                                                                                                         <div id="item-suggestions-${idx}" class="absolute z-20 w-full bg-white border border-gray-300 rounded-lg mt-1 max-h-60 overflow-y-auto hidden shadow-lg"></div>
                                                                                                                                         <div id="item-details-${idx}" class="text-xs text-gray-600 space-y-0.5 hidden"></div>
+                                                                                                                                        <div id="processed-badge-${idx}" class="mt-1 hidden">
+                                                                                                                                            <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-blue-100 text-blue-800 border border-blue-200">
+                                                                                                                                                <i class="fas fa-hammer mr-1"></i>Hàng gia công
+                                                                                                                                            </span>
+                                                                                                                                        </div>
                                                                                                                                     </div>
                                                                                                                                 </td>
                                                                                                                                 <td class="px-3 py-3 border">
@@ -1061,6 +1068,9 @@
                         imgElement.src = imgUrl;
                         imgElement.onclick = () => showImageModal(imgUrl, painting.name);
                         imgElement.classList.add('cursor-pointer', 'hover:opacity-80', 'transition-opacity');
+
+                        // Update processed status
+                        updateProcessedStatus(idx);
 
                         // Display painting details
                         const detailsDiv = document.getElementById(`item-details-${idx}`);
@@ -1391,12 +1401,32 @@
                         const imgElement = document.getElementById(`img-${idx}`);
                         imgElement.src = '/images/frame-placeholder.svg';
 
+                        // Update processed status
+                        updateProcessedStatus(idx);
+
                         document.getElementById(`item-suggestions-${idx}`).classList.add('hidden');
                         calc();
                     })
                     .catch(error => {
                         console.error('Error fetching frame:', error);
                     });
+            }
+
+            function updateProcessedStatus(idx) {
+                const paintingId = document.getElementById(`painting-id-${idx}`).value;
+                const frameId = document.getElementById(`frame-id-${idx}`).value;
+                const supplyId = document.getElementById(`supply-id-${idx}`).value;
+                const descInput = document.getElementById(`desc-${idx}`);
+                const desc = descInput ? descInput.value.trim() : '';
+                const badge = document.getElementById(`processed-badge-${idx}`);
+
+                if (badge) {
+                    if (!paintingId && !frameId && !supplyId && desc) {
+                        badge.classList.remove('hidden');
+                    } else {
+                        badge.classList.add('hidden');
+                    }
+                }
             }
 
             function togCur(sel, i) {
@@ -2069,6 +2099,9 @@
                     // Set currency display
                     togCur(document.querySelector(`[name="items[${index}][currency]"]`), index);
 
+                    // Update processed status
+                    updateProcessedStatus(index);
+
                     displayIndex++; // Tăng index cho item tiếp theo
                 });
             }
@@ -2083,22 +2116,22 @@
                 let hasValidProduct = false;
 
                 rows.forEach((row, index) => {
-                    const paintingInput = row.querySelector('input[name*="[painting_id]"]');
-                    const paintingId = paintingInput ? paintingInput.value : '';
-                    const frameInput = row.querySelector('input[name*="[frame_id]"]');
-                    const frameId = frameInput ? frameInput.value : '';
+                    const paintingId = row.querySelector('input[name*="[painting_id]"]')?.value || '';
+                    const frameId = row.querySelector('input[name*="[frame_id]"]')?.value || '';
+                    const supplyId = row.querySelector('input[name*="[supply_id]"]')?.value || '';
+                    const desc = row.querySelector('input[name*="[description]"]')?.value || '';
                     const qtyInput = row.querySelector('input[name*="[quantity]"]');
                     const qty = qtyInput ? (parseInt(qtyInput.value) || 0) : 0;
 
-                    // Hợp lệ nếu có tranh HOẶC có khung, và số lượng > 0
-                    if ((paintingId || frameId) && qty > 0) {
+                    // Hợp lệ nếu có tranh HOẶC có khung HOẶC có mô tả, và số lượng > 0
+                    if ((paintingId || frameId || supplyId || desc.trim()) && qty > 0) {
                         hasValidProduct = true;
                     }
                 });
 
                 if (!hasValidProduct) {
                     e.preventDefault();
-                    showNotification('Vui lòng chọn ít nhất 1 sản phẩm (tranh/khung) trước khi lưu!', 'error');
+                    showNotification('Vui lòng chọn ít nhất 1 sản phẩm trước khi lưu!', 'error');
                     document.querySelector('#items-body')?.scrollIntoView({ behavior: 'smooth', block: 'center' });
                     return false;
                 }
@@ -2341,14 +2374,15 @@
                 let productCount = 0;
 
                 rows.forEach((row, index) => {
-                    const paintingInput = row.querySelector('input[name*="[painting_id]"]');
-                    const paintingId = paintingInput ? paintingInput.value : '';
-                    const frameInput = row.querySelector('input[name*="[frame_id]"]');
-                    const frameId = frameInput ? frameInput.value : '';
+                    const paintingId = row.querySelector('input[name*="[painting_id]"]')?.value || '';
+                    const frameId = row.querySelector('input[name*="[frame_id]"]')?.value || '';
+                    const supplyId = row.querySelector('input[name*="[supply_id]"]')?.value || '';
+                    const desc = row.querySelector('input[name*="[description]"]')?.value || '';
                     const qtyInput = row.querySelector('input[name*="[quantity]"]');
                     const qty = qtyInput ? (parseInt(qtyInput.value) || 0) : 0;
 
-                    if ((paintingId || frameId) && qty > 0) {
+                    // Một hàng hợp lệ là có ID tranh/khung/vật tư HOẶC có mô tả (hàng gia công)
+                    if ((paintingId || frameId || supplyId || desc.trim()) && qty > 0) {
                         hasValidProduct = true;
                         productCount++;
                     }

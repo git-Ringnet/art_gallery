@@ -127,7 +127,7 @@ class ReportsController extends Controller
         $fromDateTime = $fromDate->format('Y-m-d') . ' 00:00:00';
         $toDateTime = $toDate->format('Y-m-d') . ' 23:59:59';
 
-        $paymentsQuery = Payment::with(['sale.customer', 'sale.showroom', 'sale.items.painting', 'sale.items.supply', 'sale.items.frame', 'sale.user'])
+        $paymentsQuery = Payment::with(['sale.customer', 'sale.showroom', 'sale.items.painting', 'sale.items.supply', 'sale.items.frame', 'sale.items.processedItem', 'sale.user'])
             ->whereBetween('payment_date', [$fromDateTime, $toDateTime])
             ->where('transaction_type', 'sale_payment')
             ->whereHas('sale', function ($q) use ($showroomId, $employeeId, $customerId, $dataScope, $allowedShowrooms, $user) {
@@ -198,6 +198,8 @@ class ReportsController extends Controller
                     $idCode = $firstItem->supply->code ?? 'SUP' . $firstItem->supply_id;
                 } elseif ($firstItem->frame_id) {
                     $idCode = 'FRAME' . $firstItem->frame_id;
+                } elseif ($firstItem->processed_item_id) {
+                    $idCode = $firstItem->processedItem->code ?? 'GC';
                 }
                 $itemDescription = $firstItem->description ?: 'N/A';
             } else {
@@ -423,7 +425,7 @@ class ReportsController extends Controller
         // Query sales - chỉ lấy phiếu đã duyệt (completed)
         $selectedYear = session('selected_year', date('Y'));
 
-        $salesQuery = Sale::with(['customer', 'showroom', 'user', 'items.painting', 'items.supply', 'items.frame', 'payments'])
+        $salesQuery = Sale::with(['customer', 'showroom', 'user', 'items.painting', 'items.supply', 'items.frame', 'items.processedItem', 'payments'])
             ->where('sale_status', 'completed')
             ->where('year', $selectedYear)
             ->whereBetween('sale_date', [$fromDate->format('Y-m-d'), $toDate->format('Y-m-d')]);
@@ -476,6 +478,9 @@ class ReportsController extends Controller
                 } elseif ($firstItem->frame_id) {
                     $idCode = 'FRAME' . $firstItem->frame_id;
                     $itemDescription = $firstItem->description;
+                } elseif ($firstItem->processed_item_id && $firstItem->processedItem) {
+                    $idCode = $firstItem->processedItem->code ?? '';
+                    $itemDescription = $firstItem->processedItem->name ?? $firstItem->description;
                 } else {
                     $itemDescription = $firstItem->description;
                 }
@@ -643,7 +648,7 @@ class ReportsController extends Controller
         // Lưu ý: debt_usd, debt_vnd là accessor nên không thể dùng trong where
         // Lấy tất cả phiếu completed chưa thanh toán đủ (payment_status != 'paid')
         // HOẶC có total_usd > 0 (vì payment_status có thể không chính xác cho USD)
-        $salesQuery = Sale::with(['customer', 'showroom', 'user', 'items.painting', 'payments'])
+        $salesQuery = Sale::with(['customer', 'showroom', 'user', 'items.painting', 'items.processedItem', 'payments'])
             ->where('sale_status', 'completed')
             ->where('year', $selectedYear)
             ->where(function ($q) {
@@ -690,6 +695,8 @@ class ReportsController extends Controller
 
             if ($firstItem && $firstItem->painting_id && $firstItem->painting) {
                 $idCode = $firstItem->painting->code ?? '';
+            } elseif ($firstItem && $firstItem->processed_item_id && $firstItem->processedItem) {
+                $idCode = $firstItem->processedItem->code ?? '';
             } else {
                 $idCode = 'SERVICE';
             }

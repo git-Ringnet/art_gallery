@@ -301,7 +301,7 @@
                             <div id="settings-dropdown" class="mt-1 ml-2 space-y-1">
                                 @canAccess('inventory')
                                 <a href="{{ route('inventory.index') }}"
-                                    class="nav-item flex items-center space-x-3 p-2 rounded-lg hover:bg-white hover:bg-opacity-20 transition-all duration-200 {{ request()->routeIs('inventory.*') && !request()->routeIs('frames.*') ? 'bg-white bg-opacity-20' : '' }}"
+                                    class="nav-item flex items-center space-x-3 p-2 rounded-lg hover:bg-white hover:bg-opacity-20 transition-all duration-200 {{ request()->routeIs('inventory.*') && !request()->routeIs('frames.*') && !request()->routeIs('inventory.processed-items.*') ? 'bg-white bg-opacity-20' : '' }}"
                                     title="Quản lý kho">
                                     <i class="fas fa-warehouse w-4 flex-shrink-0 text-sm"></i>
                                     <span class="sidebar-text text-xs">Quản lý kho</span>
@@ -314,6 +314,15 @@
                                     title="Khung tranh">
                                     <i class="fas fa-border-style w-4 flex-shrink-0 text-sm"></i>
                                     <span class="sidebar-text text-xs">Khung tranh</span>
+                                </a>
+                                @endcanAccess
+
+                                @canAccess('inventory')
+                                <a href="{{ route('inventory.processed-items.index') }}"
+                                    class="nav-item flex items-center space-x-3 p-2 rounded-lg hover:bg-white hover:bg-opacity-20 transition-all duration-200 {{ request()->routeIs('inventory.processed-items.*') ? 'bg-white bg-opacity-20' : '' }}"
+                                    title="Hàng gia công">
+                                    <i class="fas fa-tools w-4 flex-shrink-0 text-sm"></i>
+                                    <span class="sidebar-text text-xs">Hàng gia công</span>
                                 </a>
                                 @endcanAccess
 

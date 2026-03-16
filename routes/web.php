@@ -115,6 +115,10 @@ Route::middleware(['auth', 'archive.readonly'])->group(function () {
 
         // Bulk delete
         Route::delete('/bulk-delete', [App\Http\Controllers\InventoryController::class, 'bulkDelete'])->middleware('permission:inventory,can_delete')->name('bulk-delete');
+
+        // Processed Items (Hàng gia công)
+        Route::delete('processed-items/bulk-delete', [App\Http\Controllers\ProcessedItemsController::class, 'bulkDelete'])->name('processed-items.bulk-delete');
+        Route::resource('processed-items', App\Http\Controllers\ProcessedItemsController::class)->except(['create', 'store', 'edit', 'update']);
     });
 
     // Showrooms routes
