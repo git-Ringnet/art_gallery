@@ -102,6 +102,7 @@
                                 <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Ngày</th>
                                 <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Loại</th>
                                 <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Số lượng</th>
+                                <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Người thực hiện</th>
                                 <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Ghi chú</th>
                             </tr>
                         </thead>
@@ -120,6 +121,9 @@
                                     </td>
                                     <td class="px-4 py-3 whitespace-nowrap text-xs font-bold {{ $transaction->transaction_type == 'import' ? 'text-green-600' : 'text-red-600' }}">
                                         {{ $transaction->transaction_type == 'import' ? '+' : '-' }}{{ number_format($transaction->quantity, 2) }}
+                                    </td>
+                                    <td class="px-4 py-3 whitespace-nowrap text-xs text-gray-600">
+                                        {{ $transaction->createdBy->name ?? 'N/A' }}
                                     </td>
                                     <td class="px-4 py-3 text-xs text-gray-500">
                                         {{ $transaction->notes }}

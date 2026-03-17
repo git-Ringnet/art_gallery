@@ -17,8 +17,8 @@ class ProcessedItemsController extends Controller
 
         if ($search) {
             $query->where(function ($q) use ($search) {
-                $q->where('code', 'like', "%{$search}%")
-                    ->orWhere('name', 'like', "%{$search}%")
+                $q->where('processed_items.code', 'like', "%{$search}%")
+                    ->orWhere('processed_items.name', 'like', "%{$search}%")
                     ->orWhereHas('saleItems.sale', function ($saleQuery) use ($search) {
                         $saleQuery->where('invoice_code', 'like', "%{$search}%");
                     });
@@ -71,7 +71,7 @@ class ProcessedItemsController extends Controller
 
     public function show(ProcessedItem $processedItem)
     {
-        $processedItem->load(['saleItems.sale', 'inventoryTransactions.creator']);
+        $processedItem->load(['saleItems.sale', 'inventoryTransactions.createdBy']);
         return view('processed_items.show', compact('processedItem'));
     }
 
