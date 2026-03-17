@@ -765,6 +765,11 @@
                         <div class="text-right">
                             @if($hasUsdItems)
                                 <div class="text-black">${{ number_format((float) $sale->total_usd, 0) }}</div>
+                                @if($hasUsdItems && !$hasVndItems && $sale->exchange_rate > 0)
+                                    <div class="text-[10px] font-normal text-gray-600 mt-0.5">
+                                        (≈ {{ number_format((float) $sale->total_usd * (float) $sale->exchange_rate) }}đ)
+                                    </div>
+                                @endif
                             @endif
                             @if($hasVndItems)
                                 <div class="{{ $hasUsdItems ? 'text-xs text-black' : 'text-sm text-black' }}">
