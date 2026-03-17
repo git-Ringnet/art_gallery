@@ -837,23 +837,18 @@ class SalesController extends Controller
             $user = $this->getDefaultUser();
 
             // Xử lý exchange_rate
-            // CHÚ Ý: Chỉ cho phép thay đổi tỷ giá khi phiếu còn PENDING
-            // Khi đã duyệt (completed), tỷ giá KHÔNG được thay đổi để đảm bảo tính toán chính xác
+            // Cho phép thay đổi tỷ giá nếu:
+            // 1. Phiếu đang ở trạng thái PENDING (chưa duyệt)
+            // 2. HOẶC Phiếu đã duyệt nhưng CHƯA thanh toán hết (payment_status != paid)
             $exchangeRate = $sale->exchange_rate; // Mặc định giữ nguyên tỷ giá cũ
+            $canUpdateRate = ($sale->sale_status === 'pending') || ($sale->payment_status !== 'paid');
 
-            if ($sale->sale_status === 'pending' && $request->filled('exchange_rate')) {
-                // Phiếu pending → Cho phép thay đổi tỷ giá
+            if ($canUpdateRate && $request->filled('exchange_rate')) {
                 $newExchangeRate = $request->exchange_rate;
                 if (is_string($newExchangeRate)) {
                     $newExchangeRate = (float) str_replace([',', '.', ' '], '', $newExchangeRate);
                 }
                 $exchangeRate = $newExchangeRate;
-            }
-            // Nếu phiếu đã completed → Giữ nguyên exchange_rate cũ
-            if ($sale->exchange_rate != $exchangeRate) {
-                $sale->update([
-                    'exchange_rate' => number_format((float) $exchangeRate, 0, '', '')
-                ]);
             }
 
             // Xử lý discount_amount cho Sale (khi update)
