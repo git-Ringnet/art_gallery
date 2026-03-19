@@ -182,7 +182,11 @@
                     <tr class="border-b border-gray-100 hover:bg-blue-50">
                         <td class="px-3 py-2">{{ $index + 1 }}</td>
                         <td class="px-3 py-2">{{ $item['sale_date'] }}</td>
-                        <td class="px-3 py-2 font-medium text-blue-600">{{ $item['invoice_code'] }}</td>
+                        <td class="px-3 py-2 font-medium text-blue-600">
+                            <a href="{{ route('sales.show', $item['sale_id']) }}" class="hover:underline">
+                                {{ $item['invoice_code'] }}
+                            </a>
+                        </td>
                         <td class="px-3 py-2">{{ $item['id_code'] }}</td>
                         <td class="px-3 py-2">{{ $item['customer_name'] }}</td>
                         <td class="px-3 py-2 text-right">{{ $item['total_usd'] > 0 ? '$' . ($item['total_usd'] == floor($item['total_usd']) ? number_format($item['total_usd'], 0) : number_format($item['total_usd'], 2)) : '' }}</td>
@@ -374,7 +378,11 @@
             @foreach($reportData as $index => $item)
                 <td style="border: 1px solid #000; padding: 3px;">{{ $index + 1 }}</td>
                 <td style="border: 1px solid #000; padding: 3px;">{{ $item['sale_date'] }}</td>
-                <td style="border: 1px solid #000; padding: 3px;">{{ $item['invoice_code'] }}</td>
+                <td style="border: 1px solid #000; padding: 3px;">
+                    <a href="{{ route('sales.show', $item['sale_id']) }}" style="text-decoration: underline; color: #2563eb;">
+                        {{ $item['invoice_code'] }}
+                    </a>
+                </td>
                 <td style="border: 1px solid #000; padding: 3px;">{{ $item['id_code'] }}</td>
                 <td style="border: 1px solid #000; padding: 3px;">{{ $item['customer_name'] }}</td>
                 <td style="border: 1px solid #000; padding: 3px; text-align: right;">{{ $item['total_usd'] > 0 ? ($item['total_usd'] == floor($item['total_usd']) ? number_format($item['total_usd'], 0) : number_format($item['total_usd'], 2)) : '' }}</td>

@@ -120,7 +120,11 @@
             @foreach($reportData as $index => $item)
                 <tr>
                     <td>{{ $index + 1 }}</td>
-                    <td>{{ $item['invoice_code'] }}</td>
+                    <td>
+                        <a href="{{ route('sales.show', $item['sale_id']) }}" style="text-decoration: none; color: #2563eb;">
+                            {{ $item['invoice_code'] }}
+                        </a>
+                    </td>
                     <td>{{ $item['id_code'] }}</td>
                     <td>{{ $item['customer_name'] }}</td>
                     <td class="text-right">

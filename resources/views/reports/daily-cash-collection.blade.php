@@ -312,7 +312,10 @@
                             <tr class="border-b border-gray-100 hover:bg-blue-50 transition-colors">
                                 <td class="px-3 py-2 border-r border-gray-300">{{ $index + 1 }}</td>
                                 <td class="px-3 py-2 font-medium text-blue-600 border-r border-gray-300">
-                                    {{ $item['invoice_code'] }}</td>
+                                    <a href="{{ route('sales.show', $item['sale_id']) }}" class="hover:underline">
+                                        {{ $item['invoice_code'] }}
+                                    </a>
+                                </td>
                                 <td class="px-3 py-2 font-medium border-r border-gray-300">{{ $item['id_code'] }}</td>
                                 <td class="px-3 py-2 border-r border-gray-300">{{ $item['customer_name'] }}</td>
 
@@ -519,7 +522,11 @@
                 @foreach($reportData as $index => $item)
                     <tr>
                         <td style="border: 1px solid #000; padding: 3px;">{{ $index + 1 }}</td>
-                        <td style="border: 1px solid #000; padding: 3px;">{{ $item['invoice_code'] }}</td>
+                        <td style="border: 1px solid #000; padding: 3px;">
+                            <a href="{{ route('sales.show', $item['sale_id']) }}" style="text-decoration: none; color: inherit;">
+                                {{ $item['invoice_code'] }}
+                            </a>
+                        </td>
                         <td style="border: 1px solid #000; padding: 3px;">{{ $item['id_code'] }}</td>
                         <td style="border: 1px solid #000; padding: 3px;">{{ $item['customer_name'] }}</td>
 

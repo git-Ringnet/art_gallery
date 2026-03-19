@@ -119,7 +119,11 @@
                 <tr>
                     <td>{{ $index + 1 }}</td>
                     <td>{{ $item['import_date'] }}</td>
-                    <td>{{ $item['code'] }}</td>
+                    <td>
+                        <a href="{{ route('inventory.paintings.show', $item['id']) }}" style="text-decoration: none; color: #2563eb;">
+                            {{ $item['code'] }}
+                        </a>
+                    </td>
                     <td>{{ $item['name'] }}</td>
                     <td>{{ $item['artist'] }}</td>
                     <td>{{ $item['material'] }}</td>

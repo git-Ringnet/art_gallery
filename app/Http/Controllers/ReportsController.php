@@ -241,6 +241,7 @@ class ReportsController extends Controller
             $displayAdjustmentVnd = $isDuplicate ? 0 : $saleAdjustmentVnd;
 
             $rowData = [
+                'sale_id' => $sale->id,
                 'invoice_code' => $sale->invoice_code,
                 'id_code' => $idCode,
                 'customer_name' => $sale->customer->name,
@@ -497,6 +498,7 @@ class ReportsController extends Controller
             $isMixed = $sale->total_usd > 0 && $sale->total_vnd > 0;
 
             $reportData[] = [
+                'sale_id' => $sale->id,
                 'sale_date' => $sale->sale_date->format('d/m/Y'),
                 'invoice_code' => $sale->invoice_code,
                 'id_code' => $idCode,
@@ -715,6 +717,7 @@ class ReportsController extends Controller
             // Chỉ thêm vào báo cáo nếu còn nợ (USD hoặc VND)
             if ($debtUsd > 0.01 || $debtVnd > 1) {
                 $reportData[] = [
+                    'sale_id' => $sale->id,
                     'sale_date' => $sale->sale_date->format('d/m/Y'),
                     'invoice_code' => $sale->invoice_code,
                     'id_code' => $idCode,
@@ -859,6 +862,7 @@ class ReportsController extends Controller
 
         foreach ($paintings as $painting) {
             $reportData[] = [
+                'id' => $painting->id,
                 'import_date' => $painting->import_date ? $painting->import_date->format('d/m/Y') : '',
                 'code' => $painting->code,
                 'name' => $painting->name,
@@ -1288,6 +1292,7 @@ class ReportsController extends Controller
             $displayAdjustmentVnd = $isDuplicate ? 0 : $saleAdjustmentVnd;
 
             $rowData = [
+                'sale_id' => $sale->id,
                 'invoice_code' => $sale->invoice_code,
                 'id_code' => $idCode,
                 'customer_name' => $sale->customer->name,
@@ -1479,6 +1484,7 @@ class ReportsController extends Controller
             $itemCount = $sale->items->sum('quantity');
 
             $reportData[] = [
+                'sale_id' => $sale->id,
                 'sale_date' => $sale->sale_date->format('d/m/Y'),
                 'invoice_code' => $sale->invoice_code,
                 'id_code' => $idCode,
@@ -1649,6 +1655,7 @@ class ReportsController extends Controller
 
             if ($debtUsd > 0.01 || $debtVnd > 1) {
                 $reportData[] = [
+                    'sale_id' => $sale->id,
                     'sale_date' => $sale->sale_date->format('d/m/Y'),
                     'invoice_code' => $sale->invoice_code,
                     'id_code' => $idCode,

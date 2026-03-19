@@ -148,7 +148,11 @@
                     <tr class="border-b border-gray-100 hover:bg-green-50">
                         <td class="px-3 py-2">{{ $index + 1 }}</td>
                         <td class="px-3 py-2">{{ $item['import_date'] }}</td>
-                        <td class="px-3 py-2 font-medium text-blue-600">{{ $item['code'] }}</td>
+                        <td class="px-3 py-2 font-medium text-blue-600">
+                            <a href="{{ route('inventory.paintings.show', $item['id']) }}" class="hover:underline">
+                                {{ $item['code'] }}
+                            </a>
+                        </td>
                         <td class="px-3 py-2">{{ $item['name'] }}</td>
                         <td class="px-3 py-2">{{ $item['artist'] }}</td>
                         <td class="px-3 py-2">{{ $item['material'] }}</td>
@@ -257,7 +261,11 @@
             <tr>
                 <td style="border: 1px solid #000; padding: 2px;">{{ $index + 1 }}</td>
                 <td style="border: 1px solid #000; padding: 2px;">{{ $item['import_date'] }}</td>
-                <td style="border: 1px solid #000; padding: 2px;">{{ $item['code'] }}</td>
+                <td style="border: 1px solid #000; padding: 2px;">
+                    <a href="{{ route('inventory.paintings.show', $item['id']) }}" style="text-decoration: none; color: inherit;">
+                        {{ $item['code'] }}
+                    </a>
+                </td>
                 <td style="border: 1px solid #000; padding: 2px;">{{ $item['name'] }}</td>
                 <td style="border: 1px solid #000; padding: 2px;">{{ $item['artist'] }}</td>
                 <td style="border: 1px solid #000; padding: 2px;">{{ $item['material'] }}</td>
