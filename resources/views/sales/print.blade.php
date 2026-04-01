@@ -166,7 +166,7 @@
                             <span class="text-sm">Thông tin showroom (địa chỉ, SĐT)</span>
                         </label>
                         <label class="flex items-center space-x-3 py-2 hover:bg-gray-50 px-2 rounded cursor-pointer">
-                            <input type="checkbox" id="field-employee" class="w-4 h-4 text-purple-600" checked>
+                            <input type="checkbox" id="field-employee" class="w-4 h-4 text-purple-600">
                             <span class="text-sm">Nhân viên bán hàng</span>
                         </label>
                         <label class="flex items-center space-x-3 py-2 hover:bg-gray-50 px-2 rounded cursor-pointer">
@@ -997,7 +997,7 @@
         const defaultConfig = {
             'logo': true,
             'showroom-info': true,
-            'employee': true,
+            'employee': false,
             'payment-status': true,
             'customer-name': true,
             'customer-phone': true,
