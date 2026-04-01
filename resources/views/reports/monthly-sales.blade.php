@@ -538,8 +538,8 @@
     @media print {
         .no-print { display: none !important; }
         #screen-view { display: none !important; }
-        #print-view { display: block !important; }
-        @page { margin: 0.8cm; }
+        #print-view { display: block !important; padding: 1.5cm !important; }
+        @page { margin: 0mm !important; }
     }
     .print-only { display: none; }
 </style>

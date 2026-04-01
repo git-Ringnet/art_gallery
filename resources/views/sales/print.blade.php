@@ -17,12 +17,12 @@
             -moz-osx-font-smoothing: grayscale;
         }
 
-        @page {
-            size: A4 portrait;
-            margin: 1cm;
-        }
-
         @media print {
+            @page {
+                size: A4 portrait;
+                margin: 0mm !important;
+            }
+
             .no-print {
                 display: none !important;
             }
@@ -36,7 +36,7 @@
 
             body {
                 margin: 0 !important;
-                padding: 0 !important;
+                padding: 1.5cm !important;
                 -webkit-print-color-adjust: exact;
                 print-color-adjust: exact;
             }

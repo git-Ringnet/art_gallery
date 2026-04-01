@@ -69,6 +69,14 @@
         }
 
         @media print {
+            @page {
+                margin: 0mm !important;
+            }
+
+            body {
+                padding: 1.5cm !important;
+            }
+
             .no-print {
                 display: none !important;
             }

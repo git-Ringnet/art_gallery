@@ -686,10 +686,11 @@
 
                 #print-view {
                     display: block !important;
+                    padding: 1.5cm !important;
                 }
 
                 @page {
-                    margin: 0.8cm;
+                    margin: 0mm !important;
                 }
 
                 body {
