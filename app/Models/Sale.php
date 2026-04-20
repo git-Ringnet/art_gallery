@@ -281,8 +281,8 @@ class Sale extends Model
             $totalAmount = (float) $this->total_usd;
             $debt = round($totalAmount - $totalPaid, 2); // Làm tròn để tránh sai số floating point
 
-            // Xác định trạng thái
-            if ($debt <= 0) {
+            // Xác định trạng thái - Thêm sai số 1.0 USD để xử lý lệch do quy đổi tỷ giá
+            if ($debt <= 1.0) {
                 $this->payment_status = 'paid';
                 $this->debt_amount = 0;
             } elseif ($totalPaid > 0.01) {
