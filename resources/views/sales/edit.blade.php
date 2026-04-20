@@ -438,7 +438,11 @@
 
                             <!-- Lịch sử trả USD -->
                             @php
-                                $hasUsdPayments = $sale->payments->where('payment_usd', '>', 0)->count() > 0;
+                                $isUsdInvoice = $sale->total_usd > 0 && $sale->total_vnd <= 0;
+                                $usdPayments = $sale->payments->filter(function($p) use ($isUsdInvoice) {
+                                    return $p->payment_usd > 0 || ($isUsdInvoice && $p->payment_vnd > 0);
+                                });
+                                $hasUsdPayments = $usdPayments->count() > 0;
                                 $hasInitialUsd = ($sale->payment_usd ?? 0) > 0 && $sale->isPending();
                                 $showUsdHistory = $hasUsdPayments || $hasInitialUsd;
                             @endphp
@@ -449,11 +453,23 @@
                                     </div>
                                     <div class="space-y-1 max-h-24 overflow-y-auto">
                                         @if($hasUsdPayments)
-                                            @foreach($sale->payments->where('payment_usd', '>', 0) as $payment)
+                                            @foreach($usdPayments as $payment)
                                                 <div class="flex justify-between items-center text-xs">
                                                     <span class="text-gray-600">{{ $payment->payment_date->format('d/m/Y') }}</span>
-                                                    <span
-                                                        class="font-semibold text-blue-600">+${{ number_format($payment->payment_usd, 0) }}</span>
+                                                    @if($payment->payment_usd > 0)
+                                                        <span class="font-semibold text-blue-600">+${{ number_format($payment->payment_usd, 0) }}</span>
+                                                    @else
+                                                        @php
+                                                            $rate = $payment->payment_exchange_rate ?? $sale->exchange_rate;
+                                                            $converted = $rate > 0 ? $payment->payment_vnd / $rate : 0;
+                                                            // Round if very close to integer
+                                                            if (abs($converted - round($converted)) < 0.05) $converted = round($converted);
+                                                        @endphp
+                                                        <span class="font-semibold text-blue-600" title="{{ number_format($payment->payment_vnd) }}đ">
+                                                            +${{ number_format($converted, 0) }}*
+                                                            <span class="text-[9px] font-normal">(VND)</span>
+                                                        </span>
+                                                    @endif
                                                 </div>
                                             @endforeach
                                         @else
@@ -470,7 +486,7 @@
                                     <div class="mt-1 pt-1 border-t border-blue-300 flex justify-between items-center">
                                         <span class="text-xs font-semibold text-blue-700">Tổng USD:</span>
                                         <span
-                                            class="text-sm font-bold text-blue-600">${{ number_format($hasUsdPayments ? $sale->payments->sum('payment_usd') : $sale->payment_usd, 2) }}</span>
+                                            class="text-sm font-bold text-blue-600">${{ number_format($hasUsdPayments ? $sale->paid_usd : $sale->payment_usd, 2) }}</span>
                                     </div>
                                 </div>
                             @endif
@@ -486,7 +502,11 @@
 
                             <!-- Lịch sử trả VND -->
                             @php
-                                $hasVndPayments = $sale->payments->where('payment_vnd', '>', 0)->count() > 0;
+                                $isVndInvoice = $sale->total_vnd > 0 && $sale->total_usd <= 0;
+                                $vndPayments = $sale->payments->filter(function($p) use ($isVndInvoice) {
+                                    return $p->payment_vnd > 0 || ($isVndInvoice && $p->payment_usd > 0);
+                                });
+                                $hasVndPayments = $vndPayments->count() > 0;
                                 $hasInitialVnd = ($sale->payment_vnd ?? 0) > 0 && $sale->isPending();
                                 $showVndHistory = $hasVndPayments || $hasInitialVnd;
                             @endphp
@@ -497,11 +517,21 @@
                                     </div>
                                     <div class="space-y-1 max-h-24 overflow-y-auto">
                                         @if($hasVndPayments)
-                                            @foreach($sale->payments->where('payment_vnd', '>', 0) as $payment)
+                                            @foreach($vndPayments as $payment)
                                                 <div class="flex justify-between items-center text-xs">
                                                     <span class="text-gray-600">{{ $payment->payment_date->format('d/m/Y') }}</span>
-                                                    <span
-                                                        class="font-semibold text-green-600">+{{ number_format($payment->payment_vnd) }}đ</span>
+                                                    @if($payment->payment_vnd > 0)
+                                                        <span class="font-semibold text-green-600">+{{ number_format($payment->payment_vnd) }}đ</span>
+                                                    @else
+                                                        @php
+                                                            $rate = $payment->payment_exchange_rate ?? $sale->exchange_rate;
+                                                            $converted = $rate > 0 ? $payment->payment_usd * $rate : 0;
+                                                        @endphp
+                                                        <span class="font-semibold text-green-600" title="${{ number_format($payment->payment_usd, 2) }}">
+                                                            +{{ number_format($converted) }}đ*
+                                                            <span class="text-[9px] font-normal">(USD)</span>
+                                                        </span>
+                                                    @endif
                                                 </div>
                                             @endforeach
                                         @else
@@ -518,7 +548,7 @@
                                     <div class="mt-1 pt-1 border-t border-green-300 flex justify-between items-center">
                                         <span class="text-xs font-semibold text-green-700">Tổng VND:</span>
                                         <span
-                                            class="text-sm font-bold text-green-600">{{ number_format($hasVndPayments ? $sale->payments->sum('payment_vnd') : $sale->payment_vnd) }}đ</span>
+                                            class="text-sm font-bold text-green-600">{{ number_format($hasVndPayments ? $sale->paid_vnd : $sale->payment_vnd) }}đ</span>
                                     </div>
                                 </div>
                             @endif

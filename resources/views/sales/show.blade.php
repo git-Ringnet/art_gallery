@@ -25,7 +25,7 @@
     <a href="{{ route('sales.print', $sale->id) }}" target="_blank" class="bg-blue-600 text-white px-3 py-1.5 rounded-lg hover:bg-blue-700 text-sm whitespace-nowrap">
         <i class="fas fa-print mr-1"></i>In
     </a>
-    @if($sale->canEdit())
+    @if($sale->canEdit() && $sale->payment_status !== 'paid')
     <a href="{{ route('sales.edit', $sale->id) }}" class="bg-yellow-600 text-white px-3 py-1.5 rounded-lg hover:bg-yellow-700 text-sm whitespace-nowrap">
         <i class="fas fa-edit mr-1"></i>Sửa
     </a>
@@ -891,42 +891,71 @@ document.addEventListener('keydown', function(event) {
 @push('scripts')
 <!-- Edit Payment Modal -->
 <div id="editPaymentModal" class="fixed inset-0 z-50 hidden overflow-y-auto" aria-labelledby="modal-title" role="dialog" aria-modal="true">
-    <div class="flex items-end justify-center min-h-screen px-4 pt-4 pb-20 text-center sm:block sm:p-0">
-        <div class="fixed inset-0 transition-opacity bg-gray-500 bg-opacity-75" aria-hidden="true" onclick="closeEditPaymentModal()"></div>
+    <div class="flex items-center justify-center min-h-screen px-4 pt-4 pb-20 text-center sm:block sm:p-0">
+        <!-- Overlay -->
+        <div class="fixed inset-0 transition-opacity bg-gray-900 bg-opacity-60 backdrop-blur-sm" aria-hidden="true" onclick="closeEditPaymentModal()"></div>
+        
+        <!-- Center modal -->
         <span class="hidden sm:inline-block sm:align-middle sm:h-screen" aria-hidden="true">&#8203;</span>
-        <div class="inline-block overflow-hidden text-left align-bottom transition-all transform bg-white rounded-lg shadow-xl sm:my-8 sm:align-middle sm:max-w-lg sm:w-full">
+        
+        <div class="inline-block overflow-hidden text-left align-bottom transition-all transform bg-white rounded-2xl shadow-2xl sm:my-8 sm:align-middle sm:max-w-lg sm:w-full border border-gray-100">
             <form id="editPaymentForm" method="POST" action="">
                 @csrf
                 @method('PUT')
-                <div class="px-4 pt-5 pb-4 bg-white sm:p-6 sm:pb-4">
-                    <div class="sm:flex sm:items-start">
-                        <div class="mt-3 text-center sm:mt-0 sm:ml-4 sm:text-left w-full">
-                            <h3 class="text-lg font-medium leading-6 text-gray-900" id="modal-title">
-                                Cập nhật thông tin thanh toán
-                            </h3>
-                            <div class="mt-4 space-y-4">
-                                <div>
-                                    <label for="payment_method" class="block text-sm font-medium text-gray-700">Hình thức thanh toán</label>
-                                    <select name="payment_method" id="payment_method" class="mt-1 block w-full pl-3 pr-10 py-2 text-base border focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm rounded-md">
-                                        <option value="cash">Tiền mặt</option>
-                                        <option value="bank_transfer">Chuyển khoản</option>
-                                        <option value="card">Thẻ</option>
-                                        <option value="other">Khác</option>
-                                    </select>
-                                </div>
-                                <div>
-                                    <label for="notes" class="block text-sm font-medium text-gray-700">Ghi chú</label>
-                                    <textarea name="notes" id="notes" rows="3" class="mt-1 block w-full shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm border rounded-md"></textarea>
+                
+                <!-- Header with Gradient -->
+                <div class="bg-gradient-to-r from-blue-600 to-indigo-700 px-6 py-4 flex items-center justify-between">
+                    <h3 class="text-lg font-bold text-white flex items-center" id="modal-title">
+                        <i class="fas fa-edit mr-3 opacity-80"></i>
+                        Cập nhật thanh toán
+                    </h3>
+                    <button type="button" onclick="closeEditPaymentModal()" class="text-white opacity-70 hover:opacity-100 transition-opacity">
+                        <i class="fas fa-times text-xl"></i>
+                    </button>
+                </div>
+
+                <div class="bg-white px-6 py-6">
+                    <div class="space-y-5">
+                        <!-- Payment Method Field -->
+                        <div>
+                            <label for="payment_method" class="block text-sm font-semibold text-gray-700 mb-1.5 flex items-center">
+                                <i class="fas fa-wallet mr-2 text-blue-500"></i>
+                                Hình thức thanh toán
+                            </label>
+                            <div class="relative">
+                                <select name="payment_method" id="payment_method" 
+                                    class="block w-full pl-4 pr-10 py-2.5 text-gray-900 border border-gray-300 rounded-xl focus:ring-4 focus:ring-blue-500/20 focus:border-blue-500 transition-all appearance-none bg-gray-50/50">
+                                    <option value="cash">Tiền mặt</option>
+                                    <option value="bank_transfer">Chuyển khoản</option>
+                                    <option value="card">Thẻ</option>
+                                    <option value="other">Khác</option>
+                                </select>
+                                <div class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-4 text-gray-500">
+                                    <i class="fas fa-chevron-down text-xs"></i>
                                 </div>
                             </div>
                         </div>
+
+                        <!-- Notes Field -->
+                        <div>
+                            <label for="modal_notes" class="block text-sm font-semibold text-gray-700 mb-1.5 flex items-center">
+                                <i class="fas fa-sticky-note mr-2 text-blue-500"></i>
+                                Ghi chú
+                            </label>
+                            <textarea name="notes" id="modal_notes" rows="3" 
+                                class="block w-full px-4 py-3 text-gray-900 border border-gray-300 rounded-xl focus:ring-4 focus:ring-blue-500/20 focus:border-blue-500 transition-all bg-gray-50/50 placeholder-gray-400"
+                                placeholder="Nhập ghi chú thanh toán..."></textarea>
+                        </div>
                     </div>
                 </div>
-                <div class="px-4 py-3 bg-gray-50 sm:px-6 sm:flex sm:flex-row-reverse">
-                    <button type="submit" class="inline-flex justify-center w-full px-4 py-2 text-base font-medium text-white bg-blue-600 border border-transparent rounded-md shadow-sm hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 sm:ml-3 sm:w-auto sm:text-sm">
+
+                <!-- Footer with Actions -->
+                <div class="px-6 py-4 bg-gray-50 flex flex-row-reverse gap-3 border-t border-gray-100">
+                    <button type="submit" class="inline-flex justify-center items-center px-6 py-2.5 text-sm font-bold text-white bg-blue-600 rounded-xl shadow-lg shadow-blue-600/30 hover:bg-blue-700 focus:outline-none focus:ring-4 focus:ring-blue-500/40 transform active:scale-95 transition-all">
+                        <i class="fas fa-check mr-2"></i>
                         Cập nhật
                     </button>
-                    <button type="button" onclick="closeEditPaymentModal()" class="mt-3 inline-flex justify-center w-full px-4 py-2 text-base font-medium text-gray-700 bg-white border border-gray-300 rounded-md shadow-sm hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 sm:mt-0 sm:ml-3 sm:w-auto sm:text-sm">
+                    <button type="button" onclick="closeEditPaymentModal()" class="inline-flex justify-center items-center px-6 py-2.5 text-sm font-bold text-gray-600 bg-white border border-gray-200 rounded-xl hover:bg-gray-50 hover:text-gray-800 transition-all">
                         Hủy
                     </button>
                 </div>
@@ -946,7 +975,7 @@ document.addEventListener('keydown', function(event) {
         
         document.getElementById('editPaymentForm').action = url;
         document.getElementById('payment_method').value = method;
-        document.getElementById('notes').value = notes || '';
+        document.getElementById('modal_notes').value = notes || '';
         document.getElementById('editPaymentModal').classList.remove('hidden');
     }
 

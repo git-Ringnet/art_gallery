@@ -622,10 +622,10 @@ class SalesController extends Controller
     {
         $sale = Sale::with(['saleItems.painting', 'saleItems.frame', 'saleItems.supply', 'customer', 'payments'])->findOrFail($id);
 
-        // Cho phép edit cả khi đã duyệt (để thêm thanh toán)
-        if (!$sale->canEdit()) {
-            return redirect()->route('sales.show', $id)
-                ->with('error', 'Không thể sửa phiếu đã hủy.');
+        // Chặn edit hóa đơn hoàn toàn khi đã thanh toán đủ hoặc đã hủy
+        if (!$sale->canEdit() || $sale->payment_status === 'paid') {
+            $msg = $sale->isCancelled() ? 'Không thể sửa phiếu đã hủy.' : 'Không thể sửa phiếu đã thanh toán đủ.';
+            return redirect()->route('sales.show', $id)->with('error', $msg);
         }
 
         $showrooms = Showroom::active()->get();
@@ -641,9 +641,10 @@ class SalesController extends Controller
     {
         $sale = Sale::findOrFail($id);
 
-        // Cho phép edit khi chưa hủy
-        if (!$sale->canEdit()) {
-            return back()->with('error', 'Không thể sửa phiếu đã hủy');
+        // Chặn update hóa đơn hoàn toàn khi đã thanh toán đủ hoặc đã hủy
+        if (!$sale->canEdit() || $sale->payment_status === 'paid') {
+            $msg = $sale->isCancelled() ? 'Không thể sửa phiếu đã hủy.' : 'Không thể sửa phiếu đã thanh toán đủ.';
+            return back()->with('error', $msg);
         }
 
         // Kiểm tra xem có return/exchange không
@@ -1083,18 +1084,28 @@ class SalesController extends Controller
                     // Trường hợp 3: Hóa đơn Mixed (USD+VND) - KHÔNG lưu tỷ giá
                     // payment_exchange_rate = null
 
-                    Payment::create([
-                        'sale_id' => $sale->id,
-                        'amount' => $request->payment_amount,
-                        'payment_usd' => $paymentUsd,
-                        'payment_vnd' => $paymentVnd,
-                        'payment_exchange_rate' => $paymentExchangeRate,
-                        'payment_method' => $request->payment_method ?? 'cash',
-                        'transaction_type' => 'sale_payment',
-                        'payment_date' => now(),
-                        'notes' => 'Trả nợ thêm',
-                        'created_by' => $user->id,
-                    ]);
+                    // Kiểm tra tránh trùng lặp thanh toán (trong vòng 5 phút cùng số tiền và ghi chú)
+                    $isDuplicate = Payment::where('sale_id', $sale->id)
+                        ->where('payment_usd', $paymentUsd)
+                        ->where('payment_vnd', $paymentVnd)
+                        ->where('notes', 'Trả nợ thêm')
+                        ->where('created_at', '>=', now()->subMinutes(5))
+                        ->exists();
+
+                    if (!$isDuplicate) {
+                        Payment::create([
+                            'sale_id' => $sale->id,
+                            'amount' => $request->payment_amount,
+                            'payment_usd' => $paymentUsd,
+                            'payment_vnd' => $paymentVnd,
+                            'payment_exchange_rate' => $paymentExchangeRate,
+                            'payment_method' => $request->payment_method ?? 'cash',
+                            'transaction_type' => 'sale_payment',
+                            'payment_date' => now(),
+                            'notes' => 'Trả nợ thêm',
+                            'created_by' => $user->id,
+                        ]);
+                    }
                 } else {
                     // Phiếu pending - cập nhật paid_amount trong sale (chưa tạo payment)
                     $sale->paid_amount = $request->payment_amount;

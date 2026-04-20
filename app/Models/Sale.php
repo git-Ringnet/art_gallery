@@ -267,6 +267,9 @@ class Sale extends Model
 
     public function updatePaymentStatus()
     {
+        // Reload relationships to ensure we have the latest payments from DB
+        $this->load(['payments']);
+
         // Xác định loại tiền tệ chính của hóa đơn
         $hasUsd = $this->total_usd > 0;
         $hasVnd = $this->total_vnd > 0;

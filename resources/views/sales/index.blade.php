@@ -569,7 +569,7 @@
                                     <!-- Edit button - chỉ hiện khi có quyền và chờ duyệt, ẩn khi đã hủy/trả hết -->
                                     @notArchive
                                     @hasPermission('sales', 'can_edit')
-                                    @if($sale->canEdit() && !$allReturned && $sale->sale_status != 'cancelled')
+                                    @if($sale->canEdit() && !$allReturned && $sale->sale_status != 'cancelled' && $sale->payment_status !== 'paid')
                                         <a href="{{ route('sales.edit', $sale->id) }}"
                                             class="w-7 h-7 flex items-center justify-center bg-yellow-100 text-yellow-600 rounded-lg hover:bg-yellow-200 transition-colors text-xs"
                                             title="Chỉnh sửa">

@@ -73,15 +73,15 @@ class Payment extends Model
         parent::boot();
 
         static::created(function ($payment) {
-            $payment->sale->updatePaymentStatus();
+            $payment->sale->refresh()->updatePaymentStatus();
         });
 
         static::updated(function ($payment) {
-            $payment->sale->updatePaymentStatus();
+            $payment->sale->refresh()->updatePaymentStatus();
         });
 
         static::deleted(function ($payment) {
-            $payment->sale->updatePaymentStatus();
+            $payment->sale->refresh()->updatePaymentStatus();
         });
     }
 }
