@@ -510,8 +510,8 @@ class InventoryController extends Controller
             'height' => $validated['height'] ?? null,
             'depth' => $validated['depth'] ?? null,
             'paint_year' => $validated['year'] ?? null,
-            'price_usd' => $validated['price_usd'] ?? null,
-            'price_vnd' => $validated['price_vnd'] ?? null,
+            'price_usd' => isset($validated['price_usd']) ? round((float)$validated['price_usd'], 2) : null,
+            'price_vnd' => isset($validated['price_vnd']) ? round((float)$validated['price_vnd'], 2) : null,
             'image' => $imagePath,
             'quantity' => 1,
             'import_date' => $validated['import_date'],
@@ -684,6 +684,14 @@ class InventoryController extends Controller
                 }
                 $imagePath = $request->file('image')->store('paintings', 'public');
                 $validated['image'] = $imagePath;
+            }
+
+            // Round prices to prevent floating point issues
+            if (isset($validated['price_usd'])) {
+                $validated['price_usd'] = round((float)$validated['price_usd'], 2);
+            }
+            if (isset($validated['price_vnd'])) {
+                $validated['price_vnd'] = round((float)$validated['price_vnd'], 2);
             }
 
             $updateResult = $painting->update($validated);

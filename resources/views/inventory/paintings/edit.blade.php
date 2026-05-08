@@ -291,6 +291,13 @@
                     if (removeField) removeField.value = '1';
                 });
             }
+
+            // Disable mouse wheel on number inputs to prevent accidental changes
+            document.querySelectorAll('input[type="number"]').forEach(input => {
+                input.addEventListener('wheel', function(e) {
+                    e.preventDefault();
+                }, { passive: false });
+            });
         })();
     </script>
 @endpush

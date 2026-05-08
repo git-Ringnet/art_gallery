@@ -159,27 +159,27 @@ class PaintingImportWithImages implements ToCollection
                 // Parse numeric fields safely
                 $width = null;
                 if (isset($row[4]) && !empty($row[4])) {
-                    $width = is_numeric($row[4]) ? (float) $row[4] : null;
+                    $width = is_numeric($row[4]) ? round((float) $row[4], 2) : null;
                 }
 
                 $height = null;
                 if (isset($row[5]) && !empty($row[5])) {
-                    $height = is_numeric($row[5]) ? (float) $row[5] : null;
+                    $height = is_numeric($row[5]) ? round((float) $row[5], 2) : null;
                 }
 
                 $depth = null;
                 if (isset($row[6]) && !empty($row[6])) {
-                    $depth = is_numeric($row[6]) ? (float) $row[6] : null;
+                    $depth = is_numeric($row[6]) ? round((float) $row[6], 2) : null;
                 }
 
                 $priceUsd = null;
                 if (isset($row[8]) && $row[8] !== '' && $row[8] !== null) {
-                    $priceUsd = is_numeric($row[8]) ? (float) $row[8] : 0;
+                    $priceUsd = is_numeric($row[8]) ? round((float) $row[8], 2) : 0;
                 }
 
                 $priceVnd = null;
                 if (isset($row[9]) && !empty($row[9])) {
-                    $priceVnd = is_numeric($row[9]) ? (float) $row[9] : null;
+                    $priceVnd = is_numeric($row[9]) ? round((float) $row[9], 2) : null;
                 }
 
                 // Clean notes
