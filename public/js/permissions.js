@@ -498,6 +498,7 @@ async function savePermissions() {
                 can_filter_by_date: true,
                 can_filter_by_status: true,
                 can_search: true,
+                edit_scope: 'all',
             };
             permissions.push(perm);
         }
@@ -516,6 +517,7 @@ async function savePermissions() {
             perm.can_filter_by_date = currentPermissions[module].can_filter_by_date !== false;
             perm.can_filter_by_status = currentPermissions[module].can_filter_by_status !== false;
             perm.can_search = currentPermissions[module].can_search !== false;
+            perm.edit_scope = currentPermissions[module].edit_scope || 'all';
         }
     });
     
@@ -1010,6 +1012,12 @@ function showDataScopeModal(moduleKey) {
     } else {
         dataScopeSection.classList.add('hidden');
     }
+
+    // Set edit scope
+    const editScopeSelect = document.getElementById('edit-scope-select');
+    if (editScopeSelect) {
+        editScopeSelect.value = perms.edit_scope || 'all';
+    }
     
     // Load current config và ẩn/hiện các checkbox
     const filterCheckboxes = [
@@ -1105,6 +1113,7 @@ function saveDataScope() {
         can_filter_by_user: document.getElementById('can-filter-user').checked,
         can_filter_by_date: document.getElementById('can-filter-date').checked,
         can_filter_by_status: document.getElementById('can-filter-status').checked,
+        edit_scope: document.getElementById('edit-scope-select').value,
     };
     
     // Lưu vào biến tạm

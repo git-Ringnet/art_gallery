@@ -267,4 +267,95 @@ class PermissionHelper
         
         return collect();
     }
+
+    /**
+     * Kiểm tra có được xem model này không dựa trên data_scope
+     */
+    public static function canViewModel($model, $module, $userIdColumn = 'user_id', $showroomIdColumn = 'showroom_id')
+    {
+        if (!Auth::check()) {
+            return false;
+        }
+
+        // Bypass cho admin@example.com
+        if (Auth::user()->email === 'admin@example.com') {
+            return true;
+        }
+
+        if (!Auth::user()->role) {
+            return false;
+        }
+
+        $role = Auth::user()->role;
+        
+        // 1. Kiểm tra quyền view cơ bản
+        if (!$role->hasPermission($module, 'can_view')) {
+            return false;
+        }
+
+        // 2. Kiểm tra data_scope
+        $dataScope = $role->getDataScope($module);
+        
+        switch ($dataScope) {
+            case 'own':
+                return $model->$userIdColumn == Auth::id();
+
+            case 'showroom':
+                $allowedShowrooms = $role->getAllowedShowrooms($module);
+                if ($allowedShowrooms && is_array($allowedShowrooms) && count($allowedShowrooms) > 0) {
+                    return in_array($model->$showroomIdColumn, $allowedShowrooms);
+                }
+                return false;
+
+            case 'all':
+                return true;
+
+            case 'none':
+            default:
+                return false;
+        }
+    }
+
+    /**
+     * Kiểm tra có được sửa/xóa model này không dựa trên edit_scope
+     */
+    public static function canEditModel($model, $module, $userIdColumn = 'user_id', $showroomIdColumn = 'showroom_id')
+    {
+        if (!Auth::check()) {
+            return false;
+        }
+
+        // Bypass cho admin@example.com
+        if (Auth::user()->email === 'admin@example.com') {
+            return true;
+        }
+
+        if (!Auth::user()->role) {
+            return false;
+        }
+
+        $role = Auth::user()->role;
+        
+        // 1. Kiểm tra quyền edit/delete cơ bản
+        // Nếu module là sales, can_approve/can_cancel cũng là một dạng edit
+        $hasBasicPermission = $role->hasPermission($module, 'can_edit') || 
+                             $role->hasPermission($module, 'can_delete') ||
+                             $role->hasPermission($module, 'can_approve') ||
+                             $role->hasPermission($module, 'can_cancel');
+                             
+        if (!$hasBasicPermission) {
+            return false;
+        }
+
+        // 2. Kiểm tra edit_scope
+        $editScope = $role->getEditScope($module);
+        
+        if ($editScope === 'own') {
+            // Trường hợp edit_scope là 'own' -> chỉ được sửa dữ liệu của chính mình
+            return $model->$userIdColumn == Auth::id();
+        }
+
+        // 3. Nếu edit_scope là 'all' (theo phạm vi dữ liệu)
+        return self::canViewModel($model, $module, $userIdColumn, $showroomIdColumn);
+    }
 }

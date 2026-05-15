@@ -74,6 +74,15 @@ class Role extends Model
     }
 
     /**
+     * Kiểm tra phạm vi sửa/xóa dữ liệu cho module
+     */
+    public function getEditScope($module)
+    {
+        $permission = $this->getModulePermissions($module);
+        return $permission ? ($permission->edit_scope ?? 'all') : 'own';
+    }
+
+    /**
      * Lấy danh sách showroom được phép xem
      */
     public function getAllowedShowrooms($module)

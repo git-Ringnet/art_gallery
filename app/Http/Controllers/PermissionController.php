@@ -126,6 +126,7 @@ class PermissionController extends Controller
                 'can_filter_by_date' => $rp->can_filter_by_date ?? true,
                 'can_filter_by_status' => $rp->can_filter_by_status ?? true,
                 'can_search' => $rp->can_search ?? true,
+                'edit_scope' => $rp->edit_scope ?? 'all',
             ];
         }
 
@@ -179,6 +180,7 @@ class PermissionController extends Controller
             'permissions.*.can_filter_by_date' => 'boolean',
             'permissions.*.can_filter_by_status' => 'boolean',
             'permissions.*.can_search' => 'boolean',
+            'permissions.*.edit_scope' => 'nullable|in:all,own',
         ])->validate();
 
         // Delete existing permissions
@@ -215,6 +217,7 @@ class PermissionController extends Controller
                 'can_filter_by_date' => $permData['can_filter_by_date'] ?? true,
                 'can_filter_by_status' => $permData['can_filter_by_status'] ?? true,
                 'can_search' => $permData['can_search'] ?? true,
+                'edit_scope' => $permData['edit_scope'] ?? 'all',
             ]);
         }
 

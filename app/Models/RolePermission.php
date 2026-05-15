@@ -29,6 +29,7 @@ class RolePermission extends Model
         'can_filter_by_date',
         'can_filter_by_status',
         'can_search',
+        'edit_scope',
     ];
 
     protected $casts = [

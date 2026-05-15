@@ -85,6 +85,11 @@ class DebtController extends Controller
                 $query->orderBy('payment_date', 'desc')->orderBy('id', 'desc');
             }
         ])->findOrFail($id);
+
+        if (!\App\Helpers\PermissionHelper::canViewModel($debt, 'debt', 'created_by', 'sale_id')) {
+            return redirect()->route('debt.index')->with('error', 'Bạn không có quyền xem lịch sử công nợ này.');
+        }
+
         return view('debts.show', compact('debt'));
     }
 
@@ -326,6 +331,10 @@ class DebtController extends Controller
     public function collect(Request $request, $id)
     {
         $debt = Debt::with('sale')->findOrFail($id);
+
+        if (!\App\Helpers\PermissionHelper::canEditModel($debt, 'debt', 'created_by', 'sale_id')) {
+            return redirect()->route('debt.index')->with('error', 'Bạn không có quyền thu nợ cho phiếu này.');
+        }
         
         // Lấy số nợ hiện tại từ Sale
         $currentDebtVnd = $debt->sale->debt_amount;

@@ -615,12 +615,20 @@ class SalesController extends Controller
         $sale = Sale::with(['customer', 'showroom', 'user', 'saleItems.painting', 'saleItems.frame', 'saleItems.supply', 'payments', 'debt'])
             ->findOrFail($id);
 
+        if (!\App\Helpers\PermissionHelper::canViewModel($sale, 'sales')) {
+            return redirect()->route('sales.index')->with('error', 'Bạn không có quyền xem hóa đơn này.');
+        }
+
         return view('sales.show', compact('sale'));
     }
 
     public function edit($id)
     {
         $sale = Sale::with(['saleItems.painting', 'saleItems.frame', 'saleItems.supply', 'customer', 'payments'])->findOrFail($id);
+
+        if (!\App\Helpers\PermissionHelper::canEditModel($sale, 'sales')) {
+            return redirect()->route('sales.show', $id)->with('error', 'Bạn không có quyền sửa hóa đơn này.');
+        }
 
         // Chặn edit hóa đơn hoàn toàn khi đã thanh toán đủ hoặc đã hủy
         if (!$sale->canEdit() || $sale->payment_status === 'paid') {
@@ -640,6 +648,10 @@ class SalesController extends Controller
     public function update(Request $request, $id)
     {
         $sale = Sale::findOrFail($id);
+
+        if (!\App\Helpers\PermissionHelper::canEditModel($sale, 'sales')) {
+            return redirect()->route('sales.show', $id)->with('error', 'Bạn không có quyền cập nhật hóa đơn này.');
+        }
 
         // Chặn update hóa đơn hoàn toàn khi đã thanh toán đủ hoặc đã hủy
         if (!$sale->canEdit() || $sale->payment_status === 'paid') {
@@ -1194,6 +1206,11 @@ class SalesController extends Controller
         Log::info('Delete request for sale ID: ' . $id);
 
         $sale = Sale::findOrFail($id);
+
+        if (!\App\Helpers\PermissionHelper::canEditModel($sale, 'sales')) {
+            return redirect()->route('sales.show', $id)->with('error', 'Bạn không có quyền xóa hóa đơn này.');
+        }
+
         Log::info('Sale found: ' . $sale->invoice_code . ', Status: ' . $sale->sale_status . ', Paid amount: ' . $sale->paid_amount);
 
         // Chỉ cho xóa phiếu chưa duyệt (pending)
@@ -1275,6 +1292,10 @@ class SalesController extends Controller
     {
         $sale = Sale::with(['customer', 'showroom', 'saleItems.painting', 'saleItems.frame', 'saleItems.supply'])
             ->findOrFail($id);
+
+        if (!\App\Helpers\PermissionHelper::canViewModel($sale, 'sales')) {
+            return redirect()->route('sales.index')->with('error', 'Bạn không có quyền in hóa đơn này.');
+        }
 
         return view('sales.print', compact('sale'));
     }
@@ -1433,6 +1454,10 @@ class SalesController extends Controller
     public function approve($id)
     {
         $sale = Sale::with('saleItems')->findOrFail($id);
+
+        if (!\App\Helpers\PermissionHelper::canEditModel($sale, 'sales')) {
+            return redirect()->route('sales.show', $id)->with('error', 'Bạn không có quyền duyệt hóa đơn này.');
+        }
 
         // Check if sale can be approved
         if (!$sale->canApprove()) {
@@ -1674,6 +1699,10 @@ class SalesController extends Controller
     {
         $sale = Sale::findOrFail($id);
 
+        if (!\App\Helpers\PermissionHelper::canEditModel($sale, 'sales')) {
+            return redirect()->route('sales.show', $id)->with('error', 'Bạn không có quyền hủy hóa đơn này.');
+        }
+
         // Chỉ cho hủy khi phiếu chờ duyệt (pending)
         // Phiếu đã duyệt (completed) không được hủy
         if (!$sale->isPending()) {
@@ -1739,6 +1768,9 @@ class SalesController extends Controller
 
         // Get filter parameters (same as index)
         $query = Sale::with(['customer', 'showroom', 'user']);
+
+        // Áp dụng phạm vi dữ liệu
+        $query = \App\Helpers\PermissionHelper::applyDataScope($query, 'sales', 'user_id', 'showroom_id');
 
         // Apply filters
         if ($request->filled('search')) {

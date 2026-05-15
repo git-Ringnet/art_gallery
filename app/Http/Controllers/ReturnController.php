@@ -33,40 +33,8 @@ class ReturnController extends Controller
         $selectedYear = session('selected_year', date('Y'));
         $query->where('year', $selectedYear);
 
-        // Áp dụng phạm vi dữ liệu - custom logic cho Returns
-        if (Auth::check() && Auth::user()->email !== 'admin@example.com') {
-            $role = Auth::user()->role;
-            if ($role) {
-                $dataScope = $role->getDataScope('returns');
-                
-                switch ($dataScope) {
-                    case 'own':
-                        // Chỉ xem return mà chính mình xử lý (processed_by)
-                        $query->where('processed_by', Auth::id());
-                        break;
-                    
-                    case 'showroom':
-                        // Xem return của các sale thuộc showroom được phép
-                        $allowedShowrooms = $role->getAllowedShowrooms('returns');
-                        if ($allowedShowrooms && is_array($allowedShowrooms) && count($allowedShowrooms) > 0) {
-                            $query->whereHas('sale', function($q) use ($allowedShowrooms) {
-                                $q->whereIn('showroom_id', $allowedShowrooms);
-                            });
-                        }
-                        break;
-                    
-                    case 'all':
-                        // Xem tất cả - không filter
-                        break;
-                    
-                    case 'none':
-                    default:
-                        // Không có quyền
-                        $query->whereRaw('1 = 0');
-                        break;
-                }
-            }
-        }
+        // Áp dụng phạm vi dữ liệu
+        $query = \App\Helpers\PermissionHelper::applyDataScope($query, 'returns', 'processed_by', 'sale_id');
 
         // Search by return code, invoice code, or customer (nếu có quyền)
         if ($request->filled('search') && \App\Helpers\PermissionHelper::canSearch('returns')) {
@@ -643,6 +611,10 @@ class ReturnController extends Controller
             'exchangeItems.frameSupply'
         ])->findOrFail($id);
 
+        if (!\App\Helpers\PermissionHelper::canViewModel($return, 'returns', 'processed_by')) {
+            return redirect()->route('returns.index')->with('error', 'Bạn không có quyền xem phiếu đổi/trả này.');
+        }
+
         return view('returns.show', compact('return'));
     }
 
@@ -655,6 +627,10 @@ class ReturnController extends Controller
             'items'
         ])->findOrFail($id);
 
+        if (!\App\Helpers\PermissionHelper::canEditModel($return, 'returns', 'processed_by')) {
+            return redirect()->route('returns.show', $id)->with('error', 'Bạn không có quyền sửa phiếu đổi/trả này.');
+        }
+
         if ($return->status !== 'pending') {
             return redirect()->route('returns.index')
                 ->with('error', 'Chỉ có thể chỉnh sửa phiếu đang chờ xử lý');
@@ -665,6 +641,12 @@ class ReturnController extends Controller
 
     public function update(Request $request, $id)
     {
+        $return = ReturnModel::findOrFail($id);
+
+        if (!\App\Helpers\PermissionHelper::canEditModel($return, 'returns', 'processed_by')) {
+            return redirect()->route('returns.show', $id)->with('error', 'Bạn không có quyền cập nhật phiếu đổi/trả này.');
+        }
+
         // Convert formatted payment inputs to numbers
         $paymentUsd = $request->filled('payment_usd') ? (float)str_replace(',', '', $request->payment_usd) : 0;
         $paymentVnd = $request->filled('payment_vnd') ? (float)str_replace(',', '', $request->payment_vnd) : 0;
@@ -1012,9 +994,13 @@ class ReturnController extends Controller
 
     public function approve($id)
     {
-        try {
-            $return = ReturnModel::findOrFail($id);
+        $return = ReturnModel::findOrFail($id);
 
+        if (!\App\Helpers\PermissionHelper::canEditModel($return, 'returns', 'processed_by')) {
+            return redirect()->route('returns.show', $id)->with('error', 'Bạn không có quyền duyệt phiếu đổi/trả này.');
+        }
+
+        try {
             if ($return->status !== 'pending') {
                 return back()->with('error', 'Chỉ có thể duyệt phiếu đang chờ duyệt');
             }
@@ -1094,10 +1080,14 @@ class ReturnController extends Controller
 
     public function complete($id)
     {
+        $return = ReturnModel::findOrFail($id);
+
+        if (!\App\Helpers\PermissionHelper::canEditModel($return, 'returns', 'processed_by')) {
+            return redirect()->route('returns.show', $id)->with('error', 'Bạn không có quyền hoàn thành phiếu đổi/trả này.');
+        }
+
         try {
             DB::beginTransaction();
-
-            $return = ReturnModel::findOrFail($id);
 
             if ($return->status !== 'approved') {
                 return back()->with('error', 'Chỉ có thể hoàn thành phiếu đã được duyệt');
@@ -1438,10 +1428,14 @@ class ReturnController extends Controller
 
     public function cancel($id)
     {
+        $return = ReturnModel::findOrFail($id);
+
+        if (!\App\Helpers\PermissionHelper::canEditModel($return, 'returns', 'processed_by')) {
+            return redirect()->route('returns.show', $id)->with('error', 'Bạn không có quyền hủy phiếu đổi/trả này.');
+        }
+
         try {
             DB::beginTransaction();
-
-            $return = ReturnModel::findOrFail($id);
 
             if ($return->status === 'cancelled') {
                 return back()->with('error', 'Phiếu đã bị hủy trước đó');
@@ -1475,8 +1469,13 @@ class ReturnController extends Controller
 
     public function destroy($id)
     {
+        $return = ReturnModel::findOrFail($id);
+
+        if (!\App\Helpers\PermissionHelper::canEditModel($return, 'returns', 'processed_by')) {
+            return redirect()->route('returns.show', $id)->with('error', 'Bạn không có quyền xóa phiếu đổi/trả này.');
+        }
+
         try {
-            $return = ReturnModel::findOrFail($id);
 
             if ($return->status === 'completed') {
                 return back()->with('error', 'Không thể xóa phiếu đã hoàn thành. Vui lòng hủy phiếu trước.');
