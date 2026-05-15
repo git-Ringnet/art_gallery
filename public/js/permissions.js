@@ -317,13 +317,21 @@ async function renderPermissions() {
             // Hiển thị trạng thái hiện tại (chỉ khi có data scope)
             if (features.hasDataScope) {
                 const dataScope = perms.data_scope || 'all';
+                const editScope = perms.edit_scope || 'all';
                 const dataScopeLabels = {
-                    'all': 'Tất cả',
-                    'own': 'Của mình',
-                    'showroom': 'Theo SR',
+                    'all': 'Xem: Tất cả',
+                    'own': 'Xem: Của mình',
+                    'showroom': 'Xem: Theo SR',
                     'none': 'Không xem'
                 };
-                html += '<div class="text-xs text-gray-600 mt-1">' + dataScopeLabels[dataScope] + '</div>';
+                const editScopeLabels = {
+                    'all': 'Sửa: Theo phạm vi',
+                    'own': 'Sửa: Chỉ của mình'
+                };
+                html += '<div class="text-xs text-gray-600 mt-1 font-medium">' + dataScopeLabels[dataScope] + '</div>';
+                if (editScope === 'own') {
+                    html += '<div class="text-xs text-purple-600 mt-0.5 font-bold">' + editScopeLabels[editScope] + '</div>';
+                }
             } else {
                 // Hiển thị số lượng quyền lọc đang bật
                 let enabledFilters = 0;
