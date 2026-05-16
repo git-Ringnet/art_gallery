@@ -1119,7 +1119,7 @@ class ReturnController extends Controller
                 if ($item->item_type === 'painting' && $item->item_id) {
                     $painting = Painting::find($item->item_id);
                     if ($painting) {
-                        $painting->increment('quantity', $item->quantity);
+                        $painting->increaseQuantity($item->quantity);
                         
                         // Create inventory transaction
                         InventoryTransaction::create([
@@ -1141,7 +1141,7 @@ class ReturnController extends Controller
                     $supply = Supply::find($item->supply_id);
                     if ($supply) {
                         $totalLength = $item->supply_length * $item->quantity;
-                        $supply->increment('quantity', $totalLength);
+                        $supply->increaseQuantity($totalLength);
                         
                         // Create inventory transaction
                         InventoryTransaction::create([
@@ -1169,7 +1169,7 @@ class ReturnController extends Controller
                             if ($painting->quantity < $item->quantity) {
                                 throw new \Exception("Không đủ tồn kho cho sản phẩm: " . ($painting->name ?? 'N/A'));
                             }
-                            $painting->decrement('quantity', $item->quantity);
+                            $painting->reduceQuantity($item->quantity);
                             
                             // Create inventory transaction
                             InventoryTransaction::create([
@@ -1191,7 +1191,7 @@ class ReturnController extends Controller
                             if ($supply->quantity < $totalSupplyQty) {
                                 throw new \Exception("Không đủ tồn kho cho vật tư: " . ($supply->name ?? 'N/A') . ". Cần: {$totalSupplyQty}, Tồn: {$supply->quantity}");
                             }
-                            $supply->decrement('quantity', $totalSupplyQty);
+                            $supply->reduceQuantity($totalSupplyQty);
                             
                             // Create inventory transaction
                             InventoryTransaction::create([
@@ -1216,7 +1216,7 @@ class ReturnController extends Controller
                             if ($frameSupply->quantity < $totalFrameLength) {
                                 throw new \Exception("Không đủ tồn kho cho vật tư khung: " . ($frameSupply->name ?? 'N/A') . ". Cần: {$totalFrameLength}m, Tồn: {$frameSupply->quantity}m");
                             }
-                            $frameSupply->decrement('quantity', $totalFrameLength);
+                            $frameSupply->reduceQuantity($totalFrameLength);
                             
                             // Create inventory transaction for frame supply
                             InventoryTransaction::create([

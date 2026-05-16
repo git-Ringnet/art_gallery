@@ -114,9 +114,12 @@ class InventoryController extends Controller
                 $q->where('code', 'like', "%{$search}%")
                     ->orWhere('name', 'like', "%{$search}%")
                     ->orWhere('artist', 'like', "%{$search}%")
-                    ->orWhereHas('saleItems.sale', function ($saleQuery) use ($search) {
-                        $saleQuery->where('invoice_code', 'like', "%{$search}%")
-                            ->where('sale_status', 'completed');
+                    ->orWhereHas('saleItems', function ($siQuery) use ($search) {
+                        $siQuery->where('is_returned', false)
+                            ->whereHas('sale', function ($saleQuery) use ($search) {
+                                $saleQuery->where('invoice_code', 'like', "%{$search}%")
+                                    ->where('sale_status', 'completed');
+                            });
                     });
             });
         }
@@ -268,9 +271,12 @@ class InventoryController extends Controller
                 $q->where('code', 'like', "%{$search}%")
                     ->orWhere('name', 'like', "%{$search}%")
                     ->orWhere('artist', 'like', "%{$search}%")
-                    ->orWhereHas('saleItems.sale', function ($saleQuery) use ($search) {
-                        $saleQuery->where('invoice_code', 'like', "%{$search}%")
-                            ->where('sale_status', 'completed');
+                    ->orWhereHas('saleItems', function ($siQuery) use ($search) {
+                        $siQuery->where('is_returned', false)
+                            ->whereHas('sale', function ($saleQuery) use ($search) {
+                                $saleQuery->where('invoice_code', 'like', "%{$search}%")
+                                    ->where('sale_status', 'completed');
+                            });
                     });
             });
         }
@@ -420,6 +426,7 @@ class InventoryController extends Controller
         }
 
         $saleItems = \App\Models\SaleItem::whereIn('painting_id', $paintingIds)
+            ->where('is_returned', false)
             ->whereHas('sale', function ($q) {
                 $q->where('sale_status', 'completed');
             })
