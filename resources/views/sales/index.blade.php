@@ -123,7 +123,7 @@
                         <!-- Payment Status -->
                         <div>
                             <label class="block text-xs font-medium text-gray-700 mb-1">
-                                Trạng thái TT
+                                Trạng thái thanh toán
                             </label>
                             <select name="payment_status"
                                 class="w-full px-3 py-1.5 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
@@ -141,7 +141,7 @@
                     @else
                         <div>
                             <label class="block text-xs font-medium text-gray-700 mb-1">
-                                Trạng thái TT
+                                Trạng thái thanh toán
                             </label>
                             <div class="flex items-center gap-2 px-3 py-2 bg-yellow-50 border border-yellow-200 rounded-lg">
                                 <i class="fas fa-lock text-yellow-600"></i>

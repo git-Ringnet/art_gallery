@@ -412,7 +412,7 @@
                                         data-method="{{ $payment->payment_method }}"
                                         data-notes="{{ $payment->notes }}"
                                         class="ml-2 text-gray-400 hover:text-blue-600 transition-colors" 
-                                        title="Chỉnh sửa TT thanh toán">
+                                        title="Chỉnh sửa thông tin thanh toán">
                                         <i class="fas fa-pen text-xs"></i>
                                     </button>
                                     @endif
@@ -760,7 +760,7 @@
                 <div class="flex flex-col text-green-600 bg-green-50 p-2 rounded border border-green-200 text-sm">
                     <div class="flex justify-between items-center">
                         <span class="font-bold">
-                            Đã TT đủ
+                            Đã thanh toán đủ
                         </span>
                         @if($overpaidUsd > 0.01)
                             <span class="text-xs bg-green-100 px-2 py-0.5 rounded text-green-800 border border-green-200">

@@ -245,7 +245,7 @@
                         </label>
                         <label class="flex items-center space-x-3 py-2 hover:bg-gray-50 px-2 rounded cursor-pointer">
                             <input type="checkbox" id="field-payment-history" class="w-4 h-4 text-purple-600" checked>
-                            <span class="text-sm">Lịch sử thanh toán & Đã TT</span>
+                            <span class="text-sm">Lịch sử thanh toán & Đã thanh toán</span>
                         </label>
                         <label class="flex items-center space-x-3 py-2 hover:bg-gray-50 px-2 rounded cursor-pointer">
                             <input type="checkbox" id="field-exchange-rate" class="w-4 h-4 text-purple-600" checked>
@@ -820,7 +820,7 @@
                             {{-- Tổng đã thanh toán --}}
                             <div class="flex justify-between text-xs py-1 mt-1 border-t border-dashed border-gray-300">
                                 <span class="text-black font-medium">
-                                    <span class="lang-vi">Tổng đã TT:</span>
+                                    <span class="lang-vi">Tổng đã thanh toán:</span>
                                     <span class="lang-en hidden">Total Paid:</span>
                                 </span>
                                 <div class="text-right font-medium text-black">
@@ -848,7 +848,7 @@
                             $initialPaidVnd = $sale->payment_vnd ?? 0;
                         @endphp
                         <div class="flex justify-between text-xs py-1">
-                            <span class="text-black"><span class="lang-vi">Đã TT:</span><span
+                            <span class="text-black"><span class="lang-vi">Đã thanh toán:</span><span
                                     class="lang-en hidden">Paid:</span></span>
                             <div class="text-right font-medium text-black">
                                 @if($initialPaidUsd > 0)
