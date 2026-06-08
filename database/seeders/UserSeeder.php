@@ -15,48 +15,42 @@ class UserSeeder extends Seeder
         $adminRole = Role::where('name', 'Admin')->first();
         $managerRole = Role::where('name', 'Quản lý bán hàng')->orWhere('name', 'QL bán hàng')->first();
         $staffRole = Role::where('name', 'Nhân viên bán hàng')->orWhere('name', 'KD BTA')->first();
+        $warehouseRole = Role::where('name', 'Thủ kho')->first();
+        $accountantRole = Role::where('name', 'Kế toán')->first();
         
-        // Danh sách users theo Excel
+        // Danh sách users theo Excel + Demo accounts
         $users = [
             [
-                'name' => 'Ms.Hằng',
-                'email' => 'hokinhdoanhbenthanhart@gmail.com',
-                'phone' => '0906798887',
-                'position' => 'Admin', // Vị trí
+                'name' => 'Demo Admin',
+                'email' => 'admin@demo.com',
+                'phone' => '0900000001',
+                'position' => 'Admin',
                 'role' => $adminRole,
-                // Quyền: Bán hàng (x), Kho (x), Báo cáo BTA (x), Báo cáo AN (x)
+                'password' => '123456',
             ],
             [
-                'name' => 'Mrs.Tâm',
-                'email' => 'tam.benthanhart@gmail.com',
-                'phone' => '0909 729 598',
-                'position' => 'QL bán hàng',
-                'role' => $managerRole,
-                // Quyền: Bán hàng (x)
+                'name' => 'Demo Kế Toán',
+                'email' => 'ketoan@demo.com',
+                'phone' => '0900000002',
+                'position' => 'Kế toán',
+                'role' => $accountantRole,
+                'password' => '123456',
             ],
             [
-                'name' => 'Mrs.Thắm',
-                'email' => 'benthanhart.sales@gmail.com',
-                'phone' => '0932 687 588',
-                'position' => 'KD BTA',
+                'name' => 'Demo Thủ Kho',
+                'email' => 'quankho@demo.com',
+                'phone' => '0900000003',
+                'position' => 'Thủ kho',
+                'role' => $warehouseRole,
+                'password' => '123456',
+            ],
+            [
+                'name' => 'Demo Bảo Hành',
+                'email' => 'baohanh@demo.com',
+                'phone' => '0900000004',
+                'position' => 'Nhân viên bán hàng',
                 'role' => $staffRole,
-                // Quyền: Bán hàng (x), Báo cáo BTA (x)
-            ],
-            [
-                'name' => 'Mrs.Tịnh',
-                'email' => 'tinh.benthanhart@gmail.com',
-                'phone' => '0909 910 784',
-                'position' => 'KD AN',
-                'role' => $staffRole,
-                // Quyền: Bán hàng (x)
-            ],
-            [
-                'name' => 'Ms.Nhi',
-                'email' => 'nhi.angallery@gmail.com',
-                'phone' => '0352981889',
-                'position' => 'KD AN',
-                'role' => $staffRole,
-                // Quyền: Bán hàng (x), Báo cáo AN (x)
+                'password' => '123456',
             ],
         ];
 
@@ -68,7 +62,7 @@ class UserSeeder extends Seeder
                 User::create([
                     'name' => $userData['name'],
                     'email' => $userData['email'],
-                    'password' => Hash::make($userData['email']), // Password = email
+                    'password' => Hash::make($userData['password'] ?? $userData['email']), // Sử dụng password nếu có, ngược lại dùng email
                     'phone' => str_replace(' ', '', $userData['phone']), // Xóa khoảng trắng
                     'email_verified_at' => now(),
                     'role_id' => $userData['role'] ? $userData['role']->id : null,
@@ -77,17 +71,23 @@ class UserSeeder extends Seeder
                 
                 $this->command->info("Created user: {$userData['name']} ({$userData['email']})");
             } else {
-                $this->command->warn("User already exists: {$userData['email']}");
+                $existingUser->update([
+                    'password' => Hash::make($userData['password'] ?? $userData['email']),
+                    'role_id' => $userData['role'] ? $userData['role']->id : null,
+                    'is_active' => true,
+                ]);
+                $this->command->info("Updated user credentials: {$userData['email']}");
             }
         }
         
         $this->command->info('');
         $this->command->info('=== User Credentials ===');
-        $this->command->info('Password for all users is their email address');
+        $this->command->info('Default password is the email address, except for demo users which use 123456.');
         $this->command->info('');
         foreach ($users as $userData) {
+            $password = $userData['password'] ?? $userData['email'];
             $this->command->info("Email: {$userData['email']}");
-            $this->command->info("Password: {$userData['email']}");
+            $this->command->info("Password: {$password}");
             $this->command->info('---');
         }
     }

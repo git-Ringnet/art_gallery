@@ -16,13 +16,13 @@ class DatabaseSeeder extends Seeder
         $this->call([
             PermissionsSeeder::class,  // Tạo roles và permissions trước
             ShowroomSeeder::class,
-            // SupplySeeder::class,
-            // PaintingSeeder::class,
-            // CustomerSeeder::class,
-            UserSeeder::class,  // Tạo users sau khi có roles
-            // FrameSeeder::class,  // Tạo khung tranh sau khi có supplies
-            // SaleSeeder::class,
-            // ReturnSeeder::class,
+            UserSeeder::class,         // Tạo users sau khi có roles
+            CustomerSeeder::class,     // Tạo khách hàng mẫu
+            SupplySeeder::class,       // Tạo vật tư mẫu
+            PaintingSeeder::class,     // Tạo tranh mẫu
+            FrameSeeder::class,        // Tạo khung tranh sau khi có vật tư
+            SaleSeeder::class,         // Tạo đơn hàng sau khi có đầy đủ dữ liệu
+            ReturnSeeder::class,       // Tạo đổi trả sau khi có đơn hàng
         ]);
     }
 }
