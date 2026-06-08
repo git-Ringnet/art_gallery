@@ -253,7 +253,7 @@
                                 class="bg-purple-500 text-white w-7 h-7 rounded-full flex items-center justify-center mr-2 text-sm">3</span>
                             Danh sách sản phẩm
                         </h3>
-                        <button type="button" onclick="addItem()"
+                        <button type="button" onclick="addItem(true)"
                             class="bg-purple-500 hover:bg-purple-600 text-white px-4 py-1.5 rounded-lg transition-colors font-medium text-sm whitespace-nowrap">
                             <i class="fas fa-plus mr-1"></i>Thêm sản phẩm
                         </button>
@@ -935,7 +935,7 @@
                 });
             });
 
-            function addItem() {
+            function addItem(prepend = false) {
                 const tbody = document.getElementById('items-body');
                 const tr = document.createElement('tr');
                 tr.className = 'border hover:bg-purple-50';
@@ -996,7 +996,11 @@
                                                                                                                                     </button>
                                                                                                                                 </td>
                                                                                                                             `;
-                tbody.appendChild(tr);
+                if (prepend) {
+                    tbody.insertBefore(tr, tbody.firstChild);
+                } else {
+                    tbody.appendChild(tr);
+                }
                 idx++;
             }
 
@@ -1018,114 +1022,6 @@
                     }
                 });
                 return selectedIds;
-            }
-
-            // Search functions for paintings
-            function filterPaintings(query, idx) {
-                const suggestions = document.getElementById(`painting-suggestions-${idx}`);
-
-                if (!query || query.length < 1) {
-                    suggestions.classList.add('hidden');
-                    return;
-                }
-
-                fetch(`{{ route('sales.api.search.paintings') }}?q=${encodeURIComponent(query)}`)
-                    .then(response => response.json())
-                    .then(paintings => {
-                        if (paintings.length > 0) {
-                            suggestions.innerHTML = paintings.map(p => `
-                                                                                                                                            <div class="px-3 py-2 hover:bg-blue-50 cursor-pointer border-b" onclick="selectPainting(${p.id}, ${idx})">
-                                                                                                                                                <div class="font-medium text-sm">${p.code} - ${p.name}</div>
-                                                                                                                                                <div class="text-xs text-gray-500">USD: $${p.price_usd || 0} | VND: ${(p.price_vnd || 0).toLocaleString()}đ</div>
-                                                                                                                                            </div>
-                                                                                                                                        `).join('');
-                            suggestions.classList.remove('hidden');
-                        } else {
-                            suggestions.classList.add('hidden');
-                        }
-                    })
-                    .catch(error => {
-                        console.error('Error searching paintings:', error);
-                        suggestions.classList.add('hidden');
-                    });
-            }
-
-            function showPaintingSuggestions(idx) {
-                const input = document.getElementById(`painting-search-${idx}`);
-                const suggestions = document.getElementById(`painting-suggestions-${idx}`);
-
-                if (input && input.value.length >= 1) {
-                    filterPaintings(input.value, idx);
-                }
-            }
-
-            function selectPainting(paintingId, idx) {
-                fetch(`{{ route('sales.api.painting', '') }}/${paintingId}`)
-                    .then(response => response.json())
-                    .then(painting => {
-                        document.getElementById(`painting-id-${idx}`).value = painting.id;
-                        document.getElementById(`painting-search-${idx}`).value = `${painting.code} - ${painting.name}`;
-                        document.getElementById(`desc-${idx}`).value = painting.name;
-
-                        const usdInput = document.querySelector(`.usd-${idx}`);
-                        const vndInput = document.querySelector(`.vnd-${idx}`);
-                        const currencySelect = document.querySelector(`select[name="items[${idx}][currency]"]`);
-
-                        const hasUsd = painting.price_usd && parseFloat(painting.price_usd) > 0;
-                        const hasVnd = painting.price_vnd && parseFloat(painting.price_vnd) > 0;
-
-                        // Tự động chọn loại tiền dựa vào giá sản phẩm
-                        if (hasUsd && hasVnd) {
-                            if (currencySelect) { currencySelect.value = 'BOTH'; togCur(currencySelect, idx); }
-                            if (usdInput) usdInput.value = parseFloat(painting.price_usd).toLocaleString('en-US');
-                            if (vndInput) vndInput.value = parseInt(painting.price_vnd).toLocaleString('en-US');
-                        } else if (hasUsd) {
-                            if (currencySelect) { currencySelect.value = 'USD'; togCur(currencySelect, idx); }
-                            if (usdInput) usdInput.value = parseFloat(painting.price_usd).toLocaleString('en-US');
-                            if (vndInput) vndInput.value = '0';
-                        } else if (hasVnd) {
-                            if (currencySelect) { currencySelect.value = 'VND'; togCur(currencySelect, idx); }
-                            if (usdInput) usdInput.value = '0';
-                            if (vndInput) vndInput.value = parseInt(painting.price_vnd).toLocaleString('en-US');
-                        } else {
-                            if (currencySelect) { currencySelect.value = 'VND'; togCur(currencySelect, idx); }
-                            if (usdInput) usdInput.value = '0';
-                            if (vndInput) vndInput.value = '0';
-                        }
-
-                        const imgUrl = painting.image ? `/storage/${painting.image}` : '/images/no-image.svg';
-                        const imgElement = document.getElementById(`img-${idx}`);
-                        imgElement.src = imgUrl;
-                        imgElement.onclick = () => showImageModal(imgUrl, painting.name);
-                        imgElement.classList.add('cursor-pointer', 'hover:opacity-80', 'transition-opacity');
-
-                        // Update processed status
-                        updateProcessedStatus(idx);
-
-                        // Display painting details
-                        const detailsDiv = document.getElementById(`item-details-${idx}`);
-                        if (detailsDiv) {
-                            let detailsHTML = '';
-                            if (painting.code) detailsHTML += `<div><span class="font-semibold">Mã:</span> ${painting.code}</div>`;
-                            if (painting.artist) detailsHTML += `<div><span class="font-semibold">Họa sĩ:</span> ${painting.artist}</div>`;
-                            if (painting.material) detailsHTML += `<div><span class="font-semibold">Chất liệu:</span> ${painting.material}</div>`;
-                            if (painting.width && painting.height) detailsHTML += `<div><span class="font-semibold">Kích thước:</span> ${painting.width} x ${painting.height} cm</div>`;
-                            if (painting.paint_year) detailsHTML += `<div><span class="font-semibold">Năm:</span> ${painting.paint_year}</div>`;
-
-                            if (detailsHTML) {
-                                detailsDiv.innerHTML = detailsHTML;
-                                detailsDiv.classList.remove('hidden');
-                            } else {
-                                detailsDiv.classList.add('hidden');
-                            }
-                        }
-
-                        document.getElementById(`painting-suggestions-${idx}`).classList.add('hidden');
-                        calc();
-                    })
-                    .catch(error => {
-                        console.error('Error fetching painting:', error);
-                    });
             }
 
             // Search functions for supplies
@@ -1350,11 +1246,6 @@
                             if (usdInput) usdInput.value = '0';
                             if (vndInput) vndInput.value = '0';
                         }
-                        if (currencySelect) {
-                            currencySelect.value = 'VND';
-                            // Trigger the togCur function to hide/show appropriate inputs
-                            togCur(currencySelect, idx);
-                        }
 
                         const imgUrl = painting.image ? `/storage/${painting.image}` : '/images/no-image.svg';
                         const imgElement = document.getElementById(`img-${idx}`);
@@ -1363,6 +1254,27 @@
                             imgElement.onclick = () => showImageModal(imgUrl, painting.name);
                         }
                         imgElement.classList.add('cursor-pointer', 'hover:opacity-80', 'transition-opacity');
+
+                        // Update processed status
+                        updateProcessedStatus(idx);
+
+                        // Display painting details
+                        const detailsDiv = document.getElementById(`item-details-${idx}`);
+                        if (detailsDiv) {
+                            let detailsHTML = '';
+                            if (painting.code) detailsHTML += `<div><span class="font-semibold">Mã:</span> ${painting.code}</div>`;
+                            if (painting.artist) detailsHTML += `<div><span class="font-semibold">Họa sĩ:</span> ${painting.artist}</div>`;
+                            if (painting.material) detailsHTML += `<div><span class="font-semibold">Chất liệu:</span> ${painting.material}</div>`;
+                            if (painting.width && painting.height) detailsHTML += `<div><span class="font-semibold">Kích thước:</span> ${painting.width} x ${painting.height} cm</div>`;
+                            if (painting.paint_year) detailsHTML += `<div><span class="font-semibold">Năm:</span> ${painting.paint_year}</div>`;
+
+                            if (detailsHTML) {
+                                detailsDiv.innerHTML = detailsHTML;
+                                detailsDiv.classList.remove('hidden');
+                            } else {
+                                detailsDiv.classList.add('hidden');
+                            }
+                        }
 
                         // Kiểm tra tồn kho
                         const stock = painting.quantity || 0;

@@ -145,7 +145,7 @@
                             class="bg-purple-500 text-white w-7 h-7 rounded-full flex items-center justify-center mr-2 text-sm">3</span>
                         Danh sách sản phẩm
                     </h3>
-                    <button type="button" onclick="addItem()"
+                    <button type="button" onclick="addItem(true)"
                         class="bg-purple-500 hover:bg-purple-600 text-white px-4 py-1.5 rounded-lg transition-colors font-medium text-sm whitespace-nowrap">
                         <i class="fas fa-plus mr-1"></i>Thêm sản phẩm
                     </button>
@@ -572,7 +572,7 @@
                 });
             });
 
-            function addItem() {
+            function addItem(prepend = false) {
                 const tbody = document.getElementById('items-body');
                 const tr = document.createElement('tr');
                 tr.className = 'border hover:bg-purple-50';
@@ -633,7 +633,11 @@
                                                                             </button>
                                                                         </td>
                                                                     `;
-                tbody.appendChild(tr);
+                if (prepend) {
+                    tbody.insertBefore(tr, tbody.firstChild);
+                } else {
+                    tbody.appendChild(tr);
+                }
                 idx++;
             }
 

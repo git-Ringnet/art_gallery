@@ -101,6 +101,8 @@ class DebtController extends Controller
             return response()->json([]);
         }
 
+        $selectedYear = session('selected_year', date('Y'));
+
         // Tìm kiếm khách hàng có thanh toán (chỉ phiếu đã duyệt hoặc đã hủy)
         $customers = \App\Models\Customer::whereHas('sales', function($q) {
                 $q->whereIn('sale_status', ['completed', 'cancelled'])->whereHas('payments');

@@ -1422,7 +1422,7 @@ class SalesController extends Controller
                 'type' => 'invoice',
                 'icon' => 'fa-file-invoice',
                 'label' => $invoice->invoice_code,
-                'sublabel' => $invoice->customer->name . ' - ' . number_format($invoice->total_vnd) . 'đ',
+                'sublabel' => $invoice->customer->name ?? '',
                 'value' => $invoice->invoice_code,
                 'url' => route('sales.show', $invoice->id)
             ];
