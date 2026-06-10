@@ -24,6 +24,9 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
+        if ($this->app->environment('production') || true) {
+            URL::forceScheme('https');
+        }
         // Register ActivityLog observer for admin notifications
         \App\Models\ActivityLog::observe(\App\Observers\ActivityLogObserver::class);
 
