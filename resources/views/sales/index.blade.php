@@ -867,7 +867,7 @@
                         </div>
                     </div>
                     <div class="text-right">
-                        <p class="font-bold">Bến Thành Art Gallery</p>
+                        <p class="font-bold">Demo Art Gallery</p>
                         <p class="text-sm text-gray-600">123 Lê Lợi, Q.1, TP.HCM</p>
                         <p class="text-sm text-gray-600">Hotline: 0987 654 321</p>
                     </div>

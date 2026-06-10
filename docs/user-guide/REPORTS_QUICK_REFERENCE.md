@@ -1,5 +1,5 @@
 # 📊 QUICK REFERENCE CARD - Module Báo Cáo
-## Ben Thanh Art Gallery
+## Demo Art Gallery
 
 ---
 
@@ -91,7 +91,7 @@
 ## 📞 Hỗ Trợ
 
 - **Hotline**: (84-8) 3823 3001
-- **Email**: support@benthanhart.com
+- **Email**: support@demoartgallery.com
 
 ---
 

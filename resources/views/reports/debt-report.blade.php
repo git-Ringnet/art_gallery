@@ -385,7 +385,7 @@
 <div id="print-view" class="print-only" style="display: none;">
     <div style="display: flex; justify-content: space-between; margin-bottom: 10px; font-size: 10px;">
         <div>
-            <strong style="font-size: 12px;">{{ $selectedShowroom ? $selectedShowroom->name : 'Ben Thanh Art Gallery' }}</strong><br>
+            <strong style="font-size: 12px;">{{ $selectedShowroom ? $selectedShowroom->name : 'Demo Art Gallery' }}</strong><br>
             @if($selectedShowroom)
             {{ $selectedShowroom->address }}<br>Tel: {{ $selectedShowroom->phone }}
             @else

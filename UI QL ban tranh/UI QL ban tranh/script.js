@@ -1130,7 +1130,7 @@ function showPrintInvoiceModal(invoice) {
                     </div>
                 </div>
                 <div class="text-right">
-                    <p class="font-semibold">Bến Thành Art Gallery</p>
+                    <p class="font-semibold">Demo Art Gallery</p>
                     <p class="text-sm text-gray-600">Địa chỉ: 123 Lê Lợi, Q.1, TP.HCM</p>
                 </div>
             </div>

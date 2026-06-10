@@ -83,7 +83,7 @@
 <body>
     <div class="header">
         <div class="header-left">
-            <strong>Ben Thanh Art Gallery</strong><br>
+            <strong>Demo Art Gallery</strong><br>
             07 Nguyen Thiep - Dist.1, HCMC<br>
             Tel: (84-8) 3823 3001 - 3823 8101
         </div>

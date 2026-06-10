@@ -462,7 +462,7 @@
         <div style="display: flex; justify-content: space-between; margin-bottom: 10px; font-size: 10px;">
             <div style="text-align: left;">
                 <strong
-                    style="font-size: 12px;">{{ $selectedShowroom ? $selectedShowroom->name : 'Ben Thanh Art Gallery' }}</strong><br>
+                    style="font-size: 12px;">{{ $selectedShowroom ? $selectedShowroom->name : 'Demo Art Gallery' }}</strong><br>
                 @if($selectedShowroom)
                     {{ $selectedShowroom->address }}<br>
                     Tel: {{ $selectedShowroom->phone }}

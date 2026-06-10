@@ -14,7 +14,7 @@ class UserSeeder extends Seeder
         // Lấy các roles
         $adminRole = Role::where('name', 'Admin')->first();
         $managerRole = Role::where('name', 'Quản lý bán hàng')->orWhere('name', 'QL bán hàng')->first();
-        $staffRole = Role::where('name', 'Nhân viên bán hàng')->orWhere('name', 'KD BTA')->first();
+        $staffRole = Role::where('name', 'Nhân viên bán hàng')->first();
         $warehouseRole = Role::where('name', 'Thủ kho')->first();
         $accountantRole = Role::where('name', 'Kế toán')->first();
         

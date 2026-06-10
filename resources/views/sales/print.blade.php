@@ -377,7 +377,7 @@
                                     <label class="block text-sm font-medium text-gray-700 mb-1">Email</label>
                                     <input type="email" id="edit-email"
                                         class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm"
-                                        placeholder="info@benthanhart.com">
+                                        placeholder="info@demoartgallery.com">
                                 </div>
                                 <div>
                                     <label class="block text-sm font-medium text-gray-700 mb-1">Thông tin ngân
@@ -391,7 +391,7 @@
                                         khoản</label>
                                     <input type="text" id="edit-bank-branch"
                                         class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm"
-                                        placeholder="CN Sài Gòn - Chủ TK: Công ty TNHH ABC">
+                                        placeholder="CN Sài Gòn - Chủ TK: Công ty TNHH Mẫu">
                                 </div>
                                 <div>
                                     <label class="block text-sm font-medium text-gray-700 mb-1">Lời cảm ơn</label>

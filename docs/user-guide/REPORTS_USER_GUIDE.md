@@ -1,5 +1,5 @@
 # 📊 Hướng Dẫn Sử Dụng Module Báo Cáo
-## Ben Thanh Art Gallery - Quản Lý Tranh
+## Demo Art Gallery - Quản Lý Tranh
 
 ---
 
@@ -357,7 +357,7 @@ Báo cáo này giúp **theo dõi các tranh nhập kho** trong khoảng thời g
 
 Nếu gặp vấn đề khi sử dụng module Báo cáo, vui lòng liên hệ:
 
-- **Email**: support@benthanhart.com
+- **Email**: support@demoartgallery.com
 - **Hotline**: (84-8) 3823 3001
 
 ---
