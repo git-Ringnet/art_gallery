@@ -1096,12 +1096,54 @@ class SalesController extends Controller
                     // Trường hợp 3: Hóa đơn Mixed (USD+VND) - KHÔNG lưu tỷ giá
                     // payment_exchange_rate = null
 
-                    // Kiểm tra tránh trùng lặp thanh toán (trong vòng 5 phút cùng số tiền và ghi chú)
+                    // === BẢO VỆ 1: Kiểm tra xem hóa đơn đã được thanh toán đủ chưa ===
+                    // Refresh để lấy tổng đã trả mới nhất từ DB
+                    $sale->refresh();
+                    $alreadyPaidVnd = (float) $sale->paid_vnd;
+                    $alreadyPaidUsd = (float) $sale->paid_usd;
+                    $totalVnd = (float) $sale->total_vnd;
+                    $totalUsd = (float) $sale->total_usd;
+
+                    $isAlreadyFullyPaid = false;
+                    if ($totalUsd > 0 && $totalVnd <= 0) {
+                        // Hóa đơn USD thuần
+                        $isAlreadyFullyPaid = $alreadyPaidUsd >= $totalUsd - 0.01;
+                    } elseif ($totalVnd > 0 && $totalUsd <= 0) {
+                        // Hóa đơn VND thuần
+                        $isAlreadyFullyPaid = $alreadyPaidVnd >= $totalVnd - 1000;
+                    } else {
+                        // Hóa đơn Mixed
+                        $isAlreadyFullyPaid = ($alreadyPaidUsd >= $totalUsd - 0.01) && ($alreadyPaidVnd >= $totalVnd - 1000);
+                    }
+
+                    if ($isAlreadyFullyPaid) {
+                        DB::rollBack();
+                        return back()->with('error', 'Hóa đơn này đã được thanh toán đầy đủ. Không thể thêm thanh toán.');
+                    }
+
+                    // === BẢO VỆ 2: Kiểm tra số tiền trả thêm có vượt quá số còn nợ không ===
+                    if ($totalUsd > 0 && $totalVnd <= 0) {
+                        $remainingUsd = $totalUsd - $alreadyPaidUsd;
+                        $incomingUsd = $paymentUsd + ($paymentVnd > 0 && $paymentExchangeRate > 0 ? $paymentVnd / $paymentExchangeRate : 0);
+                        if ($incomingUsd > $remainingUsd + 0.01) {
+                            DB::rollBack();
+                            return back()->with('error', 'Số tiền thanh toán ($' . number_format($incomingUsd, 2) . ') vượt quá số còn nợ ($' . number_format($remainingUsd, 2) . '). Vui lòng kiểm tra lại.');
+                        }
+                    } elseif ($totalVnd > 0 && $totalUsd <= 0) {
+                        $remainingVnd = $totalVnd - $alreadyPaidVnd;
+                        $incomingVnd = $paymentVnd + ($paymentUsd > 0 && $paymentExchangeRate > 0 ? $paymentUsd * $paymentExchangeRate : 0);
+                        if ($incomingVnd > $remainingVnd + 1000) {
+                            DB::rollBack();
+                            return back()->with('error', 'Số tiền thanh toán (' . number_format($incomingVnd) . 'đ) vượt quá số còn nợ (' . number_format($remainingVnd) . 'đ). Vui lòng kiểm tra lại.');
+                        }
+                    }
+
+                    // === BẢO VỆ 3: Kiểm tra trùng lặp thanh toán (mở rộng lên 30 phút) ===
                     $isDuplicate = Payment::where('sale_id', $sale->id)
                         ->where('payment_usd', $paymentUsd)
                         ->where('payment_vnd', $paymentVnd)
                         ->where('notes', 'Trả nợ thêm')
-                        ->where('created_at', '>=', now()->subMinutes(5))
+                        ->where('created_at', '>=', now()->subMinutes(30))
                         ->exists();
 
                     if (!$isDuplicate) {
@@ -1117,6 +1159,9 @@ class SalesController extends Controller
                             'notes' => 'Trả nợ thêm',
                             'created_by' => $user->id,
                         ]);
+                    } else {
+                        DB::rollBack();
+                        return back()->with('error', 'Phát hiện thanh toán trùng lặp! Bạn đã tạo một khoản thanh toán giống hệt trong vòng 30 phút trước. Vui lòng kiểm tra lại danh sách thanh toán.');
                     }
                 } else {
                     // Phiếu pending - cập nhật paid_amount trong sale (chưa tạo payment)
