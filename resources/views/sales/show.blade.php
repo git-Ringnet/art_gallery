@@ -410,9 +410,10 @@
                                         onclick="openEditPaymentModal(this)"
                                         data-id="{{ $payment->id }}"
                                         data-method="{{ $payment->payment_method }}"
+                                        data-date="{{ $payment->payment_date ? $payment->payment_date->format('Y-m-d\TH:i') : '' }}"
                                         data-notes="{{ $payment->notes }}"
                                         class="ml-2 text-gray-400 hover:text-blue-600 transition-colors" 
-                                        title="Chỉnh sửa thông tin thanh toán">
+                                        title="Chỉnh sửa thông tin thanh toán (ngày, phương thức, ghi chú)">
                                         <i class="fas fa-pen text-xs"></i>
                                     </button>
                                     @endif
@@ -889,78 +890,82 @@ document.addEventListener('keydown', function(event) {
 @endsection
 
 @push('scripts')
-<!-- Edit Payment Modal -->
-<div id="editPaymentModal" class="fixed inset-0 z-50 hidden overflow-y-auto" aria-labelledby="modal-title" role="dialog" aria-modal="true">
-    <div class="flex items-center justify-center min-h-screen px-4 pt-4 pb-20 text-center sm:block sm:p-0">
-        <!-- Overlay -->
-        <div class="fixed inset-0 transition-opacity bg-gray-900 bg-opacity-60 backdrop-blur-sm" aria-hidden="true" onclick="closeEditPaymentModal()"></div>
-        
-        <!-- Center modal -->
-        <span class="hidden sm:inline-block sm:align-middle sm:h-screen" aria-hidden="true">&#8203;</span>
-        
-        <div class="inline-block overflow-hidden text-left align-bottom transition-all transform bg-white rounded-2xl shadow-2xl sm:my-8 sm:align-middle sm:max-w-lg sm:w-full border border-gray-100">
-            <form id="editPaymentForm" method="POST" action="">
-                @csrf
-                @method('PUT')
-                
-                <!-- Header with Gradient -->
-                <div class="bg-gradient-to-r from-blue-600 to-indigo-700 px-6 py-4 flex items-center justify-between">
-                    <h3 class="text-lg font-bold text-white flex items-center" id="modal-title">
-                        <i class="fas fa-edit mr-3 opacity-80"></i>
-                        Cập nhật thanh toán
-                    </h3>
-                    <button type="button" onclick="closeEditPaymentModal()" class="text-white opacity-70 hover:opacity-100 transition-opacity">
-                        <i class="fas fa-times text-xl"></i>
-                    </button>
-                </div>
+<!-- Edit Payment Modal (Draggable & No Background Blur) -->
+<div id="editPaymentModal" class="fixed inset-0 z-50 hidden pointer-events-none flex items-center justify-center p-4" aria-labelledby="modal-title" role="dialog" aria-modal="true">
+    <div id="editPaymentCard" class="pointer-events-auto w-full max-w-lg bg-white rounded-2xl shadow-2xl border border-gray-200 overflow-hidden select-none transition-shadow">
+        <form id="editPaymentForm" method="POST" action="">
+            @csrf
+            @method('PUT')
+            
+            <!-- Header with Gradient (Draggable Handle) -->
+            <div id="editPaymentHeader" class="bg-gradient-to-r from-blue-600 to-indigo-700 px-6 py-4 flex items-center justify-between cursor-move active:cursor-grabbing select-none" title="Kéo để di chuyển cửa sổ">
+                <h3 class="text-lg font-bold text-white flex items-center pointer-events-none" id="modal-title">
+                    <i class="fas fa-arrows-alt mr-2.5 text-sm opacity-80"></i>
+                    <i class="fas fa-edit mr-2 opacity-90"></i>
+                    Cập nhật thanh toán
+                </h3>
+                <button type="button" onclick="closeEditPaymentModal()" class="text-white opacity-75 hover:opacity-100 transition-opacity p-1 rounded-lg hover:bg-white/10" title="Đóng">
+                    <i class="fas fa-times text-xl"></i>
+                </button>
+            </div>
 
-                <div class="bg-white px-6 py-6">
-                    <div class="space-y-5">
-                        <!-- Payment Method Field -->
-                        <div>
-                            <label for="payment_method" class="block text-sm font-semibold text-gray-700 mb-1.5 flex items-center">
-                                <i class="fas fa-wallet mr-2 text-blue-500"></i>
-                                Hình thức thanh toán
-                            </label>
-                            <div class="relative">
-                                <select name="payment_method" id="payment_method" 
-                                    class="block w-full pl-4 pr-10 py-2.5 text-gray-900 border border-gray-300 rounded-xl focus:ring-4 focus:ring-blue-500/20 focus:border-blue-500 transition-all appearance-none bg-gray-50/50">
-                                    <option value="cash">Tiền mặt</option>
-                                    <option value="bank_transfer">Chuyển khoản</option>
-                                    <option value="card">Thẻ</option>
-                                    <option value="other">Khác</option>
-                                </select>
-                                <div class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-4 text-gray-500">
-                                    <i class="fas fa-chevron-down text-xs"></i>
-                                </div>
+            <div class="bg-white px-6 py-6 select-text">
+                <div class="space-y-5">
+                    <!-- Payment Date Field -->
+                    <div>
+                        <label for="modal_payment_date" class="block text-sm font-semibold text-gray-700 mb-1.5 flex items-center">
+                            <i class="fas fa-calendar-alt mr-2 text-blue-500"></i>
+                            Ngày & Giờ thanh toán
+                        </label>
+                        <input type="datetime-local" name="payment_date" id="modal_payment_date"
+                            class="block w-full px-4 py-2.5 text-gray-900 border border-gray-300 rounded-xl focus:ring-4 focus:ring-blue-500/20 focus:border-blue-500 transition-all bg-gray-50/50">
+                        <p class="text-xs text-gray-500 mt-1">Chọn ngày và giờ khách thực tế đã chuyển khoản/thanh toán</p>
+                    </div>
+
+                    <!-- Payment Method Field -->
+                    <div>
+                        <label for="payment_method" class="block text-sm font-semibold text-gray-700 mb-1.5 flex items-center">
+                            <i class="fas fa-wallet mr-2 text-blue-500"></i>
+                            Hình thức thanh toán
+                        </label>
+                        <div class="relative">
+                            <select name="payment_method" id="payment_method" 
+                                class="block w-full pl-4 pr-10 py-2.5 text-gray-900 border border-gray-300 rounded-xl focus:ring-4 focus:ring-blue-500/20 focus:border-blue-500 transition-all appearance-none bg-gray-50/50">
+                                <option value="cash">Tiền mặt</option>
+                                <option value="bank_transfer">Chuyển khoản</option>
+                                <option value="card">Thẻ</option>
+                                <option value="other">Khác</option>
+                            </select>
+                            <div class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-4 text-gray-500">
+                                <i class="fas fa-chevron-down text-xs"></i>
                             </div>
                         </div>
+                    </div>
 
-                        <!-- Notes Field -->
-                        <div>
-                            <label for="modal_notes" class="block text-sm font-semibold text-gray-700 mb-1.5 flex items-center">
-                                <i class="fas fa-sticky-note mr-2 text-blue-500"></i>
-                                Ghi chú
-                            </label>
-                            <textarea name="notes" id="modal_notes" rows="3" 
-                                class="block w-full px-4 py-3 text-gray-900 border border-gray-300 rounded-xl focus:ring-4 focus:ring-blue-500/20 focus:border-blue-500 transition-all bg-gray-50/50 placeholder-gray-400"
-                                placeholder="Nhập ghi chú thanh toán..."></textarea>
-                        </div>
+                    <!-- Notes Field -->
+                    <div>
+                        <label for="modal_notes" class="block text-sm font-semibold text-gray-700 mb-1.5 flex items-center">
+                            <i class="fas fa-sticky-note mr-2 text-blue-500"></i>
+                            Ghi chú
+                        </label>
+                        <textarea name="notes" id="modal_notes" rows="3" 
+                            class="block w-full px-4 py-3 text-gray-900 border border-gray-300 rounded-xl focus:ring-4 focus:ring-blue-500/20 focus:border-blue-500 transition-all bg-gray-50/50 placeholder-gray-400"
+                            placeholder="Nhập ghi chú thanh toán..."></textarea>
                     </div>
                 </div>
+            </div>
 
-                <!-- Footer with Actions -->
-                <div class="px-6 py-4 bg-gray-50 flex flex-row-reverse gap-3 border-t border-gray-100">
-                    <button type="submit" class="inline-flex justify-center items-center px-6 py-2.5 text-sm font-bold text-white bg-blue-600 rounded-xl shadow-lg shadow-blue-600/30 hover:bg-blue-700 focus:outline-none focus:ring-4 focus:ring-blue-500/40 transform active:scale-95 transition-all">
-                        <i class="fas fa-check mr-2"></i>
-                        Cập nhật
-                    </button>
-                    <button type="button" onclick="closeEditPaymentModal()" class="inline-flex justify-center items-center px-6 py-2.5 text-sm font-bold text-gray-600 bg-white border border-gray-200 rounded-xl hover:bg-gray-50 hover:text-gray-800 transition-all">
-                        Hủy
-                    </button>
-                </div>
-            </form>
-        </div>
+            <!-- Footer with Actions -->
+            <div class="px-6 py-4 bg-gray-50 flex flex-row-reverse gap-3 border-t border-gray-100 select-text">
+                <button type="submit" class="inline-flex justify-center items-center px-6 py-2.5 text-sm font-bold text-white bg-blue-600 rounded-xl shadow-lg shadow-blue-600/30 hover:bg-blue-700 focus:outline-none focus:ring-4 focus:ring-blue-500/40 transform active:scale-95 transition-all">
+                    <i class="fas fa-check mr-2"></i>
+                    Cập nhật
+                </button>
+                <button type="button" onclick="closeEditPaymentModal()" class="inline-flex justify-center items-center px-6 py-2.5 text-sm font-bold text-gray-600 bg-white border border-gray-200 rounded-xl hover:bg-gray-50 hover:text-gray-800 transition-all">
+                    Hủy
+                </button>
+            </div>
+        </form>
     </div>
 </div>
 
@@ -968,6 +973,7 @@ document.addEventListener('keydown', function(event) {
     function openEditPaymentModal(btn) {
         const id = btn.dataset.id;
         const method = btn.dataset.method;
+        const date = btn.dataset.date;
         const notes = btn.dataset.notes;
         
         let url = "{{ route('payments.update', ':id') }}";
@@ -975,12 +981,85 @@ document.addEventListener('keydown', function(event) {
         
         document.getElementById('editPaymentForm').action = url;
         document.getElementById('payment_method').value = method;
+        if (document.getElementById('modal_payment_date')) {
+            document.getElementById('modal_payment_date').value = date || '';
+        }
         document.getElementById('modal_notes').value = notes || '';
-        document.getElementById('editPaymentModal').classList.remove('hidden');
+        
+        const modal = document.getElementById('editPaymentModal');
+        const card = document.getElementById('editPaymentCard');
+        
+        // Reset modal position when re-opening
+        card.style.position = '';
+        card.style.left = '';
+        card.style.top = '';
+        card.style.margin = '';
+        card.style.transform = '';
+        
+        modal.classList.remove('hidden');
     }
 
     function closeEditPaymentModal() {
         document.getElementById('editPaymentModal').classList.add('hidden');
     }
+
+    // Draggable modal logic
+    (function initDraggableModal() {
+        const header = document.getElementById('editPaymentHeader');
+        const card = document.getElementById('editPaymentCard');
+        if (!header || !card) return;
+
+        let isDragging = false;
+        let startX, startY, initialLeft, initialTop;
+
+        header.addEventListener('mousedown', function(e) {
+            // Không kéo khi click vào nút đóng
+            if (e.target.closest('button')) return;
+
+            isDragging = true;
+            
+            const rect = card.getBoundingClientRect();
+            startX = e.clientX;
+            startY = e.clientY;
+            initialLeft = rect.left;
+            initialTop = rect.top;
+
+            card.style.position = 'fixed';
+            card.style.left = `${initialLeft}px`;
+            card.style.top = `${initialTop}px`;
+            card.style.margin = '0';
+            card.style.transform = 'none';
+
+            document.body.style.userSelect = 'none';
+        });
+
+        document.addEventListener('mousemove', function(e) {
+            if (!isDragging) return;
+
+            const dx = e.clientX - startX;
+            const dy = e.clientY - startY;
+
+            let newLeft = initialLeft + dx;
+            let newTop = initialTop + dy;
+
+            // Giới hạn để không kéo modal mất khỏi màn hình
+            const minVisible = 80;
+            const maxLeft = window.innerWidth - minVisible;
+            const maxTop = window.innerHeight - minVisible;
+
+            newLeft = Math.max(-card.offsetWidth + minVisible, Math.min(maxLeft, newLeft));
+            newTop = Math.max(10, Math.min(maxTop, newTop));
+
+            card.style.left = `${newLeft}px`;
+            card.style.top = `${newTop}px`;
+        });
+
+        document.addEventListener('mouseup', function() {
+            if (isDragging) {
+                isDragging = false;
+                document.body.style.userSelect = '';
+            }
+        });
+    })();
 </script>
 @endpush

@@ -22,17 +22,25 @@ class PaymentController extends Controller
 
         // Validate
         $validated = $request->validate([
+            'payment_date' => 'nullable|date',
             'payment_method' => 'required|in:cash,bank_transfer,card,other',
             'notes' => 'nullable|string|max:255',
         ]);
 
+        $oldDate = $payment->payment_date ? $payment->payment_date->format('Y-m-d H:i:s') : null;
         $oldMethod = $payment->payment_method;
         $oldNotes = $payment->notes;
 
-        $payment->update([
+        $updateData = [
             'payment_method' => $validated['payment_method'],
             'notes' => $validated['notes'],
-        ]);
+        ];
+
+        if (!empty($validated['payment_date'])) {
+            $updateData['payment_date'] = $validated['payment_date'];
+        }
+
+        $payment->update($updateData);
 
         // Log activity
         $this->activityLogger->log(
@@ -40,6 +48,8 @@ class PaymentController extends Controller
             ActivityLog::MODULE_PAYMENTS,
             $payment,
             [
+                'old_date' => $oldDate,
+                'new_date' => $payment->payment_date ? $payment->payment_date->format('Y-m-d H:i:s') : null,
                 'old_method' => $oldMethod,
                 'new_method' => $payment->payment_method,
                 'old_notes' => $oldNotes,
