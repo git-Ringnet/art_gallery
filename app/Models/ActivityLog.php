@@ -40,6 +40,7 @@ class ActivityLog extends Model
     const TYPE_DELETE = 'delete';
     const TYPE_APPROVE = 'approve';
     const TYPE_CANCEL = 'cancel';
+    const TYPE_REFUND = 'refund';
     const TYPE_VIEW = 'view';
     const TYPE_EXPORT = 'export';
     const TYPE_IMPORT = 'import';
@@ -152,6 +153,7 @@ class ActivityLog extends Model
             self::TYPE_DELETE => 'Xóa',
             self::TYPE_APPROVE => 'Duyệt',
             self::TYPE_CANCEL => 'Hủy',
+            self::TYPE_REFUND => 'Hoàn tiền',
             self::TYPE_VIEW => 'Xem',
             self::TYPE_EXPORT => 'Xuất dữ liệu',
             self::TYPE_IMPORT => 'Nhập dữ liệu',
@@ -196,6 +198,7 @@ class ActivityLog extends Model
             self::TYPE_DELETE => 'Xóa',
             self::TYPE_APPROVE => 'Duyệt',
             self::TYPE_CANCEL => 'Hủy',
+            self::TYPE_REFUND => 'Hoàn tiền',
             self::TYPE_VIEW => 'Xem',
             self::TYPE_EXPORT => 'Xuất dữ liệu',
             self::TYPE_IMPORT => 'Nhập dữ liệu',

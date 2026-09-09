@@ -215,6 +215,24 @@ class ActivityLogger
     }
 
     /**
+     * Log refund action
+     */
+    public function logRefund(string $module, Model $subject, array $properties = [], ?string $description = null): ?ActivityLog
+    {
+        if (!$description) {
+            $description = "Hoàn tiền cho " . class_basename($subject) . " #{$subject->id}";
+        }
+
+        return $this->log(
+            ActivityLog::TYPE_REFUND,
+            $module,
+            $subject,
+            $properties,
+            $description
+        );
+    }
+
+    /**
      * Capture request context (IP, user agent, user)
      */
     private function captureContext(): array

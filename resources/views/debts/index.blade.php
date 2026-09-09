@@ -294,30 +294,32 @@
                                     // Hiển thị số tiền trả theo loại tiền tệ của hóa đơn
                                     $paymentUsd = $payment->payment_usd ?? 0;
                                     $paymentVnd = $payment->payment_vnd ?? 0;
+                                    $isRefund = $paymentUsd < 0 || $paymentVnd < 0 || ($payment->transaction_type ?? '') === 'refund';
+                                    $colorText = $isRefund ? 'text-red-600' : 'text-green-600';
 
                                     // Fallback cho dữ liệu cũ (chỉ có amount)
-                                    if ($paymentUsd == 0 && $paymentVnd == 0 && $payment->amount > 0) {
+                                    if ($paymentUsd == 0 && $paymentVnd == 0 && $payment->amount != 0) {
                                         $paymentVnd = $payment->amount;
                                     }
                                 @endphp
 
                                 @if($isMixedInvoice)
                                     <!-- Hóa đơn hỗn hợp: hiển thị cả USD và VND -->
-                                    @if($paymentUsd > 0)
-                                        <div class="font-bold text-green-600">${{ number_format($paymentUsd, 2) }}</div>
+                                    @if($paymentUsd != 0)
+                                        <div class="font-bold {{ $colorText }}">{{ $isRefund && $paymentUsd > 0 ? '-' : '' }}${{ number_format($paymentUsd, 2) }}</div>
                                     @endif
-                                    @if($paymentVnd > 0)
-                                        <div class="text-green-600 {{ $paymentUsd > 0 ? 'text-xs' : 'font-bold' }}">
-                                            {{ number_format($paymentVnd, 0, ',', '.') }}đ</div>
+                                    @if($paymentVnd != 0)
+                                        <div class="{{ $colorText }} {{ $paymentUsd != 0 ? 'text-xs' : 'font-bold' }}">
+                                            {{ $isRefund && $paymentVnd > 0 ? '-' : '' }}{{ number_format($paymentVnd, 0, ',', '.') }}đ</div>
                                     @endif
                                     @if($paymentUsd == 0 && $paymentVnd == 0)
                                         <div class="text-gray-400">-</div>
                                     @endif
                                 @elseif($isUsdInvoice)
                                     <!-- Hóa đơn USD: chỉ hiển thị USD -->
-                                    @if($paymentUsd > 0)
-                                        <div class="font-bold text-green-600">${{ number_format($paymentUsd, 2) }}</div>
-                                    @elseif($paymentVnd > 0)
+                                    @if($paymentUsd != 0)
+                                        <div class="font-bold {{ $colorText }}">{{ $isRefund && $paymentUsd > 0 ? '-' : '' }}${{ number_format($paymentUsd, 2) }}</div>
+                                    @elseif($paymentVnd != 0)
                                         @php
                                             $rate = $payment->payment_exchange_rate ?? $sale->exchange_rate;
                                             if ($rate <= 0)
@@ -328,23 +330,23 @@
                                                 $convertedUsd = round($convertedUsd);
                                             }
                                         @endphp
-                                        <div class="font-bold text-green-600">${{ number_format($convertedUsd, 2) }}</div>
+                                        <div class="font-bold {{ $colorText }}">{{ $isRefund && $convertedUsd > 0 ? '-' : '' }}${{ number_format($convertedUsd, 2) }}</div>
                                         <div class="text-xs text-gray-500">({{ number_format($paymentVnd, 0, ',', '.') }}đ)</div>
                                     @else
                                         <div class="text-gray-400">-</div>
                                     @endif
                                 @else
                                     <!-- Hóa đơn VND: chỉ hiển thị VND -->
-                                    @if($paymentVnd > 0)
-                                        <div class="font-bold text-green-600">{{ number_format($paymentVnd, 0, ',', '.') }}đ</div>
-                                    @elseif($paymentUsd > 0)
+                                    @if($paymentVnd != 0)
+                                        <div class="font-bold {{ $colorText }}">{{ number_format($paymentVnd, 0, ',', '.') }}đ</div>
+                                    @elseif($paymentUsd != 0)
                                         @php
                                             $rate = $payment->payment_exchange_rate ?? $sale->exchange_rate;
                                             if ($rate <= 0)
                                                 $rate = 1;
                                             $convertedVnd = $paymentUsd * $rate;
                                         @endphp
-                                        <div class="font-bold text-green-600">{{ number_format($convertedVnd, 0, ',', '.') }}đ</div>
+                                        <div class="font-bold {{ $colorText }}">{{ number_format($convertedVnd, 0, ',', '.') }}đ</div>
                                         <div class="text-xs text-gray-500">(${{ number_format($paymentUsd, 2) }})</div>
                                     @else
                                         <div class="text-gray-400">-</div>
@@ -374,6 +376,10 @@
                                     <span class="px-3 py-1 bg-blue-100 text-blue-700 text-xs font-semibold rounded-full">
                                         Bán hàng
                                     </span>
+                                @elseif($transactionType === 'refund')
+                                    <span class="px-3 py-1 bg-red-100 text-red-700 text-xs font-bold rounded-full border border-red-200">
+                                        Hoàn tiền
+                                    </span>
                                 @elseif($transactionType === 'return')
                                     <span class="px-3 py-1 bg-orange-100 text-orange-700 text-xs font-semibold rounded-full">
                                         Trả hàng
@@ -381,6 +387,10 @@
                                 @elseif($transactionType === 'exchange' || $transactionType === 'exchange_payment')
                                     <span class="px-3 py-1 bg-purple-100 text-purple-700 text-xs font-semibold rounded-full">
                                         Đổi hàng
+                                    </span>
+                                @else
+                                    <span class="px-3 py-1 bg-gray-100 text-gray-700 text-xs font-semibold rounded-full">
+                                        {{ $payment->getTransactionTypeLabel() }}
                                     </span>
                                 @endif
                             </td>
@@ -394,84 +404,80 @@
                                         $remainingDebtVnd = 0;
                                     } else {
                                         // Tính số nợ còn lại SAU khi thanh toán này
-                                        // Cần xử lý thanh toán chéo (USD-VND, VND-USD)
+                                        $rate = $payment->payment_exchange_rate ?? $sale->exchange_rate;
+                                        if ($rate <= 0) $rate = (float)($sale->exchange_rate ?? 0);
 
-                                        if ($isUsdInvoice && !$isMixedInvoice) {
-                                            // Hóa đơn USD: Quy đổi VND → USD
-                                            $paidUpToNowUsd = $sale->payments
-                                                ->where('id', '<=', $payment->id)
-                                                ->reduce(function ($carry, $p) use ($sale) {
-                                                    $usd = $p->payment_usd ?? 0;
-                                                    $vnd = $p->payment_vnd ?? 0;
-                                                    $rate = $p->payment_exchange_rate ?? $sale->exchange_rate;
-                                                    if ($rate <= 0)
-                                                        $rate = 1;
+                                        $paidUpToNowUsd = (float)$sale->payments
+                                            ->where('id', '<=', $payment->id)
+                                            ->sum('payment_usd');
+                                        $paidUpToNowVnd = (float)$sale->payments
+                                            ->where('id', '<=', $payment->id)
+                                            ->sum('payment_vnd');
 
-                                                    // Quy đổi VND → USD nếu có
-                                                    $converted = ($vnd > 0 ? $vnd / $rate : 0);
-                                                    // Smart rounding
-                                                    if (abs($converted - round($converted)) < 0.05) {
-                                                        $converted = round($converted);
-                                                    }
-                                                    return $carry + $usd + $converted;
-                                                }, 0);
+                                        // Fallback cho dữ liệu cũ (chỉ có amount)
+                                        if ($paidUpToNowUsd == 0 && $paidUpToNowVnd == 0) {
+                                            $amountSum = (float)$sale->payments->where('id', '<=', $payment->id)->sum('amount');
+                                            if ($isUsdInvoice && !$isMixedInvoice && $rate > 0) {
+                                                $paidUpToNowUsd = $amountSum / $rate;
+                                            } else {
+                                                $paidUpToNowVnd = $amountSum;
+                                            }
+                                        }
 
-                                            // Fallback cho dữ liệu cũ
-                                            if ($paidUpToNowUsd == 0) {
-                                                $totalAmount = $sale->payments->where('id', '<=', $payment->id)->sum('amount');
-                                                if ($sale->exchange_rate > 0) {
-                                                    $paidUpToNowUsd = $totalAmount / $sale->exchange_rate;
-                                                    // Smart rounding fallback
-                                                    if (abs($paidUpToNowUsd - round($paidUpToNowUsd)) < 0.05) {
-                                                        $paidUpToNowUsd = round($paidUpToNowUsd);
+                                        if ($isMixedInvoice) {
+                                            if ($rate > 0) {
+                                                $fullTotalVnd = (float)$sale->total_vnd + ((float)$sale->total_usd * $rate);
+                                                $totalPaidInVnd = (float)$paidUpToNowVnd + ((float)$paidUpToNowUsd * $rate);
+                                                $diffVnd = $fullTotalVnd - $totalPaidInVnd;
+
+                                                if ($diffVnd <= 1000 && $diffVnd >= -1000) {
+                                                    $remainingDebtUsd = 0;
+                                                    $remainingDebtVnd = 0;
+                                                } elseif ($diffVnd > 1000) {
+                                                    // Còn thiếu
+                                                    $excessUsd = max(0, $paidUpToNowUsd - (float)$sale->total_usd);
+                                                    $effectivePaidVnd = $paidUpToNowVnd + ($excessUsd * $rate);
+                                                    $remainingDebtVnd = max(0, (float)$sale->total_vnd - $effectivePaidVnd);
+                                                    if ($remainingDebtVnd <= 1000) $remainingDebtVnd = 0;
+
+                                                    $excessVnd = max(0, $paidUpToNowVnd - (float)$sale->total_vnd);
+                                                    $effectivePaidUsd = $paidUpToNowUsd + ($excessVnd / $rate);
+                                                    $remainingDebtUsd = max(0, (float)$sale->total_usd - $effectivePaidUsd);
+                                                    if ($remainingDebtUsd <= 0.05) $remainingDebtUsd = 0;
+                                                } else {
+                                                    // Dư tiền
+                                                    if ($paidUpToNowUsd > (float)$sale->total_usd) {
+                                                        $remainingDebtUsd = -round(abs($diffVnd) / $rate, 2);
+                                                        $remainingDebtVnd = 0;
+                                                    } else {
+                                                        $remainingDebtUsd = 0;
+                                                        $remainingDebtVnd = -round(abs($diffVnd));
                                                     }
                                                 }
+                                            } else {
+                                                $remainingDebtUsd = (float)$sale->total_usd - $paidUpToNowUsd;
+                                                $remainingDebtVnd = (float)$sale->total_vnd - $paidUpToNowVnd;
+                                                if (abs($remainingDebtUsd) <= 0.05) $remainingDebtUsd = 0;
+                                                if (abs($remainingDebtVnd) <= 1000) $remainingDebtVnd = 0;
                                             }
-
-                                            $remainingDebtUsd = $sale->total_usd - $paidUpToNowUsd;
+                                        } elseif ($isUsdInvoice) {
+                                            // Hóa đơn USD: Quy đổi VND → USD nếu có
+                                            $convertedUsd = ($rate > 0 && $paidUpToNowVnd > 0 ? $paidUpToNowVnd / $rate : 0);
+                                            $totalPaidUsd = $paidUpToNowUsd + $convertedUsd;
+                                            $remainingDebtUsd = (float)$sale->total_usd - $totalPaidUsd;
+                                            if (abs($remainingDebtUsd) <= 0.50) {
+                                                $remainingDebtUsd = 0;
+                                            }
                                             $remainingDebtVnd = 0;
-
-                                        } elseif ($isVndInvoice && !$isMixedInvoice) {
-                                            // Hóa đơn VND: Quy đổi USD → VND
-                                            $paidUpToNowVnd = $sale->payments
-                                                ->where('id', '<=', $payment->id)
-                                                ->reduce(function ($carry, $p) use ($sale) {
-                                                    $usd = $p->payment_usd ?? 0;
-                                                    $vnd = $p->payment_vnd ?? 0;
-                                                    $rate = $p->payment_exchange_rate ?? $sale->exchange_rate;
-                                                    if ($rate <= 0)
-                                                        $rate = 1;
-
-                                                    // Quy đổi USD → VND nếu có
-                                                    return $carry + $vnd + ($usd > 0 ? $usd * $rate : 0);
-                                                }, 0);
-
-                                            // Fallback cho dữ liệu cũ
-                                            if ($paidUpToNowVnd == 0) {
-                                                $paidUpToNowVnd = $sale->payments->where('id', '<=', $payment->id)->sum('amount');
-                                            }
-
-                                            $remainingDebtUsd = 0;
-                                            $remainingDebtVnd = $sale->total_vnd - $paidUpToNowVnd;
-
                                         } else {
-                                            // Hóa đơn hỗn hợp: Tính riêng USD và VND
-                                            $paidUpToNowUsd = $sale->payments
-                                                ->where('id', '<=', $payment->id)
-                                                ->sum('payment_usd');
-                                            $paidUpToNowVnd = $sale->payments
-                                                ->where('id', '<=', $payment->id)
-                                                ->sum('payment_vnd');
-
-                                            // Fallback cho dữ liệu cũ
-                                            if ($paidUpToNowUsd == 0 && $paidUpToNowVnd == 0) {
-                                                $paidUpToNowVnd = $sale->payments
-                                                    ->where('id', '<=', $payment->id)
-                                                    ->sum('amount');
+                                            // Hóa đơn VND: Quy đổi USD → VND nếu có
+                                            $convertedVnd = ($rate > 0 && $paidUpToNowUsd > 0 ? $paidUpToNowUsd * $rate : 0);
+                                            $totalPaidVnd = $paidUpToNowVnd + $convertedVnd;
+                                            $remainingDebtVnd = (float)$sale->total_vnd - $totalPaidVnd;
+                                            if (abs($remainingDebtVnd) <= 1000) {
+                                                $remainingDebtVnd = 0;
                                             }
-
-                                            $remainingDebtUsd = $sale->total_usd - $paidUpToNowUsd;
-                                            $remainingDebtVnd = $sale->total_vnd - $paidUpToNowVnd;
+                                            $remainingDebtUsd = 0;
                                         }
                                     }
                                 @endphp
@@ -481,24 +487,32 @@
                                 @else
                                     @if($isMixedInvoice)
                                         <!-- Hóa đơn hỗn hợp: hiển thị cả USD và VND -->
-                                        <div
-                                            class="{{ $remainingDebtUsd > 0.01 ? 'text-red-600' : ($remainingDebtUsd < -0.01 ? 'text-green-600' : 'text-gray-600') }}">
-                                            ${{ number_format($remainingDebtUsd, 2) }}
-                                        </div>
-                                        <div
-                                            class="text-xs {{ $remainingDebtVnd > 1000 ? 'text-red-500' : ($remainingDebtVnd < -1000 ? 'text-green-500' : 'text-gray-500') }}">
-                                            {{ number_format($remainingDebtVnd, 0, ',', '.') }}đ
-                                        </div>
+                                        @if($remainingDebtUsd == 0 && $remainingDebtVnd == 0)
+                                            <div class="text-gray-900 font-bold">$0.00</div>
+                                        @else
+                                            @if($remainingDebtUsd != 0)
+                                                <div
+                                                    class="{{ $remainingDebtUsd > 0.05 ? 'text-red-600' : 'text-green-600' }}">
+                                                    ${{ number_format($remainingDebtUsd, 2) }}
+                                                </div>
+                                            @endif
+                                            @if($remainingDebtVnd != 0)
+                                                <div
+                                                    class="text-xs {{ $remainingDebtVnd > 1000 ? 'text-red-500' : 'text-green-500' }}">
+                                                    {{ number_format($remainingDebtVnd, 0, ',', '.') }}đ
+                                                </div>
+                                            @endif
+                                        @endif
                                     @elseif($isUsdInvoice)
                                         <!-- Hóa đơn USD: chỉ hiển thị USD -->
                                         <div
-                                            class="{{ $remainingDebtUsd > 0.01 ? 'text-red-600' : ($remainingDebtUsd < -0.01 ? 'text-green-600' : 'text-gray-600') }}">
+                                            class="{{ $remainingDebtUsd > 0.05 ? 'text-red-600' : ($remainingDebtUsd < -0.05 ? 'text-green-600' : 'text-gray-900') }}">
                                             ${{ number_format($remainingDebtUsd, 2) }}
                                         </div>
                                     @else
                                         <!-- Hóa đơn VND: chỉ hiển thị VND -->
                                         <div
-                                            class="{{ $remainingDebtVnd > 1000 ? 'text-red-600' : ($remainingDebtVnd < -1000 ? 'text-green-600' : 'text-gray-600') }}">
+                                            class="{{ $remainingDebtVnd > 1000 ? 'text-red-600' : ($remainingDebtVnd < -1000 ? 'text-green-600' : 'text-gray-900') }}">
                                             {{ number_format($remainingDebtVnd, 0, ',', '.') }}đ
                                         </div>
                                     @endif
@@ -509,7 +523,7 @@
                                     @php
                                         // Kiểm tra còn nợ thực tế (USD hoặc VND)
                                         // Sử dụng $remainingDebtUsd và $remainingDebtVnd đã tính ở trên
-                                        $hasDebtNow = ($remainingDebtUsd > 0.01) || ($remainingDebtVnd > 1000);
+                                        $hasDebtNow = ($remainingDebtUsd > 0.05) || ($remainingDebtVnd > 1000);
                                     @endphp
 
                                     {{-- Debug: Hiển thị cho mỗi dòng --}}

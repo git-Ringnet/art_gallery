@@ -125,22 +125,59 @@ function showWarning(input, message) {
 
 // Parse formatted number back to plain number
 function unformatNumber(value) {
-    if (typeof value !== 'string') return value || '0';
+    if (value === null || value === undefined) return '0';
+    if (typeof value === 'number') return value.toString();
+    if (typeof value !== 'string') return String(value || '0');
 
-    // 1. Loại bỏ các ký hiệu tiền tệ và khoảng trắng
-    let cleanValue = value.replace(/[đ₫$]/g, '').trim();
+    let str = value.trim();
+    if (!str) return '0';
 
-    // 2. Xác định xem đây là VND hay USD dựa trên context hoặc ký hiệu
-    const isVND = value.includes('đ') || value.includes('₫') || !value.includes('$');
-
-    if (isVND) {
-        // VND: Loại bỏ TẤT CẢ ký tự không phải số (vì VND không dùng thập phân ở đây)
-        return cleanValue.replace(/[^\d]/g, '') || '0';
-    } else {
-        // USD: Giữ lại dấu chấm cuối cùng làm dấu thập phân, loại bỏ các dấu khác (phân cách hàng nghìn)
-        // Nếu có nhiều dấu chấm hoặc phẩy, ta coi cái cuối cùng là thập phân (nếu nó đứng sau hàng nghìn)
-        // Nhưng đơn giản nhất cho hệ thống này: loại bỏ phẩy, giữ chấm.
-        let val = cleanValue.replace(/,/g, '');
-        return val || '0';
+    // 1. Nếu có ký hiệu VND (đ, ₫) -> luôn là số nguyên VND
+    if (/[đ₫]/i.test(str)) {
+        return str.replace(/[^\d]/g, '') || '0';
     }
+
+    // 2. Loại bỏ ký hiệu $ và khoảng trắng
+    let clean = str.replace(/[$]/g, '').trim();
+
+    // 3. Nếu có cả dấu phẩy và dấu chấm (ví dụ "4,064.60" hoặc "4.064,60")
+    if (clean.includes(',') && clean.includes('.')) {
+        if (clean.lastIndexOf('.') > clean.lastIndexOf(',')) {
+            // Chuẩn US: "4,064.60" -> xóa phẩy, giữ chấm
+            return clean.replace(/,/g, '');
+        } else {
+            // Chuẩn EU/VN: "4.064,60" -> xóa chấm, đổi phẩy thành chấm
+            return clean.replace(/\./g, '').replace(',', '.');
+        }
+    }
+
+    // 4. Nếu chỉ có dấu phẩy (không có chấm)
+    if (clean.includes(',')) {
+        const parts = clean.split(',');
+        // Nếu có dạng "0,5" hoặc "4064,6" (1 dấu phẩy và phần sau có 1-2 chữ số) -> dấu phẩy thập phân
+        if (parts.length === 2 && parts[1].length <= 2 && parts[1].length > 0 && parts[0].length <= 4) {
+            return parts[0] + '.' + parts[1];
+        }
+        // Phân cách hàng nghìn (ví dụ "26,000", "1,680,000", "4,000")
+        return clean.replace(/,/g, '');
+    }
+
+    // 5. Nếu chỉ có dấu chấm (không có phẩy)
+    if (clean.includes('.')) {
+        const parts = clean.split('.');
+        // Nếu có nhiều dấu chấm (ví dụ "1.680.000") -> phân cách hàng nghìn
+        if (parts.length > 2) {
+            return clean.replace(/\./g, '');
+        }
+        // Nếu có 1 dấu chấm:
+        // Nếu phần sau dấu chấm có đúng 3 chữ số (ví dụ "26.000", "100.000") -> phân cách hàng nghìn
+        if (parts[1].length === 3) {
+            return clean.replace(/\./g, '');
+        }
+        // Nếu có 1 hoặc 2 chữ số thập phân (ví dụ "4064.6", "4064.60", "0.5") -> giữ nguyên dấu chấm thập phân
+        return clean;
+    }
+
+    // 6. Số nguyên thuần túy hoặc dạng khác
+    return clean.replace(/[^\d.]/g, '') || '0';
 }

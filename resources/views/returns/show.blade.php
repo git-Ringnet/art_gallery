@@ -345,7 +345,9 @@
                                     @if($item->item_type === 'painting' && $item->painting && $item->painting->image)
                                         <img src="{{ asset('storage/' . $item->painting->image) }}" alt="{{ $item->painting->name }}" 
                                             class="w-10 h-10 object-cover rounded cursor-pointer hover:opacity-80 transition-opacity"
-                                            onclick="showImageModal('{{ asset('storage/' . $item->painting->image) }}', '{{ $item->painting->name }}')">
+                                            data-image-src="{{ asset('storage/' . $item->painting->image) }}"
+                                            data-image-title="{{ $item->painting->name }}"
+                                            onclick="showImageModalFromElement(this)">
                                     @else
                                         <div class="w-10 h-10 bg-gray-200 rounded flex items-center justify-center">
                                             <i class="fas fa-image text-gray-400 text-xs"></i>
@@ -550,7 +552,9 @@
                                     @if($item->item_type === 'painting' && $item->painting && $item->painting->image)
                                         <img src="{{ asset('storage/' . $item->painting->image) }}" alt="{{ $item->painting->name }}" 
                                             class="w-10 h-10 object-cover rounded cursor-pointer hover:opacity-80 transition-opacity"
-                                            onclick="showImageModal('{{ asset('storage/' . $item->painting->image) }}', '{{ $item->painting->name }}')">
+                                            data-image-src="{{ asset('storage/' . $item->painting->image) }}"
+                                            data-image-title="{{ $item->painting->name }}"
+                                            onclick="showImageModalFromElement(this)">
                                     @else
                                         <div class="w-10 h-10 bg-gray-200 rounded flex items-center justify-center">
                                             <i class="fas fa-image text-gray-400 text-xs"></i>
@@ -937,7 +941,9 @@
                             @if($item->item_type === 'painting' && $item->painting && $item->painting->image)
                                 <img src="{{ asset('storage/' . $item->painting->image) }}" alt="{{ $item->painting->name }}" 
                                     class="w-12 h-12 object-cover rounded cursor-pointer hover:opacity-80 transition-opacity"
-                                    onclick="showImageModal('{{ asset('storage/' . $item->painting->image) }}', '{{ $item->painting->name }}')">
+                                    data-image-src="{{ asset('storage/' . $item->painting->image) }}"
+                                    data-image-title="{{ $item->painting->name }}"
+                                    onclick="showImageModalFromElement(this)">
                             @else
                                 <div class="w-12 h-12 bg-gray-200 rounded flex items-center justify-center">
                                     <i class="fas fa-image text-gray-400 text-xs"></i>
@@ -1136,6 +1142,12 @@
 
 @push('scripts')
 <script>
+function showImageModalFromElement(el) {
+    if (el && el.dataset) {
+        showImageModal(el.dataset.imageSrc, el.dataset.imageTitle);
+    }
+}
+
 function showImageModal(imageSrc, imageTitle) {
     const modal = document.getElementById('imageModal');
     const modalImage = document.getElementById('modalImage');

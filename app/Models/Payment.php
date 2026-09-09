@@ -59,6 +59,7 @@ class Payment extends Model
             'sale_payment' => 'Thanh toán bán hàng',
             'return' => 'Trả hàng',
             'exchange' => 'Đổi hàng',
+            'refund' => 'Hoàn tiền',
         ];
     }
 

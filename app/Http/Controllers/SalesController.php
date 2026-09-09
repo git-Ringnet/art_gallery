@@ -20,6 +20,7 @@ use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Log;
 use Maatwebsite\Excel\Facades\Excel;
 use Barryvdh\DomPDF\Facade\Pdf;
+use Carbon\Carbon;
 
 class SalesController extends Controller
 {
@@ -333,14 +334,14 @@ class SalesController extends Controller
             'items.*.discount_percent' => 'nullable|numeric|min:0|max:100',
             'items.*.discount_amount_usd' => 'nullable|numeric|min:0',
             'items.*.discount_amount_vnd' => 'nullable',
-            'shipping_fee_usd' => 'nullable|numeric|min:0',
-            'shipping_fee_vnd' => 'nullable|numeric|min:0',
-            'exchange_rate' => 'nullable|numeric|min:0',
-            'discount_amount_usd' => 'nullable|numeric|min:0',
-            'discount_amount_vnd' => 'nullable',
-            'payment_amount' => 'nullable|numeric|min:0',
-            'payment_usd' => 'nullable|numeric|min:0',
-            'payment_vnd' => 'nullable|numeric|min:0',
+            'shipping_fee_usd' => 'nullable|numeric|min:0|max:99999999',
+            'shipping_fee_vnd' => 'nullable|numeric|min:0|max:999999999999',
+            'exchange_rate' => 'nullable|numeric|min:0|max:999999999',
+            'discount_amount_usd' => 'nullable|numeric|min:0|max:99999999',
+            'discount_amount_vnd' => 'nullable|numeric|min:0|max:999999999999',
+            'payment_amount' => 'nullable|numeric|min:0|max:999999999999',
+            'payment_usd' => 'nullable|numeric|min:0|max:99999999',
+            'payment_vnd' => 'nullable|numeric|min:0|max:999999999999',
             'payment_method' => 'nullable|in:cash,bank_transfer,card,other',
             'notes' => 'nullable|string',
         ], [
@@ -560,18 +561,58 @@ class SalesController extends Controller
             ]);
 
             // Validation: Kiểm tra thanh toán không vượt quá tổng tiền
-            // CHỈ áp dụng cho phiếu có CẢ USD VÀ VND
-            if ($sale->total_usd > 0 && $sale->total_vnd > 0) {
-                $tolerance = 0.01; // Sai số cho phép
+            $rate = (float) $sale->exchange_rate;
+            if ($rate <= 0) {
+                $rate = (float) $exchangeRate;
+            }
 
-                // Kiểm tra USD
-                if ($paymentUsd > $sale->total_usd + $tolerance) {
-                    throw new \Exception("Số tiền USD thanh toán (\${$paymentUsd}) vượt quá tổng USD (\${$sale->total_usd})");
+            if ($sale->total_usd > 0 && $sale->total_vnd <= 0) {
+                // A. Hóa đơn USD thuần: Tính tổng tiền trả quy ra USD/VND
+                if ($paymentVnd > 0 && $rate <= 0) {
+                    throw new \Exception("Đơn hàng USD có thanh toán bằng VND nhưng chưa nhập Tỷ giá quy đổi. Vui lòng nhập tỷ giá!");
                 }
+                if ($rate > 0) {
+                    $fullTotalVnd = (float) $sale->total_usd * $rate;
+                    $totalPaidInVnd = ((float) $paymentUsd * $rate) + (float) $paymentVnd;
+                    if ($totalPaidInVnd > $fullTotalVnd + 1000) {
+                        $overVnd = $totalPaidInVnd - $fullTotalVnd;
+                        throw new \Exception("Số tiền thanh toán quy đổi (" . number_format($totalPaidInVnd) . "đ) vượt quá tổng giá trị đơn hàng (" . number_format($fullTotalVnd) . "đ). Vượt quá: " . number_format($overVnd) . "đ. Vui lòng kiểm tra lại số tiền trả!");
+                    }
+                } else {
+                    if ((float) $paymentUsd > (float) $sale->total_usd + 0.05) {
+                        $overAmount = (float) $paymentUsd - (float) $sale->total_usd;
+                        throw new \Exception("Số tiền thanh toán (\$" . number_format((float) $paymentUsd, 2) . ") vượt quá tổng giá trị đơn hàng (\$" . number_format((float) $sale->total_usd, 2) . "). Vượt quá: \$" . number_format($overAmount, 2) . ". Vui lòng kiểm tra lại số tiền trả!");
+                    }
+                }
+            } elseif ($sale->total_vnd > 0 && $sale->total_usd <= 0) {
+                // B. Hóa đơn VND thuần: Tính tổng tiền trả quy ra VND
+                if ($paymentUsd > 0 && $rate <= 0) {
+                    throw new \Exception("Đơn hàng VND có thanh toán bằng USD nhưng chưa nhập Tỷ giá quy đổi. Vui lòng nhập tỷ giá!");
+                }
+                $convertedVndFromUsd = ($rate > 0 && $paymentUsd > 0) ? ($paymentUsd * $rate) : 0;
+                $totalPaidInVnd = (float) $paymentVnd + $convertedVndFromUsd;
 
-                // Kiểm tra VND
-                if ($paymentVnd > $sale->total_vnd + 1) { // Tolerance 1 VND
-                    throw new \Exception("Số tiền VND thanh toán (" . number_format((float) $paymentVnd) . "đ) vượt quá tổng VND (" . number_format((float) $sale->total_vnd) . "đ)");
+                if ($totalPaidInVnd > (float) $sale->total_vnd + 1000) {
+                    $overAmount = $totalPaidInVnd - (float) $sale->total_vnd;
+                    throw new \Exception("Số tiền thanh toán (" . number_format($totalPaidInVnd) . "đ) vượt quá tổng giá trị đơn hàng (" . number_format((float) $sale->total_vnd) . "đ). Vượt quá: " . number_format($overAmount) . "đ. Vui lòng kiểm tra lại số tiền trả!");
+                }
+            } elseif ($sale->total_usd > 0 && $sale->total_vnd > 0) {
+                // C. Hóa đơn hỗn hợp USD và VND
+                if ($rate > 0) {
+                    $fullTotalVnd = (float) $sale->total_vnd + ((float) $sale->total_usd * $rate);
+                    $totalPaidInVnd = (float) $paymentVnd + ((float) $paymentUsd * $rate);
+
+                    if ($totalPaidInVnd > $fullTotalVnd + 1000) {
+                        $overAmount = $totalPaidInVnd - $fullTotalVnd;
+                        throw new \Exception("Số tiền thanh toán quy đổi (" . number_format($totalPaidInVnd) . "đ) vượt quá tổng giá trị đơn hàng quy đổi (" . number_format($fullTotalVnd) . "đ). Vượt quá: " . number_format($overAmount) . "đ. Vui lòng kiểm tra lại số tiền trả!");
+                    }
+                } else {
+                    if ((float) $paymentUsd > (float) $sale->total_usd + 0.05) {
+                        throw new \Exception("Số tiền USD thanh toán (\$" . number_format((float) $paymentUsd, 2) . ") vượt quá tổng USD (\$" . number_format((float) $sale->total_usd, 2) . ")");
+                    }
+                    if ((float) $paymentVnd > (float) $sale->total_vnd + 1000) {
+                        throw new \Exception("Số tiền VND thanh toán (" . number_format((float) $paymentVnd) . "đ) vượt quá tổng VND (" . number_format((float) $sale->total_vnd) . "đ)");
+                    }
                 }
             }
 
@@ -630,9 +671,9 @@ class SalesController extends Controller
             return redirect()->route('sales.show', $id)->with('error', 'Bạn không có quyền sửa hóa đơn này.');
         }
 
-        // Chặn edit hóa đơn hoàn toàn khi đã thanh toán đủ hoặc đã hủy
-        if (!$sale->canEdit() || $sale->payment_status === 'paid') {
-            $msg = $sale->isCancelled() ? 'Không thể sửa phiếu đã hủy.' : 'Không thể sửa phiếu đã thanh toán đủ.';
+        // Chặn edit hóa đơn khi đã hủy hoặc khi đã duyệt và thanh toán đủ
+        if (!$sale->canEdit() || ($sale->isCompleted() && $sale->payment_status === 'paid')) {
+            $msg = $sale->isCancelled() ? 'Không thể sửa phiếu đã hủy.' : 'Không thể sửa phiếu đã duyệt và thanh toán đủ.';
             return redirect()->route('sales.show', $id)->with('error', $msg);
         }
 
@@ -653,9 +694,9 @@ class SalesController extends Controller
             return redirect()->route('sales.show', $id)->with('error', 'Bạn không có quyền cập nhật hóa đơn này.');
         }
 
-        // Chặn update hóa đơn hoàn toàn khi đã thanh toán đủ hoặc đã hủy
-        if (!$sale->canEdit() || $sale->payment_status === 'paid') {
-            $msg = $sale->isCancelled() ? 'Không thể sửa phiếu đã hủy.' : 'Không thể sửa phiếu đã thanh toán đủ.';
+        // Chặn update hóa đơn khi đã hủy hoặc khi đã duyệt và thanh toán đủ
+        if (!$sale->canEdit() || ($sale->isCompleted() && $sale->payment_status === 'paid')) {
+            $msg = $sale->isCancelled() ? 'Không thể sửa phiếu đã hủy.' : 'Không thể sửa phiếu đã duyệt và thanh toán đủ.';
             return back()->with('error', $msg);
         }
 
@@ -676,6 +717,23 @@ class SalesController extends Controller
             ]);
         }
 
+        // Clean up sale-level numeric fields (remove formatting, convert empty strings to null)
+        $numericFields = ['discount_amount_usd', 'discount_amount_vnd', 'shipping_fee_usd', 'shipping_fee_vnd', 'exchange_rate', 'payment_usd', 'payment_vnd', 'payment_amount'];
+        foreach ($numericFields as $field) {
+            $value = $request->input($field);
+            if ($value === '' || $value === null) {
+                $request->merge([$field => null]);
+            } elseif (is_string($value)) {
+                // Remove formatting (commas, dots for VND, spaces)
+                $cleaned = str_replace([',', ' '], '', $value);
+                // For VND fields, also remove dots used as thousands separator
+                if (str_contains($field, 'vnd') || $field === 'exchange_rate') {
+                    $cleaned = str_replace('.', '', $cleaned);
+                }
+                $request->merge([$field => is_numeric($cleaned) ? (float) $cleaned : null]);
+            }
+        }
+
         // Validation rules khác nhau tùy theo có return hay không
         $rules = [
             'customer_id' => 'nullable|exists:customers,id',
@@ -685,9 +743,9 @@ class SalesController extends Controller
             'customer_address' => 'nullable|string',
             'showroom_id' => 'required|exists:showrooms,id',
             'sale_date' => 'required|date',
-            'payment_amount' => 'nullable|numeric|min:0',
-            'payment_usd' => 'nullable|numeric|min:0',
-            'payment_vnd' => 'nullable|numeric|min:0',
+            'payment_amount' => 'nullable|numeric|min:0|max:999999999999',
+            'payment_usd' => 'nullable|numeric|min:0|max:99999999',
+            'payment_vnd' => 'nullable|numeric|min:0|max:999999999999',
             'payment_method' => 'nullable|in:cash,bank_transfer,card,other',
             'notes' => 'nullable|string',
         ];
@@ -888,7 +946,6 @@ class SalesController extends Controller
             $sale->update([
                 'customer_id' => $customer->id,
                 'showroom_id' => $request->showroom_id,
-                'user_id' => $user->id,
                 'sale_date' => $request->sale_date,
                 'exchange_rate' => $exchangeRate, // Chỉ thay đổi nếu pending
                 'discount_percent' => $request->has('discount_percent') ? $request->discount_percent : $sale->discount_percent,
@@ -1053,13 +1110,11 @@ class SalesController extends Controller
                 // Calculate sale totals
                 $sale->calculateTotals();
 
-                // Cập nhật original_total nếu chưa có (cho phiếu cũ)
-                if (!$sale->original_total_vnd) {
-                    $sale->update([
-                        'original_total_vnd' => $sale->total_vnd,
-                        'original_total_usd' => $sale->total_usd,
-                    ]);
-                }
+                // Cập nhật original_total theo items mới khi chưa có return
+                $sale->update([
+                    'original_total_vnd' => $sale->total_vnd,
+                    'original_total_usd' => $sale->total_usd,
+                ]);
             }
             // Nếu ĐÃ có return: Chỉ xử lý thanh toán, không động đến sale_items
 
@@ -1113,7 +1168,14 @@ class SalesController extends Controller
                         $isAlreadyFullyPaid = $alreadyPaidVnd >= $totalVnd - 1000;
                     } else {
                         // Hóa đơn Mixed
-                        $isAlreadyFullyPaid = ($alreadyPaidUsd >= $totalUsd - 0.01) && ($alreadyPaidVnd >= $totalVnd - 1000);
+                        $rate = (float) ($sale->exchange_rate ?? 0);
+                        if ($rate > 0) {
+                            $fullTotalVnd = $totalVnd + ($totalUsd * $rate);
+                            $alreadyPaidInVnd = $alreadyPaidVnd + ($alreadyPaidUsd * $rate);
+                            $isAlreadyFullyPaid = $alreadyPaidInVnd >= $fullTotalVnd - 1000;
+                        } else {
+                            $isAlreadyFullyPaid = ($alreadyPaidUsd >= $totalUsd - 0.01) && ($alreadyPaidVnd >= $totalVnd - 1000);
+                        }
                     }
 
                     if ($isAlreadyFullyPaid) {
@@ -1136,6 +1198,29 @@ class SalesController extends Controller
                             DB::rollBack();
                             return back()->with('error', 'Số tiền thanh toán (' . number_format($incomingVnd) . 'đ) vượt quá số còn nợ (' . number_format($remainingVnd) . 'đ). Vui lòng kiểm tra lại.');
                         }
+                    } elseif ($totalUsd > 0 && $totalVnd > 0) {
+                        $rate = (float) ($sale->exchange_rate ?? 0);
+                        if ($rate > 0) {
+                            $fullTotalVnd = $totalVnd + ($totalUsd * $rate);
+                            $alreadyPaidInVnd = $alreadyPaidVnd + ($alreadyPaidUsd * $rate);
+                            $remainingVnd = max(0, $fullTotalVnd - $alreadyPaidInVnd);
+                            $incomingVnd = (float) $paymentVnd + ((float) $paymentUsd * $rate);
+                            if ($incomingVnd > $remainingVnd + 1000) {
+                                DB::rollBack();
+                                return back()->with('error', 'Số tiền thanh toán quy đổi (' . number_format($incomingVnd) . 'đ) vượt quá số còn nợ quy đổi (' . number_format($remainingVnd) . 'đ). Vui lòng kiểm tra lại.');
+                            }
+                        } else {
+                            $remainingUsd = $totalUsd - $alreadyPaidUsd;
+                            $remainingVnd = $totalVnd - $alreadyPaidVnd;
+                            if ($paymentUsd > $remainingUsd + 0.01) {
+                                DB::rollBack();
+                                return back()->with('error', 'Số tiền USD thanh toán ($' . number_format($paymentUsd, 2) . ') vượt quá số USD còn nợ ($' . number_format($remainingUsd, 2) . '). Vui lòng kiểm tra lại.');
+                            }
+                            if ($paymentVnd > $remainingVnd + 1000) {
+                                DB::rollBack();
+                                return back()->with('error', 'Số tiền VND thanh toán (' . number_format($paymentVnd) . 'đ) vượt quá số VND còn nợ (' . number_format($remainingVnd) . 'đ). Vui lòng kiểm tra lại.');
+                            }
+                        }
                     }
 
                     // === BẢO VỆ 3: Kiểm tra trùng lặp thanh toán (mở rộng lên 30 phút) ===
@@ -1155,7 +1240,7 @@ class SalesController extends Controller
                             'payment_exchange_rate' => $paymentExchangeRate,
                             'payment_method' => $request->payment_method ?? 'cash',
                             'transaction_type' => 'sale_payment',
-                            'payment_date' => now(),
+                            'payment_date' => now('Asia/Ho_Chi_Minh'),
                             'notes' => 'Trả nợ thêm',
                             'created_by' => $user->id,
                         ]);
@@ -1164,6 +1249,66 @@ class SalesController extends Controller
                         return back()->with('error', 'Phát hiện thanh toán trùng lặp! Bạn đã tạo một khoản thanh toán giống hệt trong vòng 30 phút trước. Vui lòng kiểm tra lại danh sách thanh toán.');
                     }
                 } else {
+                    // Validation: Kiểm tra thanh toán không vượt quá tổng tiền
+                    $rate = (float) $sale->exchange_rate;
+                    $paymentUsd = (float) ($request->payment_usd ?? 0);
+                    $paymentVnd = (float) ($request->payment_vnd ?? 0);
+
+                    if ($sale->total_usd > 0 && $sale->total_vnd <= 0) {
+                        if ($paymentVnd > 0 && $rate <= 0) {
+                            DB::rollBack();
+                            return back()->withInput()->with('error', "Đơn hàng USD có thanh toán bằng VND nhưng chưa nhập Tỷ giá quy đổi. Vui lòng nhập tỷ giá!");
+                        }
+                        if ($rate > 0) {
+                            $fullTotalVnd = (float) $sale->total_usd * $rate;
+                            $totalPaidInVnd = ($paymentUsd * $rate) + $paymentVnd;
+                            if ($totalPaidInVnd > $fullTotalVnd + 1000) {
+                                $overVnd = $totalPaidInVnd - $fullTotalVnd;
+                                DB::rollBack();
+                                return back()->withInput()->with('error', "Số tiền thanh toán quy đổi (" . number_format($totalPaidInVnd) . "đ) vượt quá tổng giá trị đơn hàng (" . number_format($fullTotalVnd) . "đ). Vượt quá: " . number_format($overVnd) . "đ. Vui lòng kiểm tra lại số tiền trả!");
+                            }
+                        } else {
+                            if ($paymentUsd > (float) $sale->total_usd + 0.05) {
+                                $overAmount = $paymentUsd - (float) $sale->total_usd;
+                                DB::rollBack();
+                                return back()->withInput()->with('error', "Số tiền thanh toán (\$" . number_format($paymentUsd, 2) . ") vượt quá tổng giá trị đơn hàng (\$" . number_format((float) $sale->total_usd, 2) . "). Vượt quá: \$" . number_format($overAmount, 2) . ". Vui lòng kiểm tra lại số tiền trả!");
+                            }
+                        }
+                    } elseif ($sale->total_vnd > 0 && $sale->total_usd <= 0) {
+                        if ($paymentUsd > 0 && $rate <= 0) {
+                            DB::rollBack();
+                            return back()->withInput()->with('error', "Đơn hàng VND có thanh toán bằng USD nhưng chưa nhập Tỷ giá quy đổi. Vui lòng nhập tỷ giá!");
+                        }
+                        $convertedVndFromUsd = ($rate > 0 && $paymentUsd > 0) ? ($paymentUsd * $rate) : 0;
+                        $totalPaidInVnd = $paymentVnd + $convertedVndFromUsd;
+
+                        if ($totalPaidInVnd > (float) $sale->total_vnd + 1000) {
+                            $overAmount = $totalPaidInVnd - (float) $sale->total_vnd;
+                            DB::rollBack();
+                            return back()->withInput()->with('error', "Số tiền thanh toán (" . number_format($totalPaidInVnd) . "đ) vượt quá tổng giá trị đơn hàng (" . number_format((float) $sale->total_vnd) . "đ). Vượt quá: " . number_format($overAmount) . "đ. Vui lòng kiểm tra lại số tiền trả!");
+                        }
+                    } elseif ($sale->total_usd > 0 && $sale->total_vnd > 0) {
+                        if ($rate > 0) {
+                            $fullTotalVnd = (float) $sale->total_vnd + ((float) $sale->total_usd * $rate);
+                            $totalPaidInVnd = (float) $paymentVnd + ((float) $paymentUsd * $rate);
+
+                            if ($totalPaidInVnd > $fullTotalVnd + 1000) {
+                                $overAmount = $totalPaidInVnd - $fullTotalVnd;
+                                DB::rollBack();
+                                return back()->withInput()->with('error', "Số tiền thanh toán quy đổi (" . number_format($totalPaidInVnd) . "đ) vượt quá tổng giá trị đơn hàng quy đổi (" . number_format($fullTotalVnd) . "đ). Vượt quá: " . number_format($overAmount) . "đ. Vui lòng kiểm tra lại số tiền trả!");
+                            }
+                        } else {
+                            if ($paymentUsd > (float) $sale->total_usd + 0.05) {
+                                DB::rollBack();
+                                return back()->withInput()->with('error', "Số tiền USD thanh toán (\$" . number_format($paymentUsd, 2) . ") vượt quá tổng USD (\$" . number_format((float) $sale->total_usd, 2) . ")");
+                            }
+                            if ($paymentVnd > (float) $sale->total_vnd + 1000) {
+                                DB::rollBack();
+                                return back()->withInput()->with('error', "Số tiền VND thanh toán (" . number_format((float) $paymentVnd) . "đ) vượt quá tổng VND (" . number_format((float) $sale->total_vnd) . "đ)");
+                            }
+                        }
+                    }
+
                     // Phiếu pending - cập nhật paid_amount trong sale (chưa tạo payment)
                     $sale->paid_amount = $request->payment_amount;
                     $sale->payment_usd = $request->payment_usd ?? 0;
@@ -1685,7 +1830,7 @@ class SalesController extends Controller
                     'payment_exchange_rate' => $paymentExchangeRate, // Lưu tỷ giá tại thời điểm thanh toán
                     'payment_method' => $sale->payment_method ?? 'cash', // Lấy từ sale
                     'transaction_type' => 'sale_payment',
-                    'payment_date' => now(),
+                    'payment_date' => now('Asia/Ho_Chi_Minh'),
                     'notes' => 'Thanh toán ban đầu khi duyệt phiếu',
                     'created_by' => $user->id,
                 ]);
@@ -1967,5 +2112,147 @@ class SalesController extends Controller
         ]);
 
         return $pdf->download($filename . '.pdf');
+    }
+
+    public function refund(Request $request, $id)
+    {
+        $sale = Sale::findOrFail($id);
+
+        if (!\App\Helpers\PermissionHelper::canEditModel($sale, 'sales')) {
+            return redirect()->route('sales.show', $id)->with('error', 'Bạn không có quyền thực hiện hoàn tiền cho hóa đơn này.');
+        }
+
+        // Lấy thông tin user hiện tại
+        $user = $this->getDefaultUser();
+
+        // Validate
+        $request->validate([
+            'refund_amount_vnd' => 'nullable',
+            'refund_amount_usd' => 'nullable',
+            'payment_method' => 'required|in:cash,bank_transfer,card,other',
+            'refund_date' => 'nullable|date',
+            'notes' => 'nullable|string|max:500',
+        ], [
+            'payment_method.required' => 'Phương thức hoàn tiền là bắt buộc',
+            'payment_method.in' => 'Phương thức hoàn tiền không hợp lệ',
+        ]);
+
+        // Clean number formatting
+        $refundVndRaw = $request->refund_amount_vnd ?? 0;
+        $refundUsdRaw = $request->refund_amount_usd ?? 0;
+        if (is_string($refundVndRaw)) {
+            $refundVndRaw = (float) str_replace([',', '.', ' '], '', $refundVndRaw);
+        }
+        if (is_string($refundUsdRaw)) {
+            $refundUsdRaw = (float) str_replace([',', ' '], '', $refundUsdRaw);
+        }
+        $refundVnd = (float) $refundVndRaw;
+        $refundUsd = (float) $refundUsdRaw;
+
+        if ($refundVnd <= 0 && $refundUsd <= 0) {
+            return back()->with('error', 'Vui lòng nhập số tiền hoàn (VND hoặc USD) lớn hơn 0.');
+        }
+
+        // Kiểm tra số tiền hoàn không vượt quá số tiền thừa
+        $maxOverpaidVnd = (float) $sale->overpaid_vnd;
+        $maxOverpaidUsd = (float) $sale->overpaid_usd;
+
+        // Cho phép dung sai 1000 VND hoặc 0.05 USD
+        if ($maxOverpaidVnd > 0 && $refundVnd > $maxOverpaidVnd + 1000) {
+            return back()->with('error', 'Số tiền VND hoàn lại (' . number_format($refundVnd) . 'đ) vượt quá số tiền thừa (' . number_format($maxOverpaidVnd) . 'đ).');
+        }
+
+        if ($maxOverpaidUsd > 0 && $refundUsd > $maxOverpaidUsd + 0.05) {
+            return back()->with('error', 'Số tiền USD hoàn lại ($' . number_format($refundUsd, 2) . ') vượt quá số tiền thừa ($' . number_format($maxOverpaidUsd, 2) . ').');
+        }
+
+        DB::beginTransaction();
+        try {
+            // Xác định tổng amount (VND)
+            $exchangeRate = $sale->exchange_rate > 0 ? (float) $sale->exchange_rate : 1;
+            $amountVnd = $refundVnd + ($refundUsd * $exchangeRate);
+
+            // Nếu là phiếu pending (chưa duyệt), lưu payment gốc nếu chưa có để đảm bảo lịch sử thu
+            if ($sale->isPending() && $sale->payments()->count() === 0) {
+                $initialVnd = (float) ($sale->payment_vnd ?? 0);
+                $initialUsd = (float) ($sale->payment_usd ?? 0);
+                $initialAmount = (float) ($sale->paid_amount ?? 0);
+
+                if ($initialVnd > 0 || $initialUsd > 0) {
+                    Payment::create([
+                        'sale_id' => $sale->id,
+                        'amount' => $initialAmount,
+                        'payment_usd' => $initialUsd,
+                        'payment_vnd' => $initialVnd,
+                        'payment_exchange_rate' => $sale->exchange_rate,
+                        'payment_method' => $sale->payment_method ?? 'cash',
+                        'transaction_type' => 'sale_payment',
+                        'payment_date' => $sale->sale_date ?? now('Asia/Ho_Chi_Minh'),
+                        'notes' => 'Thanh toán ban đầu trước khi hoàn tiền',
+                        'created_by' => $user->id,
+                    ]);
+                }
+            }
+
+            // Tạo payment refund
+            Payment::create([
+                'sale_id' => $sale->id,
+                'amount' => -$amountVnd,
+                'payment_usd' => -$refundUsd,
+                'payment_vnd' => -$refundVnd,
+                'payment_exchange_rate' => $sale->exchange_rate,
+                'payment_method' => $request->payment_method,
+                'transaction_type' => 'refund',
+                'payment_date' => $request->refund_date ? Carbon::parse($request->refund_date, 'Asia/Ho_Chi_Minh') : now('Asia/Ho_Chi_Minh'),
+                'notes' => $request->notes ?: 'Hoàn tiền thừa cho khách hàng',
+                'created_by' => $user->id,
+            ]);
+
+            // Cập nhật lại số tiền trên sale nếu pending
+            if ($sale->isPending()) {
+                $sale->payment_vnd = max(0, (float) $sale->paid_vnd);
+                $sale->payment_usd = max(0, (float) $sale->paid_usd);
+                $sale->paid_amount = max(0, (float) $sale->payment_vnd + ((float) $sale->payment_usd * $exchangeRate));
+                $sale->save();
+            }
+
+            $sale->refresh()->updatePaymentStatus();
+
+            // Ghi nhật ký hoạt động
+            $formattedAmount = '';
+            if ($refundVnd > 0 && $refundUsd > 0) {
+                $formattedAmount = '$' . number_format($refundUsd) . ' + ' . number_format($refundVnd) . 'đ';
+            } elseif ($refundUsd > 0) {
+                $formattedAmount = '$' . number_format($refundUsd);
+            } else {
+                $formattedAmount = number_format($refundVnd) . 'đ';
+            }
+
+            $methodLabels = Payment::getPaymentMethods();
+            $methodName = $methodLabels[$request->payment_method] ?? $request->payment_method;
+
+            $customerName = $sale->customer ? $sale->customer->name : 'N/A';
+            $this->activityLogger->logRefund(
+                'sales',
+                $sale,
+                [
+                    'refund_usd' => $refundUsd,
+                    'refund_vnd' => $refundVnd,
+                    'payment_method' => $request->payment_method,
+                    'notes' => $request->notes,
+                ],
+                "Hoàn tiền thừa cho đơn hàng {$sale->invoice_code}: {$formattedAmount} qua {$methodName} cho khách hàng {$customerName}"
+            );
+
+            DB::commit();
+
+            return redirect()->route('sales.show', $sale->id)
+                ->with('success', "Đã ghi nhận hoàn tiền {$formattedAmount} cho khách hàng thành công.");
+
+        } catch (\Exception $e) {
+            DB::rollBack();
+            Log::error('Sales refund error: ' . $e->getMessage());
+            return back()->with('error', 'Có lỗi xảy ra: ' . $e->getMessage());
+        }
     }
 }

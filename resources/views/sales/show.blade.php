@@ -5,7 +5,18 @@
 @section('page-description', 'Xem chi tiết hóa đơn bán hàng')
 
 @section('header-actions')
+@php
+    $canEditSale = \App\Helpers\PermissionHelper::canEditModel($sale, 'sales');
+    $overpaidVnd = (float) ($sale->overpaid_vnd ?? 0);
+    $overpaidUsd = (float) ($sale->overpaid_usd ?? 0);
+    $hasOverpayment = ($sale->total_vnd > 0 && $overpaidVnd > 1000) || ($sale->total_usd > 0 && $overpaidUsd > 0.01) || ($sale->total_vnd <= 0 && $sale->total_usd <= 0 && (($sale->paid_vnd ?? 0) > 0 || ($sale->paid_usd ?? 0) > 0));
+@endphp
 <div class="flex flex-wrap gap-2">
+    @if($hasOverpayment && $canEditSale)
+    <button type="button" onclick="openRefundModal()" class="bg-purple-600 text-white px-3 py-1.5 rounded-lg hover:bg-purple-700 text-sm whitespace-nowrap shadow-md transition-all font-medium">
+        <i class="fas fa-hand-holding-usd mr-1"></i>Hoàn tiền thừa
+    </button>
+    @endif
     @if($sale->canApprove())
     <form method="POST" action="{{ route('sales.approve', $sale->id) }}" class="inline">
         @csrf
@@ -25,7 +36,7 @@
     <a href="{{ route('sales.print', $sale->id) }}" target="_blank" class="bg-blue-600 text-white px-3 py-1.5 rounded-lg hover:bg-blue-700 text-sm whitespace-nowrap">
         <i class="fas fa-print mr-1"></i>In
     </a>
-    @if($sale->canEdit() && $sale->payment_status !== 'paid')
+    @if($sale->canEdit() && ($sale->isPending() || $sale->payment_status !== 'paid'))
     <a href="{{ route('sales.edit', $sale->id) }}" class="bg-yellow-600 text-white px-3 py-1.5 rounded-lg hover:bg-yellow-700 text-sm whitespace-nowrap">
         <i class="fas fa-edit mr-1"></i>Sửa
     </a>
@@ -116,7 +127,11 @@
                                         @if($item->painting && $item->painting->image)
                                             <img src="{{ asset('storage/' . $item->painting->image) }}" alt="{{ $item->painting->name }}" 
                                                 class="w-12 h-12 object-cover rounded {{ $isReturned ? 'opacity-40' : 'cursor-pointer hover:opacity-80' }} transition-opacity"
-                                                @if(!$isReturned) onclick="showImageModal('{{ asset('storage/' . $item->painting->image) }}', '{{ $item->painting->name }}')" @endif>
+                                                @if(!$isReturned) 
+                                                    data-image-src="{{ asset('storage/' . $item->painting->image) }}"
+                                                    data-image-title="{{ $item->painting->name }}"
+                                                    onclick="showImageModalFromElement(this)" 
+                                                @endif>
                                         @elseif($item->frame)
                                             <div class="w-12 h-12 bg-blue-100 rounded flex items-center justify-center {{ $isReturned ? 'opacity-40' : '' }}">
                                                 <i class="fas fa-border-style text-blue-600 text-lg"></i>
@@ -156,7 +171,7 @@
                                     <td class="px-2 py-2 text-center text-xs {{ $textClass }}">{{ $item->quantity }}</td>
                                     <td class="px-2 py-2 text-right text-xs {{ $textClass }} whitespace-nowrap">
                                         @if($item->currency == 'USD')
-                                            <div>${{ number_format($item->price_usd, 0) }}</div>
+                                            <div>${{ number_format($item->price_usd, (abs($item->price_usd - round($item->price_usd)) < 0.01 ? 0 : 2)) }}</div>
                                         @else
                                             <div>{{ number_format($item->price_vnd) }}đ</div>
                                         @endif
@@ -170,7 +185,7 @@
                                     </td>
                                     <td class="px-2 py-2 text-right text-xs {{ $textClass }}">
                                         @if($item->discount_amount_usd > 0)
-                                            <div class="text-red-600">-${{ number_format($item->discount_amount_usd, 0) }}</div>
+                                            <div class="text-red-600">-${{ number_format($item->discount_amount_usd, (abs($item->discount_amount_usd - round($item->discount_amount_usd)) < 0.01 ? 0 : 2)) }}</div>
                                         @endif
                                         @if($item->discount_amount_vnd > 0)
                                             <div class="text-red-600">-{{ number_format($item->discount_amount_vnd) }}đ</div>
@@ -181,7 +196,7 @@
                                     </td>
                                     <td class="px-2 py-2 text-right text-xs font-semibold {{ $textClass }} whitespace-nowrap">
                                         @if($item->currency == 'USD')
-                                            <div>${{ number_format($item->total_usd, 0) }}</div>
+                                            <div>${{ number_format($item->total_usd, (abs($item->total_usd - round($item->total_usd)) < 0.01 ? 0 : 2)) }}</div>
                                         @else
                                             <div>{{ number_format($item->total_vnd) }}đ</div>
                                         @endif
@@ -346,66 +361,120 @@
         
         @if($showPaymentSection)
         <div class="bg-white rounded-xl shadow-lg p-6">
-            <h3 class="font-semibold text-lg mb-4 flex items-center">
-                <i class="fas fa-receipt text-green-600 mr-2"></i>
-                Các lần khách đã trả tiền
-            </h3>
-            <p class="text-sm text-gray-500 mb-3 italic">Danh sách các lần khách hàng đã thanh toán cho hóa đơn này</p>
+            <div class="flex justify-between items-center mb-4">
+                <div>
+                    <h3 class="font-semibold text-lg flex items-center">
+                        <i class="fas fa-receipt text-green-600 mr-2"></i>
+                        Các lần khách đã trả tiền
+                    </h3>
+                    <p class="text-sm text-gray-500 italic">Danh sách các lần khách hàng đã thanh toán cho hóa đơn này</p>
+                </div>
+                @if($hasOverpayment && $canEditSale)
+                <button type="button" onclick="openRefundModal()" class="bg-purple-600 hover:bg-purple-700 text-white px-3 py-1.5 rounded-lg text-xs font-bold shadow-md transition-all whitespace-nowrap flex items-center">
+                    <i class="fas fa-hand-holding-usd mr-1.5"></i>Hoàn tiền thừa
+                </button>
+                @endif
+            </div>
+
+            @if($hasOverpayment)
+            <div class="p-3 bg-purple-50 border border-purple-200 rounded-lg mb-4 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2">
+                <div class="flex items-start sm:items-center text-purple-900 text-xs">
+                    <i class="fas fa-exclamation-triangle text-purple-600 mr-2 mt-0.5 sm:mt-0 text-base"></i>
+                    <div>
+                        <span class="font-bold">Đơn hàng đang có khoản tiền thừa:</span>
+                        <span class="font-extrabold text-sm text-purple-700 ml-1">
+                            @if($overpaidUsd > 0 && $overpaidVnd > 0)
+                                ${{ number_format($overpaidUsd, 2) }} + {{ number_format($overpaidVnd) }}đ
+                            @elseif($overpaidUsd > 0)
+                                ${{ number_format($overpaidUsd, 2) }}
+                            @else
+                                {{ number_format($overpaidVnd) }}đ
+                            @endif
+                        </span>
+                        <span class="text-gray-500 italic block sm:inline sm:ml-1">(Do giảm giá trị đơn hàng sau khi nhận tiền)</span>
+                    </div>
+                </div>
+            </div>
+            @endif
+
             <div class="space-y-3">
                 @if($hasPaymentRecords)
                     {{-- Hiển thị từ payment records (phiếu đã duyệt) --}}
                     @foreach($sale->payments->sortByDesc('payment_date')->sortByDesc('id') as $payment)
-                    <div class="p-3 bg-gray-50 rounded">
-                        <div class="flex justify-between items-center">
+                    @php
+                        // Xử lý cả số dương (payment) và số âm (refund)
+                        $hasUsd = $payment->payment_usd != 0;
+                        $hasVnd = $payment->payment_vnd != 0;
+                        $exchangeRate = $payment->payment_exchange_rate ?? $sale->exchange_rate;
+                        $isRefund = $payment->payment_usd < 0 || $payment->payment_vnd < 0 || $payment->transaction_type === 'refund';
+                        $cardBgClass = $isRefund ? 'bg-red-50 border border-red-200' : 'bg-gray-50';
+                        $colorClass = $isRefund ? 'text-red-600' : 'text-blue-600';
+                        $colorClassVnd = $isRefund ? 'text-red-600' : 'text-green-600';
+                    @endphp
+                    <div class="p-3 {{ $cardBgClass }} rounded-lg">
+                        <div class="flex justify-between items-start">
                             <div class="flex-1">
-                                @php
-                                    // Xử lý cả số dương (payment) và số âm (refund)
-                                    $hasUsd = $payment->payment_usd != 0;
-                                    $hasVnd = $payment->payment_vnd != 0;
-                                    $exchangeRate = $payment->payment_exchange_rate ?? $sale->exchange_rate;
-                                    $isRefund = $payment->payment_usd < 0 || $payment->payment_vnd < 0;
-                                    $colorClass = $isRefund ? 'text-red-600' : 'text-blue-600';
-                                    $colorClassVnd = $isRefund ? 'text-red-600' : 'text-green-600';
-                                @endphp
+                                <div class="flex items-center gap-2 mb-1">
+                                    @if($isRefund)
+                                        <span class="px-2 py-0.5 bg-red-100 text-red-700 text-xs font-bold rounded-full border border-red-200">
+                                            <i class="fas fa-undo mr-1"></i>Hoàn tiền thừa
+                                        </span>
+                                    @else
+                                        <span class="px-2 py-0.5 bg-green-100 text-green-700 text-xs font-semibold rounded-full border border-green-200">
+                                            <i class="fas fa-arrow-down mr-1"></i>Thanh toán
+                                        </span>
+                                    @endif
+                                </div>
                                 
                                 @if($hasUsd && !$hasVnd)
-                                    {{-- Chỉ USD (hoặc refund USD): Hiển thị USD to, VND nhỏ (tham khảo) --}}
-                                    <p class="font-bold text-lg {{ $colorClass }}">${{ number_format($payment->payment_usd, 0) }}</p>
+                                    {{-- Chỉ USD (hoặc refund USD) --}}
+                                    <p class="font-bold text-lg {{ $colorClass }}">
+                                        {{ $isRefund ? '-' : '' }}${{ number_format(abs($payment->payment_usd), 2) }}
+                                    </p>
                                     @if($exchangeRate > 0)
-                                    <p class="text-xs text-gray-500 mt-0.5">≈ {{ number_format($payment->payment_usd * $exchangeRate) }}đ (tham khảo)</p>
+                                    <p class="text-xs text-gray-500 mt-0.5">≈ {{ $isRefund ? '-' : '' }}{{ number_format(abs($payment->payment_usd * $exchangeRate)) }}đ (tham khảo)</p>
                                     @endif
                                 @elseif($hasVnd && !$hasUsd)
-                                    {{-- Chỉ VND (hoặc refund VND): Hiển thị VND to, USD nhỏ (quy đổi) --}}
-                                    <p class="font-bold text-lg {{ $colorClassVnd }}">{{ number_format($payment->payment_vnd) }}đ</p>
+                                    {{-- Chỉ VND (hoặc refund VND) --}}
+                                    <p class="font-bold text-lg {{ $colorClassVnd }}">
+                                        {{ $isRefund ? '-' : '' }}{{ number_format(abs($payment->payment_vnd)) }}đ
+                                    </p>
                                     @if($exchangeRate > 0)
-                                    <p class="text-xs text-gray-500 mt-0.5">≈ ${{ number_format($payment->payment_vnd / $exchangeRate, 0) }} (tỷ giá {{ number_format($exchangeRate) }})</p>
+                                    <p class="text-xs text-gray-500 mt-0.5">≈ {{ $isRefund ? '-' : '' }}${{ number_format(abs($payment->payment_vnd / $exchangeRate), 2) }} (tỷ giá {{ number_format($exchangeRate) }})</p>
                                     @endif
                                 @elseif($hasUsd && $hasVnd)
-                                    {{-- Trả cả USD và VND: Hiển thị cả hai --}}
+                                    {{-- Trả cả USD và VND --}}
                                     <p class="font-bold text-base">
-                                        <span class="{{ $colorClass }}">${{ number_format($payment->payment_usd, 0) }}</span>
+                                        <span class="{{ $colorClass }}">{{ $isRefund ? '-' : '' }}${{ number_format(abs($payment->payment_usd), 2) }}</span>
                                         <span class="text-gray-400 mx-1">+</span>
-                                        <span class="{{ $colorClassVnd }}">{{ number_format($payment->payment_vnd) }}đ</span>
+                                        <span class="{{ $colorClassVnd }}">{{ $isRefund ? '-' : '' }}{{ number_format(abs($payment->payment_vnd)) }}đ</span>
                                     </p>
                                     @if($exchangeRate > 0)
                                     <p class="text-xs text-gray-500 mt-0.5">
-                                        Tổng: ≈ ${{ number_format($payment->payment_usd + ($payment->payment_vnd / $exchangeRate), 2) }}
+                                        Tổng: ≈ {{ $isRefund ? '-' : '' }}${{ number_format(abs($payment->payment_usd + ($payment->payment_vnd / $exchangeRate)), 2) }}
                                     </p>
                                     @endif
                                 @else
                                     {{-- Fallback: Hiển thị amount --}}
-                                    <p class="font-medium">{{ number_format($payment->amount) }}đ</p>
+                                    <p class="font-medium {{ $colorClass }}">{{ number_format($payment->amount) }}đ</p>
                                 @endif
                                 
-                                <p class="text-sm text-gray-600 mt-1">
-                                    {{ $payment->payment_date->format('d/m/Y H:i') }} - 
-                                    @if($payment->payment_method == 'cash') Tiền mặt
-                                    @elseif($payment->payment_method == 'bank_transfer') Chuyển khoản
-                                    @elseif($payment->payment_method == 'card') Thẻ
-                                    @else Khác
+                                <p class="text-xs text-gray-600 mt-1.5 flex flex-wrap items-center gap-1.5">
+                                    <span><i class="far fa-calendar-alt mr-1"></i>{{ $payment->payment_date->format('d/m/Y H:i') }}</span>
+                                    <span>•</span>
+                                    <span>
+                                        @if($payment->payment_method == 'cash') Tiền mặt
+                                        @elseif($payment->payment_method == 'bank_transfer') Chuyển khoản
+                                        @elseif($payment->payment_method == 'card') Thẻ
+                                        @else Khác
+                                        @endif
+                                    </span>
+                                    @if($payment->createdBy)
+                                    <span>•</span>
+                                    <span class="text-gray-500"><i class="far fa-user mr-1"></i>{{ $payment->createdBy->name }}</span>
                                     @endif
                                     
-                                    @if($sale->canEdit())
+                                    @if($sale->canEdit() && !$isRefund)
                                     <button type="button" 
                                         onclick="openEditPaymentModal(this)"
                                         data-id="{{ $payment->id }}"
@@ -420,7 +489,9 @@
                                 </p>
                             </div>
                             @if($payment->notes)
-                            <p class="text-sm text-gray-500 ml-2">{{ $payment->notes }}</p>
+                            <div class="text-xs bg-white px-2.5 py-1.5 rounded border border-gray-200 text-gray-700 max-w-[250px]">
+                                <i class="fas fa-comment-dots text-gray-400 mr-1"></i>{{ $payment->notes }}
+                            </div>
                             @endif
                         </div>
                     </div>
@@ -438,7 +509,7 @@
                                 
                                 @if($hasUsd && !$hasVnd)
                                     {{-- Chỉ trả USD --}}
-                                    <p class="font-bold text-lg text-blue-600">${{ number_format($sale->payment_usd, 0) }}</p>
+                                    <p class="font-bold text-lg text-blue-600">${{ number_format($sale->payment_usd, (abs($sale->payment_usd - round($sale->payment_usd)) < 0.01 ? 0 : 2)) }}</p>
                                     @if($exchangeRate > 0)
                                     <p class="text-xs text-gray-500 mt-0.5">≈ {{ number_format($sale->payment_usd * $exchangeRate) }}đ (tham khảo)</p>
                                     @endif
@@ -446,18 +517,18 @@
                                     {{-- Chỉ trả VND --}}
                                     <p class="font-bold text-lg text-green-600">{{ number_format($sale->payment_vnd) }}đ</p>
                                     @if($exchangeRate > 0)
-                                    <p class="text-xs text-gray-500 mt-0.5">≈ ${{ number_format($sale->payment_vnd / $exchangeRate, 0) }} (tỷ giá {{ number_format($exchangeRate) }})</p>
+                                    <p class="text-xs text-gray-500 mt-0.5">≈ ${{ number_format($sale->payment_vnd / $exchangeRate, (abs(($sale->payment_vnd / $exchangeRate) - round($sale->payment_vnd / $exchangeRate)) < 0.01 ? 0 : 2)) }} (tỷ giá {{ number_format($exchangeRate) }})</p>
                                     @endif
                                 @elseif($hasUsd && $hasVnd)
                                     {{-- Trả cả USD và VND --}}
                                     <p class="font-bold text-base">
-                                        <span class="text-blue-600">${{ number_format($sale->payment_usd, 0) }}</span>
+                                        <span class="text-blue-600">${{ number_format($sale->payment_usd, (abs($sale->payment_usd - round($sale->payment_usd)) < 0.01 ? 0 : 2)) }}</span>
                                         <span class="text-gray-400 mx-1">+</span>
                                         <span class="text-green-600">{{ number_format($sale->payment_vnd) }}đ</span>
                                     </p>
                                     @if($exchangeRate > 0)
                                     <p class="text-xs text-gray-500 mt-0.5">
-                                        Tổng: ≈ ${{ number_format($sale->payment_usd + ($sale->payment_vnd / $exchangeRate), 2) }}
+                                        Tổng: ≈ ${{ number_format($sale->payment_usd + ($sale->payment_vnd / $exchangeRate), (abs(($sale->payment_usd + ($sale->payment_vnd / $exchangeRate)) - round($sale->payment_usd + ($sale->payment_vnd / $exchangeRate))) < 0.01 ? 0 : 2)) }}
                                     </p>
                                     @endif
                                 @endif
@@ -514,9 +585,10 @@
             <h3 class="font-semibold text-base mb-3">Tổng kết</h3>
             <div class="space-y-2">
                 @php
-                    // Detect currency dựa trên original_total (trước khi trả hàng) hoặc items hiện tại
-                    $originalHasUsd = ($sale->original_total_usd ?? $sale->total_usd) > 0;
-                    $originalHasVnd = ($sale->original_total_vnd ?? $sale->total_vnd) > 0;
+                    // Detect currency dựa trên original_total (trước khi trả hàng nếu có completed returns) hoặc items hiện tại
+                    $hasCompletedReturns = $sale->returns()->where('status', 'completed')->where('type', 'return')->exists();
+                    $originalHasUsd = $hasCompletedReturns ? (($sale->original_total_usd ?? $sale->total_usd) > 0) : ($sale->total_usd > 0);
+                    $originalHasVnd = $hasCompletedReturns ? (($sale->original_total_vnd ?? $sale->total_vnd) > 0) : ($sale->total_vnd > 0);
                     
                     // Detect currency hiện tại (sau khi trả hàng)
                     $hasUsdTotal = $sale->total_usd > 0;
@@ -657,11 +729,11 @@
                                 {{-- Hóa đơn ban đầu có cả USD và VND - Hiển thị riêng từng loại --}}
                                 @if($sale->paid_usd > 0 && $sale->paid_vnd > 0)
                                     <div class="font-bold text-sm text-blue-700">
-                                        <div class="text-blue-600">USD: ${{ number_format($sale->paid_usd, 0) }}</div>
+                                        <div class="text-blue-600">USD: ${{ number_format($sale->paid_usd, (abs($sale->paid_usd - round($sale->paid_usd)) < 0.01 ? 0 : 2)) }}</div>
                                         <div class="text-green-600">VND: {{ number_format($sale->paid_vnd) }}đ</div>
                                     </div>
                                 @elseif($sale->paid_usd > 0)
-                                    <div class="font-bold text-blue-700">${{ number_format($sale->paid_usd, 0) }}</div>
+                                    <div class="font-bold text-blue-700">${{ number_format($sale->paid_usd, (abs($sale->paid_usd - round($sale->paid_usd)) < 0.01 ? 0 : 2)) }}</div>
                                 @elseif($sale->paid_vnd > 0)
                                     <div class="font-bold text-blue-700">{{ number_format($sale->paid_vnd) }}đ</div>
                                 @else
@@ -669,23 +741,47 @@
                                 @endif
                             @elseif($originalHasUsd && !$originalHasVnd)
                                 {{-- Chỉ USD --}}
-                                <div class="font-bold text-blue-700">${{ number_format($sale->paid_usd, 0) }}</div>
+                                @php
+                                    $rawVndPaid = $sale->payments && $sale->payments->count() > 0 ? $sale->payments->sum('payment_vnd') : (float)($sale->payment_vnd ?? 0);
+                                    $rawUsdPaid = $sale->payments && $sale->payments->count() > 0 ? $sale->payments->sum('payment_usd') : (float)($sale->payment_usd ?? 0);
+                                @endphp
+                                @if($rawVndPaid > 0 && $rawUsdPaid <= 0)
+                                    <div class="font-bold text-blue-700">{{ number_format($rawVndPaid) }}đ</div>
+                                    <div class="text-xs text-blue-600">≈ ${{ number_format($sale->paid_usd, (abs($sale->paid_usd - round($sale->paid_usd)) < 0.01 ? 0 : 2)) }}</div>
+                                @elseif($rawVndPaid > 0 && $rawUsdPaid > 0)
+                                    <div class="font-bold text-blue-700">${{ number_format($sale->paid_usd, (abs($sale->paid_usd - round($sale->paid_usd)) < 0.01 ? 0 : 2)) }}</div>
+                                    <div class="text-xs text-blue-600">(${{ number_format($rawUsdPaid, (abs($rawUsdPaid - round($rawUsdPaid)) < 0.01 ? 0 : 2)) }} + {{ number_format($rawVndPaid) }}đ)</div>
+                                @else
+                                    <div class="font-bold text-blue-700">${{ number_format($sale->paid_usd, (abs($sale->paid_usd - round($sale->paid_usd)) < 0.01 ? 0 : 2)) }}</div>
+                                @endif
                             @elseif($originalHasVnd && !$originalHasUsd)
                                 {{-- Chỉ VND --}}
-                                <div class="font-bold text-blue-700">{{ number_format($sale->paid_vnd) }}đ</div>
+                                @php
+                                    $rawVndPaid = $sale->payments && $sale->payments->count() > 0 ? $sale->payments->sum('payment_vnd') : (float)($sale->payment_vnd ?? 0);
+                                    $rawUsdPaid = $sale->payments && $sale->payments->count() > 0 ? $sale->payments->sum('payment_usd') : (float)($sale->payment_usd ?? 0);
+                                @endphp
+                                @if($rawUsdPaid > 0 && $rawVndPaid <= 0)
+                                    <div class="font-bold text-blue-700">${{ number_format($rawUsdPaid, (abs($rawUsdPaid - round($rawUsdPaid)) < 0.01 ? 0 : 2)) }}</div>
+                                    <div class="text-xs text-blue-600">≈ {{ number_format($sale->paid_vnd) }}đ</div>
+                                @elseif($rawUsdPaid > 0 && $rawVndPaid > 0)
+                                    <div class="font-bold text-blue-700">{{ number_format($sale->paid_vnd) }}đ</div>
+                                    <div class="text-xs text-blue-600">({{ number_format($rawVndPaid) }}đ + ${{ number_format($rawUsdPaid, (abs($rawUsdPaid - round($rawUsdPaid)) < 0.01 ? 0 : 2)) }})</div>
+                                @else
+                                    <div class="font-bold text-blue-700">{{ number_format($sale->paid_vnd) }}đ</div>
+                                @endif
                             @endif
                         </div>
                     </div>
                     
                     @php
-                        $overpaidUsd = max(0, $sale->paid_usd - $sale->total_usd);
+                        $overpaidUsd = (float)($sale->overpaid_usd ?? 0);
                     @endphp
                     
-                    @if($overpaidUsd > 0.01)
+                    @if($overpaidUsd > 0.05 && $sale->total_vnd <= 0)
                         <div class="mt-1 text-xs text-blue-800 bg-blue-100 px-2 py-1 rounded border border-blue-200">
                             <i class="fas fa-info-circle mr-1"></i>
-                            Gồm: ${{ number_format($sale->total_usd, 0) }} gốc
-                            <span class="block text-right">+ ${{ number_format($overpaidUsd, 0) }}</span>
+                            Gồm: ${{ number_format($sale->total_usd, (abs($sale->total_usd - round($sale->total_usd)) < 0.01 ? 0 : 2)) }} gốc
+                            <span class="block text-right">+ ${{ number_format($overpaidUsd, (abs($overpaidUsd - round($overpaidUsd)) < 0.01 ? 0 : 2)) }}</span>
                         </div>
                     @endif
 
@@ -693,11 +789,11 @@
                         $totalUsd = $sale->payments->sum('payment_usd');
                         $totalVnd = $sale->payments->sum('payment_vnd');
                     @endphp
-                    @if(($totalUsd > 0 || $totalVnd > 0) && $overpaidUsd <= 0.01)
+                    @if(($totalUsd > 0 || $totalVnd > 0) && $overpaidUsd <= 0.05)
                     <div class="flex justify-end mt-1 text-xs text-blue-600">
                         <span class="italic">
                             @if($totalUsd > 0)
-                                <span>${{ number_format($totalUsd, 0) }}</span>
+                                <span>${{ number_format($totalUsd, (abs($totalUsd - round($totalUsd)) < 0.01 ? 0 : 2)) }}</span>
                             @endif
                             @if($totalUsd > 0 && $totalVnd > 0)
                                 <span class="mx-1">+</span>
@@ -716,44 +812,27 @@
                     </span>
                     <span class="font-bold">Không nợ</span>
                 </div>
-                @elseif($isMixedCurrency && ($sale->debt_usd > 0.01 || $sale->debt_vnd > 1))
-                {{-- Hóa đơn ban đầu có CẢ USD VÀ VND - Hiển thị riêng từng loại nợ còn lại --}}
+                @elseif($sale->debt_usd > 0.05 || $sale->debt_vnd > 1000)
                 <div class="flex justify-between text-red-600 bg-red-50 p-2 rounded border border-red-200 text-sm">
                     <span class="font-bold">Còn thiếu:</span>
                     <div class="text-right">
-                        @if($sale->debt_usd > 0.01 && $sale->debt_vnd > 1)
+                        @if($sale->debt_usd > 0.05 && $sale->debt_vnd > 1000)
                             <div class="font-bold text-sm">
-                                <span class="text-blue-600">USD: ${{ number_format($sale->debt_usd, 0) }}</span>
+                                <span class="text-blue-600">USD: ${{ number_format($sale->debt_usd, (abs($sale->debt_usd - round($sale->debt_usd)) < 0.01 ? 0 : 2)) }}</span>
                             </div>
                             <div class="font-bold text-sm">
                                 <span class="text-green-600">VND: {{ number_format($sale->debt_vnd) }}đ</span>
                             </div>
-                        @elseif($sale->debt_usd > 0.01)
-                            <div class="font-bold text-base text-blue-600">USD: ${{ number_format($sale->debt_usd, 0) }}</div>
-                        @elseif($sale->debt_vnd > 1)
+                        @elseif($sale->debt_usd > 0.05)
+                            <div class="font-bold text-base text-blue-600">USD: ${{ number_format($sale->debt_usd, (abs($sale->debt_usd - round($sale->debt_usd)) < 0.01 ? 0 : 2)) }}</div>
+                            @if($sale->exchange_rate > 0)
+                            <div class="text-xs">≈ {{ number_format($sale->debt_usd * $sale->exchange_rate) }}đ</div>
+                            @endif
+                        @elseif($sale->debt_vnd > 1000)
                             <div class="font-bold text-base text-green-600">VND: {{ number_format($sale->debt_vnd) }}đ</div>
-                        @endif
-                    </div>
-                </div>
-                @elseif($sale->total_usd > 0 && $sale->debt_usd > 0.01)
-                {{-- Hóa đơn CHỈ có USD và còn nợ USD --}}
-                <div class="flex justify-between text-red-600 bg-red-50 p-2 rounded border border-red-200 text-sm">
-                    <span class="font-bold">Còn thiếu:</span>
-                    <div class="text-right">
-                        <div class="font-bold text-base">${{ number_format($sale->debt_usd, 0) }}</div>
-                        @if($sale->exchange_rate > 0)
-                        <div class="text-xs">≈ {{ number_format($sale->debt_usd * $sale->exchange_rate) }}đ</div>
-                        @endif
-                    </div>
-                </div>
-                @elseif($sale->total_vnd > 0 && $sale->debt_vnd > 1)
-                {{-- Hóa đơn CHỈ có VND và còn nợ VND --}}
-                <div class="flex justify-between text-red-600 bg-red-50 p-2 rounded border border-red-200 text-sm">
-                    <span class="font-bold">Còn thiếu:</span>
-                    <div class="text-right">
-                        <div class="font-bold text-base">{{ number_format($sale->debt_vnd) }}đ</div>
-                        @if($sale->exchange_rate > 0)
-                        <div class="text-xs">≈ ${{ number_format($sale->debt_vnd / $sale->exchange_rate, 0) }}</div>
+                            @if($sale->exchange_rate > 0)
+                            <div class="text-xs">≈ ${{ number_format($sale->debt_vnd / $sale->exchange_rate, (abs(($sale->debt_vnd / $sale->exchange_rate) - round($sale->debt_vnd / $sale->exchange_rate)) < 0.01 ? 0 : 2)) }}</div>
+                            @endif
                         @endif
                     </div>
                 </div>
@@ -763,12 +842,37 @@
                         <span class="font-bold">
                             Đã thanh toán đủ
                         </span>
-                        @if($overpaidUsd > 0.01)
+                        @if($overpaidUsd > 0.05 && $sale->total_vnd <= 0)
                             <span class="text-xs bg-green-100 px-2 py-0.5 rounded text-green-800 border border-green-200">
-                                Dư ${{ number_format($overpaidUsd, 0) }} (Do tỷ giá)
+                                Dư ${{ number_format($overpaidUsd, (abs($overpaidUsd - round($overpaidUsd)) < 0.01 ? 0 : 2)) }} (Do tỷ giá)
                             </span>
                         @endif
                     </div>
+                </div>
+                @endif
+
+                @if($hasOverpayment)
+                <div class="bg-purple-50 p-3 rounded-xl border border-purple-200 text-sm mt-2">
+                    <div class="flex justify-between items-center mb-1">
+                        <span class="font-bold text-purple-900 flex items-center text-xs">
+                            <i class="fas fa-hand-holding-usd text-purple-600 mr-1.5 text-sm"></i>Dư tiền cần hoàn:
+                        </span>
+                        <span class="font-extrabold text-sm text-purple-700">
+                            @if($overpaidUsd > 0 && $overpaidVnd > 0)
+                                ${{ number_format($overpaidUsd, 2) }} + {{ number_format($overpaidVnd) }}đ
+                            @elseif($overpaidUsd > 0)
+                                ${{ number_format($overpaidUsd, 2) }}
+                            @else
+                                {{ number_format($overpaidVnd) }}đ
+                            @endif
+                        </span>
+                    </div>
+                    <p class="text-[11px] text-purple-600 mb-2 italic">Tiền khách trả lớn hơn giá trị đơn sau khi cập nhật</p>
+                    @if($canEditSale)
+                    <button type="button" onclick="openRefundModal()" class="w-full bg-purple-600 hover:bg-purple-700 text-white py-2 px-3 rounded-lg text-xs font-bold transition-all shadow-md flex items-center justify-center">
+                        <i class="fas fa-undo mr-1.5"></i>Tạo phiếu hoàn tiền
+                    </button>
+                    @endif
                 </div>
                 @endif
             </div>
@@ -861,15 +965,23 @@
 
 @push('scripts')
 <script>
+function showImageModalFromElement(el) {
+    if (el && el.dataset) {
+        showImageModal(el.dataset.imageSrc, el.dataset.imageTitle);
+    }
+}
+
 function showImageModal(imageSrc, imageTitle) {
     const modal = document.getElementById('imageModal');
     const modalImage = document.getElementById('modalImage');
     const modalTitle = document.getElementById('modalImageTitle');
     
-    modalImage.src = imageSrc;
-    modalTitle.textContent = imageTitle;
-    modal.classList.remove('hidden');
-    document.body.style.overflow = 'hidden';
+    if (modalImage) modalImage.src = imageSrc || '';
+    if (modalTitle) modalTitle.textContent = imageTitle || '';
+    if (modal) {
+        modal.classList.remove('hidden');
+        document.body.style.overflow = 'hidden';
+    }
 }
 
 function closeImageModal() {
@@ -1061,5 +1173,167 @@ document.addEventListener('keydown', function(event) {
             }
         });
     })();
+</script>
+
+<!-- Refund Overpayment Modal -->
+<div id="refundModal" class="fixed inset-0 z-50 hidden overflow-y-auto" aria-labelledby="refund-modal-title" role="dialog" aria-modal="true">
+    <div class="flex items-center justify-center min-h-screen px-4 pt-4 pb-20 text-center sm:block sm:p-0">
+        <!-- Overlay -->
+        <div class="fixed inset-0 transition-opacity bg-gray-900 bg-opacity-60 backdrop-blur-sm" aria-hidden="true" onclick="closeRefundModal()"></div>
+        
+        <!-- Center modal -->
+        <span class="hidden sm:inline-block sm:align-middle sm:h-screen" aria-hidden="true">&#8203;</span>
+        
+        <div class="inline-block overflow-hidden text-left align-bottom transition-all transform bg-white rounded-2xl shadow-2xl sm:my-8 sm:align-middle sm:max-w-lg sm:w-full border border-gray-100">
+            <form id="refundForm" method="POST" action="{{ route('sales.refund', $sale->id) }}">
+                @csrf
+                
+                <!-- Header with Purple Gradient -->
+                <div class="bg-gradient-to-r from-purple-600 to-indigo-700 px-6 py-4 flex items-center justify-between">
+                    <h3 class="text-lg font-bold text-white flex items-center" id="refund-modal-title">
+                        <i class="fas fa-hand-holding-usd mr-3 opacity-90"></i>
+                        Hoàn tiền thừa cho khách hàng
+                    </h3>
+                    <button type="button" onclick="closeRefundModal()" class="text-white opacity-70 hover:opacity-100 transition-opacity">
+                        <i class="fas fa-times text-xl"></i>
+                    </button>
+                </div>
+
+                <div class="bg-white px-6 py-6 space-y-4">
+                    <!-- Info Alert -->
+                    <div class="p-3 bg-purple-50 border border-purple-200 rounded-xl text-xs text-purple-900">
+                        <div class="font-bold flex items-center mb-1">
+                            <i class="fas fa-info-circle mr-1.5 text-purple-600"></i>Thông tin tiền thừa:
+                        </div>
+                        <div class="grid grid-cols-2 gap-2 mt-1">
+                            <div>Tiền thừa (VND): <strong class="text-purple-700">{{ number_format($overpaidVnd) }}đ</strong></div>
+                            @if($overpaidUsd > 0)
+                            <div>Tiền thừa (USD): <strong class="text-purple-700">${{ number_format($overpaidUsd, 2) }}</strong></div>
+                            @endif
+                        </div>
+                    </div>
+
+                    <!-- Refund Amount VND -->
+                    @if($overpaidVnd > 0 || $sale->total_vnd > 0 || ($overpaidVnd == 0 && $overpaidUsd == 0))
+                    <div>
+                        <label for="refund_amount_vnd" class="block text-sm font-semibold text-gray-700 mb-1">
+                            Số tiền hoàn (VND) <span class="text-red-500">*</span>
+                        </label>
+                        <input type="text" name="refund_amount_vnd" id="refund_amount_vnd" 
+                            value="{{ number_format($overpaidVnd) }}"
+                            oninput="formatVND(this)"
+                            class="block w-full px-4 py-2.5 text-gray-900 border border-gray-300 rounded-xl focus:ring-4 focus:ring-purple-500/20 focus:border-purple-500 font-bold text-base"
+                            placeholder="0">
+                    </div>
+                    @endif
+
+                    <!-- Refund Amount USD -->
+                    @if($overpaidUsd > 0 || $sale->total_usd > 0)
+                    <div>
+                        <label for="refund_amount_usd" class="block text-sm font-semibold text-gray-700 mb-1">
+                            Số tiền hoàn (USD)
+                        </label>
+                        <input type="text" name="refund_amount_usd" id="refund_amount_usd" 
+                            value="{{ $overpaidUsd > 0 ? number_format($overpaidUsd, 2) : '0' }}"
+                            oninput="formatUSD(this)"
+                            class="block w-full px-4 py-2.5 text-gray-900 border border-gray-300 rounded-xl focus:ring-4 focus:ring-purple-500/20 focus:border-purple-500 font-bold text-base"
+                            placeholder="0">
+                    </div>
+                    @endif
+
+                    <!-- Payment Method Field -->
+                    <div>
+                        <label for="refund_payment_method" class="block text-sm font-semibold text-gray-700 mb-1">
+                            Hình thức hoàn tiền <span class="text-red-500">*</span>
+                        </label>
+                        <select name="payment_method" id="refund_payment_method" 
+                            class="block w-full px-4 py-2.5 text-gray-900 border border-gray-300 rounded-xl focus:ring-4 focus:ring-purple-500/20 focus:border-purple-500 bg-gray-50/50">
+                            <option value="bank_transfer" selected>Chuyển khoản</option>
+                            <option value="cash">Tiền mặt</option>
+                            <option value="card">Thẻ</option>
+                            <option value="other">Khác</option>
+                        </select>
+                    </div>
+
+                    <!-- Refund Date -->
+                    <div>
+                        <label for="refund_date" class="block text-sm font-semibold text-gray-700 mb-1">
+                            Ngày hoàn tiền
+                        </label>
+                        <input type="datetime-local" name="refund_date" id="refund_date" 
+                            value="{{ now('Asia/Ho_Chi_Minh')->format('Y-m-d\TH:i') }}"
+                            class="block w-full px-4 py-2 text-gray-900 border border-gray-300 rounded-xl focus:ring-4 focus:ring-purple-500/20 focus:border-purple-500 bg-gray-50/50 text-sm">
+                    </div>
+
+                    <!-- Notes Field -->
+                    <div>
+                        <label for="refund_notes" class="block text-sm font-semibold text-gray-700 mb-1">
+                            Ghi chú / Lý do hoàn tiền
+                        </label>
+                        <textarea name="notes" id="refund_notes" rows="2" 
+                            class="block w-full px-4 py-2.5 text-gray-900 border border-gray-300 rounded-xl focus:ring-4 focus:ring-purple-500/20 focus:border-purple-500 bg-gray-50/50 text-sm placeholder-gray-400"
+                            placeholder="Nhập lý do hoàn tiền thừa...">Hoàn tiền thừa do điều chỉnh giảm giá trị hóa đơn {{ $sale->invoice_code }}</textarea>
+                    </div>
+                </div>
+
+                <!-- Footer with Actions -->
+                <div class="px-6 py-4 bg-gray-50 flex flex-row-reverse gap-3 border-t border-gray-100">
+                    <button type="submit" onclick="return confirm('Xác nhận tạo phiếu hoàn tiền cho khách hàng?')" class="inline-flex justify-center items-center px-6 py-2.5 text-sm font-bold text-white bg-purple-600 rounded-xl shadow-lg shadow-purple-600/30 hover:bg-purple-700 focus:outline-none focus:ring-4 focus:ring-purple-500/40 transform active:scale-95 transition-all">
+                        <i class="fas fa-check mr-2"></i>
+                        Xác nhận hoàn tiền
+                    </button>
+                    <button type="button" onclick="closeRefundModal()" class="inline-flex justify-center items-center px-6 py-2.5 text-sm font-bold text-gray-600 bg-white border border-gray-200 rounded-xl hover:bg-gray-50 hover:text-gray-800 transition-all">
+                        Hủy
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<script>
+    function openRefundModal() {
+        const refundDateInput = document.getElementById('refund_date');
+        if (refundDateInput) {
+            const now = new Date();
+            const year = now.getFullYear();
+            const month = String(now.getMonth() + 1).padStart(2, '0');
+            const day = String(now.getDate()).padStart(2, '0');
+            const hours = String(now.getHours()).padStart(2, '0');
+            const minutes = String(now.getMinutes()).padStart(2, '0');
+            refundDateInput.value = `${year}-${month}-${day}T${hours}:${minutes}`;
+        }
+        document.getElementById('refundModal').classList.remove('hidden');
+    }
+
+    function closeRefundModal() {
+        document.getElementById('refundModal').classList.add('hidden');
+    }
+
+    // Helper formatters
+    function formatVND(input) {
+        let value = input.value.replace(/[^\d]/g, '');
+        if (value) {
+            input.value = parseInt(value).toLocaleString('vi-VN');
+        }
+    }
+
+    function formatUSD(input) {
+        let value = input.value.replace(/[^\d.]/g, '');
+        const parts = value.split('.');
+        if (parts.length > 2) {
+            value = parts[0] + '.' + parts.slice(1).join('');
+            parts.length = 2;
+            parts[0] = value.split('.')[0];
+            parts[1] = value.split('.')[1];
+        }
+        if (parts[0]) {
+            parts[0] = parseInt(parts[0]).toLocaleString('en-US');
+        }
+        if (parts[1]) {
+            parts[1] = parts[1].substring(0, 2);
+        }
+        input.value = parts.length > 1 ? parts[0] + '.' + (parts[1] || '') : parts[0];
+    }
 </script>
 @endpush

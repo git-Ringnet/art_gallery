@@ -83,6 +83,7 @@
                             @elseif($log->activity_type == 'delete') bg-red-100 text-red-800
                             @elseif($log->activity_type == 'approve') bg-purple-100 text-purple-800
                             @elseif($log->activity_type == 'cancel') bg-orange-100 text-orange-800
+                            @elseif($log->activity_type == 'refund') bg-rose-100 text-rose-800 font-bold border border-rose-200
                             @else bg-gray-100 text-gray-800
                             @endif">
                             {{ $log->getActivityTypeLabel() }}

@@ -34,6 +34,7 @@ Route::middleware(['auth', 'archive.readonly'])->group(function () {
         Route::get('/{id}/print', [SalesController::class, 'print'])->middleware('permission:sales,can_print')->name('print');
         Route::post('/{id}/approve', [SalesController::class, 'approve'])->middleware('permission:sales,can_approve')->name('approve');
         Route::post('/{id}/cancel', [SalesController::class, 'cancel'])->middleware('permission:sales,can_cancel')->name('cancel');
+        Route::post('/{id}/refund', [SalesController::class, 'refund'])->middleware('permission:sales,can_edit')->name('refund');
 
         // API routes for search
         Route::get('/api/paintings/{id}', [SalesController::class, 'getPainting'])->name('api.painting');

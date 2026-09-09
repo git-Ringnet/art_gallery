@@ -23,7 +23,7 @@ class ActivityLogController extends Controller
             abort(403, 'Bạn không có quyền truy cập trang này');
         }
 
-        $query = ActivityLog::with('user')->orderBy('created_at', 'desc');
+        $query = ActivityLog::with('user')->orderBy('created_at', 'desc')->orderBy('id', 'desc');
 
         // Filter by user
         if ($request->filled('user_id')) {
@@ -98,7 +98,8 @@ class ActivityLogController extends Controller
         }
 
         $query = ActivityLog::where('user_id', $user->id)
-            ->orderBy('created_at', 'desc');
+            ->orderBy('created_at', 'desc')
+            ->orderBy('id', 'desc');
 
         // Filter by activity type
         if ($request->filled('activity_type')) {

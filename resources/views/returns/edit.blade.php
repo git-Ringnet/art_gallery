@@ -1,4 +1,4 @@
-﻿@extends('layouts.app')
+@extends('layouts.app')
 
 @section('title', 'Chỉnh sửa phiếu đổi/trả hàng')
 @section('page-title', 'Chỉnh sửa phiếu đổi/trả hàng')
@@ -143,7 +143,9 @@
                                 @if($item->painting_id && $item->painting && $item->painting->image)
                                     <img src="{{ asset('storage/' . $item->painting->image) }}" alt="{{ $item->painting->name }}" 
                                         class="w-16 h-16 object-cover rounded cursor-pointer hover:opacity-80 transition-opacity flex-shrink-0"
-                                        onclick="showImageModal('{{ asset('storage/' . $item->painting->image) }}', '{{ $item->painting->name }}')">
+                                        data-image-src="{{ asset('storage/' . $item->painting->image) }}"
+                                        data-image-title="{{ $item->painting->name }}"
+                                        onclick="showImageModalFromElement(this)">
                                 @else
                                     <div class="w-16 h-16 bg-gray-200 rounded flex items-center justify-center flex-shrink-0">
                                         <i class="fas fa-image text-gray-400 text-sm"></i>
@@ -1203,6 +1205,12 @@ function showNotification(message, type = 'info') {
 }
 
 // Image modal functions
+function showImageModalFromElement(el) {
+    if (el && el.dataset) {
+        showImageModal(el.dataset.imageSrc, el.dataset.imageTitle);
+    }
+}
+
 function showImageModal(imageSrc, imageTitle) {
     const modal = document.getElementById('imageModal');
     const modalImage = document.getElementById('modalImage');
