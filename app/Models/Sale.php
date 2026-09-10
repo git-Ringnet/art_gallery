@@ -283,8 +283,8 @@ class Sale extends Model
             $totalAmount = (float) $this->total_usd;
             $debt = round($totalAmount - $totalPaid, 2); // Làm tròn để tránh sai số floating point
 
-            // Xác định trạng thái - Thêm sai số 0.05 USD để xử lý lệch do quy đổi tỷ giá
-            if ($debt <= 0.05) {
+            // Xác định trạng thái - Thêm sai số 1.00 USD để xử lý lệch do quy đổi tỷ giá
+            if ($debt <= 1.00) {
                 $this->payment_status = 'paid';
                 $this->debt_amount = 0;
             } elseif ($totalPaid > 0.01) {
@@ -303,8 +303,8 @@ class Sale extends Model
             $totalAmount = (float) $this->total_vnd;
             $debt = $totalAmount - $totalPaid;
 
-            // Xác định trạng thái: Cho phép sai số <= 1.000 VND do làm tròn tỷ giá USD
-            if ($debt <= 1000) {
+            // Xác định trạng thái: Cho phép sai số <= 30.000 VND do làm tròn tỷ giá USD
+            if ($debt <= 30000) {
                 $this->payment_status = 'paid';
                 $this->debt_amount = 0;
             } elseif ($totalPaid > 1000) {
@@ -325,7 +325,7 @@ class Sale extends Model
                 $totalPaidInVnd = (float) $this->paid_vnd + ((float) $this->paid_usd * $exchangeRate);
                 $remainingVnd = $fullTotalVnd - $totalPaidInVnd;
 
-                if ($remainingVnd <= 1000) {
+                if ($remainingVnd <= 30000) {
                     $this->payment_status = 'paid';
                     $this->debt_amount = 0;
                 } elseif ($totalPaidInVnd > 1000) {
@@ -343,14 +343,14 @@ class Sale extends Model
 
                 if ($this->total_usd > 0.01) {
                     $debtUsd = (float) $this->total_usd - (float) $this->paid_usd;
-                    if ($debtUsd > 0.05) {
+                    if ($debtUsd > 1.00) {
                         $hasUsdDebt = true;
                     }
                 }
 
                 if ($this->total_vnd > 1) {
                     $debtVnd = (float) $this->total_vnd - (float) $this->paid_vnd;
-                    if ($debtVnd > 1000) {
+                    if ($debtVnd > 30000) {
                         $hasVndDebt = true;
                     }
                 }
@@ -555,7 +555,7 @@ class Sale extends Model
             $totalPaidInVnd = (float) $this->paid_vnd + ((float) $this->paid_usd * $exchangeRate);
             $diffVnd = $fullTotalVnd - $totalPaidInVnd;
 
-            if ($diffVnd <= 1000) {
+            if ($diffVnd <= 30000) {
                 return 0; // Đã thanh toán đủ
             }
 
@@ -564,7 +564,7 @@ class Sale extends Model
             $effectivePaidUsd = (float) $this->paid_usd + ($excessVnd / $exchangeRate);
             $remainingDebtUsd = max(0, (float) $this->total_usd - $effectivePaidUsd);
 
-            if ($remainingDebtUsd <= 0.05) {
+            if ($remainingDebtUsd <= 1.00) {
                 return 0;
             }
             return round($remainingDebtUsd, 2);
@@ -572,7 +572,7 @@ class Sale extends Model
 
         // Hóa đơn chỉ USD hoặc không có tỷ giá
         $debtUsd = (float) $this->total_usd - (float) $this->paid_usd;
-        if ($debtUsd <= 0.05) {
+        if ($debtUsd <= 1.00) {
             return 0;
         }
 
@@ -596,7 +596,7 @@ class Sale extends Model
             $totalPaidInVnd = (float) $this->paid_vnd + ((float) $this->paid_usd * $exchangeRate);
             $diffVnd = $fullTotalVnd - $totalPaidInVnd;
 
-            if ($diffVnd <= 1000) {
+            if ($diffVnd <= 30000) {
                 return 0; // Đã thanh toán đủ
             }
 

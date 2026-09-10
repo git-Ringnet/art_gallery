@@ -240,51 +240,20 @@ class SalesController extends Controller
         if ($request->has('items')) {
             $items = $request->items;
             foreach ($items as $key => $item) {
-                // Clean price_usd: empty string, "0", or formatted string → null or clean number
                 if (isset($item['price_usd'])) {
-                    $priceUsd = $item['price_usd'];
-                    if ($priceUsd === '' || $priceUsd === '0' || $priceUsd === 0) {
-                        $items[$key]['price_usd'] = null;
-                    } else if (is_string($priceUsd)) {
-                        // Remove formatting (commas, spaces) - keep dots for decimals
-                        $items[$key]['price_usd'] = str_replace([',', ' '], '', $priceUsd);
-                    }
+                    $items[$key]['price_usd'] = $this->cleanNumericInput($item['price_usd'], false);
                 }
-
-                // Clean price_vnd: empty string, "0", or formatted string → null or clean number
                 if (isset($item['price_vnd'])) {
-                    $priceVnd = $item['price_vnd'];
-                    if ($priceVnd === '' || $priceVnd === '0' || $priceVnd === 0) {
-                        $items[$key]['price_vnd'] = null;
-                    } else if (is_string($priceVnd)) {
-                        // Remove formatting (commas, dots, spaces)
-                        $items[$key]['price_vnd'] = str_replace([',', '.', ' '], '', $priceVnd);
-                    }
+                    $items[$key]['price_vnd'] = $this->cleanNumericInput($item['price_vnd'], true);
                 }
-
-                // Clean discount_amount_usd for items
                 if (isset($item['discount_amount_usd'])) {
-                    $discUsd = $item['discount_amount_usd'];
-                    if ($discUsd === '' || $discUsd === null) {
-                        $items[$key]['discount_amount_usd'] = null;
-                    } else if (is_string($discUsd)) {
-                        $cleaned = str_replace([',', ' '], '', $discUsd);
-                        $items[$key]['discount_amount_usd'] = is_numeric($cleaned) ? (float) $cleaned : null;
-                    }
+                    $items[$key]['discount_amount_usd'] = $this->cleanNumericInput($item['discount_amount_usd'], false);
                 }
-
-                // Clean discount_amount_vnd for items
                 if (isset($item['discount_amount_vnd'])) {
-                    $discVnd = $item['discount_amount_vnd'];
-                    if ($discVnd === '' || $discVnd === null) {
-                        $items[$key]['discount_amount_vnd'] = null;
-                    } else if (is_string($discVnd)) {
-                        $cleaned = str_replace([',', '.', ' '], '', $discVnd);
-                        $items[$key]['discount_amount_vnd'] = is_numeric($cleaned) ? (float) $cleaned : null;
-                    }
+                    $items[$key]['discount_amount_vnd'] = $this->cleanNumericInput($item['discount_amount_vnd'], true);
                 }
             }
-            
+
             // Lọc bỏ các dòng trống (không có tranh, khung, vật tư và không có mô tả)
             $items = array_filter($items, function($item) {
                 return !empty($item['painting_id']) || 
@@ -300,17 +269,8 @@ class SalesController extends Controller
         $numericFields = ['discount_amount_usd', 'discount_amount_vnd', 'shipping_fee_usd', 'shipping_fee_vnd', 'exchange_rate', 'payment_usd', 'payment_vnd', 'payment_amount'];
         foreach ($numericFields as $field) {
             $value = $request->input($field);
-            if ($value === '' || $value === null) {
-                $request->merge([$field => null]);
-            } elseif (is_string($value)) {
-                // Remove formatting (commas, dots for VND, spaces)
-                $cleaned = str_replace([',', ' '], '', $value);
-                // For VND fields, also remove dots used as thousands separator
-                if (str_contains($field, 'vnd') || $field === 'exchange_rate') {
-                    $cleaned = str_replace('.', '', $cleaned);
-                }
-                $request->merge([$field => is_numeric($cleaned) ? (float) $cleaned : null]);
-            }
+            $isVndOrRate = str_contains($field, 'vnd') || $field === 'exchange_rate';
+            $request->merge([$field => $this->cleanNumericInput($value, $isVndOrRate)]);
         }
 
         $validated = $request->validate([
@@ -424,39 +384,22 @@ class SalesController extends Controller
             $user = $this->getDefaultUser();
 
             // Lấy payment_usd và payment_vnd
-            $paymentUsd = $request->payment_usd ?? 0;
-            $paymentVnd = $request->payment_vnd ?? 0;
+            $paymentUsd = $this->cleanNumericInput($request->payment_usd ?? 0, false) ?? 0;
+            $paymentVnd = $this->cleanNumericInput($request->payment_vnd ?? 0, true) ?? 0;
 
-            // Xử lý exchange_rate - loại bỏ dấu phẩy, chấm
-            $exchangeRate = $request->exchange_rate ?? 0;
-            if (is_string($exchangeRate)) {
-                $exchangeRate = (float) str_replace([',', '.', ' '], '', $exchangeRate);
-            }
+            // Xử lý exchange_rate
+            $exchangeRate = $this->cleanNumericInput($request->exchange_rate ?? 0, true) ?? 0;
 
             // Tính paid_amount dựa vào loại payment
-            // NOTE: paid_amount trong DB được dùng để tương thích và tính debt
-            // Với logic mới: lưu riêng payment_usd và payment_vnd
-            $paidAmount = $request->payment_amount ?? 0;  // Giá trị đã được tính từ frontend
+            $paidAmount = $this->cleanNumericInput($request->payment_amount ?? 0, true) ?? 0;
 
             // Xử lý discount_amount cho Sale
-            $discountAmountUsd = $request->discount_amount_usd ?? 0;
-            $discountAmountVnd = $request->discount_amount_vnd ?? 0;
-            if (is_string($discountAmountUsd)) {
-                $discountAmountUsd = (float) str_replace([',', ' '], '', $discountAmountUsd);
-            }
-            if (is_string($discountAmountVnd)) {
-                $discountAmountVnd = (float) str_replace([',', '.', ' '], '', $discountAmountVnd);
-            }
+            $discountAmountUsd = $this->cleanNumericInput($request->discount_amount_usd ?? 0, false) ?? 0;
+            $discountAmountVnd = $this->cleanNumericInput($request->discount_amount_vnd ?? 0, true) ?? 0;
 
             // Xử lý shipping_fee
-            $shippingFeeUsd = $request->shipping_fee_usd ?? 0;
-            $shippingFeeVnd = $request->shipping_fee_vnd ?? 0;
-            if (is_string($shippingFeeUsd)) {
-                $shippingFeeUsd = (float) str_replace([',', ' '], '', $shippingFeeUsd);
-            }
-            if (is_string($shippingFeeVnd)) {
-                $shippingFeeVnd = (float) str_replace([',', '.', ' '], '', $shippingFeeVnd);
-            }
+            $shippingFeeUsd = $this->cleanNumericInput($request->shipping_fee_usd ?? 0, false) ?? 0;
+            $shippingFeeVnd = $this->cleanNumericInput($request->shipping_fee_vnd ?? 0, true) ?? 0;
 
             // Create sale
             $sale = Sale::create([
@@ -488,14 +431,8 @@ class SalesController extends Controller
             if ($request->has('items') && is_array($request->items)) {
                 foreach ($request->items as $item) {
                 // Xử lý discount_amount cho item
-                $itemDiscountUsd = $item['discount_amount_usd'] ?? 0;
-                $itemDiscountVnd = $item['discount_amount_vnd'] ?? 0;
-                if (is_string($itemDiscountUsd)) {
-                    $itemDiscountUsd = (float) str_replace([',', ' '], '', $itemDiscountUsd);
-                }
-                if (is_string($itemDiscountVnd)) {
-                    $itemDiscountVnd = (float) str_replace([',', '.', ' '], '', $itemDiscountVnd);
-                }
+                $itemDiscountUsd = $this->cleanNumericInput($item['discount_amount_usd'] ?? 0, false) ?? 0;
+                $itemDiscountVnd = $this->cleanNumericInput($item['discount_amount_vnd'] ?? 0, true) ?? 0;
 
                 $processedItemId = null;
                 if (empty($item['painting_id']) && empty($item['frame_id']) && empty($item['supply_id'])) {
@@ -574,12 +511,13 @@ class SalesController extends Controller
                 if ($rate > 0) {
                     $fullTotalVnd = (float) $sale->total_usd * $rate;
                     $totalPaidInVnd = ((float) $paymentUsd * $rate) + (float) $paymentVnd;
-                    if ($totalPaidInVnd > $fullTotalVnd + 1000) {
+                    $toleranceVnd = max(30000, $rate);
+                    if ($totalPaidInVnd > $fullTotalVnd + $toleranceVnd) {
                         $overVnd = $totalPaidInVnd - $fullTotalVnd;
                         throw new \Exception("Số tiền thanh toán quy đổi (" . number_format($totalPaidInVnd) . "đ) vượt quá tổng giá trị đơn hàng (" . number_format($fullTotalVnd) . "đ). Vượt quá: " . number_format($overVnd) . "đ. Vui lòng kiểm tra lại số tiền trả!");
                     }
                 } else {
-                    if ((float) $paymentUsd > (float) $sale->total_usd + 0.05) {
+                    if ((float) $paymentUsd > (float) $sale->total_usd + 1.00) {
                         $overAmount = (float) $paymentUsd - (float) $sale->total_usd;
                         throw new \Exception("Số tiền thanh toán (\$" . number_format((float) $paymentUsd, 2) . ") vượt quá tổng giá trị đơn hàng (\$" . number_format((float) $sale->total_usd, 2) . "). Vượt quá: \$" . number_format($overAmount, 2) . ". Vui lòng kiểm tra lại số tiền trả!");
                     }
@@ -591,8 +529,9 @@ class SalesController extends Controller
                 }
                 $convertedVndFromUsd = ($rate > 0 && $paymentUsd > 0) ? ($paymentUsd * $rate) : 0;
                 $totalPaidInVnd = (float) $paymentVnd + $convertedVndFromUsd;
+                $toleranceVnd = max(30000, $rate);
 
-                if ($totalPaidInVnd > (float) $sale->total_vnd + 1000) {
+                if ($totalPaidInVnd > (float) $sale->total_vnd + $toleranceVnd) {
                     $overAmount = $totalPaidInVnd - (float) $sale->total_vnd;
                     throw new \Exception("Số tiền thanh toán (" . number_format($totalPaidInVnd) . "đ) vượt quá tổng giá trị đơn hàng (" . number_format((float) $sale->total_vnd) . "đ). Vượt quá: " . number_format($overAmount) . "đ. Vui lòng kiểm tra lại số tiền trả!");
                 }
@@ -601,16 +540,17 @@ class SalesController extends Controller
                 if ($rate > 0) {
                     $fullTotalVnd = (float) $sale->total_vnd + ((float) $sale->total_usd * $rate);
                     $totalPaidInVnd = (float) $paymentVnd + ((float) $paymentUsd * $rate);
+                    $toleranceVnd = max(30000, $rate);
 
-                    if ($totalPaidInVnd > $fullTotalVnd + 1000) {
+                    if ($totalPaidInVnd > $fullTotalVnd + $toleranceVnd) {
                         $overAmount = $totalPaidInVnd - $fullTotalVnd;
                         throw new \Exception("Số tiền thanh toán quy đổi (" . number_format($totalPaidInVnd) . "đ) vượt quá tổng giá trị đơn hàng quy đổi (" . number_format($fullTotalVnd) . "đ). Vượt quá: " . number_format($overAmount) . "đ. Vui lòng kiểm tra lại số tiền trả!");
                     }
                 } else {
-                    if ((float) $paymentUsd > (float) $sale->total_usd + 0.05) {
+                    if ((float) $paymentUsd > (float) $sale->total_usd + 1.00) {
                         throw new \Exception("Số tiền USD thanh toán (\$" . number_format((float) $paymentUsd, 2) . ") vượt quá tổng USD (\$" . number_format((float) $sale->total_usd, 2) . ")");
                     }
-                    if ((float) $paymentVnd > (float) $sale->total_vnd + 1000) {
+                    if ((float) $paymentVnd > (float) $sale->total_vnd + 30000) {
                         throw new \Exception("Số tiền VND thanh toán (" . number_format((float) $paymentVnd) . "đ) vượt quá tổng VND (" . number_format((float) $sale->total_vnd) . "đ)");
                     }
                 }
@@ -721,17 +661,8 @@ class SalesController extends Controller
         $numericFields = ['discount_amount_usd', 'discount_amount_vnd', 'shipping_fee_usd', 'shipping_fee_vnd', 'exchange_rate', 'payment_usd', 'payment_vnd', 'payment_amount'];
         foreach ($numericFields as $field) {
             $value = $request->input($field);
-            if ($value === '' || $value === null) {
-                $request->merge([$field => null]);
-            } elseif (is_string($value)) {
-                // Remove formatting (commas, dots for VND, spaces)
-                $cleaned = str_replace([',', ' '], '', $value);
-                // For VND fields, also remove dots used as thousands separator
-                if (str_contains($field, 'vnd') || $field === 'exchange_rate') {
-                    $cleaned = str_replace('.', '', $cleaned);
-                }
-                $request->merge([$field => is_numeric($cleaned) ? (float) $cleaned : null]);
-            }
+            $isVndOrRate = str_contains($field, 'vnd') || $field === 'exchange_rate';
+            $request->merge([$field => $this->cleanNumericInput($value, $isVndOrRate)]);
         }
 
         // Validation rules khác nhau tùy theo có return hay không
@@ -756,26 +687,17 @@ class SalesController extends Controller
             if ($request->has('items') && is_array($request->items)) {
                 $items = $request->items;
                 foreach ($items as $key => $item) {
-                    // Clean price_usd: empty string, "0", or formatted string → null or clean number
                     if (isset($item['price_usd'])) {
-                        $priceUsd = $item['price_usd'];
-                        if ($priceUsd === '' || $priceUsd === '0' || $priceUsd === 0) {
-                            $items[$key]['price_usd'] = null;
-                        } else if (is_string($priceUsd)) {
-                            // Remove formatting (commas, spaces)
-                            $items[$key]['price_usd'] = str_replace([',', ' '], '', $priceUsd);
-                        }
+                        $items[$key]['price_usd'] = $this->cleanNumericInput($item['price_usd'], false);
                     }
-
-                    // Clean price_vnd: empty string, "0", or formatted string → null or clean number
                     if (isset($item['price_vnd'])) {
-                        $priceVnd = $item['price_vnd'];
-                        if ($priceVnd === '' || $priceVnd === '0' || $priceVnd === 0) {
-                            $items[$key]['price_vnd'] = null;
-                        } else if (is_string($priceVnd)) {
-                            // Remove formatting (commas, dots, spaces)
-                            $items[$key]['price_vnd'] = str_replace([',', '.', ' '], '', $priceVnd);
-                        }
+                        $items[$key]['price_vnd'] = $this->cleanNumericInput($item['price_vnd'], true);
+                    }
+                    if (isset($item['discount_amount_usd'])) {
+                        $items[$key]['discount_amount_usd'] = $this->cleanNumericInput($item['discount_amount_usd'], false);
+                    }
+                    if (isset($item['discount_amount_vnd'])) {
+                        $items[$key]['discount_amount_vnd'] = $this->cleanNumericInput($item['discount_amount_vnd'], true);
                     }
                 }
 
@@ -915,32 +837,16 @@ class SalesController extends Controller
             $canUpdateRate = ($sale->sale_status === 'pending') || ($sale->payment_status !== 'paid');
 
             if ($canUpdateRate && $request->filled('exchange_rate')) {
-                $newExchangeRate = $request->exchange_rate;
-                if (is_string($newExchangeRate)) {
-                    $newExchangeRate = (float) str_replace([',', '.', ' '], '', $newExchangeRate);
-                }
-                $exchangeRate = $newExchangeRate;
+                $exchangeRate = $this->cleanNumericInput($request->exchange_rate, true) ?? $exchangeRate;
             }
 
             // Xử lý discount_amount cho Sale (khi update)
-            $discountAmountUsd = $request->discount_amount_usd ?? $sale->discount_amount_usd ?? 0;
-            $discountAmountVnd = $request->discount_amount_vnd ?? $sale->discount_amount_vnd ?? 0;
-            if (is_string($discountAmountUsd)) {
-                $discountAmountUsd = (float) str_replace([',', ' '], '', $discountAmountUsd);
-            }
-            if (is_string($discountAmountVnd)) {
-                $discountAmountVnd = (float) str_replace([',', '.', ' '], '', $discountAmountVnd);
-            }
+            $discountAmountUsd = $this->cleanNumericInput($request->discount_amount_usd, false) ?? ($sale->discount_amount_usd ?? 0);
+            $discountAmountVnd = $this->cleanNumericInput($request->discount_amount_vnd, true) ?? ($sale->discount_amount_vnd ?? 0);
 
             // Xử lý shipping_fee (khi update)
-            $shippingFeeUsd = $request->shipping_fee_usd ?? $sale->shipping_fee_usd ?? 0;
-            $shippingFeeVnd = $request->shipping_fee_vnd ?? $sale->shipping_fee_vnd ?? 0;
-            if (is_string($shippingFeeUsd)) {
-                $shippingFeeUsd = (float) str_replace([',', ' '], '', $shippingFeeUsd);
-            }
-            if (is_string($shippingFeeVnd)) {
-                $shippingFeeVnd = (float) str_replace([',', '.', ' '], '', $shippingFeeVnd);
-            }
+            $shippingFeeUsd = $this->cleanNumericInput($request->shipping_fee_usd, false) ?? ($sale->shipping_fee_usd ?? 0);
+            $shippingFeeVnd = $this->cleanNumericInput($request->shipping_fee_vnd, true) ?? ($sale->shipping_fee_vnd ?? 0);
 
             // Update sale
             $sale->update([
@@ -1009,14 +915,8 @@ class SalesController extends Controller
                 if ($request->has('items') && is_array($request->items)) {
                     foreach ($request->items as $item) {
                     // Xử lý discount_amount cho item
-                    $itemDiscountUsd = $item['discount_amount_usd'] ?? 0;
-                    $itemDiscountVnd = $item['discount_amount_vnd'] ?? 0;
-                    if (is_string($itemDiscountUsd)) {
-                        $itemDiscountUsd = (float) str_replace([',', ' '], '', $itemDiscountUsd);
-                    }
-                    if (is_string($itemDiscountVnd)) {
-                        $itemDiscountVnd = (float) str_replace([',', '.', ' '], '', $itemDiscountVnd);
-                    }
+                    $itemDiscountUsd = $this->cleanNumericInput($item['discount_amount_usd'] ?? 0, false) ?? 0;
+                    $itemDiscountVnd = $this->cleanNumericInput($item['discount_amount_vnd'] ?? 0, true) ?? 0;
 
                     $processedItemId = null;
                     if (empty($item['painting_id']) && empty($item['frame_id']) && empty($item['supply_id'])) {
@@ -1025,8 +925,8 @@ class SalesController extends Controller
                             [
                                 'code' => 'GC-' . strtoupper(substr(uniqid(), -6)),
                                 'quantity' => 0,
-                                'price_vnd' => $item['currency'] === 'VND' ? ($item['price_vnd'] ?? 0) : 0,
-                                'price_usd' => $item['currency'] === 'USD' ? ($item['price_usd'] ?? 0) : 0,
+                                'price_vnd' => $item['currency'] === 'VND' ? ($this->cleanNumericInput($item['price_vnd'] ?? 0, true) ?? 0) : 0,
+                                'price_usd' => $item['currency'] === 'USD' ? ($this->cleanNumericInput($item['price_usd'] ?? 0, false) ?? 0) : 0,
                             ]
                         );
                         $processedItemId = $processedItem->id;
@@ -1058,8 +958,8 @@ class SalesController extends Controller
                         'supply_id' => $item['supply_id'] ?? null,
                         'supply_length' => $item['supply_length'] ?? null,
                         'currency' => $item['currency'],
-                        'price_usd' => $item['currency'] === 'USD' ? ($item['price_usd'] ?? 0) : 0,
-                        'price_vnd' => $item['currency'] === 'VND' ? ($item['price_vnd'] ?? 0) : 0,
+                        'price_usd' => $item['currency'] === 'USD' ? ($this->cleanNumericInput($item['price_usd'] ?? 0, false) ?? 0) : 0,
+                        'price_vnd' => $item['currency'] === 'VND' ? ($this->cleanNumericInput($item['price_vnd'] ?? 0, true) ?? 0) : 0,
                         'discount_percent' => $item['discount_percent'] ?? 0,
                         'discount_amount_usd' => $item['currency'] === 'USD' ? $itemDiscountUsd : 0,
                         'discount_amount_vnd' => $item['currency'] === 'VND' ? $itemDiscountVnd : 0,
@@ -1122,8 +1022,8 @@ class SalesController extends Controller
             if ($request->filled('payment_amount') && $request->payment_amount > 0) {
                 if ($sale->sale_status === 'completed') {
                     // Phiếu đã duyệt - tạo payment mới (trả thêm)
-                    $paymentUsd = $request->payment_usd ?? 0;
-                    $paymentVnd = $request->payment_vnd ?? 0;
+                    $paymentUsd = $this->cleanNumericInput($request->payment_usd ?? 0, false) ?? 0;
+                    $paymentVnd = $this->cleanNumericInput($request->payment_vnd ?? 0, true) ?? 0;
 
                     // Xác định loại hóa đơn
                     $hasUsdTotal = $sale->total_usd > 0;
@@ -1134,18 +1034,12 @@ class SalesController extends Controller
 
                     // Trường hợp 1: Hóa đơn USD, trả VND (USD-VND)
                     if ($hasUsdTotal && !$hasVndTotal && $paymentVnd > 0) {
-                        $paymentExchangeRate = $request->exchange_rate ?? $sale->exchange_rate;
-                        if (is_string($paymentExchangeRate)) {
-                            $paymentExchangeRate = (float) str_replace([',', '.', ' '], '', $paymentExchangeRate);
-                        }
+                        $paymentExchangeRate = $this->cleanNumericInput($request->exchange_rate ?? $sale->exchange_rate, true);
                     }
 
                     // Trường hợp 2: Hóa đơn VND, trả USD (VND-USD)
                     if ($hasVndTotal && !$hasUsdTotal && $paymentUsd > 0) {
-                        $paymentExchangeRate = $request->exchange_rate ?? $sale->exchange_rate;
-                        if (is_string($paymentExchangeRate)) {
-                            $paymentExchangeRate = (float) str_replace([',', '.', ' '], '', $paymentExchangeRate);
-                        }
+                        $paymentExchangeRate = $this->cleanNumericInput($request->exchange_rate ?? $sale->exchange_rate, true);
                     }
 
                     // Trường hợp 3: Hóa đơn Mixed (USD+VND) - KHÔNG lưu tỷ giá
@@ -1162,19 +1056,19 @@ class SalesController extends Controller
                     $isAlreadyFullyPaid = false;
                     if ($totalUsd > 0 && $totalVnd <= 0) {
                         // Hóa đơn USD thuần
-                        $isAlreadyFullyPaid = $alreadyPaidUsd >= $totalUsd - 0.01;
+                        $isAlreadyFullyPaid = $alreadyPaidUsd >= $totalUsd - 1.00;
                     } elseif ($totalVnd > 0 && $totalUsd <= 0) {
                         // Hóa đơn VND thuần
-                        $isAlreadyFullyPaid = $alreadyPaidVnd >= $totalVnd - 1000;
+                        $isAlreadyFullyPaid = $alreadyPaidVnd >= $totalVnd - 30000;
                     } else {
                         // Hóa đơn Mixed
                         $rate = (float) ($sale->exchange_rate ?? 0);
                         if ($rate > 0) {
                             $fullTotalVnd = $totalVnd + ($totalUsd * $rate);
                             $alreadyPaidInVnd = $alreadyPaidVnd + ($alreadyPaidUsd * $rate);
-                            $isAlreadyFullyPaid = $alreadyPaidInVnd >= $fullTotalVnd - 1000;
+                            $isAlreadyFullyPaid = $alreadyPaidInVnd >= $fullTotalVnd - 30000;
                         } else {
-                            $isAlreadyFullyPaid = ($alreadyPaidUsd >= $totalUsd - 0.01) && ($alreadyPaidVnd >= $totalVnd - 1000);
+                            $isAlreadyFullyPaid = ($alreadyPaidUsd >= $totalUsd - 1.00) && ($alreadyPaidVnd >= $totalVnd - 30000);
                         }
                     }
 
@@ -1187,14 +1081,15 @@ class SalesController extends Controller
                     if ($totalUsd > 0 && $totalVnd <= 0) {
                         $remainingUsd = $totalUsd - $alreadyPaidUsd;
                         $incomingUsd = $paymentUsd + ($paymentVnd > 0 && $paymentExchangeRate > 0 ? $paymentVnd / $paymentExchangeRate : 0);
-                        if ($incomingUsd > $remainingUsd + 0.01) {
+                        if ($incomingUsd > $remainingUsd + 1.00) {
                             DB::rollBack();
                             return back()->with('error', 'Số tiền thanh toán ($' . number_format($incomingUsd, 2) . ') vượt quá số còn nợ ($' . number_format($remainingUsd, 2) . '). Vui lòng kiểm tra lại.');
                         }
                     } elseif ($totalVnd > 0 && $totalUsd <= 0) {
                         $remainingVnd = $totalVnd - $alreadyPaidVnd;
                         $incomingVnd = $paymentVnd + ($paymentUsd > 0 && $paymentExchangeRate > 0 ? $paymentUsd * $paymentExchangeRate : 0);
-                        if ($incomingVnd > $remainingVnd + 1000) {
+                        $toleranceVnd = max(30000, (float) $paymentExchangeRate);
+                        if ($incomingVnd > $remainingVnd + $toleranceVnd) {
                             DB::rollBack();
                             return back()->with('error', 'Số tiền thanh toán (' . number_format($incomingVnd) . 'đ) vượt quá số còn nợ (' . number_format($remainingVnd) . 'đ). Vui lòng kiểm tra lại.');
                         }
@@ -1205,30 +1100,31 @@ class SalesController extends Controller
                             $alreadyPaidInVnd = $alreadyPaidVnd + ($alreadyPaidUsd * $rate);
                             $remainingVnd = max(0, $fullTotalVnd - $alreadyPaidInVnd);
                             $incomingVnd = (float) $paymentVnd + ((float) $paymentUsd * $rate);
-                            if ($incomingVnd > $remainingVnd + 1000) {
+                            $toleranceVnd = max(30000, $rate);
+                            if ($incomingVnd > $remainingVnd + $toleranceVnd) {
                                 DB::rollBack();
                                 return back()->with('error', 'Số tiền thanh toán quy đổi (' . number_format($incomingVnd) . 'đ) vượt quá số còn nợ quy đổi (' . number_format($remainingVnd) . 'đ). Vui lòng kiểm tra lại.');
                             }
                         } else {
                             $remainingUsd = $totalUsd - $alreadyPaidUsd;
                             $remainingVnd = $totalVnd - $alreadyPaidVnd;
-                            if ($paymentUsd > $remainingUsd + 0.01) {
+                            if ($paymentUsd > $remainingUsd + 1.00) {
                                 DB::rollBack();
                                 return back()->with('error', 'Số tiền USD thanh toán ($' . number_format($paymentUsd, 2) . ') vượt quá số USD còn nợ ($' . number_format($remainingUsd, 2) . '). Vui lòng kiểm tra lại.');
                             }
-                            if ($paymentVnd > $remainingVnd + 1000) {
+                            if ($paymentVnd > $remainingVnd + 30000) {
                                 DB::rollBack();
                                 return back()->with('error', 'Số tiền VND thanh toán (' . number_format($paymentVnd) . 'đ) vượt quá số VND còn nợ (' . number_format($remainingVnd) . 'đ). Vui lòng kiểm tra lại.');
                             }
                         }
                     }
 
-                    // === BẢO VỆ 3: Kiểm tra trùng lặp thanh toán (mở rộng lên 30 phút) ===
+                    // === BẢO VỆ 3: Kiểm tra chống double-click / gửi form lặp (trong vòng 15 giây) ===
                     $isDuplicate = Payment::where('sale_id', $sale->id)
                         ->where('payment_usd', $paymentUsd)
                         ->where('payment_vnd', $paymentVnd)
                         ->where('notes', 'Trả nợ thêm')
-                        ->where('created_at', '>=', now()->subMinutes(30))
+                        ->where('created_at', '>=', now()->subSeconds(15))
                         ->exists();
 
                     if (!$isDuplicate) {
@@ -1246,13 +1142,13 @@ class SalesController extends Controller
                         ]);
                     } else {
                         DB::rollBack();
-                        return back()->with('error', 'Phát hiện thanh toán trùng lặp! Bạn đã tạo một khoản thanh toán giống hệt trong vòng 30 phút trước. Vui lòng kiểm tra lại danh sách thanh toán.');
+                        return back()->with('error', 'Thao tác quá nhanh! Khoản thanh toán giống hệt vừa được ghi nhận cách đây vài giây. Vui lòng kiểm tra lại danh sách thanh toán.');
                     }
                 } else {
                     // Validation: Kiểm tra thanh toán không vượt quá tổng tiền
                     $rate = (float) $sale->exchange_rate;
-                    $paymentUsd = (float) ($request->payment_usd ?? 0);
-                    $paymentVnd = (float) ($request->payment_vnd ?? 0);
+                    $paymentUsd = $this->cleanNumericInput($request->payment_usd ?? 0, false) ?? 0;
+                    $paymentVnd = $this->cleanNumericInput($request->payment_vnd ?? 0, true) ?? 0;
 
                     if ($sale->total_usd > 0 && $sale->total_vnd <= 0) {
                         if ($paymentVnd > 0 && $rate <= 0) {
@@ -1262,13 +1158,14 @@ class SalesController extends Controller
                         if ($rate > 0) {
                             $fullTotalVnd = (float) $sale->total_usd * $rate;
                             $totalPaidInVnd = ($paymentUsd * $rate) + $paymentVnd;
-                            if ($totalPaidInVnd > $fullTotalVnd + 1000) {
+                            $toleranceVnd = max(30000, $rate);
+                            if ($totalPaidInVnd > $fullTotalVnd + $toleranceVnd) {
                                 $overVnd = $totalPaidInVnd - $fullTotalVnd;
                                 DB::rollBack();
                                 return back()->withInput()->with('error', "Số tiền thanh toán quy đổi (" . number_format($totalPaidInVnd) . "đ) vượt quá tổng giá trị đơn hàng (" . number_format($fullTotalVnd) . "đ). Vượt quá: " . number_format($overVnd) . "đ. Vui lòng kiểm tra lại số tiền trả!");
                             }
                         } else {
-                            if ($paymentUsd > (float) $sale->total_usd + 0.05) {
+                            if ($paymentUsd > (float) $sale->total_usd + 1.00) {
                                 $overAmount = $paymentUsd - (float) $sale->total_usd;
                                 DB::rollBack();
                                 return back()->withInput()->with('error', "Số tiền thanh toán (\$" . number_format($paymentUsd, 2) . ") vượt quá tổng giá trị đơn hàng (\$" . number_format((float) $sale->total_usd, 2) . "). Vượt quá: \$" . number_format($overAmount, 2) . ". Vui lòng kiểm tra lại số tiền trả!");
@@ -1281,8 +1178,9 @@ class SalesController extends Controller
                         }
                         $convertedVndFromUsd = ($rate > 0 && $paymentUsd > 0) ? ($paymentUsd * $rate) : 0;
                         $totalPaidInVnd = $paymentVnd + $convertedVndFromUsd;
+                        $toleranceVnd = max(30000, $rate);
 
-                        if ($totalPaidInVnd > (float) $sale->total_vnd + 1000) {
+                        if ($totalPaidInVnd > (float) $sale->total_vnd + $toleranceVnd) {
                             $overAmount = $totalPaidInVnd - (float) $sale->total_vnd;
                             DB::rollBack();
                             return back()->withInput()->with('error', "Số tiền thanh toán (" . number_format($totalPaidInVnd) . "đ) vượt quá tổng giá trị đơn hàng (" . number_format((float) $sale->total_vnd) . "đ). Vượt quá: " . number_format($overAmount) . "đ. Vui lòng kiểm tra lại số tiền trả!");
@@ -1291,18 +1189,19 @@ class SalesController extends Controller
                         if ($rate > 0) {
                             $fullTotalVnd = (float) $sale->total_vnd + ((float) $sale->total_usd * $rate);
                             $totalPaidInVnd = (float) $paymentVnd + ((float) $paymentUsd * $rate);
+                            $toleranceVnd = max(30000, $rate);
 
-                            if ($totalPaidInVnd > $fullTotalVnd + 1000) {
+                            if ($totalPaidInVnd > $fullTotalVnd + $toleranceVnd) {
                                 $overAmount = $totalPaidInVnd - $fullTotalVnd;
                                 DB::rollBack();
                                 return back()->withInput()->with('error', "Số tiền thanh toán quy đổi (" . number_format($totalPaidInVnd) . "đ) vượt quá tổng giá trị đơn hàng quy đổi (" . number_format($fullTotalVnd) . "đ). Vượt quá: " . number_format($overAmount) . "đ. Vui lòng kiểm tra lại số tiền trả!");
                             }
                         } else {
-                            if ($paymentUsd > (float) $sale->total_usd + 0.05) {
+                            if ($paymentUsd > (float) $sale->total_usd + 1.00) {
                                 DB::rollBack();
                                 return back()->withInput()->with('error', "Số tiền USD thanh toán (\$" . number_format($paymentUsd, 2) . ") vượt quá tổng USD (\$" . number_format((float) $sale->total_usd, 2) . ")");
                             }
-                            if ($paymentVnd > (float) $sale->total_vnd + 1000) {
+                            if ($paymentVnd > (float) $sale->total_vnd + 30000) {
                                 DB::rollBack();
                                 return back()->withInput()->with('error', "Số tiền VND thanh toán (" . number_format((float) $paymentVnd) . "đ) vượt quá tổng VND (" . number_format((float) $sale->total_vnd) . "đ)");
                             }
@@ -1310,9 +1209,9 @@ class SalesController extends Controller
                     }
 
                     // Phiếu pending - cập nhật paid_amount trong sale (chưa tạo payment)
-                    $sale->paid_amount = $request->payment_amount;
-                    $sale->payment_usd = $request->payment_usd ?? 0;
-                    $sale->payment_vnd = $request->payment_vnd ?? 0;
+                    $sale->paid_amount = $this->cleanNumericInput($request->payment_amount, true) ?? 0;
+                    $sale->payment_usd = $paymentUsd;
+                    $sale->payment_vnd = $paymentVnd;
 
                     // Tính debt_amount theo logic mới (sử dụng accessor)
                     // Accessor sẽ tự động tính đúng theo loại hóa đơn
@@ -2254,5 +2153,87 @@ class SalesController extends Controller
             Log::error('Sales refund error: ' . $e->getMessage());
             return back()->with('error', 'Có lỗi xảy ra: ' . $e->getMessage());
         }
+    }
+
+    /**
+     * Clean and parse numeric input from forms (supporting US/VN formatting, decimals, etc.)
+     */
+    private function cleanNumericInput($value, bool $isVndOrRate = false)
+    {
+        if ($value === '' || $value === null) {
+            return null;
+        }
+        if (is_numeric($value)) {
+            $str = (string) $value;
+            if (str_contains($str, '.')) {
+                $parts = explode('.', $str);
+                // If it's VND/rate and has 3 decimal places ending in 000 like 28.000, it might be thousands separator
+                if ($isVndOrRate && strlen($parts[1]) === 3 && count($parts) === 2 && $parts[1] === '000') {
+                    return (float) ($parts[0] . $parts[1]);
+                }
+                // If it has 2 decimal digits like .00, it's a DB decimal
+                return (float) $str;
+            }
+            return (float) $value;
+        }
+
+        if (is_string($value)) {
+            $str = trim($value);
+            if ($str === '') {
+                return null;
+            }
+
+            // Remove spaces
+            $str = str_replace(' ', '', $str);
+
+            // If it has both comma and dot:
+            if (str_contains($str, ',') && str_contains($str, '.')) {
+                if (strrpos($str, '.') > strrpos($str, ',')) {
+                    // "1,680,000.00" -> remove comma
+                    $str = str_replace(',', '', $str);
+                } else {
+                    // "1.680.000,00" -> remove dot, replace comma with dot
+                    $str = str_replace('.', '', $str);
+                    $str = str_replace(',', '.', $str);
+                }
+                return is_numeric($str) ? (float) $str : null;
+            }
+
+            // If only comma:
+            if (str_contains($str, ',')) {
+                $parts = explode(',', $str);
+                if (count($parts) === 2 && strlen($parts[1]) <= 2 && !$isVndOrRate) {
+                    $str = $parts[0] . '.' . $parts[1];
+                } else {
+                    $str = str_replace(',', '', $str);
+                }
+                return is_numeric($str) ? (float) $str : null;
+            }
+
+            // If only dot:
+            if (str_contains($str, '.')) {
+                $parts = explode('.', $str);
+                if (count($parts) > 2) {
+                    // "1.680.000" -> thousands separator
+                    $str = str_replace('.', '', $str);
+                } elseif (count($parts) === 2) {
+                    if ($isVndOrRate && strlen($parts[1]) === 3) {
+                        // "28.000" -> 28000
+                        $str = str_replace('.', '', $str);
+                    } elseif (strlen($parts[1]) <= 2) {
+                        // "1680000.00" or "4000.50" -> decimal point
+                        // Keep dot
+                    } else {
+                        $str = str_replace('.', '', $str);
+                    }
+                }
+                return is_numeric($str) ? (float) $str : null;
+            }
+
+            $cleaned = preg_replace('/[^\d.]/', '', $str);
+            return is_numeric($cleaned) ? (float) $cleaned : null;
+        }
+
+        return null;
     }
 }

@@ -408,7 +408,7 @@
                         $exchangeRate = $payment->payment_exchange_rate ?? $sale->exchange_rate;
                         $isRefund = $payment->payment_usd < 0 || $payment->payment_vnd < 0 || $payment->transaction_type === 'refund';
                         $cardBgClass = $isRefund ? 'bg-red-50 border border-red-200' : 'bg-gray-50';
-                        $colorClass = $isRefund ? 'text-red-600' : 'text-blue-600';
+                        $colorClass = $isRefund ? 'text-red-600' : 'text-green-600';
                         $colorClassVnd = $isRefund ? 'text-red-600' : 'text-green-600';
                     @endphp
                     <div class="p-3 {{ $cardBgClass }} rounded-lg">
@@ -417,7 +417,7 @@
                                 <div class="flex items-center gap-2 mb-1">
                                     @if($isRefund)
                                         <span class="px-2 py-0.5 bg-red-100 text-red-700 text-xs font-bold rounded-full border border-red-200">
-                                            <i class="fas fa-undo mr-1"></i>Hoàn tiền thừa
+                                             <i class="fas fa-undo mr-1"></i>Hoàn tiền thừa
                                         </span>
                                     @else
                                         <span class="px-2 py-0.5 bg-green-100 text-green-700 text-xs font-semibold rounded-full border border-green-200">
@@ -432,7 +432,7 @@
                                         {{ $isRefund ? '-' : '' }}${{ number_format(abs($payment->payment_usd), 2) }}
                                     </p>
                                     @if($exchangeRate > 0)
-                                    <p class="text-xs text-gray-500 mt-0.5">≈ {{ $isRefund ? '-' : '' }}{{ number_format(abs($payment->payment_usd * $exchangeRate)) }}đ (tham khảo)</p>
+                                    <p class="text-xs text-gray-500 mt-0.5">≈ {{ $isRefund ? '-' : '' }}{{ number_format(abs($payment->payment_usd * $exchangeRate)) }}đ (tỷ giá {{ number_format($exchangeRate) }})</p>
                                     @endif
                                 @elseif($hasVnd && !$hasUsd)
                                     {{-- Chỉ VND (hoặc refund VND) --}}
@@ -509,9 +509,9 @@
                                 
                                 @if($hasUsd && !$hasVnd)
                                     {{-- Chỉ trả USD --}}
-                                    <p class="font-bold text-lg text-blue-600">${{ number_format($sale->payment_usd, (abs($sale->payment_usd - round($sale->payment_usd)) < 0.01 ? 0 : 2)) }}</p>
+                                    <p class="font-bold text-lg text-green-600">${{ number_format($sale->payment_usd, (abs($sale->payment_usd - round($sale->payment_usd)) < 0.01 ? 0 : 2)) }}</p>
                                     @if($exchangeRate > 0)
-                                    <p class="text-xs text-gray-500 mt-0.5">≈ {{ number_format($sale->payment_usd * $exchangeRate) }}đ (tham khảo)</p>
+                                    <p class="text-xs text-gray-500 mt-0.5">≈ {{ number_format($sale->payment_usd * $exchangeRate) }}đ (tỷ giá {{ number_format($exchangeRate) }})</p>
                                     @endif
                                 @elseif($hasVnd && !$hasUsd)
                                     {{-- Chỉ trả VND --}}
@@ -522,7 +522,7 @@
                                 @elseif($hasUsd && $hasVnd)
                                     {{-- Trả cả USD và VND --}}
                                     <p class="font-bold text-base">
-                                        <span class="text-blue-600">${{ number_format($sale->payment_usd, (abs($sale->payment_usd - round($sale->payment_usd)) < 0.01 ? 0 : 2)) }}</span>
+                                        <span class="text-green-600">${{ number_format($sale->payment_usd, (abs($sale->payment_usd - round($sale->payment_usd)) < 0.01 ? 0 : 2)) }}</span>
                                         <span class="text-gray-400 mx-1">+</span>
                                         <span class="text-green-600">{{ number_format($sale->payment_vnd) }}đ</span>
                                     </p>
@@ -783,26 +783,6 @@
                             Gồm: ${{ number_format($sale->total_usd, (abs($sale->total_usd - round($sale->total_usd)) < 0.01 ? 0 : 2)) }} gốc
                             <span class="block text-right">+ ${{ number_format($overpaidUsd, (abs($overpaidUsd - round($overpaidUsd)) < 0.01 ? 0 : 2)) }}</span>
                         </div>
-                    @endif
-
-                    @php
-                        $totalUsd = $sale->payments->sum('payment_usd');
-                        $totalVnd = $sale->payments->sum('payment_vnd');
-                    @endphp
-                    @if(($totalUsd > 0 || $totalVnd > 0) && $overpaidUsd <= 0.05)
-                    <div class="flex justify-end mt-1 text-xs text-blue-600">
-                        <span class="italic">
-                            @if($totalUsd > 0)
-                                <span>${{ number_format($totalUsd, (abs($totalUsd - round($totalUsd)) < 0.01 ? 0 : 2)) }}</span>
-                            @endif
-                            @if($totalUsd > 0 && $totalVnd > 0)
-                                <span class="mx-1">+</span>
-                            @endif
-                            @if($totalVnd > 0)
-                                <span>{{ number_format($totalVnd) }}đ</span>
-                            @endif
-                        </span>
-                    </div>
                     @endif
                 </div>
                 @if($sale->sale_status == 'cancelled')

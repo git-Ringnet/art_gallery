@@ -627,7 +627,7 @@
                                 class="w-full px-3 py-1.5 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 bg-blue-50"
                                 value="{{ number_format($sale->payment_usd ?? 0, 0) }}" oninput="formatPaymentUSD(this)"
                                 placeholder="0">
-                            <input type="hidden" name="payment_usd" id="paid_usd" value="{{ $sale->payment_usd ?? 0 }}">
+                            <input type="hidden" name="payment_usd" id="paid_usd" value="{{ (float)($sale->payment_usd ?? 0) }}">
                         </div>
                         <div>
                             <label class="block text-xs font-medium text-gray-700 mb-1">Đã trả VND</label>
@@ -635,7 +635,7 @@
                                 class="w-full px-3 py-1.5 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 bg-blue-50"
                                 value="{{ number_format($sale->payment_vnd ?? 0) }}" oninput="formatPaymentVND(this)"
                                 placeholder="0">
-                            <input type="hidden" name="payment_vnd" id="paid_vnd" value="{{ $sale->payment_vnd ?? 0 }}">
+                            <input type="hidden" name="payment_vnd" id="paid_vnd" value="{{ (float)($sale->payment_vnd ?? 0) }}">
                         </div>
                     </div>
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-3 mb-3">
@@ -1800,7 +1800,7 @@
                         const additionalPaidInUsd = additionalPaidUsd + convertedAdditionalUsd;
                         totalPaidInUsd = currentPaidUsd + additionalPaidInUsd;
                         const debtUsd = Math.max(0, totalUsd - totalPaidInUsd);
-                        if (debtUsd <= 0.05) {
+                        if (debtUsd <= 1.00) {
                             debtEl.value = '$0';
                         } else {
                             debtEl.value = '$' + (debtUsd < 10 && debtUsd % 1 !== 0 ? debtUsd.toFixed(2) : Math.round(debtUsd).toLocaleString('en-US'));
@@ -1811,7 +1811,7 @@
                         const additionalPaidInVnd = additionalPaidVnd + (rate > 0 && additionalPaidUsd > 0 ? (additionalPaidUsd * rate) : 0);
                         totalPaidInVnd = currentPaidVnd + additionalPaidInVnd;
                         const debtVnd = Math.max(0, totalVnd - totalPaidInVnd);
-                        if (debtVnd <= 1000) {
+                        if (debtVnd <= 30000) {
                             debtEl.value = '0đ';
                         } else {
                             debtEl.value = Math.round(debtVnd).toLocaleString('vi-VN') + 'đ';
@@ -1820,14 +1820,14 @@
                     } else if (hasUsdTotal && hasVndTotal) {
                         if (rate > 0) {
                             const fullTotalVnd = totalVnd + (totalUsd * rate);
-                            const totalPaidInVnd = totalPaidVnd + (totalPaidUsd * rate);
-                            if (totalPaidInVnd > fullTotalVnd + 1000) {
+                            const totalPaidInVnd = (currentPaidVnd + additionalPaidVnd) + ((currentPaidUsd + additionalPaidUsd) * rate);
+                            if (totalPaidInVnd > fullTotalVnd + 30000) {
                                 const overVnd = totalPaidInVnd - fullTotalVnd;
                                 debtEl.value = 'Dư ' + Math.round(overVnd).toLocaleString('vi-VN') + 'đ';
                                 debtEl.classList.add('text-red-600', 'font-bold');
                             } else {
                                 const remainingVnd = Math.max(0, fullTotalVnd - totalPaidInVnd);
-                                if (remainingVnd <= 1000) {
+                                if (remainingVnd <= 30000) {
                                     debtEl.value = '0đ';
                                 } else {
                                     debtEl.value = Math.round(remainingVnd).toLocaleString('vi-VN') + 'đ';
@@ -1839,11 +1839,11 @@
                             const debtUsd = Math.max(0, totalUsd - totalPaidUsd);
                             const debtVnd = Math.max(0, totalVnd - totalPaidVnd);
 
-                            if (debtUsd > 0.05 && debtVnd > 1000) {
+                            if (debtUsd > 1.00 && debtVnd > 30000) {
                                 debtEl.value = '$' + Math.round(debtUsd).toLocaleString('en-US') + ' + ' + Math.round(debtVnd).toLocaleString('vi-VN') + 'đ';
-                            } else if (debtUsd > 0.05) {
+                            } else if (debtUsd > 1.00) {
                                 debtEl.value = '$' + Math.round(debtUsd).toLocaleString('en-US');
-                            } else if (debtVnd > 1000) {
+                            } else if (debtVnd > 30000) {
                                 debtEl.value = Math.round(debtVnd).toLocaleString('vi-VN') + 'đ';
                             } else {
                                 debtEl.value = '0đ';
@@ -1854,23 +1854,20 @@
                     // Warning if overpaid
                     let isOverpaid = false;
                     if (hasUsdTotal && !hasVndTotal) {
-                        if (rate > 0) {
-                            const fullTotalVnd = totalUsd * rate;
-                            const totalPaidInVnd = (totalPaidUsd * rate) + totalPaidVnd;
-                            isOverpaid = totalPaidInVnd > fullTotalVnd + 1000;
-                        } else {
-                            isOverpaid = totalPaidUsd > totalUsd + 0.05;
-                        }
+                        const convertedAdditionalUsd = (rate > 0 && additionalPaidVnd > 0 ? (additionalPaidVnd / rate) : 0);
+                        const totalPaidInUsd = currentPaidUsd + additionalPaidUsd + convertedAdditionalUsd;
+                        isOverpaid = totalPaidInUsd > totalUsd + 1.00;
                     } else if (hasVndTotal && !hasUsdTotal) {
-                        const totalPaidInVnd = totalPaidVnd + (rate > 0 && totalPaidUsd > 0 ? (totalPaidUsd * rate) : 0);
-                        isOverpaid = totalPaidInVnd > totalVnd + 1000;
+                        const convertedAdditionalVnd = (rate > 0 && additionalPaidUsd > 0 ? (additionalPaidUsd * rate) : 0);
+                        const totalPaidInVnd = currentPaidVnd + additionalPaidVnd + convertedAdditionalVnd;
+                        isOverpaid = totalPaidInVnd > totalVnd + 30000;
                     } else if (hasUsdTotal && hasVndTotal) {
                         if (rate > 0) {
                             const fullTotalVnd = totalVnd + (totalUsd * rate);
-                            const totalPaidInVnd = totalPaidVnd + (totalPaidUsd * rate);
-                            isOverpaid = totalPaidInVnd > fullTotalVnd + 1000;
+                            const totalPaidInVnd = (currentPaidVnd + additionalPaidVnd) + ((currentPaidUsd + additionalPaidUsd) * rate);
+                            isOverpaid = totalPaidInVnd > fullTotalVnd + 30000;
                         } else {
-                            isOverpaid = (totalPaidUsd > totalUsd + 0.05 || totalPaidVnd > totalVnd + 1000);
+                            isOverpaid = (currentPaidUsd + additionalPaidUsd > totalUsd + 1.00 || currentPaidVnd + additionalPaidVnd > totalVnd + 30000);
                         }
                     }
 
@@ -1880,25 +1877,30 @@
                         if (isOverpaid) {
                             alertEl.classList.remove('hidden');
                             if (hasUsdTotal && !hasVndTotal) {
+                                const convertedAdditionalUsd = (rate > 0 && additionalPaidVnd > 0 ? (additionalPaidVnd / rate) : 0);
+                                const totalPaidInUsd = currentPaidUsd + additionalPaidUsd + convertedAdditionalUsd;
+                                const overUsd = totalPaidInUsd - totalUsd;
+                                const overVnd = rate > 0 ? overUsd * rate : 0;
                                 if (rate > 0) {
-                                    const fullTotalVnd = totalUsd * rate;
-                                    const totalPaidInVnd = (totalPaidUsd * rate) + totalPaidVnd;
-                                    const overVnd = totalPaidInVnd - fullTotalVnd;
-                                    const overUsd = overVnd / rate;
-                                    alertTextEl.textContent = `Cảnh báo: Tổng tiền đã thanh toán ($${totalPaidUsd.toLocaleString('en-US')} + ${totalPaidVnd.toLocaleString('vi-VN')}đ) vượt quá tổng giá trị đơn hàng ($${totalUsd.toLocaleString('en-US')} = ${fullTotalVnd.toLocaleString('vi-VN')}đ)! Vượt quá: ${overVnd.toLocaleString('vi-VN')}đ ($${overUsd.toLocaleString('en-US', {maximumFractionDigits: 2})}). Vui lòng nhập lại số tiền hợp lệ.`;
+                                    alertTextEl.textContent = `Cảnh báo: Tổng tiền đã thanh toán ($${totalPaidInUsd.toLocaleString('en-US', {maximumFractionDigits: 2})}) vượt quá tổng giá trị đơn hàng ($${totalUsd.toLocaleString('en-US', {maximumFractionDigits: 2})})! Vượt quá: $${overUsd.toLocaleString('en-US', {maximumFractionDigits: 2})} (${Math.round(overVnd).toLocaleString('vi-VN')}đ). Vui lòng nhập lại số tiền hợp lệ.`;
                                 } else {
-                                    const overUsd = totalPaidUsd - totalUsd;
-                                    alertTextEl.textContent = `Cảnh báo: Tổng tiền đã thanh toán ($${totalPaidUsd.toLocaleString('en-US', {maximumFractionDigits: 2})}) vượt quá tổng giá trị đơn hàng ($${totalUsd.toLocaleString('en-US', {maximumFractionDigits: 2})})! Vượt quá: $${overUsd.toLocaleString('en-US', {maximumFractionDigits: 2})}. Vui lòng nhập lại số tiền hợp lệ.`;
+                                    alertTextEl.textContent = `Cảnh báo: Tổng tiền đã thanh toán ($${totalPaidInUsd.toLocaleString('en-US', {maximumFractionDigits: 2})}) vượt quá tổng giá trị đơn hàng ($${totalUsd.toLocaleString('en-US', {maximumFractionDigits: 2})})! Vượt quá: $${overUsd.toLocaleString('en-US', {maximumFractionDigits: 2})}. Vui lòng nhập lại số tiền hợp lệ.`;
                                 }
                             } else if (hasVndTotal && !hasUsdTotal) {
-                                const totalPaidInVnd = totalPaidVnd + (rate > 0 && totalPaidUsd > 0 ? (totalPaidUsd * rate) : 0);
+                                const convertedAdditionalVnd = (rate > 0 && additionalPaidUsd > 0 ? (additionalPaidUsd * rate) : 0);
+                                const totalPaidInVnd = currentPaidVnd + additionalPaidVnd + convertedAdditionalVnd;
                                 const overVnd = totalPaidInVnd - totalVnd;
-                                alertTextEl.textContent = `Cảnh báo: Tổng tiền đã thanh toán (${totalPaidInVnd.toLocaleString('vi-VN')}đ) vượt quá tổng giá trị đơn hàng (${totalVnd.toLocaleString('vi-VN')}đ)! Vượt quá: ${overVnd.toLocaleString('vi-VN')}đ. Vui lòng nhập lại số tiền hợp lệ.`;
+                                const overUsd = rate > 0 ? overVnd / rate : 0;
+                                if (rate > 0) {
+                                    alertTextEl.textContent = `Cảnh báo: Tổng tiền đã thanh toán (${Math.round(totalPaidInVnd).toLocaleString('vi-VN')}đ) vượt quá tổng giá trị đơn hàng (${totalVnd.toLocaleString('vi-VN')}đ)! Vượt quá: ${Math.round(overVnd).toLocaleString('vi-VN')}đ ($${overUsd.toLocaleString('en-US', {maximumFractionDigits: 2})}). Vui lòng nhập lại số tiền hợp lệ.`;
+                                } else {
+                                    alertTextEl.textContent = `Cảnh báo: Tổng tiền đã thanh toán (${Math.round(totalPaidInVnd).toLocaleString('vi-VN')}đ) vượt quá tổng giá trị đơn hàng (${totalVnd.toLocaleString('vi-VN')}đ)! Vượt quá: ${Math.round(overVnd).toLocaleString('vi-VN')}đ. Vui lòng nhập lại số tiền hợp lệ.`;
+                                }
                             } else if (hasUsdTotal && hasVndTotal && rate > 0) {
                                 const fullTotalVnd = totalVnd + (totalUsd * rate);
-                                const totalPaidInVnd = totalPaidVnd + (totalPaidUsd * rate);
+                                const totalPaidInVnd = (currentPaidVnd + additionalPaidVnd) + ((currentPaidUsd + additionalPaidUsd) * rate);
                                 const overVnd = totalPaidInVnd - fullTotalVnd;
-                                alertTextEl.textContent = `Cảnh báo: Tổng tiền đã thanh toán quy đổi (${totalPaidInVnd.toLocaleString('vi-VN')}đ) vượt quá tổng giá trị đơn hàng (${fullTotalVnd.toLocaleString('vi-VN')}đ)! Vượt quá: ${overVnd.toLocaleString('vi-VN')}đ. Vui lòng nhập lại số tiền hợp lệ.`;
+                                alertTextEl.textContent = `Cảnh báo: Tổng tiền đã thanh toán quy đổi (${Math.round(totalPaidInVnd).toLocaleString('vi-VN')}đ) vượt quá tổng giá trị đơn hàng (${fullTotalVnd.toLocaleString('vi-VN')}đ)! Vượt quá: ${Math.round(overVnd).toLocaleString('vi-VN')}đ. Vui lòng nhập lại số tiền hợp lệ.`;
                             } else {
                                 alertTextEl.textContent = `Cảnh báo: Số tiền thanh toán đang vượt quá giá trị đơn hàng! Vui lòng nhập lại số tiền hợp lệ.`;
                             }
@@ -2552,23 +2554,14 @@
                             document.getElementById('rate')?.focus();
                             return false;
                         }
-                        if (rateVal > 0) {
-                            const fullTotalVnd = totalUsdVal * rateVal;
-                            const totalPaidInVnd = ((currentPaidUsd + paidUsdVal) * rateVal) + (currentPaidVnd + paidVndVal);
-                            if (totalPaidInVnd > fullTotalVnd + 1000) {
-                                const overVnd = totalPaidInVnd - fullTotalVnd;
-                                showNotification(`Số tiền thanh toán quy đổi (${totalPaidInVnd.toLocaleString('vi-VN')}đ) vượt quá tổng giá trị đơn hàng (${fullTotalVnd.toLocaleString('vi-VN')}đ)! Dư ${overVnd.toLocaleString('vi-VN')}đ. Vui lòng kiểm tra lại!`, 'error');
-                                document.getElementById('paid_vnd_display')?.focus();
-                                return false;
-                            }
-                        } else {
-                            const totalPaidInUsd = currentPaidUsd + paidUsdVal;
-                            if (totalPaidInUsd > totalUsdVal + 0.05) {
-                                const overUsd = totalPaidInUsd - totalUsdVal;
-                                showNotification(`Số tiền thanh toán ($${totalPaidInUsd.toLocaleString('en-US', {maximumFractionDigits: 2})}) vượt quá tổng giá trị đơn hàng ($${totalUsdVal.toLocaleString('en-US', {maximumFractionDigits: 2})})! Dư $${overUsd.toLocaleString('en-US', {maximumFractionDigits: 2})}. Vui lòng kiểm tra lại!`, 'error');
-                                document.getElementById('paid_usd_display')?.focus();
-                                return false;
-                            }
+                        const incomingUsd = paidUsdVal + (rateVal > 0 && paidVndVal > 0 ? (paidVndVal / rateVal) : 0);
+                        const totalPaidInUsd = currentPaidUsd + incomingUsd;
+                        if (totalPaidInUsd > totalUsdVal + 1.00) {
+                            const overUsd = totalPaidInUsd - totalUsdVal;
+                            const overVnd = rateVal > 0 ? overUsd * rateVal : 0;
+                            showNotification(`Số tiền thanh toán ($${totalPaidInUsd.toLocaleString('en-US', {maximumFractionDigits: 2})}) vượt quá tổng giá trị đơn hàng ($${totalUsdVal.toLocaleString('en-US', {maximumFractionDigits: 2})})! Dư $${overUsd.toLocaleString('en-US', {maximumFractionDigits: 2})}` + (rateVal > 0 ? ` (${Math.round(overVnd).toLocaleString('vi-VN')}đ)` : '') + `. Vui lòng kiểm tra lại!`, 'error');
+                            document.getElementById('paid_usd_display')?.focus();
+                            return false;
                         }
                     } else if (totalVndVal > 0 && totalUsdVal <= 0) {
                         if (paidUsdVal > 0 && rateVal <= 0) {
@@ -2578,9 +2571,10 @@
                         }
                         const convertedVnd = (rateVal > 0 && paidUsdVal > 0 ? (paidUsdVal * rateVal) : 0);
                         const totalPaidInVnd = currentPaidVnd + paidVndVal + convertedVnd;
-                        if (totalPaidInVnd > totalVndVal + 1000) {
+                        if (totalPaidInVnd > totalVndVal + 30000) {
                             const overVnd = totalPaidInVnd - totalVndVal;
-                            showNotification(`Số tiền thanh toán (${totalPaidInVnd.toLocaleString('vi-VN')}đ) vượt quá tổng giá trị đơn hàng (${totalVndVal.toLocaleString('vi-VN')}đ)! Dư ${overVnd.toLocaleString('vi-VN')}đ. Vui lòng kiểm tra lại!`, 'error');
+                            const overUsd = rateVal > 0 ? overVnd / rateVal : 0;
+                            showNotification(`Số tiền thanh toán (${Math.round(totalPaidInVnd).toLocaleString('vi-VN')}đ) vượt quá tổng giá trị đơn hàng (${totalVndVal.toLocaleString('vi-VN')}đ)! Dư ${Math.round(overVnd).toLocaleString('vi-VN')}đ` + (rateVal > 0 ? ` ($${overUsd.toLocaleString('en-US', {maximumFractionDigits: 2})})` : '') + `. Vui lòng kiểm tra lại!`, 'error');
                             document.getElementById('paid_vnd_display')?.focus();
                             return false;
                         }
@@ -2588,19 +2582,19 @@
                         if (rateVal > 0) {
                             const fullTotalVnd = totalVndVal + (totalUsdVal * rateVal);
                             const totalPaidInVnd = (currentPaidVnd + paidVndVal) + ((currentPaidUsd + paidUsdVal) * rateVal);
-                            if (totalPaidInVnd > fullTotalVnd + 1000) {
+                            if (totalPaidInVnd > fullTotalVnd + 30000) {
                                 const overVnd = totalPaidInVnd - fullTotalVnd;
-                                showNotification(`Số tiền thanh toán quy đổi (${totalPaidInVnd.toLocaleString('vi-VN')}đ) vượt quá tổng giá trị đơn hàng (${fullTotalVnd.toLocaleString('vi-VN')}đ)! Dư ${overVnd.toLocaleString('vi-VN')}đ. Vui lòng kiểm tra lại!`, 'error');
+                                showNotification(`Số tiền thanh toán quy đổi (${Math.round(totalPaidInVnd).toLocaleString('vi-VN')}đ) vượt quá tổng giá trị đơn hàng (${fullTotalVnd.toLocaleString('vi-VN')}đ)! Dư ${Math.round(overVnd).toLocaleString('vi-VN')}đ. Vui lòng kiểm tra lại!`, 'error');
                                 document.getElementById('paid_vnd_display')?.focus();
                                 return false;
                             }
                         } else {
-                            if ((currentPaidUsd + paidUsdVal) > totalUsdVal + 0.05) {
+                            if ((currentPaidUsd + paidUsdVal) > totalUsdVal + 1.00) {
                                 showNotification(`Số tiền USD thanh toán ($${(currentPaidUsd + paidUsdVal).toLocaleString('en-US')}) vượt quá tổng USD ($${totalUsdVal.toLocaleString('en-US')})!`, 'error');
                                 document.getElementById('paid_usd_display')?.focus();
                                 return false;
                             }
-                            if ((currentPaidVnd + paidVndVal) > totalVndVal + 1000) {
+                            if ((currentPaidVnd + paidVndVal) > totalVndVal + 30000) {
                                 showNotification(`Số tiền VND thanh toán (${(currentPaidVnd + paidVndVal).toLocaleString('vi-VN')}đ) vượt quá tổng VND (${totalVndVal.toLocaleString('vi-VN')}đ)!`, 'error');
                                 document.getElementById('paid_vnd_display')?.focus();
                                 return false;
