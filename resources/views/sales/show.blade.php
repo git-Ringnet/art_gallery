@@ -85,19 +85,60 @@
 
         <!-- Sale Items -->
         <div class="bg-white rounded-xl shadow-lg p-4">
-            <h3 class="font-semibold text-base mb-3 flex items-center justify-between">
-                <span class="flex items-center">
-                    <i class="fas fa-shopping-cart text-green-600 mr-2"></i>
-                    Sản phẩm
+            <div class="flex flex-col md:flex-row md:items-center justify-between gap-3 mb-3 pb-3 border-b border-gray-100">
+                <div class="flex items-center gap-2">
+                    <span class="flex items-center font-bold text-base text-gray-800">
+                        <i class="fas fa-shopping-cart text-green-600 mr-2"></i>
+                        Sản phẩm
+                    </span>
+                    <span class="bg-purple-100 text-purple-700 font-bold px-2.5 py-0.5 rounded-full text-xs" id="itemsCountBadge">
+                        {{ $sale->saleItems->where('quantity', '>', 0)->count() }} sản phẩm
+                    </span>
                     @if($sale->returns->where('type', 'exchange')->where('status', 'completed')->count() > 0)
-                        <span class="ml-2 text-xs bg-blue-100 text-blue-700 px-2 py-0.5 rounded-full">
+                        <span class="text-xs bg-blue-100 text-blue-700 px-2 py-0.5 rounded-full font-medium">
                             Đã đổi hàng
                         </span>
                     @endif
-                </span>
-            </h3>
+                </div>
+
+                <!-- Controls: Search & Page Size & Jump -->
+                <div class="flex flex-wrap items-center gap-2">
+                    <!-- Search box -->
+                    <div class="relative">
+                        <input type="text" id="itemsTableSearch" placeholder="Tìm tên, mã, kích thước..." 
+                            class="w-44 sm:w-56 pl-7 pr-6 py-1 text-xs border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none">
+                        <i class="fas fa-search absolute left-2 top-2 text-gray-400 text-xs"></i>
+                        <button type="button" id="clearItemsSearch" class="hidden absolute right-2 top-1.5 text-gray-400 hover:text-gray-600 text-xs">
+                            <i class="fas fa-times-circle"></i>
+                        </button>
+                    </div>
+
+                    <!-- Jump to STT -->
+                    <div class="flex items-center gap-1 bg-gray-50 border border-gray-200 rounded-lg px-2 py-1">
+                        <span class="text-xs text-gray-500 whitespace-nowrap">Đến #</span>
+                        <input type="number" id="jumpToStt" min="1" max="{{ $sale->saleItems->where('quantity', '>', 0)->count() }}" placeholder="STT" 
+                            class="w-12 text-center text-xs border-0 bg-white rounded p-0.5 focus:ring-1 focus:ring-blue-500 font-medium">
+                        <button type="button" id="btnJumpToStt" class="text-xs text-blue-600 hover:text-blue-800 font-bold px-1" title="Chuyển đến dòng STT">
+                            <i class="fas fa-arrow-right"></i>
+                        </button>
+                    </div>
+
+                    <!-- Per page dropdown -->
+                    <div class="flex items-center gap-1 text-xs text-gray-600">
+                        <span class="hidden sm:inline">Xem:</span>
+                        <select id="itemsPerPage" class="px-2 py-1 text-xs border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 bg-white font-medium">
+                            <option value="15">15 dòng</option>
+                            <option value="25" selected>25 dòng</option>
+                            <option value="50">50 dòng</option>
+                            <option value="100">100 dòng</option>
+                            <option value="all">Tất cả ({{ $sale->saleItems->where('quantity', '>', 0)->count() }})</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+
             <div class="overflow-x-auto">
-                <table class="w-full text-sm">
+                <table class="w-full text-sm" id="sale-items-table">
                     <thead class="bg-gray-50">
                         <tr>
                             <th class="px-2 py-2 text-left text-xs font-medium text-gray-500 uppercase">#</th>
@@ -120,9 +161,12 @@
                                     $isReturned = $item->is_returned ?? false;
                                     $rowClass = $isReturned ? 'bg-red-50 opacity-60' : '';
                                     $textClass = $isReturned ? 'line-through text-gray-400' : '';
+                                    $searchData = e($item->description) . ' ' . 
+                                        ($item->painting ? e($item->painting->code . ' ' . $item->painting->artist . ' ' . (float)$item->painting->width . 'x' . (float)$item->painting->height) : '') . ' ' . 
+                                        ($item->frame ? e($item->frame->name) : '');
                                 @endphp
-                                <tr class="{{ $rowClass }}">
-                                    <td class="px-2 py-2 text-xs {{ $textClass }}">{{ $displayIndex }}</td>
+                                <tr class="sale-item-row {{ $rowClass }}" data-stt="{{ $displayIndex }}" data-search="{{ strtolower($searchData) }}">
+                                    <td class="px-2 py-2 text-xs font-medium {{ $textClass }} text-gray-600">{{ $displayIndex }}</td>
                                     <td class="px-2 py-2">
                                         @if($item->painting && $item->painting->image)
                                             <img src="{{ asset('storage/' . $item->painting->image) }}" alt="{{ $item->painting->name }}" 
@@ -206,6 +250,22 @@
                         @endforeach
                     </tbody>
                 </table>
+            </div>
+
+            <!-- Empty Search State -->
+            <div id="noItemsFound" class="hidden text-center py-8 text-gray-500 text-sm">
+                <i class="fas fa-search text-gray-400 text-2xl mb-2 block"></i>
+                Không tìm thấy sản phẩm nào khớp với tìm kiếm.
+            </div>
+
+            <!-- Pagination Footer -->
+            <div id="itemsPaginationContainer" class="flex flex-col sm:flex-row items-center justify-between gap-3 mt-4 pt-3 border-t border-gray-100 text-xs text-gray-600">
+                <div id="itemsPaginationInfo" class="text-gray-600 font-medium">
+                    <!-- Populated by JS -->
+                </div>
+                <div class="flex flex-wrap items-center gap-1" id="itemsPaginationButtons">
+                    <!-- Buttons generated by JS -->
+                </div>
             </div>
         </div>
 
@@ -1153,8 +1213,214 @@ document.addEventListener('keydown', function(event) {
             }
         });
     })();
-</script>
 
+    // ==========================================
+    // Sale Items Pagination & Instant Search
+    // ==========================================
+    (function initSaleItemsPagination() {
+        const table = document.getElementById('sale-items-table');
+        if (!table) return;
+
+        const allRows = Array.from(table.querySelectorAll('tbody tr.sale-item-row'));
+        const totalCount = allRows.length;
+        if (totalCount === 0) return;
+
+        const searchInput = document.getElementById('itemsTableSearch');
+        const clearSearchBtn = document.getElementById('clearItemsSearch');
+        const perPageSelect = document.getElementById('itemsPerPage');
+        const jumpInput = document.getElementById('jumpToStt');
+        const jumpBtn = document.getElementById('btnJumpToStt');
+        const noItemsDiv = document.getElementById('noItemsFound');
+        const pagContainer = document.getElementById('itemsPaginationContainer');
+        const pagInfo = document.getElementById('itemsPaginationInfo');
+        const pagButtons = document.getElementById('itemsPaginationButtons');
+
+        let currentPage = 1;
+        let pageSize = parseInt(perPageSelect ? perPageSelect.value : 25) || 25;
+        let filteredRows = [...allRows];
+
+        function applySearch() {
+            const query = (searchInput ? searchInput.value : '').toLowerCase().trim();
+            if (clearSearchBtn) {
+                clearSearchBtn.classList.toggle('hidden', query === '');
+            }
+
+            if (!query) {
+                filteredRows = [...allRows];
+            } else {
+                filteredRows = allRows.filter(row => {
+                    const searchData = (row.dataset.search || '').toLowerCase();
+                    const stt = row.dataset.stt || '';
+                    return searchData.includes(query) || stt === query || ('#' + stt) === query;
+                });
+            }
+
+            currentPage = 1;
+            render();
+        }
+
+        function render() {
+            const totalFiltered = filteredRows.length;
+
+            if (totalFiltered === 0) {
+                allRows.forEach(r => r.style.display = 'none');
+                if (noItemsDiv) noItemsDiv.classList.remove('hidden');
+                if (pagContainer) pagContainer.classList.add('hidden');
+                return;
+            }
+
+            if (noItemsDiv) noItemsDiv.classList.add('hidden');
+            if (pagContainer) pagContainer.classList.remove('hidden');
+
+            const isAll = pageSize === 'all' || pageSize >= totalFiltered;
+            const totalPages = isAll ? 1 : Math.ceil(totalFiltered / pageSize);
+            if (currentPage > totalPages) currentPage = totalPages;
+            if (currentPage < 1) currentPage = 1;
+
+            const startIdx = isAll ? 0 : (currentPage - 1) * pageSize;
+            const endIdx = isAll ? totalFiltered : Math.min(startIdx + pageSize, totalFiltered);
+
+            const visibleSet = new Set(filteredRows.slice(startIdx, endIdx));
+
+            allRows.forEach(row => {
+                row.style.display = visibleSet.has(row) ? '' : 'none';
+            });
+
+            // Update pagination info text
+            if (pagInfo) {
+                pagInfo.innerHTML = `Hiển thị <span class="font-bold text-gray-800">${startIdx + 1} - ${endIdx}</span> trên tổng số <span class="font-bold text-gray-800">${totalFiltered}</span> sản phẩm` + 
+                    (totalFiltered !== totalCount ? ` (lọc từ tổng ${totalCount})` : '');
+            }
+
+            // Render pagination buttons
+            renderButtons(totalPages);
+        }
+
+        function renderButtons(totalPages) {
+            if (!pagButtons) return;
+            if (totalPages <= 1) {
+                pagButtons.innerHTML = '';
+                return;
+            }
+
+            let html = '';
+
+            // First & Prev buttons
+            const prevDisabled = currentPage === 1;
+            html += `<button type="button" data-page="1" ${prevDisabled ? 'disabled' : ''} class="px-2 py-1 border rounded text-xs transition-colors ${prevDisabled ? 'text-gray-300 border-gray-200 cursor-not-allowed' : 'text-gray-700 hover:bg-gray-100 border-gray-300'}" title="Trang đầu"><i class="fas fa-angle-double-left"></i></button>`;
+            html += `<button type="button" data-page="${currentPage - 1}" ${prevDisabled ? 'disabled' : ''} class="px-2.5 py-1 border rounded text-xs transition-colors ${prevDisabled ? 'text-gray-300 border-gray-200 cursor-not-allowed' : 'text-gray-700 hover:bg-gray-100 border-gray-300'}"><i class="fas fa-angle-left mr-0.5"></i>Trước</button>`;
+
+            // Page number buttons with sliding window
+            let startPage = Math.max(1, currentPage - 2);
+            let endPage = Math.min(totalPages, currentPage + 2);
+
+            if (startPage > 1) {
+                html += `<button type="button" data-page="1" class="px-2.5 py-1 border rounded text-xs text-gray-700 hover:bg-gray-100 border-gray-300">1</button>`;
+                if (startPage > 2) {
+                    html += `<span class="px-1 text-gray-400">...</span>`;
+                }
+            }
+
+            for (let p = startPage; p <= endPage; p++) {
+                if (p === currentPage) {
+                    html += `<button type="button" class="px-3 py-1 rounded text-xs font-bold bg-blue-600 text-white shadow-sm">${p}</button>`;
+                } else {
+                    html += `<button type="button" data-page="${p}" class="px-2.5 py-1 border rounded text-xs text-gray-700 hover:bg-gray-100 border-gray-300">${p}</button>`;
+                }
+            }
+
+            if (endPage < totalPages) {
+                if (endPage < totalPages - 1) {
+                    html += `<span class="px-1 text-gray-400">...</span>`;
+                }
+                html += `<button type="button" data-page="${totalPages}" class="px-2.5 py-1 border rounded text-xs text-gray-700 hover:bg-gray-100 border-gray-300">${totalPages}</button>`;
+            }
+
+            // Next & Last buttons
+            const nextDisabled = currentPage === totalPages;
+            html += `<button type="button" data-page="${currentPage + 1}" ${nextDisabled ? 'disabled' : ''} class="px-2.5 py-1 border rounded text-xs transition-colors ${nextDisabled ? 'text-gray-300 border-gray-200 cursor-not-allowed' : 'text-gray-700 hover:bg-gray-100 border-gray-300'}">Sau<i class="fas fa-angle-right ml-0.5"></i></button>`;
+            html += `<button type="button" data-page="${totalPages}" ${nextDisabled ? 'disabled' : ''} class="px-2 py-1 border rounded text-xs transition-colors ${nextDisabled ? 'text-gray-300 border-gray-200 cursor-not-allowed' : 'text-gray-700 hover:bg-gray-100 border-gray-300'}" title="Trang cuối"><i class="fas fa-angle-double-right"></i></button>`;
+
+            pagButtons.innerHTML = html;
+        }
+
+        // Event listeners
+        if (pagButtons) {
+            pagButtons.addEventListener('click', function(e) {
+                const btn = e.target.closest('button[data-page]');
+                if (!btn || btn.disabled) return;
+                currentPage = parseInt(btn.dataset.page);
+                render();
+                table.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+            });
+        }
+
+        if (perPageSelect) {
+            perPageSelect.addEventListener('change', function() {
+                pageSize = this.value === 'all' ? 'all' : parseInt(this.value);
+                currentPage = 1;
+                render();
+            });
+        }
+
+        if (searchInput) {
+            searchInput.addEventListener('input', applySearch);
+        }
+
+        if (clearSearchBtn) {
+            clearSearchBtn.addEventListener('click', function() {
+                if (searchInput) searchInput.value = '';
+                applySearch();
+            });
+        }
+
+        function doJumpToStt() {
+            if (!jumpInput) return;
+            const targetStt = parseInt(jumpInput.value);
+            if (isNaN(targetStt) || targetStt < 1) return;
+
+            // If search was active, clear it first so target row is in filtered list
+            if (searchInput && searchInput.value) {
+                searchInput.value = '';
+                applySearch();
+            }
+
+            const targetRow = allRows.find(r => parseInt(r.dataset.stt) === targetStt);
+            if (!targetRow) {
+                alert('Không tìm thấy sản phẩm có STT #' + targetStt);
+                return;
+            }
+
+            const targetIndex = filteredRows.indexOf(targetRow);
+            if (targetIndex === -1) return;
+
+            if (pageSize !== 'all') {
+                currentPage = Math.floor(targetIndex / pageSize) + 1;
+            }
+            render();
+
+            // Highlight & scroll to row
+            targetRow.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            targetRow.classList.add('bg-yellow-200');
+            setTimeout(() => {
+                targetRow.classList.remove('bg-yellow-200');
+            }, 2500);
+        }
+
+        if (jumpBtn) jumpBtn.addEventListener('click', doJumpToStt);
+        if (jumpInput) {
+            jumpInput.addEventListener('keydown', function(e) {
+                if (e.key === 'Enter') {
+                    e.preventDefault();
+                    doJumpToStt();
+                }
+            });
+        }
+
+        // Initial render
+        render();
+    })();
+</script>
 <!-- Refund Overpayment Modal -->
 <div id="refundModal" class="fixed inset-0 z-50 hidden overflow-y-auto" aria-labelledby="refund-modal-title" role="dialog" aria-modal="true">
     <div class="flex items-center justify-center min-h-screen px-4 pt-4 pb-20 text-center sm:block sm:p-0">
@@ -1316,4 +1582,14 @@ document.addEventListener('keydown', function(event) {
         input.value = parts.length > 1 ? parts[0] + '.' + (parts[1] || '') : parts[0];
     }
 </script>
+<style>
+@media print {
+    .sale-item-row {
+        display: table-row !important;
+    }
+    #itemsPaginationContainer, #itemsTableSearch, #clearItemsSearch, #jumpToStt, #btnJumpToStt, #itemsPerPage {
+        display: none !important;
+    }
+}
+</style>
 @endpush

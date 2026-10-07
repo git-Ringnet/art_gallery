@@ -236,6 +236,14 @@ class SalesController extends Controller
             ]);
         }
 
+        // Decode items_json if submitted as JSON string (prevents PHP max_input_vars truncation for large orders)
+        if ($request->filled('items_json') && is_string($request->items_json)) {
+            $decodedItems = json_decode($request->items_json, true);
+            if (is_array($decodedItems)) {
+                $request->merge(['items' => $decodedItems]);
+            }
+        }
+
         // Clean up empty strings and format for numeric fields
         if ($request->has('items')) {
             $items = $request->items;
@@ -683,6 +691,14 @@ class SalesController extends Controller
 
         // Chỉ validate items nếu CHƯA có return
         if (!$hasReturns) {
+            // Decode items_json if submitted as JSON string (prevents PHP max_input_vars truncation for large orders)
+            if ($request->filled('items_json') && is_string($request->items_json)) {
+                $decodedItems = json_decode($request->items_json, true);
+                if (is_array($decodedItems)) {
+                    $request->merge(['items' => $decodedItems]);
+                }
+            }
+
             // Clean up empty strings and format for numeric fields
             if ($request->has('items') && is_array($request->items)) {
                 $items = $request->items;

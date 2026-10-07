@@ -140,30 +140,39 @@
             <!-- BƯỚC 3: DANH SÁCH SẢN PHẨM -->
             <div class="bg-blue-50 border-l-4 border-blue-500 p-4 rounded-lg mb-4">
                 <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-3 gap-2">
-                    <h3 class="text-base font-bold text-purple-900 flex items-center">
-                        <span
-                            class="bg-purple-500 text-white w-7 h-7 rounded-full flex items-center justify-center mr-2 text-sm">3</span>
-                        Danh sách sản phẩm
-                    </h3>
-                    <button type="button" onclick="addItem(true)"
-                        class="bg-purple-500 hover:bg-purple-600 text-white px-4 py-1.5 rounded-lg transition-colors font-medium text-sm whitespace-nowrap">
-                        <i class="fas fa-plus mr-1"></i>Thêm sản phẩm
-                    </button>
+                    <div class="flex items-center gap-2">
+                        <h3 class="text-base font-bold text-purple-900 flex items-center">
+                            <span class="bg-purple-500 text-white w-7 h-7 rounded-full flex items-center justify-center mr-2 text-sm">3</span>
+                            Danh sách sản phẩm
+                        </h3>
+                        <span id="items-count-badge" class="bg-purple-200 text-purple-800 text-xs font-bold px-2.5 py-0.5 rounded-full">
+                            0 sản phẩm
+                        </span>
+                    </div>
+                    <div class="flex items-center gap-2 w-full sm:w-auto">
+                        <input type="text" id="filter-create-items" placeholder="Tìm dòng sản phẩm (mã, tên)..." 
+                            class="text-xs px-2.5 py-1.5 border border-purple-200 rounded-lg focus:ring-2 focus:ring-purple-400 bg-white w-full sm:w-56">
+                        <button type="button" onclick="addItem(true)"
+                            class="bg-purple-600 hover:bg-purple-700 text-white px-3.5 py-1.5 rounded-lg transition-colors font-medium text-xs whitespace-nowrap shadow-sm">
+                            <i class="fas fa-plus mr-1"></i>Thêm sản phẩm
+                        </button>
+                    </div>
                 </div>
-                <div class="#">
+                <div class="max-h-[580px] overflow-y-auto border border-purple-200 rounded-lg shadow-inner bg-white">
                     <table class="w-full border-collapse text-sm">
-                        <thead>
-                            <tr class="bg-purple-100">
-                                <th class="px-2 py-2 text-left text-xs font-medium text-gray-700 border">Hình</th>
-                                <th class="px-2 py-2 text-left text-xs font-medium text-gray-700 border">Mô tả(Mã
+                        <thead class="sticky top-0 z-10 bg-purple-100 shadow-sm">
+                            <tr>
+                                <th class="px-2 py-2 text-center text-xs font-semibold text-gray-700 border w-12">#</th>
+                                <th class="px-2 py-2 text-left text-xs font-semibold text-gray-700 border">Hình</th>
+                                <th class="px-2 py-2 text-left text-xs font-semibold text-gray-700 border">Mô tả(Mã
                                     tranh/Khung)</th>
-                                <th class="px-2 py-2 text-center text-xs font-medium text-gray-700 border">SL</th>
-                                <th class="px-2 py-2 text-center text-xs font-medium text-gray-700 border">Loại tiền</th>
-                                <th class="px-2 py-2 text-right text-xs font-medium text-gray-700 border">Giá USD</th>
-                                <th class="px-2 py-2 text-right text-xs font-medium text-gray-700 border">Giá VND</th>
-                                <th class="px-2 py-2 text-center text-xs font-medium text-gray-700 border">Giảm(%)</th>
-                                <th class="px-2 py-2 text-center text-xs font-medium text-gray-700 border">Giảm tiền</th>
-                                <th class="px-2 py-2 text-center text-xs font-medium text-gray-700 border">Xóa</th>
+                                <th class="px-2 py-2 text-center text-xs font-semibold text-gray-700 border">SL</th>
+                                <th class="px-2 py-2 text-center text-xs font-semibold text-gray-700 border">Loại tiền</th>
+                                <th class="px-2 py-2 text-right text-xs font-semibold text-gray-700 border">Giá USD</th>
+                                <th class="px-2 py-2 text-right text-xs font-semibold text-gray-700 border">Giá VND</th>
+                                <th class="px-2 py-2 text-center text-xs font-semibold text-gray-700 border">Giảm(%)</th>
+                                <th class="px-2 py-2 text-center text-xs font-semibold text-gray-700 border">Giảm tiền</th>
+                                <th class="px-2 py-2 text-center text-xs font-semibold text-gray-700 border">Xóa</th>
                             </tr>
                         </thead>
                         <tbody id="items-body" class="bg-white"></tbody>
@@ -582,68 +591,70 @@
                 const tr = document.createElement('tr');
                 tr.className = 'border hover:bg-purple-50';
                 tr.innerHTML = `
-                                                                        <td class="px-3 py-3 border">
-                                                                            <img id="img-${idx}" src="/images/no-image.svg" class="w-20 h-16 object-cover rounded border shadow-sm">
-                                                                        </td>
-                                                                        <td class="px-3 py-3 border">
-                                                                            <div class="relative">
-                                                                                <input type="text" 
-                                                                                       id="item-search-${idx}"
-                                                                                       class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 mb-2" 
-                                                                                       placeholder="Tìm tranh, khung, vật tư hoặc nhập tên hàng gia công..."
-                                                                                       autocomplete="off"
-                                                                                       onkeyup="filterItems(this.value, ${idx})"
-                                                                                       oninput="document.getElementById('desc-'+${idx}).value = this.value; updateProcessedStatus(${idx})"
-                                                                                       onfocus="showItemSuggestions(${idx})">
-                                                                                <input type="hidden" name="items[${idx}][painting_id]" id="painting-id-${idx}">
-                                                                                <input type="hidden" name="items[${idx}][frame_id]" id="frame-id-${idx}">
-                                                                                <input type="hidden" name="items[${idx}][supply_id]" id="supply-id-${idx}">
-                                                                                <input type="hidden" name="items[${idx}][description]" id="desc-${idx}">
-                                                                                <div id="item-suggestions-${idx}" class="absolute z-20 w-full bg-white border border-gray-300 rounded-lg mt-1 max-h-60 overflow-y-auto hidden shadow-lg"></div>
-                                                                                <div id="item-details-${idx}" class="text-xs text-gray-600 space-y-0.5 hidden"></div>
-                                                                                <div id="processed-badge-${idx}" class="mt-1 hidden">
-                                                                                    <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-blue-100 text-blue-800 border border-blue-200">
-                                                                                        <i class="fas fa-hammer mr-1"></i>Hàng gia công
-                                                                                    </span>
-                                                                                </div>
-                                                                            </div>
-                                                                        </td>
-                                                                        <td class="px-3 py-3 border">
-                                                                            <input type="number" name="items[${idx}][quantity]" required class="w-full px-3 py-2 border border-gray-300 rounded-lg text-center font-medium" value="1" min="1" onchange="calc()">
-                                                                        </td>
-                                                                         <td class="px-3 py-3 border">
-                                                                            <select name="items[${idx}][currency]" class="w-full px-3 py-2 border border-gray-300 rounded-lg" onchange="togCur(this, ${idx})">
-                                                                                <option value="USD">USD</option>
-                                                                                <option value="VND" selected>VND</option>
-                                                                            </select>
-                                                                        </td>
-                                                                        <td class="px-3 py-3 border">
-                                                                            <input type="text" name="items[${idx}][price_usd]" id="usd-input-${idx}" class="usd-${idx} w-full px-3 py-2 border border-gray-300 rounded-lg text-right" value="0" oninput="formatUSD(this); calc()" onblur="formatUSD(this, true)" onchange="calc()">
-                                                                        </td>
-                                                                        <td class="px-3 py-3 border">
-                                                                            <input type="text" name="items[${idx}][price_vnd]" id="vnd-input-${idx}" class="vnd-${idx} w-full px-3 py-2 border border-gray-300 rounded-lg text-right" value="0" oninput="formatVND(this); calc()" onblur="formatVND(this, true)" onchange="calc()">
-                                                                        </td>
-                                                                        <td class="px-3 py-3 border text-center">
-                                                                            <input type="number" name="items[${idx}][discount_percent]" class="w-full px-3 py-2 border border-gray-300 rounded-lg text-center" value="0" min="0" max="100" step="1" onchange="calc()">
-                                                                        </td>
-                                                                        <td class="px-3 py-3 border text-center">
-                                                                            <div class="space-y-1">
-                                                                                <input type="text" name="items[${idx}][discount_amount_usd]" id="discount-usd-${idx}" class="discount-usd-${idx} w-full px-2 py-1 text-sm border border-blue-300 rounded text-right hidden" value="0" oninput="formatUSD(this); calc()" onblur="formatUSD(this, true)" placeholder="USD">
-                                                                                <input type="text" name="items[${idx}][discount_amount_vnd]" id="discount-vnd-${idx}" class="discount-vnd-${idx} w-full px-2 py-1 text-sm border border-green-300 rounded text-right" value="0" oninput="formatVND(this); calc()" onblur="formatVND(this, true)" placeholder="VND">
-                                                                            </div>
-                                                                        </td>
-                                                                        <td class="px-3 py-3 border text-center">
-                                                                            <button type="button" class="w-8 h-8 flex items-center justify-center bg-red-100 text-red-600 rounded-lg hover:bg-red-200 transition-colors" onclick="this.closest('tr').remove();calc()">
-                                                                                <i class="fas fa-trash"></i>
-                                                                            </button>
-                                                                        </td>
-                                                                    `;
+                    <td class="px-2 py-3 border text-center font-bold text-xs text-purple-700 bg-gray-50 item-stt"></td>
+                    <td class="px-3 py-3 border">
+                        <img id="img-${idx}" src="/images/no-image.svg" class="w-20 h-16 object-cover rounded border shadow-sm">
+                    </td>
+                    <td class="px-3 py-3 border">
+                        <div class="relative">
+                            <input type="text" 
+                                   id="item-search-${idx}"
+                                   class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 mb-2" 
+                                   placeholder="Tìm tranh, khung, vật tư hoặc nhập tên hàng gia công..."
+                                   autocomplete="off"
+                                   onkeyup="filterItems(this.value, ${idx})"
+                                   oninput="document.getElementById('desc-'+${idx}).value = this.value; updateProcessedStatus(${idx})"
+                                   onfocus="showItemSuggestions(${idx})">
+                            <input type="hidden" name="items[${idx}][painting_id]" id="painting-id-${idx}">
+                            <input type="hidden" name="items[${idx}][frame_id]" id="frame-id-${idx}">
+                            <input type="hidden" name="items[${idx}][supply_id]" id="supply-id-${idx}">
+                            <input type="hidden" name="items[${idx}][description]" id="desc-${idx}">
+                            <div id="item-suggestions-${idx}" class="absolute z-20 w-full bg-white border border-gray-300 rounded-lg mt-1 max-h-60 overflow-y-auto hidden shadow-lg"></div>
+                            <div id="item-details-${idx}" class="text-xs text-gray-600 space-y-0.5 hidden"></div>
+                            <div id="processed-badge-${idx}" class="mt-1 hidden">
+                                <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-blue-100 text-blue-800 border border-blue-200">
+                                    <i class="fas fa-hammer mr-1"></i>Hàng gia công
+                                </span>
+                            </div>
+                        </div>
+                    </td>
+                    <td class="px-3 py-3 border">
+                        <input type="number" name="items[${idx}][quantity]" required class="w-full px-3 py-2 border border-gray-300 rounded-lg text-center font-medium" value="1" min="1" onchange="calc()">
+                    </td>
+                   <td class="px-3 py-3 border">
+                        <select name="items[${idx}][currency]" class="w-full px-3 py-2 border border-gray-300 rounded-lg" onchange="togCur(this, ${idx})">
+                            <option value="USD">USD</option>
+                            <option value="VND" selected>VND</option>
+                        </select>
+                    </td>
+                    <td class="px-3 py-3 border">
+                        <input type="text" name="items[${idx}][price_usd]" id="usd-input-${idx}" class="usd-${idx} w-full px-3 py-2 border border-gray-300 rounded-lg text-right" value="0" oninput="formatUSD(this); calc()" onblur="formatUSD(this, true)" onchange="calc()">
+                    </td>
+                    <td class="px-3 py-3 border">
+                        <input type="text" name="items[${idx}][price_vnd]" id="vnd-input-${idx}" class="vnd-${idx} w-full px-3 py-2 border border-gray-300 rounded-lg text-right" value="0" oninput="formatVND(this); calc()" onblur="formatVND(this, true)" onchange="calc()">
+                    </td>
+                    <td class="px-3 py-3 border text-center">
+                        <input type="number" name="items[${idx}][discount_percent]" class="w-full px-3 py-2 border border-gray-300 rounded-lg text-center" value="0" min="0" max="100" step="1" onchange="calc()">
+                    </td>
+                    <td class="px-3 py-3 border text-center">
+                        <div class="space-y-1">
+                            <input type="text" name="items[${idx}][discount_amount_usd]" id="discount-usd-${idx}" class="discount-usd-${idx} w-full px-2 py-1 text-sm border border-blue-300 rounded text-right hidden" value="0" oninput="formatUSD(this); calc()" onblur="formatUSD(this, true)" placeholder="USD">
+                            <input type="text" name="items[${idx}][discount_amount_vnd]" id="discount-vnd-${idx}" class="discount-vnd-${idx} w-full px-2 py-1 text-sm border border-green-300 rounded text-right" value="0" oninput="formatVND(this); calc()" onblur="formatVND(this, true)" placeholder="VND">
+                        </div>
+                    </td>
+                    <td class="px-3 py-3 border text-center">
+                        <button type="button" class="w-8 h-8 flex items-center justify-center bg-red-100 text-red-600 rounded-lg hover:bg-red-200 transition-colors" onclick="this.closest('tr').remove();calc();updateRowNumbers();">
+                            <i class="fas fa-trash"></i>
+                        </button>
+                    </td>
+                `;
                 if (prepend) {
                     tbody.insertBefore(tr, tbody.firstChild);
                 } else {
                     tbody.appendChild(tr);
                 }
                 idx++;
+                updateRowNumbers();
             }
 
             // Helper to get selected frame IDs (excluding current row)
@@ -2034,6 +2045,114 @@
                 });
             }
 
+            // Update row numbers (# STT) and count badge
+            function updateRowNumbers() {
+                const rows = document.querySelectorAll('#items-body tr');
+                rows.forEach((row, index) => {
+                    const sttCell = row.querySelector('.item-stt');
+                    if (sttCell) {
+                        sttCell.textContent = index + 1;
+                    }
+                    row.dataset.stt = index + 1;
+                });
+                const countBadge = document.getElementById('items-count-badge');
+                if (countBadge) {
+                    countBadge.textContent = `${rows.length} sản phẩm`;
+                }
+            }
+
+            // Quick search / filter rows in create table
+            document.addEventListener('DOMContentLoaded', () => {
+                const filterInput = document.getElementById('filter-create-items');
+                if (filterInput) {
+                    filterInput.addEventListener('input', function () {
+                        const query = this.value.toLowerCase().trim();
+                        const rows = document.querySelectorAll('#items-body tr');
+                        rows.forEach(row => {
+                            const descInput = row.querySelector('[id^="desc-"]') || row.querySelector('input[name*="[description]"]');
+                            const searchInput = row.querySelector('[id^="item-search-"]');
+                            const stt = row.dataset.stt || '';
+                            const text = ((descInput ? descInput.value : '') + ' ' + (searchInput ? searchInput.value : '') + ' ' + stt).toLowerCase();
+                            if (!query || text.includes(query) || ('#' + stt) === query) {
+                                row.style.display = '';
+                            } else {
+                                row.style.display = 'none';
+                            }
+                        });
+                    });
+                }
+            });
+
+            // Prepare items into a single JSON payload to prevent hitting PHP max_input_vars limit
+            function prepareItemsForSubmit(form) {
+                const rows = document.querySelectorAll('#items-body tr');
+                const items = [];
+                rows.forEach((row, index) => {
+                    const paintingIdEl = row.querySelector('[id^="painting-id-"]') || row.querySelector('input[name*="[painting_id]"]');
+                    const frameIdEl = row.querySelector('[id^="frame-id-"]') || row.querySelector('input[name*="[frame_id]"]');
+                    const supplyIdEl = row.querySelector('[id^="supply-id-"]') || row.querySelector('input[name*="[supply_id]"]');
+                    const descEl = row.querySelector('[id^="desc-"]') || row.querySelector('input[name*="[description]"]');
+                    const qtyEl = row.querySelector('input[name*="[quantity]"]') || row.querySelector('input[type="number"]');
+                    const curEl = row.querySelector('select[name*="[currency]"]') || row.querySelector('select');
+                    const usdEl = row.querySelector('[id^="usd-input-"]') || row.querySelector('input[name*="[price_usd]"]');
+                    const vndEl = row.querySelector('[id^="vnd-input-"]') || row.querySelector('input[name*="[price_vnd]"]');
+                    const discPctEl = row.querySelector('input[name*="[discount_percent]"]');
+                    const discUsdEl = row.querySelector('[id^="discount-usd-"]') || row.querySelector('input[name*="[discount_amount_usd]"]');
+                    const discVndEl = row.querySelector('[id^="discount-vnd-"]') || row.querySelector('input[name*="[discount_amount_vnd]"]');
+
+                    const paintingId = paintingIdEl && paintingIdEl.value ? paintingIdEl.value : null;
+                    const frameId = frameIdEl && frameIdEl.value ? frameIdEl.value : null;
+                    const supplyId = supplyIdEl && supplyIdEl.value ? supplyIdEl.value : null;
+                    const description = descEl && descEl.value ? descEl.value.trim() : '';
+                    const quantity = qtyEl ? (parseFloat(qtyEl.value) || 1) : 1;
+                    let currency = curEl ? curEl.value : 'VND';
+                    if (currency === 'BOTH') {
+                        const usdVal = parseFloat(unformatNumber(usdEl ? usdEl.value : 0)) || 0;
+                        currency = (usdVal > 0) ? 'USD' : 'VND';
+                    }
+                    const priceUsd = usdEl ? usdEl.value : '0';
+                    const priceVnd = vndEl ? vndEl.value : '0';
+                    const discountPercent = discPctEl ? (parseFloat(discPctEl.value) || 0) : 0;
+                    const discountAmountUsd = discUsdEl ? discUsdEl.value : '0';
+                    const discountAmountVnd = discVndEl ? discVndEl.value : '0';
+
+                    if (paintingId || frameId || supplyId || description) {
+                        items.push({
+                            painting_id: paintingId ? parseInt(paintingId) : null,
+                            frame_id: frameId ? parseInt(frameId) : null,
+                            supply_id: supplyId ? parseInt(supplyId) : null,
+                            description: description,
+                            quantity: quantity,
+                            currency: currency,
+                            price_usd: unformatNumber(priceUsd),
+                            price_vnd: unformatNumber(priceVnd),
+                            discount_percent: discountPercent,
+                            discount_amount_usd: unformatNumber(discountAmountUsd),
+                            discount_amount_vnd: unformatNumber(discountAmountVnd)
+                        });
+                    }
+                });
+
+                let itemsJsonInput = document.getElementById('items_json');
+                if (!itemsJsonInput) {
+                    itemsJsonInput = document.createElement('input');
+                    itemsJsonInput.type = 'hidden';
+                    itemsJsonInput.name = 'items_json';
+                    itemsJsonInput.id = 'items_json';
+                    form.appendChild(itemsJsonInput);
+                }
+                itemsJsonInput.value = JSON.stringify(items);
+
+                // Strip name attributes from item inputs inside table rows so browser only submits items_json
+                rows.forEach(row => {
+                    row.querySelectorAll('input, select, textarea').forEach(el => {
+                        if (el.name && el.name.startsWith('items[')) {
+                            el.removeAttribute('name');
+                        }
+                    });
+                });
+            }
+
             // Submit form after confirmation
             function submitSalesForm() {
                 const form = document.getElementById('sales-form');
@@ -2073,6 +2192,9 @@
                         select.value = (usdVal > 0) ? 'USD' : 'VND';
                     }
                 });
+
+                // Prepare items as JSON to bypass max_input_vars limit
+                prepareItemsForSubmit(form);
 
                 form.submit();
             }
