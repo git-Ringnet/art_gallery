@@ -19,11 +19,11 @@
                 <div class="py-2 border-b border-gray-200">
                     <div class="px-4 py-2 text-xs font-semibold text-gray-500 uppercase">Excel</div>
                     <a href="{{ route('inventory.export.excel', array_merge(request()->query(), ['scope' => 'current'])) }}"
-                        class="block px-4 py-2 text-sm text-gray-700 hover:bg-blue-50 transition-colors">
+                        class="export-excel-link block px-4 py-2 text-sm text-gray-700 hover:bg-blue-50 transition-colors">
                         <i class="fas fa-file-excel text-green-600 mr-2"></i>Trang hiện tại
                     </a>
                     <a href="{{ route('inventory.export.excel', array_merge(request()->query(), ['scope' => 'all'])) }}"
-                        class="block px-4 py-2 text-sm text-gray-700 hover:bg-blue-50 transition-colors">
+                        class="export-excel-link block px-4 py-2 text-sm text-gray-700 hover:bg-blue-50 transition-colors">
                         <i class="fas fa-file-excel text-green-600 mr-2"></i>Tất cả kết quả
                     </a>
                 </div>
@@ -31,11 +31,11 @@
                 <div class="py-2">
                     <div class="px-4 py-2 text-xs font-semibold text-gray-500 uppercase">PDF</div>
                     <a href="{{ route('inventory.export.pdf', array_merge(request()->query(), ['scope' => 'current'])) }}"
-                        class="block px-4 py-2 text-sm text-gray-700 hover:bg-red-50 transition-colors">
+                        class="export-pdf-link block px-4 py-2 text-sm text-gray-700 hover:bg-red-50 transition-colors">
                         <i class="fas fa-file-pdf text-red-600 mr-2"></i>Trang hiện tại
                     </a>
                     <a href="{{ route('inventory.export.pdf', array_merge(request()->query(), ['scope' => 'all'])) }}"
-                        class="block px-4 py-2 text-sm text-gray-700 hover:bg-red-50 transition-colors">
+                        class="export-pdf-link block px-4 py-2 text-sm text-gray-700 hover:bg-red-50 transition-colors">
                         <i class="fas fa-file-pdf text-red-600 mr-2"></i>Tất cả kết quả
                     </a>
                 </div>
@@ -84,6 +84,7 @@
                 </ul>
             </div>
         @endif
+
         <!-- Search and Filter -->
         <div class="bg-gray-50 p-3 rounded-lg mb-4">
             <form method="GET" action="{{ route('inventory.index') }}">
@@ -147,6 +148,97 @@
         </div>
         @endhasPermission
 
+        <!-- Table Toolbar: Column Selection Button (Sliders) -->
+        <div class="flex justify-between items-center mb-3">
+            <div class="text-xs text-gray-500 font-medium">
+                Hiển thị <span class="font-bold text-gray-700">{{ $inventory->count() }}</span> / {{ $inventory->total() }} kết quả
+            </div>
+            <div class="relative inline-block text-left">
+                <button id="columnToggleBtn" type="button" onclick="toggleColumnMenu(event)"
+                    class="p-2 border border-gray-300 rounded-xl bg-white hover:bg-gray-50 text-gray-600 hover:text-blue-600 shadow-sm transition-all flex items-center justify-center focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    title="Cột hiển thị & thứ tự">
+                    <i class="fas fa-sliders-h text-base"></i>
+                </button>
+
+                <!-- Column Toggle Dropdown (Matches Design Mockup) -->
+                <div id="columnToggleMenu" 
+                     class="hidden absolute right-0 mt-2 w-72 sm:w-80 bg-white rounded-xl shadow-2xl border border-gray-200 z-50 p-3.5 transition-all">
+                    <div class="flex items-center justify-between pb-2.5 mb-2.5 border-b border-gray-200">
+                        <span class="text-xs font-bold text-gray-700 uppercase tracking-wide">CỘT HIỂN THỊ & THỨ TỰ</span>
+                        <button type="button" onclick="resetDefaultColumns()" class="text-xs font-semibold text-blue-600 hover:text-blue-800 hover:underline">
+                            Mặc định
+                        </button>
+                    </div>
+                    <div class="grid grid-cols-2 gap-x-2 gap-y-1.5 max-h-80 overflow-y-auto pr-1">
+                        <label class="flex items-center px-1.5 py-1 hover:bg-gray-50 rounded cursor-pointer select-none">
+                            <input type="checkbox" data-target-col="stt" class="col-toggle-checkbox rounded border-gray-300 text-blue-600 focus:ring-blue-500 mr-2 h-4 w-4">
+                            <span class="text-xs text-gray-700 font-medium">STT</span>
+                        </label>
+                        <label class="flex items-center px-1.5 py-1 hover:bg-gray-50 rounded cursor-pointer select-none">
+                            <input type="checkbox" data-target-col="code" class="col-toggle-checkbox rounded border-gray-300 text-blue-600 focus:ring-blue-500 mr-2 h-4 w-4">
+                            <span class="text-xs text-gray-700 font-medium">Mã</span>
+                        </label>
+                        <label class="flex items-center px-1.5 py-1 hover:bg-gray-50 rounded cursor-pointer select-none">
+                            <input type="checkbox" data-target-col="name" class="col-toggle-checkbox rounded border-gray-300 text-blue-600 focus:ring-blue-500 mr-2 h-4 w-4">
+                            <span class="text-xs text-gray-700 font-medium">Tên sản phẩm</span>
+                        </label>
+                        <label class="flex items-center px-1.5 py-1 hover:bg-gray-50 rounded cursor-pointer select-none">
+                            <input type="checkbox" data-target-col="type" class="col-toggle-checkbox rounded border-gray-300 text-blue-600 focus:ring-blue-500 mr-2 h-4 w-4">
+                            <span class="text-xs text-gray-700 font-medium">Loại</span>
+                        </label>
+                        <label class="flex items-center px-1.5 py-1 hover:bg-gray-50 rounded cursor-pointer select-none">
+                            <input type="checkbox" data-target-col="artist" class="col-toggle-checkbox rounded border-gray-300 text-blue-600 focus:ring-blue-500 mr-2 h-4 w-4">
+                            <span class="text-xs text-gray-700 font-medium">Họa sĩ</span>
+                        </label>
+                        <label class="flex items-center px-1.5 py-1 hover:bg-gray-50 rounded cursor-pointer select-none">
+                            <input type="checkbox" data-target-col="material" class="col-toggle-checkbox rounded border-gray-300 text-blue-600 focus:ring-blue-500 mr-2 h-4 w-4">
+                            <span class="text-xs text-gray-700 font-medium">Chất liệu</span>
+                        </label>
+                        <label class="flex items-center px-1.5 py-1 hover:bg-gray-50 rounded cursor-pointer select-none">
+                            <input type="checkbox" data-target-col="dimensions" class="col-toggle-checkbox rounded border-gray-300 text-blue-600 focus:ring-blue-500 mr-2 h-4 w-4">
+                            <span class="text-xs text-gray-700 font-medium">Kích thước</span>
+                        </label>
+                        <label class="flex items-center px-1.5 py-1 hover:bg-gray-50 rounded cursor-pointer select-none">
+                            <input type="checkbox" data-target-col="paint_year" class="col-toggle-checkbox rounded border-gray-300 text-blue-600 focus:ring-blue-500 mr-2 h-4 w-4">
+                            <span class="text-xs text-gray-700 font-medium">Năm SX</span>
+                        </label>
+                        <label class="flex items-center px-1.5 py-1 hover:bg-gray-50 rounded cursor-pointer select-none">
+                            <input type="checkbox" data-target-col="price_usd" class="col-toggle-checkbox rounded border-gray-300 text-blue-600 focus:ring-blue-500 mr-2 h-4 w-4">
+                            <span class="text-xs text-gray-700 font-medium">Giá USD</span>
+                        </label>
+                        <label class="flex items-center px-1.5 py-1 hover:bg-gray-50 rounded cursor-pointer select-none">
+                            <input type="checkbox" data-target-col="price_vnd" class="col-toggle-checkbox rounded border-gray-300 text-blue-600 focus:ring-blue-500 mr-2 h-4 w-4">
+                            <span class="text-xs text-gray-700 font-medium">Giá VND</span>
+                        </label>
+                        <label class="flex items-center px-1.5 py-1 hover:bg-gray-50 rounded cursor-pointer select-none">
+                            <input type="checkbox" data-target-col="quantity" class="col-toggle-checkbox rounded border-gray-300 text-blue-600 focus:ring-blue-500 mr-2 h-4 w-4">
+                            <span class="text-xs text-gray-700 font-medium">Số lượng</span>
+                        </label>
+                        <label class="flex items-center px-1.5 py-1 hover:bg-gray-50 rounded cursor-pointer select-none">
+                            <input type="checkbox" data-target-col="import_date" class="col-toggle-checkbox rounded border-gray-300 text-blue-600 focus:ring-blue-500 mr-2 h-4 w-4">
+                            <span class="text-xs text-gray-700 font-medium">Ngày nhập</span>
+                        </label>
+                        <label class="flex items-center px-1.5 py-1 hover:bg-gray-50 rounded cursor-pointer select-none">
+                            <input type="checkbox" data-target-col="export_date" class="col-toggle-checkbox rounded border-gray-300 text-blue-600 focus:ring-blue-500 mr-2 h-4 w-4">
+                            <span class="text-xs text-gray-700 font-medium">Ngày xuất</span>
+                        </label>
+                        <label class="flex items-center px-1.5 py-1 hover:bg-gray-50 rounded cursor-pointer select-none">
+                            <input type="checkbox" data-target-col="invoice_code" class="col-toggle-checkbox rounded border-gray-300 text-blue-600 focus:ring-blue-500 mr-2 h-4 w-4">
+                            <span class="text-xs text-gray-700 font-medium">Số hóa đơn</span>
+                        </label>
+                        <label class="flex items-center px-1.5 py-1 hover:bg-gray-50 rounded cursor-pointer select-none">
+                            <input type="checkbox" data-target-col="status" class="col-toggle-checkbox rounded border-gray-300 text-blue-600 focus:ring-blue-500 mr-2 h-4 w-4">
+                            <span class="text-xs text-gray-700 font-medium">Trạng thái</span>
+                        </label>
+                        <label class="flex items-center px-1.5 py-1 hover:bg-gray-50 rounded cursor-pointer select-none">
+                            <input type="checkbox" data-target-col="action" class="col-toggle-checkbox rounded border-gray-300 text-blue-600 focus:ring-blue-500 mr-2 h-4 w-4">
+                            <span class="text-xs text-gray-700 font-medium">Thao tác</span>
+                        </label>
+                    </div>
+                </div>
+            </div>
+        </div>
+
         <!-- Inventory Table -->
         <div class="overflow-x-auto">
             <table class="w-full text-sm">
@@ -157,23 +249,22 @@
                             <input type="checkbox" id="selectAll" class="rounded border-gray-300 text-blue-600 focus:ring-blue-500" title="Chọn tất cả">
                         </th>
                         @endhasPermission
-                        <th class="px-2 py-2 text-center text-xs font-medium uppercase tracking-wider w-12">STT</th>
-                        <th class="px-2 py-2 text-left text-xs font-medium uppercase tracking-wider">Mã</th>
-                        <th class="px-2 py-2 text-left text-xs font-medium uppercase tracking-wider">Tên sản
-                            phẩm</th>
-                        <th class="px-2 py-2 text-left text-xs font-medium uppercase tracking-wider">Loại</th>
-                        <th class="px-2 py-2 text-left text-xs font-medium uppercase tracking-wider">Số lượng
-                        </th>
-                        <th class="px-2 py-2 text-left text-xs font-medium uppercase tracking-wider">Ngày nhập
-                        </th>
-                        <th class="px-2 py-2 text-left text-xs font-medium uppercase tracking-wider">Ngày xuất
-                        </th>
-                        <th class="px-2 py-2 text-left text-xs font-medium uppercase tracking-wider">Số hóa đơn
-                        </th>
-                        <th class="px-2 py-2 text-left text-xs font-medium uppercase tracking-wider">Trạng
-                            thái</th>
-                        <th class="px-2 py-2 text-left text-xs font-medium uppercase tracking-wider">Thao tác
-                        </th>
+                        <th data-col="stt" class="px-2 py-2 text-center text-xs font-medium uppercase tracking-wider w-12">STT</th>
+                        <th data-col="code" class="px-2 py-2 text-left text-xs font-medium uppercase tracking-wider">Mã</th>
+                        <th data-col="name" class="px-2 py-2 text-left text-xs font-medium uppercase tracking-wider">Tên sản phẩm</th>
+                        <th data-col="type" class="px-2 py-2 text-left text-xs font-medium uppercase tracking-wider">Loại</th>
+                        <th data-col="artist" class="px-2 py-2 text-left text-xs font-medium uppercase tracking-wider">Họa sĩ</th>
+                        <th data-col="material" class="px-2 py-2 text-left text-xs font-medium uppercase tracking-wider">Chất liệu</th>
+                        <th data-col="dimensions" class="px-2 py-2 text-left text-xs font-medium uppercase tracking-wider">Kích thước</th>
+                        <th data-col="paint_year" class="px-2 py-2 text-left text-xs font-medium uppercase tracking-wider">Năm SX</th>
+                        <th data-col="price_usd" class="px-2 py-2 text-left text-xs font-medium uppercase tracking-wider">Giá USD</th>
+                        <th data-col="price_vnd" class="px-2 py-2 text-left text-xs font-medium uppercase tracking-wider">Giá VND</th>
+                        <th data-col="quantity" class="px-2 py-2 text-left text-xs font-medium uppercase tracking-wider">Số lượng</th>
+                        <th data-col="import_date" class="px-2 py-2 text-left text-xs font-medium uppercase tracking-wider">Ngày nhập</th>
+                        <th data-col="export_date" class="px-2 py-2 text-left text-xs font-medium uppercase tracking-wider">Ngày xuất</th>
+                        <th data-col="invoice_code" class="px-2 py-2 text-left text-xs font-medium uppercase tracking-wider">Số hóa đơn</th>
+                        <th data-col="status" class="px-2 py-2 text-left text-xs font-medium uppercase tracking-wider">Trạng thái</th>
+                        <th data-col="action" class="px-2 py-2 text-left text-xs font-medium uppercase tracking-wider">Thao tác</th>
                     </tr>
                 </thead>
                 <tbody class="bg-white divide-y divide-gray-200">
@@ -182,7 +273,7 @@
                             $canDelete = ($item['type'] == 'painting' && $item['status'] == 'in_stock') || 
                                         ($item['type'] == 'supply' && $item['quantity'] > 0);
                         @endphp
-                        <tr class="hover:bg-gray-50">
+                        <tr class="hover:bg-gray-50 transition-colors">
                             @hasPermission('inventory', 'can_delete')
                             <td class="px-2 py-2 whitespace-nowrap text-center">
                                 @if($canDelete)
@@ -193,22 +284,85 @@
                                 @endif
                             </td>
                             @endhasPermission
-                            <td class="px-2 py-2 whitespace-nowrap text-xs text-center text-gray-500">
+
+                            {{-- STT --}}
+                            <td data-col="stt" class="px-2 py-2 whitespace-nowrap text-xs text-center text-gray-500">
                                 {{ $inventory->firstItem() + $index }}
                             </td>
-                            <td class="px-2 py-2 whitespace-nowrap text-xs font-medium text-indigo-600">{{ $item['code'] }}
+
+                            {{-- Mã --}}
+                            <td data-col="code" class="px-2 py-2 whitespace-nowrap text-xs font-semibold text-indigo-600">
+                                {{ $item['code'] }}
                             </td>
-                            <td class="px-2 py-2 whitespace-nowrap text-xs text-gray-900">{{ $item['name'] }}</td>
-                            <td class="px-2 py-2 whitespace-nowrap text-xs text-gray-900">
+
+                            {{-- Tên sản phẩm --}}
+                            <td data-col="name" class="px-2 py-2 whitespace-nowrap text-xs font-medium text-gray-900">
+                                {{ $item['name'] }}
+                            </td>
+
+                            {{-- Loại --}}
+                            <td data-col="type" class="px-2 py-2 whitespace-nowrap text-xs text-gray-900">
                                 @if ($item['type'] == 'painting')
-                                    <span
-                                        class="px-1.5 py-0.5 text-xs font-semibold rounded bg-purple-100 text-purple-800">Tranh</span>
+                                    <span class="px-1.5 py-0.5 text-xs font-semibold rounded bg-purple-100 text-purple-800">Tranh</span>
                                 @else
-                                    <span class="px-1.5 py-0.5 text-xs font-semibold rounded bg-blue-100 text-blue-800">Vật
-                                        tư</span>
+                                    <span class="px-1.5 py-0.5 text-xs font-semibold rounded bg-blue-100 text-blue-800">Vật tư</span>
                                 @endif
                             </td>
-                            <td class="px-2 py-2 whitespace-nowrap text-xs font-semibold text-gray-900">
+
+                            {{-- Họa sĩ --}}
+                            <td data-col="artist" class="px-2 py-2 whitespace-nowrap text-xs text-gray-800">
+                                {{ $item['artist'] ?? '-' }}
+                            </td>
+
+                            {{-- Chất liệu --}}
+                            <td data-col="material" class="px-2 py-2 whitespace-nowrap text-xs text-gray-800">
+                                @if ($item['type'] == 'painting' && !empty($item['material']))
+                                    @switch($item['material'])
+                                        @case('son_dau') Sơn dầu @break
+                                        @case('canvas') Canvas @break
+                                        @case('thuy_mac') Thủy mặc @break
+                                        @case('acrylic') Acrylic @break
+                                        @default {{ $item['material'] }}
+                                    @endswitch
+                                @else
+                                    <span class="text-gray-400">-</span>
+                                @endif
+                            </td>
+
+                            {{-- Kích thước --}}
+                            <td data-col="dimensions" class="px-2 py-2 whitespace-nowrap text-xs text-gray-800">
+                                @if (!empty($item['dimensions']))
+                                    {{ $item['dimensions'] }}
+                                @else
+                                    <span class="text-gray-400">-</span>
+                                @endif
+                            </td>
+
+                            {{-- Năm sản xuất --}}
+                            <td data-col="paint_year" class="px-2 py-2 whitespace-nowrap text-xs text-gray-800">
+                                {{ $item['paint_year'] ?? '-' }}
+                            </td>
+
+                            {{-- Giá USD --}}
+                            <td data-col="price_usd" class="px-2 py-2 whitespace-nowrap text-xs font-semibold text-blue-600">
+                                @if (!empty($item['price_usd']))
+                                    ${{ number_format($item['price_usd'], 2) }}
+                                @else
+                                    <span class="text-gray-400 font-normal">-</span>
+                                @endif
+                            </td>
+
+                            {{-- Giá VND --}}
+                            <td data-col="price_vnd" class="px-2 py-2 whitespace-nowrap text-xs font-semibold text-green-600">
+                                @if (!empty($item['price_vnd']))
+                                    {{ number_format($item['price_vnd']) }}đ
+                                @else
+                                    <span class="text-gray-400 font-normal">-</span>
+                                @endif
+                            </td>
+
+                            {{-- Số lượng --}}
+                            <td data-col="quantity" class="px-2 py-2 whitespace-nowrap text-xs font-semibold text-gray-900">
                                 @if($item['type'] == 'supply' && isset($item['supply_type']) && $item['supply_type'] == 'frame' && isset($item['tree_count']) && $item['tree_count'] > 0)
                                     <div class="flex flex-col">
                                         <span class="text-blue-600">{{ $item['tree_count'] }} cây × {{ rtrim(rtrim(number_format($item['quantity'], 2), '0'), '.') }}{{ isset($item['unit']) ? $item['unit'] : '' }}/cây</span>
@@ -221,15 +375,23 @@
                                     {{ is_numeric($item['quantity']) ? rtrim(rtrim(number_format($item['quantity'], 2), '0'), '.') : $item['quantity'] }}{{ isset($item['unit']) ? ' ' . $item['unit'] : '' }}
                                 @endif
                             </td>
-                            <td class="px-2 py-2 whitespace-nowrap text-xs text-gray-900">{{ $item['import_date'] }}</td>
-                            <td class="px-2 py-2 whitespace-nowrap text-xs text-gray-900">
+
+                            {{-- Ngày nhập --}}
+                            <td data-col="import_date" class="px-2 py-2 whitespace-nowrap text-xs text-gray-900">
+                                {{ $item['import_date'] ?? '-' }}
+                            </td>
+
+                            {{-- Ngày xuất --}}
+                            <td data-col="export_date" class="px-2 py-2 whitespace-nowrap text-xs text-gray-900">
                                 @if(isset($item['export_date']) && $item['export_date'])
                                     {{ $item['export_date'] }}
                                 @else
                                     <span class="text-gray-400">-</span>
                                 @endif
                             </td>
-                            <td class="px-2 py-2 text-xs text-gray-900">
+
+                            {{-- Số hóa đơn --}}
+                            <td data-col="invoice_code" class="px-2 py-2 text-xs text-gray-900">
                                 @if(isset($item['sales']) && $item['sales']->isNotEmpty())
                                     @foreach($item['sales'] as $sale)
                                         <a href="{{ route('sales.show', $sale->id) }}"
@@ -243,7 +405,9 @@
                                     <span class="text-gray-400">-</span>
                                 @endif
                             </td>
-                            <td class="px-2 py-2 whitespace-nowrap">
+
+                            {{-- Trạng thái --}}
+                            <td data-col="status" class="px-2 py-2 whitespace-nowrap">
                                 @if ($item['type'] == 'painting')
                                     @if ($item['status'] == 'in_stock')
                                         <span class="px-1.5 py-0.5 text-xs font-semibold rounded bg-green-100 text-green-800">
@@ -270,7 +434,9 @@
                                     </span>
                                 @endif
                             </td>
-                            <td class="px-2 py-2 whitespace-nowrap text-xs">
+
+                            {{-- Thao tác --}}
+                            <td data-col="action" class="px-2 py-2 whitespace-nowrap text-xs">
                                 @if ($item['type'] == 'painting')
                                     @hasPermission('inventory', 'can_view')
                                     <a href="{{ route('inventory.paintings.show', $item['id']) }}"
@@ -287,8 +453,7 @@
                                         </a>
                                     @else
                                         <span class="text-gray-400 mr-2" title="Không thể sửa tranh đã bán">
-                                            <i
-                                                class="fas fa-edit px-2 py-1.5 rounded bg-gray-100 text-gray-400 text-xs cursor-not-allowed"></i>
+                                            <i class="fas fa-edit px-2 py-1.5 rounded bg-gray-100 text-gray-400 text-xs cursor-not-allowed"></i>
                                         </span>
                                     @endif
                                     @endhasPermission
@@ -305,8 +470,7 @@
                                         </form>
                                     @else
                                         <span class="text-gray-400" title="Không thể xóa tranh đã bán">
-                                            <i
-                                                class="fas fa-trash px-2 py-1.5 rounded bg-gray-100 text-gray-400 text-xs cursor-not-allowed"></i>
+                                            <i class="fas fa-trash px-2 py-1.5 rounded bg-gray-100 text-gray-400 text-xs cursor-not-allowed"></i>
                                         </span>
                                     @endif
                                     @endhasPermission
@@ -339,8 +503,7 @@
                                         </form>
                                     @else
                                         <span class="text-gray-400" title="Không thể xóa vật tư đã sử dụng hết">
-                                            <i
-                                                class="fas fa-trash px-2 py-1.5 rounded bg-gray-100 text-gray-400 text-xs cursor-not-allowed"></i>
+                                            <i class="fas fa-trash px-2 py-1.5 rounded bg-gray-100 text-gray-400 text-xs cursor-not-allowed"></i>
                                         </span>
                                     @endif
                                     @endhasPermission
@@ -349,7 +512,7 @@
                         </tr>
                     @empty
                         <tr>
-                            <td colspan="11" class="px-2 py-6 text-center text-gray-500">
+                            <td colspan="100" class="px-2 py-6 text-center text-gray-500">
                                 <i class="fas fa-inbox text-3xl mb-2"></i>
                                 <p class="text-sm">Không có dữ liệu</p>
                             </td>
@@ -371,15 +534,121 @@
             dropdown.classList.toggle('hidden');
         }
 
-        // Close dropdown when clicking outside
-        document.addEventListener('click', function (event) {
-            const dropdown = document.getElementById('exportDropdown');
-            const button = event.target.closest('[onclick="toggleExportDropdown()"]');
+        // ==========================================
+        // Column Visibility & Ordering Management
+        // ==========================================
+        const COLUMN_STORAGE_KEY = 'art_gallery_inventory_columns_v3';
+        const ALL_COLUMNS = [
+            'stt', 'code', 'name', 'type', 'artist', 'material',
+            'dimensions', 'paint_year', 'price_usd', 'price_vnd',
+            'quantity', 'import_date', 'export_date', 'invoice_code', 'status', 'action'
+        ];
+        // Mặc định hiển thị tất cả các cột
+        const DEFAULT_COLUMNS = [...ALL_COLUMNS];
 
-            if (dropdown && !dropdown.contains(event.target) && !button) {
-                dropdown.classList.add('hidden');
+        function getStoredColumns() {
+            try {
+                const stored = localStorage.getItem(COLUMN_STORAGE_KEY);
+                if (stored) {
+                    const parsed = JSON.parse(stored);
+                    if (Array.isArray(parsed) && parsed.length > 0) {
+                        return parsed;
+                    }
+                }
+            } catch (e) {
+                console.error(e);
+            }
+            return DEFAULT_COLUMNS;
+        }
+
+        function applyColumns(columns) {
+            const colSet = new Set(columns);
+
+            // Cập nhật trạng thái các checkbox
+            document.querySelectorAll('.col-toggle-checkbox').forEach(cb => {
+                cb.checked = colSet.has(cb.dataset.targetCol);
+            });
+
+            // Cập nhật hiển thị các cột trong bảng (th & td)
+            ALL_COLUMNS.forEach(colKey => {
+                const isVisible = colSet.has(colKey);
+                const elements = document.querySelectorAll(`[data-col="${colKey}"]`);
+                elements.forEach(el => {
+                    if (isVisible) {
+                        el.classList.remove('hidden');
+                    } else {
+                        el.classList.add('hidden');
+                    }
+                });
+            });
+
+            // Đồng bộ danh sách cột sang đường link Xuất file Excel & PDF
+            const exportExcelLinks = document.querySelectorAll('.export-excel-link');
+            exportExcelLinks.forEach(link => {
+                try {
+                    const url = new URL(link.href, window.location.origin);
+                    url.searchParams.set('columns', Array.from(colSet).join(','));
+                    link.href = url.pathname + url.search;
+                } catch (e) {}
+            });
+
+            const exportPdfLinks = document.querySelectorAll('.export-pdf-link');
+            exportPdfLinks.forEach(link => {
+                try {
+                    const url = new URL(link.href, window.location.origin);
+                    url.searchParams.set('columns', Array.from(colSet).join(','));
+                    link.href = url.pathname + url.search;
+                } catch (e) {}
+            });
+
+            // Lưu cấu hình vào localStorage
+            localStorage.setItem(COLUMN_STORAGE_KEY, JSON.stringify(Array.from(colSet)));
+        }
+
+        function resetDefaultColumns() {
+            localStorage.removeItem(COLUMN_STORAGE_KEY);
+            applyColumns(DEFAULT_COLUMNS);
+        }
+
+        function toggleColumnMenu(e) {
+            if (e) e.stopPropagation();
+            const menu = document.getElementById('columnToggleMenu');
+            if (menu) menu.classList.toggle('hidden');
+        }
+
+        // Lắng nghe sự kiện click checkbox cột
+        document.querySelectorAll('.col-toggle-checkbox').forEach(cb => {
+            cb.addEventListener('change', () => {
+                const activeCols = [];
+                document.querySelectorAll('.col-toggle-checkbox').forEach(item => {
+                    if (item.checked) activeCols.push(item.dataset.targetCol);
+                });
+                applyColumns(activeCols);
+            });
+        });
+
+        // Đóng dropdown khi click ra ngoài
+        document.addEventListener('click', function (event) {
+            // Export dropdown
+            const exportDropdown = document.getElementById('exportDropdown');
+            const exportBtn = event.target.closest('[onclick="toggleExportDropdown()"]');
+            if (exportDropdown && !exportDropdown.contains(event.target) && !exportBtn) {
+                exportDropdown.classList.add('hidden');
+            }
+
+            // Column menu dropdown
+            const columnMenu = document.getElementById('columnToggleMenu');
+            const columnBtn = event.target.closest('#columnToggleBtn');
+            if (columnMenu && !columnMenu.contains(event.target) && !columnBtn) {
+                columnMenu.classList.add('hidden');
             }
         });
+
+        // Khởi chạy áp dụng cột ngay khi tải trang
+        document.addEventListener('DOMContentLoaded', () => {
+            applyColumns(getStoredColumns());
+        });
+        applyColumns(getStoredColumns());
 
         // Bulk selection functionality
         const selectAllCheckbox = document.getElementById('selectAll');

@@ -166,7 +166,15 @@ class InventoryController extends Controller
                 'status' => $painting->status,
                 'artist' => $painting->artist,
                 'material' => $painting->material,
+                'width' => $painting->width,
+                'height' => $painting->height,
+                'depth' => $painting->depth,
+                'dimensions' => ($painting->width && $painting->height) ? ($painting->width . 'cm × ' . $painting->height . 'cm' . ($painting->depth ? ' × ' . $painting->depth . 'cm' : '')) : null,
+                'paint_year' => $painting->paint_year,
                 'price_usd' => $painting->price_usd,
+                'price_vnd' => $painting->price_vnd,
+                'image' => $painting->image,
+                'notes' => $painting->notes,
                 'sales' => $completedSalesMap[$painting->id] ?? collect(),
             ];
         });
@@ -232,8 +240,20 @@ class InventoryController extends Controller
                 'unit' => $supply->unit,
                 'import_date' => $supply->import_date?->format('d/m/Y'),
                 'import_date_raw' => $supply->import_date,
+                'export_date' => null,
                 'created_at' => $supply->created_at,
                 'status' => $supply->status,
+                'artist' => null,
+                'material' => null,
+                'width' => null,
+                'height' => null,
+                'depth' => null,
+                'dimensions' => null,
+                'paint_year' => null,
+                'price_usd' => null,
+                'price_vnd' => null,
+                'image' => $supply->image,
+                'notes' => $supply->notes,
                 'sales' => collect(),
             ];
         });
@@ -370,7 +390,15 @@ class InventoryController extends Controller
                     'status' => $painting->status,
                     'artist' => $painting->artist,
                     'material' => $painting->material,
+                    'width' => $painting->width,
+                    'height' => $painting->height,
+                    'depth' => $painting->depth,
+                    'dimensions' => ($painting->width && $painting->height) ? ($painting->width . 'cm × ' . $painting->height . 'cm' . ($painting->depth ? ' × ' . $painting->depth . 'cm' : '')) : null,
+                    'paint_year' => $painting->paint_year,
                     'price_usd' => $painting->price_usd,
+                    'price_vnd' => $painting->price_vnd,
+                    'image' => $painting->image,
+                    'notes' => $painting->notes,
                     'sales' => $completedSalesMap[$painting->id] ?? collect(),
                 ];
             } elseif ($item['type'] === 'supply' && isset($supplies[$item['id']])) {
@@ -389,6 +417,17 @@ class InventoryController extends Controller
                     'export_date' => null,
                     'created_at' => $supply->created_at,
                     'status' => $supply->status,
+                    'artist' => null,
+                    'material' => null,
+                    'width' => null,
+                    'height' => null,
+                    'depth' => null,
+                    'dimensions' => null,
+                    'paint_year' => null,
+                    'price_usd' => null,
+                    'price_vnd' => null,
+                    'image' => $supply->image,
+                    'notes' => $supply->notes,
                     'sales' => collect(),
                 ];
             }
@@ -1127,7 +1166,7 @@ class InventoryController extends Controller
         }
 
         // Get filtered data (same logic as index)
-        $paintingsQuery = Painting::query();
+        $paintingsQuery = Painting::with(['saleItems.sale']);
         if ($search) {
             $paintingsQuery->search($search);
         }
@@ -1171,6 +1210,23 @@ class InventoryController extends Controller
         $inventory = collect();
         if (!$type || $type === 'painting') {
             $inventory = $inventory->merge($paintings->map(function ($painting) {
+                $exportDate = null;
+                $invoiceCodes = [];
+                if ($painting->saleItems) {
+                    foreach ($painting->saleItems as $si) {
+                        if (!$si->is_returned && $si->sale && $si->sale->sale_status === 'completed') {
+                            if (!$exportDate && $si->sale->sale_date) {
+                                $exportDate = $si->sale->sale_date->format('d/m/Y');
+                            }
+                            if ($si->sale->invoice_code) {
+                                $invoiceCodes[] = $si->sale->invoice_code;
+                            }
+                        }
+                    }
+                }
+
+                $dimensions = ($painting->width && $painting->height) ? ($painting->width . 'cm × ' . $painting->height . 'cm' . ($painting->depth ? ' × ' . $painting->depth . 'cm' : '')) : '';
+
                 return [
                     'code' => $painting->code,
                     'name' => $painting->name,
@@ -1178,10 +1234,16 @@ class InventoryController extends Controller
                     'quantity' => $painting->quantity,
                     'unit' => '',
                     'import_date' => $painting->import_date?->format('d/m/Y'),
+                    'export_date' => $exportDate ?? '',
+                    'invoice_code' => !empty($invoiceCodes) ? implode(', ', $invoiceCodes) : '',
                     'status' => $painting->status == 'in_stock' ? 'Còn hàng' : 'Đã bán',
-                    'artist' => $painting->artist,
-                    'material' => $painting->material,
-                    'price_usd' => $painting->price_usd,
+                    'artist' => $painting->artist ?? '',
+                    'material' => $painting->material ?? '',
+                    'dimensions' => $dimensions,
+                    'paint_year' => $painting->paint_year ?? '',
+                    'price_usd' => $painting->price_usd ? '$' . number_format($painting->price_usd, 2) : '',
+                    'price_vnd' => $painting->price_vnd ? number_format($painting->price_vnd) . 'đ' : '',
+                    'notes' => $painting->notes ?? '',
                     'image_path' => $painting->image ? public_path('storage/' . $painting->image) : '',
                     'created_at' => $painting->created_at,
                 ];
@@ -1202,10 +1264,16 @@ class InventoryController extends Controller
                     'quantity' => $quantityDisplay,
                     'unit' => $supply->unit,
                     'import_date' => $supply->import_date?->format('d/m/Y'),
+                    'export_date' => '',
+                    'invoice_code' => '',
                     'status' => $supply->quantity > 0 ? 'Còn hàng' : 'Hết hàng',
                     'artist' => '',
                     'material' => '',
+                    'dimensions' => '',
+                    'paint_year' => '',
                     'price_usd' => '',
+                    'price_vnd' => '',
+                    'notes' => $supply->notes ?? '',
                     'image_path' => $supply->image ? public_path('storage/' . $supply->image) : '',
                     'created_at' => $supply->created_at,
                 ];
@@ -1223,8 +1291,9 @@ class InventoryController extends Controller
         }
 
         $filename = 'quan-ly-kho-' . date('Y-m-d-His') . '.xlsx';
+        $columns = $request->get('columns') ? array_filter(explode(',', $request->get('columns'))) : null;
 
-        return Excel::download(new InventoryExport($inventory), $filename);
+        return Excel::download(new InventoryExport($inventory, $columns), $filename);
     }
 
     public function exportPdf(Request $request)
@@ -1236,6 +1305,35 @@ class InventoryController extends Controller
         $scope = $request->get('scope', 'all');
         $currentPage = (int) $request->get('page', 1);
         $perPage = 10;
+
+        $columnTitles = [
+            'stt' => 'STT',
+            'code' => 'Mã',
+            'name' => 'Tên sản phẩm',
+            'type' => 'Loại',
+            'artist' => 'Họa sĩ',
+            'material' => 'Chất liệu',
+            'dimensions' => 'Kích thước',
+            'paint_year' => 'Năm SX',
+            'price_usd' => 'Giá USD',
+            'price_vnd' => 'Giá VND',
+            'quantity' => 'Số lượng',
+            'import_date' => 'Ngày nhập',
+            'export_date' => 'Ngày xuất',
+            'invoice_code' => 'Số HĐ',
+            'status' => 'Trạng thái',
+        ];
+
+        $columnsParam = $request->get('columns') ? array_filter(explode(',', $request->get('columns'))) : null;
+        if (!empty($columnsParam)) {
+            $validKeys = array_keys($columnTitles);
+            $selectedColumns = array_values(array_intersect($columnsParam, $validKeys));
+            if (empty($selectedColumns)) {
+                $selectedColumns = $validKeys;
+            }
+        } else {
+            $selectedColumns = array_keys($columnTitles);
+        }
 
         // Check view permission
         $canView = true;
@@ -1256,13 +1354,15 @@ class InventoryController extends Controller
                 'type' => $type,
                 'dateFrom' => $dateFrom,
                 'dateTo' => $dateTo,
-                'scope' => $scope
-            ]);
+                'scope' => $scope,
+                'selectedColumns' => $selectedColumns,
+                'columnTitles' => $columnTitles,
+            ])->setPaper('a4', 'landscape');
             return $pdf->download('quan-ly-kho-' . date('Y-m-d-His') . '.pdf');
         }
 
         // Get filtered data (same logic as index)
-        $paintingsQuery = Painting::query();
+        $paintingsQuery = Painting::with(['saleItems.sale']);
         if ($search) {
             $paintingsQuery->search($search);
         }
@@ -1306,6 +1406,23 @@ class InventoryController extends Controller
         $inventory = collect();
         if (!$type || $type === 'painting') {
             $inventory = $inventory->merge($paintings->map(function ($painting) {
+                $exportDate = null;
+                $invoiceCodes = [];
+                if ($painting->saleItems) {
+                    foreach ($painting->saleItems as $si) {
+                        if (!$si->is_returned && $si->sale && $si->sale->sale_status === 'completed') {
+                            if (!$exportDate && $si->sale->sale_date) {
+                                $exportDate = $si->sale->sale_date->format('d/m/Y');
+                            }
+                            if ($si->sale->invoice_code) {
+                                $invoiceCodes[] = $si->sale->invoice_code;
+                            }
+                        }
+                    }
+                }
+
+                $dimensions = ($painting->width && $painting->height) ? ($painting->width . 'cm × ' . $painting->height . 'cm' . ($painting->depth ? ' × ' . $painting->depth . 'cm' : '')) : '';
+
                 return [
                     'code' => $painting->code,
                     'name' => $painting->name,
@@ -1313,8 +1430,16 @@ class InventoryController extends Controller
                     'quantity' => $painting->quantity,
                     'unit' => '',
                     'import_date' => $painting->import_date?->format('d/m/Y'),
+                    'export_date' => $exportDate ?? '',
+                    'invoice_code' => !empty($invoiceCodes) ? implode(', ', $invoiceCodes) : '',
                     'status' => $painting->status == 'in_stock' ? 'Còn hàng' : 'Đã bán',
-                    'image' => $painting->image ? public_path('storage/' . $painting->image) : '',
+                    'artist' => $painting->artist ?? '',
+                    'material' => $painting->material ?? '',
+                    'dimensions' => $dimensions,
+                    'paint_year' => $painting->paint_year ?? '',
+                    'price_usd' => $painting->price_usd,
+                    'price_vnd' => $painting->price_vnd,
+                    'notes' => $painting->notes ?? '',
                     'created_at' => $painting->created_at,
                 ];
             }));
@@ -1334,8 +1459,16 @@ class InventoryController extends Controller
                     'quantity' => $quantityDisplay,
                     'unit' => $supply->unit,
                     'import_date' => $supply->import_date?->format('d/m/Y'),
+                    'export_date' => '',
+                    'invoice_code' => '',
                     'status' => $supply->quantity > 0 ? 'Còn hàng' : 'Hết hàng',
-                    'image' => $supply->image ? public_path('storage/' . $supply->image) : '',
+                    'artist' => '',
+                    'material' => '',
+                    'dimensions' => '',
+                    'paint_year' => '',
+                    'price_usd' => null,
+                    'price_vnd' => null,
+                    'notes' => $supply->notes ?? '',
                     'created_at' => $supply->created_at,
                 ];
             }));
@@ -1351,57 +1484,9 @@ class InventoryController extends Controller
             $inventory = $inventory->forPage($currentPage, $perPage)->values();
         }
 
-        // Increase limits for large exports with images
-        set_time_limit(300);
-        ini_set('memory_limit', '2048M');
-
-        // Convert images to tiny base64 thumbnails to avoid memory exhaustion
-        $inventory = $inventory->map(function ($item) {
-            $item['image_base64'] = '';
-            $imagePath = $item['image'] ?? '';
-            if ($imagePath && file_exists($imagePath)) {
-                try {
-                    $imageInfo = @getimagesize($imagePath);
-                    if ($imageInfo) {
-                        $mime = $imageInfo['mime'];
-                        $sourceImage = null;
-                        switch ($mime) {
-                            case 'image/jpeg':
-                                $sourceImage = @imagecreatefromjpeg($imagePath);
-                                break;
-                            case 'image/png':
-                                $sourceImage = @imagecreatefrompng($imagePath);
-                                break;
-                            case 'image/webp':
-                                $sourceImage = @imagecreatefromwebp($imagePath);
-                                break;
-                        }
-                        if ($sourceImage) {
-                            $thumbSize = 40;
-                            $thumb = imagecreatetruecolor($thumbSize, $thumbSize);
-                            $origW = imagesx($sourceImage);
-                            $origH = imagesy($sourceImage);
-                            imagecopyresampled($thumb, $sourceImage, 0, 0, 0, 0, $thumbSize, $thumbSize, $origW, $origH);
-                            imagedestroy($sourceImage);
-
-                            ob_start();
-                            imagejpeg($thumb, null, 40); // Very low quality to save memory
-                            $thumbData = ob_get_clean();
-                            imagedestroy($thumb);
-
-                            $item['image_base64'] = 'data:image/jpeg;base64,' . base64_encode($thumbData);
-                        }
-                    }
-                } catch (\Exception $e) {
-                    // Skip if image processing fails
-                }
-            }
-            unset($item['image']); // Free the path string
-            return $item;
-        });
-
-        $pdf = Pdf::loadView('inventory.export-pdf', compact('inventory', 'search', 'type', 'dateFrom', 'dateTo', 'scope'))
-            ->setPaper('a4', 'landscape');
+        $pdf = Pdf::loadView('inventory.export-pdf', compact(
+            'inventory', 'search', 'type', 'dateFrom', 'dateTo', 'scope', 'selectedColumns', 'columnTitles'
+        ))->setPaper('a4', 'landscape');
 
         $filename = 'quan-ly-kho-' . date('Y-m-d-His') . '.pdf';
         return $pdf->download($filename);

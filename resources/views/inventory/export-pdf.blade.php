@@ -11,46 +11,47 @@
         }
         body {
             font-family: DejaVu Sans, sans-serif;
-            font-size: 10px;
+            font-size: 8px;
             color: #333;
+            padding: 10px;
         }
         .header {
             text-align: center;
-            margin-bottom: 15px;
-            padding-bottom: 10px;
+            margin-bottom: 12px;
+            padding-bottom: 8px;
             border-bottom: 2px solid #2563eb;
         }
         .header h1 {
-            font-size: 18px;
+            font-size: 16px;
             color: #1e40af;
-            margin-bottom: 5px;
+            margin-bottom: 4px;
         }
         .header .subtitle {
-            font-size: 11px;
+            font-size: 10px;
             color: #6b7280;
         }
         .filters {
-            margin-bottom: 10px;
-            font-size: 9px;
+            margin-bottom: 8px;
+            font-size: 8px;
             color: #6b7280;
         }
         table {
             width: 100%;
             border-collapse: collapse;
-            margin-bottom: 15px;
+            margin-bottom: 12px;
         }
         th {
             background-color: #2563eb;
             color: white;
-            padding: 6px 4px;
+            padding: 5px 3px;
             text-align: left;
-            font-size: 9px;
+            font-size: 8px;
             font-weight: bold;
         }
         td {
-            padding: 4px 4px;
+            padding: 4px 3px;
             border-bottom: 1px solid #e5e7eb;
-            font-size: 9px;
+            font-size: 7.5px;
             vertical-align: middle;
         }
         tr:nth-child(even) {
@@ -59,17 +60,17 @@
         .type-painting {
             background-color: #f3e8ff;
             color: #7c3aed;
-            padding: 2px 6px;
-            border-radius: 3px;
-            font-size: 8px;
+            padding: 1px 4px;
+            border-radius: 2px;
+            font-size: 7px;
             font-weight: bold;
         }
         .type-supply {
             background-color: #dbeafe;
             color: #2563eb;
-            padding: 2px 6px;
-            border-radius: 3px;
-            font-size: 8px;
+            padding: 1px 4px;
+            border-radius: 2px;
+            font-size: 7px;
             font-weight: bold;
         }
         .status-available {
@@ -80,18 +81,12 @@
             color: #dc2626;
             font-weight: bold;
         }
-        .item-image {
-            width: 35px;
-            height: 35px;
-            object-fit: cover;
-            border-radius: 3px;
-        }
         .footer {
             text-align: center;
             font-size: 8px;
             color: #9ca3af;
-            margin-top: 10px;
-            padding-top: 8px;
+            margin-top: 8px;
+            padding-top: 6px;
             border-top: 1px solid #e5e7eb;
         }
         .text-right {
@@ -128,45 +123,94 @@
     <table>
         <thead>
             <tr>
-                <th style="width: 3%">STT</th>
-                <th style="width: 10%">Mã</th>
-                <th style="width: 24%">Tên sản phẩm</th>
-                <th style="width: 7%">Loại</th>
-                <th style="width: 18%">Số lượng</th>
-                <th style="width: 10%">Ngày nhập</th>
-                <th style="width: 10%">Trạng thái</th>
-                <th style="width: 8%">Ảnh</th>
+                @foreach($selectedColumns as $col)
+                    <th class="{{ in_array($col, ['stt', 'type', 'import_date', 'export_date', 'status', 'paint_year']) ? 'text-center' : (in_array($col, ['price_usd', 'price_vnd']) ? 'text-right' : 'text-left') }}">
+                        {{ $columnTitles[$col] ?? $col }}
+                    </th>
+                @endforeach
             </tr>
         </thead>
         <tbody>
             @forelse($inventory as $index => $item)
                 <tr>
-                    <td class="text-center">{{ $index + 1 }}</td>
-                    <td>{{ $item['code'] }}</td>
-                    <td>{{ $item['name'] }}</td>
-                    <td class="text-center">
-                        <span class="{{ $item['type'] === 'Tranh' ? 'type-painting' : 'type-supply' }}">
-                            {{ $item['type'] }}
-                        </span>
-                    </td>
-                    <td>{{ $item['quantity'] }}</td>
-                    <td>{{ $item['import_date'] ?? '-' }}</td>
-                    <td>
-                        <span class="{{ str_contains($item['status'], 'Còn') ? 'status-available' : 'status-sold' }}">
-                            {{ $item['status'] }}
-                        </span>
-                    </td>
-                    <td class="text-center">
-                        @if(!empty($item['image_base64']))
-                            <img src="{{ $item['image_base64'] }}" class="item-image" alt="">
-                        @else
-                            -
-                        @endif
-                    </td>
+                    @foreach($selectedColumns as $col)
+                        @switch($col)
+                            @case('stt')
+                                <td class="text-center">{{ $index + 1 }}</td>
+                                @break
+                            @case('code')
+                                <td style="font-weight: bold; color: #4f46e5;">{{ $item['code'] }}</td>
+                                @break
+                            @case('name')
+                                <td>{{ $item['name'] }}</td>
+                                @break
+                            @case('type')
+                                <td class="text-center">
+                                    <span class="{{ $item['type'] === 'Tranh' ? 'type-painting' : 'type-supply' }}">
+                                        {{ $item['type'] }}
+                                    </span>
+                                </td>
+                                @break
+                            @case('artist')
+                                <td>{{ $item['artist'] ?? '-' }}</td>
+                                @break
+                            @case('material')
+                                <td>
+                                    @php
+                                        $material = $item['material'] ?? '';
+                                        $materialLabels = [
+                                            'son_dau' => 'Sơn dầu',
+                                            'canvas' => 'Canvas',
+                                            'thuy_mac' => 'Thủy mặc',
+                                            'acrylic' => 'Acrylic',
+                                        ];
+                                        echo $materialLabels[$material] ?? ($material ?: '-');
+                                    @endphp
+                                </td>
+                                @break
+                            @case('dimensions')
+                                <td>{{ $item['dimensions'] ?? '-' }}</td>
+                                @break
+                            @case('paint_year')
+                                <td class="text-center">{{ $item['paint_year'] ?? '-' }}</td>
+                                @break
+                            @case('price_usd')
+                                <td class="text-right" style="color: #2563eb; font-weight: bold;">
+                                    {{ !empty($item['price_usd']) ? '$' . number_format($item['price_usd'], 2) : '-' }}
+                                </td>
+                                @break
+                            @case('price_vnd')
+                                <td class="text-right" style="color: #059669; font-weight: bold;">
+                                    {{ !empty($item['price_vnd']) ? number_format($item['price_vnd']) . 'đ' : '-' }}
+                                </td>
+                                @break
+                            @case('quantity')
+                                <td>{{ $item['quantity'] }}</td>
+                                @break
+                            @case('import_date')
+                                <td class="text-center">{{ $item['import_date'] ?? '-' }}</td>
+                                @break
+                            @case('export_date')
+                                <td class="text-center">{{ $item['export_date'] ?? '-' }}</td>
+                                @break
+                            @case('invoice_code')
+                                <td>{{ $item['invoice_code'] ?? '-' }}</td>
+                                @break
+                            @case('status')
+                                <td class="text-center">
+                                    <span class="{{ str_contains($item['status'], 'Còn') ? 'status-available' : 'status-sold' }}">
+                                        {{ $item['status'] }}
+                                    </span>
+                                </td>
+                                @break
+                            @default
+                                <td>{{ $item[$col] ?? '-' }}</td>
+                        @endswitch
+                    @endforeach
                 </tr>
             @empty
                 <tr>
-                    <td colspan="8" class="text-center" style="padding: 20px; color: #9ca3af;">
+                    <td colspan="{{ count($selectedColumns) }}" class="text-center" style="padding: 20px; color: #9ca3af;">
                         Không có dữ liệu
                     </td>
                 </tr>
