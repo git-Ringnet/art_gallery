@@ -525,10 +525,45 @@
             {{ $inventory->links() }}
         </div>
     </div>
+
+    <!-- Image Preview Modal -->
+    <div id="imageModal" class="fixed inset-0 bg-black bg-opacity-75 z-50 hidden flex items-center justify-center p-4" onclick="closeImageModal()">
+        <div class="relative max-w-4xl max-h-full" onclick="event.stopPropagation()">
+            <button onclick="closeImageModal()" class="absolute -top-10 right-0 text-white hover:text-gray-300">
+                <i class="fas fa-times text-2xl"></i>
+            </button>
+            <img id="modalImage" src="" alt="" class="max-w-full max-h-[85vh] object-contain rounded-lg shadow-2xl">
+            <p id="modalImageTitle" class="text-white text-center mt-3 text-base font-medium"></p>
+        </div>
+    </div>
 @endsection
 
 @push('scripts')
     <script>
+        function showImageModal(imageSrc, imageTitle) {
+            const modal = document.getElementById('imageModal');
+            const modalImage = document.getElementById('modalImage');
+            const modalTitle = document.getElementById('modalImageTitle');
+            if (modalImage) modalImage.src = imageSrc || '';
+            if (modalTitle) modalTitle.textContent = imageTitle || '';
+            if (modal) {
+                modal.classList.remove('hidden');
+                document.body.style.overflow = 'hidden';
+            }
+        }
+
+        function closeImageModal() {
+            const modal = document.getElementById('imageModal');
+            if (modal) modal.classList.add('hidden');
+            document.body.style.overflow = 'auto';
+        }
+
+        document.addEventListener('keydown', function(event) {
+            if (event.key === 'Escape') {
+                closeImageModal();
+            }
+        });
+
         function toggleExportDropdown() {
             const dropdown = document.getElementById('exportDropdown');
             dropdown.classList.toggle('hidden');
@@ -537,7 +572,7 @@
         // ==========================================
         // Column Visibility & Ordering Management
         // ==========================================
-        const COLUMN_STORAGE_KEY = 'art_gallery_inventory_columns_v3';
+        const COLUMN_STORAGE_KEY = 'art_gallery_inventory_columns_v5';
         const ALL_COLUMNS = [
             'stt', 'code', 'name', 'type', 'artist', 'material',
             'dimensions', 'paint_year', 'price_usd', 'price_vnd',
@@ -583,11 +618,23 @@
             });
 
             // Đồng bộ danh sách cột sang đường link Xuất file Excel & PDF
+            // Xuất Excel và PDF luôn kèm cột 'image' (hình ảnh) theo yêu cầu
+            const exportCols = Array.from(colSet);
+            if (!exportCols.includes('image')) {
+                const sttIdx = exportCols.indexOf('stt');
+                if (sttIdx !== -1) {
+                    exportCols.splice(sttIdx + 1, 0, 'image');
+                } else {
+                    exportCols.unshift('image');
+                }
+            }
+            const exportColsParam = exportCols.join(',');
+
             const exportExcelLinks = document.querySelectorAll('.export-excel-link');
             exportExcelLinks.forEach(link => {
                 try {
                     const url = new URL(link.href, window.location.origin);
-                    url.searchParams.set('columns', Array.from(colSet).join(','));
+                    url.searchParams.set('columns', exportColsParam);
                     link.href = url.pathname + url.search;
                 } catch (e) {}
             });
@@ -596,7 +643,7 @@
             exportPdfLinks.forEach(link => {
                 try {
                     const url = new URL(link.href, window.location.origin);
-                    url.searchParams.set('columns', Array.from(colSet).join(','));
+                    url.searchParams.set('columns', exportColsParam);
                     link.href = url.pathname + url.search;
                 } catch (e) {}
             });

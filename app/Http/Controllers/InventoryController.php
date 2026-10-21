@@ -1141,6 +1141,9 @@ class InventoryController extends Controller
 
     public function exportExcel(Request $request)
     {
+        set_time_limit(600);
+        ini_set('memory_limit', '1024M');
+
         $search = $request->get('search');
         $type = $request->get('type');
         $dateFrom = $request->get('date_from');
@@ -1292,6 +1295,14 @@ class InventoryController extends Controller
 
         $filename = 'quan-ly-kho-' . date('Y-m-d-His') . '.xlsx';
         $columns = $request->get('columns') ? array_filter(explode(',', $request->get('columns'))) : null;
+        if ($columns && !in_array('image', $columns)) {
+            $sttIdx = array_search('stt', $columns);
+            if ($sttIdx !== false) {
+                array_splice($columns, $sttIdx + 1, 0, 'image');
+            } else {
+                array_unshift($columns, 'image');
+            }
+        }
 
         return Excel::download(new InventoryExport($inventory, $columns), $filename);
     }
@@ -1308,6 +1319,7 @@ class InventoryController extends Controller
 
         $columnTitles = [
             'stt' => 'STT',
+            'image' => 'Hình ảnh',
             'code' => 'Mã',
             'name' => 'Tên sản phẩm',
             'type' => 'Loại',
@@ -1333,6 +1345,16 @@ class InventoryController extends Controller
             }
         } else {
             $selectedColumns = array_keys($columnTitles);
+        }
+
+        // Đảm bảo luôn có cột hình ảnh khi xuất PDF
+        if (!in_array('image', $selectedColumns)) {
+            $sttIdx = array_search('stt', $selectedColumns);
+            if ($sttIdx !== false) {
+                array_splice($selectedColumns, $sttIdx + 1, 0, 'image');
+            } else {
+                array_unshift($selectedColumns, 'image');
+            }
         }
 
         // Check view permission
@@ -1440,6 +1462,7 @@ class InventoryController extends Controller
                     'price_usd' => $painting->price_usd,
                     'price_vnd' => $painting->price_vnd,
                     'notes' => $painting->notes ?? '',
+                    'image_path' => $painting->image ? public_path('storage/' . $painting->image) : '',
                     'created_at' => $painting->created_at,
                 ];
             }));
@@ -1469,6 +1492,7 @@ class InventoryController extends Controller
                     'price_usd' => null,
                     'price_vnd' => null,
                     'notes' => $supply->notes ?? '',
+                    'image_path' => $supply->image ? public_path('storage/' . $supply->image) : '',
                     'created_at' => $supply->created_at,
                 ];
             }));
@@ -1482,6 +1506,62 @@ class InventoryController extends Controller
         // If scope is 'current', only export current page
         if ($scope === 'current') {
             $inventory = $inventory->forPage($currentPage, $perPage)->values();
+        }
+
+        if (in_array('image', $selectedColumns)) {
+            set_time_limit(600);
+            ini_set('memory_limit', '1024M');
+
+            $hasGd = function_exists('imagecreatetruecolor');
+
+            $inventory = $inventory->map(function ($item) use ($hasGd) {
+                $item['image_base64'] = '';
+                $imagePath = $item['image_path'] ?? '';
+                if ($imagePath && file_exists($imagePath)) {
+                    try {
+                        if ($hasGd) {
+                            $imageInfo = @getimagesize($imagePath);
+                            if ($imageInfo) {
+                                $mime = $imageInfo['mime'];
+                                $sourceImage = match ($mime) {
+                                    'image/jpeg' => @imagecreatefromjpeg($imagePath),
+                                    'image/png' => @imagecreatefrompng($imagePath),
+                                    'image/webp' => @imagecreatefromwebp($imagePath),
+                                    default => null,
+                                };
+                                if ($sourceImage) {
+                                    $thumbSize = 45;
+                                    $thumb = imagecreatetruecolor($thumbSize, $thumbSize);
+                                    if ($mime === 'image/png') {
+                                        imagealphablending($thumb, false);
+                                        imagesavealpha($thumb, true);
+                                    }
+                                    $origW = imagesx($sourceImage);
+                                    $origH = imagesy($sourceImage);
+                                    imagecopyresampled($thumb, $sourceImage, 0, 0, 0, 0, $thumbSize, $thumbSize, $origW, $origH);
+                                    imagedestroy($sourceImage);
+
+                                    ob_start();
+                                    imagejpeg($thumb, null, 50);
+                                    $thumbData = ob_get_clean();
+                                    imagedestroy($thumb);
+
+                                    $item['image_base64'] = 'data:image/jpeg;base64,' . base64_encode($thumbData);
+                                }
+                            }
+                        }
+
+                        // Fallback if GD is not installed or failed
+                        if (empty($item['image_base64'])) {
+                            $mime = function_exists('mime_content_type') ? mime_content_type($imagePath) : 'image/jpeg';
+                            $item['image_base64'] = 'data:' . $mime . ';base64,' . base64_encode(file_get_contents($imagePath));
+                        }
+                    } catch (\Throwable $e) {
+                        // Skip if image processing fails
+                    }
+                }
+                return $item;
+            });
         }
 
         $pdf = Pdf::loadView('inventory.export-pdf', compact(

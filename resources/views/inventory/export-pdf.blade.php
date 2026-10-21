@@ -124,7 +124,7 @@
         <thead>
             <tr>
                 @foreach($selectedColumns as $col)
-                    <th class="{{ in_array($col, ['stt', 'type', 'import_date', 'export_date', 'status', 'paint_year']) ? 'text-center' : (in_array($col, ['price_usd', 'price_vnd']) ? 'text-right' : 'text-left') }}">
+                    <th class="{{ in_array($col, ['stt', 'image', 'type', 'import_date', 'export_date', 'status', 'paint_year']) ? 'text-center' : (in_array($col, ['price_usd', 'price_vnd']) ? 'text-right' : 'text-left') }}">
                         {{ $columnTitles[$col] ?? $col }}
                     </th>
                 @endforeach
@@ -137,6 +137,15 @@
                         @switch($col)
                             @case('stt')
                                 <td class="text-center">{{ $index + 1 }}</td>
+                                @break
+                            @case('image')
+                                <td class="text-center" style="width: 45px; padding: 2px;">
+                                    @if(!empty($item['image_base64']))
+                                        <img src="{{ $item['image_base64'] }}" style="width: 38px; height: 38px; object-fit: cover; border-radius: 2px;" alt="">
+                                    @else
+                                        -
+                                    @endif
+                                </td>
                                 @break
                             @case('code')
                                 <td style="font-weight: bold; color: #4f46e5;">{{ $item['code'] }}</td>

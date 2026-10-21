@@ -22,6 +22,7 @@ class InventoryExport implements FromCollection, WithHeadings, WithMapping, With
     // Định nghĩa tất cả cột có thể xuất
     protected static $columnDefinitions = [
         'stt' => ['title' => 'STT', 'width' => 8],
+        'image' => ['title' => 'Hình ảnh', 'width' => 16],
         'code' => ['title' => 'Mã', 'width' => 15],
         'name' => ['title' => 'Tên sản phẩm', 'width' => 30],
         'type' => ['title' => 'Loại', 'width' => 12],
@@ -78,6 +79,9 @@ class InventoryExport implements FromCollection, WithHeadings, WithMapping, With
                 case 'stt':
                     $this->rowNumber++;
                     $row[] = $this->rowNumber;
+                    break;
+                case 'image':
+                    $row[] = ''; // Placeholder for drawing
                     break;
                 case 'code':
                     $row[] = $item['code'] ?? '';
@@ -160,6 +164,45 @@ class InventoryExport implements FromCollection, WithHeadings, WithMapping, With
 
     public function registerEvents(): array
     {
-        return [];
+        $inventory = $this->inventory;
+        $selectedColumns = $this->selectedColumns;
+
+        return [
+            AfterSheet::class => function (AfterSheet $event) use ($inventory, $selectedColumns) {
+                $imageColIndex = array_search('image', $selectedColumns);
+                if ($imageColIndex === false) {
+                    return;
+                }
+
+                $sheet = $event->sheet->getDelegate();
+                $imageColLetter = Coordinate::stringFromColumnIndex($imageColIndex + 1);
+                $row = 2; // Start after header row
+
+                foreach ($inventory as $item) {
+                    $imagePath = $item['image_path'] ?? null;
+
+                    if ($imagePath && file_exists($imagePath)) {
+                        try {
+                            $drawing = new Drawing();
+                            $drawing->setName($item['name'] ?? 'Image');
+                            $drawing->setDescription($item['name'] ?? 'Image');
+                            $drawing->setPath($imagePath);
+                            $drawing->setHeight(55);
+                            $drawing->setCoordinates($imageColLetter . $row);
+                            $drawing->setOffsetX(4);
+                            $drawing->setOffsetY(4);
+                            $drawing->setWorksheet($sheet);
+
+                            // Set row height to fit the image
+                            $sheet->getRowDimension($row)->setRowHeight(48);
+                        } catch (\Throwable $e) {
+                            // If drawing fails, continue
+                        }
+                    }
+
+                    $row++;
+                }
+            },
+        ];
     }
 }
